@@ -21,10 +21,18 @@ import {
   replaceDeferredMarkers,
   wrapCitationPrompt,
 } from "deepcitation";
-import { readFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { createInterface } from "readline";
 import { fileURLToPath } from "url";
+import { execFileSync } from "child_process";
+
+// CLI internals — direct source imports (monorepo-only, not public API)
+import { markdownToHtml } from "../../../src/cli/markdownToHtml.js";
+import { escapeJsonForScript, escapeJsForScript, stripExistingInjection } from "../../../src/vanilla/reportUtils.js";
+import { CDN_JS } from "../../../src/vanilla/_generated_cdn.js";
+
+import { normalizeNumericMarkers } from "./fixture-to-html.js";
 
 // Get current directory for loading sample files
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -318,6 +326,112 @@ provided documents accurately and cite your sources.`;
     console.log(`   Partial: ${partial} (${((partial / verifications.length) * 100).toFixed(0)}%)`);
     console.log(`   Not found: ${missed}`);
   }
+
+  // ============================================
+  // STEP 6: GENERATE HTML REPORT
+  // The LLM response embeds citation claims in a <<<CITATION_DATA>>> JSON footer.
+  // Steps 3-4 already parsed those claims (parsedCitations) and verified them against
+  // the source document (verificationResult). Now we stitch both into an interactive
+  // HTML report:
+  //
+  //   parsedCitations   → anchorMap + keyMap  (what the LLM claimed)
+  //   verificationResult → dc-data JSON       (what the API verified)
+  //
+  // The CDN popover runtime reads dc-data and dc-key-map at init time, finds HTML
+  // elements with data-citation-key="<hash>", and attaches interactive popovers
+  // showing verification status, proof images, and matched snippets.
+  // ============================================
+
+  console.log("\n📄 Step 6: Generating HTML report...\n");
+
+  // anchorMap: tells markdownToHtml which phrase to wrap for each [N] marker.
+  //   Built from the <<<CITATION_DATA>>> block: citationNumber → anchorText.
+  // keyMap: tells the CDN runtime which verification hash corresponds to each
+  //   cite-N reference. Built from the same data: "cite-N" → content hash.
+  const anchorMap: Record<string, string> = {};
+  const keyMap: Record<string, string> = {};
+  for (const [hash, citation] of Object.entries(parsedCitations)) {
+    const num = citation.citationNumber;
+    if (num != null && citation.anchorText) {
+      anchorMap[String(num)] = citation.anchorText;
+      keyMap[`cite-${num}`] = hash;
+    }
+  }
+
+  // Normalize [N] markers: expand grouped markers [1, 5] → [1][5] and
+  // reposition markers that appear before their anchor text to after it.
+  const normalizedText = normalizeNumericMarkers(visibleText, anchorMap);
+
+  // markdownToHtml converts [N] markers → <span data-cite="N"> using the anchorMap,
+  // wrapping just the anchor phrase rather than the whole preceding clause.
+  const sourceLabel = source.type === "url" ? source.url : "filename" in source ? source.filename : source.label;
+  let html = markdownToHtml(normalizedText, {
+    style: "report",
+    title: sourceLabel,
+    citationCount,
+    anchorMap,
+  });
+
+  // Replace data-cite="N" with data-citation-key="<hash>" so the CDN runtime can
+  // look up each element's verification result in dc-data by hash.
+  // (Same pattern as commands.ts:1029-1047)
+  for (const [hash, citation] of Object.entries(parsedCitations)) {
+    const num = citation.citationNumber;
+    if (num == null) continue;
+    html = html.replace(new RegExp(`data-cite="${num}"`, "g"), `data-citation-key="${hash}"`);
+  }
+
+  // Strip leftover [N] text markers for known citation IDs (already wrapped as spans)
+  for (const citation of Object.values(parsedCitations)) {
+    const num = citation.citationNumber;
+    if (num == null) continue;
+    html = html.replace(new RegExp(`\\s*\\[${num}\\]`, "g"), "");
+  }
+
+  // Inject CDN runtime: embed the verification API results (dc-data) and the
+  // cite-N → hash lookup table (dc-key-map), then load the popover JS bundle.
+  // (Same pattern as commands.ts:1135-1160)
+  const stripped = stripExistingInjection(html);
+  html = stripped.html;
+
+  const cdnSnippet = [
+    `<script type="application/json" id="dc-data">${escapeJsonForScript(JSON.stringify(verificationResult.verifications))}</script>`,
+    `<script type="application/json" id="dc-key-map">${escapeJsonForScript(JSON.stringify(keyMap))}</script>`,
+    `<script>${escapeJsForScript(CDN_JS)}</script>`,
+    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:"auto"});</script>`,
+  ].join("\n");
+
+  // Use function callback to avoid $& expansion in cdnSnippet
+  if (html.includes("</body>")) {
+    html = html.replace("</body>", () => `${cdnSnippet}\n</body>`);
+  } else if (html.includes("</html>")) {
+    html = html.replace("</html>", () => `${cdnSnippet}\n</html>`);
+  } else {
+    html += `\n${cdnSnippet}`;
+  }
+
+  // Write HTML to output directory and open in browser
+  const outDir = resolve(__dirname, "../../output");
+  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+  const safeName = sourceLabel.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 50);
+  const outPath = resolve(outDir, `${safeName}-verified.html`);
+  writeFileSync(outPath, html);
+
+  console.log(`   Written: ${outPath}`);
+  console.log(`   Citations in HTML: ${Object.keys(anchorMap).length} anchors, ${Object.keys(keyMap).length} keys`);
+  console.log(`   Verifications in dc-data: ${Object.keys(verificationResult.verifications).length} entries`);
+
+  // Open in browser (WSL → Linux → macOS — silent on failure)
+  try {
+    // WSL: convert to Windows path for explorer.exe
+    const winPath = execFileSync("wslpath", ["-w", outPath], { encoding: "utf-8" }).trim();
+    execFileSync("explorer.exe", [winPath], { stdio: "ignore", timeout: 5000 });
+  } catch {
+    try { execFileSync("xdg-open", [outPath], { stdio: "ignore", timeout: 5000 }); }
+    catch { try { execFileSync("open", [outPath], { stdio: "ignore", timeout: 5000 }); } catch { /* manual open */ } }
+  }
+
+  console.log(`   Open: ${outPath}\n`);
 }
 
 /**
