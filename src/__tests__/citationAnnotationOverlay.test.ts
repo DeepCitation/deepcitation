@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { shouldHighlightAnchorText } from "../drawing/citationDrawing";
+import { computeBracketTarget, shouldHighlightAnchorText } from "../drawing/citationDrawing";
 import { isValidOverlayGeometry, toPercentRect, wordCount } from "../react/overlayGeometry";
 import type { DeepTextItem } from "../types/boxes";
 
@@ -171,6 +171,87 @@ describe("CitationAnnotationOverlay utilities", () => {
 
     it("returns false for whitespace-only strings", () => {
       expect(shouldHighlightAnchorText("   ", "hello world")).toBe(false);
+    });
+  });
+
+  describe("computeBracketTarget", () => {
+    function makeItem(x: number, y: number, width: number, height: number, text?: string): DeepTextItem {
+      return { x, y, width, height, text };
+    }
+
+    const broadPhraseLine = makeItem(252, 1212, 748, 31, "10 John Doe 50 / M Full NKDA contact CONSULTS");
+
+    it("returns bounding hull of anchorTextMatchDeepItems when available", () => {
+      // "NKDA" is a single word at x=644, w=63 — should NOT use the broad phrase line
+      const anchorItems = [makeItem(644, 1210, 63, 20, "NKDA")];
+      const result = computeBracketTarget(broadPhraseLine, anchorItems);
+
+      expect(result.x).toBe(644);
+      expect(result.width).toBe(63);
+      expect(result.y).toBe(1210);
+      expect(result.height).toBe(20);
+    });
+
+    it("computes bounding hull spanning multiple anchor items", () => {
+      // "John Doe 50/M" — four separate word boxes
+      const anchorItems = [
+        makeItem(307, 1208, 55, 25, "John"),
+        makeItem(374, 1209, 46, 24, "Doe"),
+        makeItem(446, 1211, 29, 24, "50"),
+        makeItem(473, 1210, 12, 23, "/"),
+      ];
+      const result = computeBracketTarget(broadPhraseLine, anchorItems);
+
+      // Hull: x from 307 to 307+55=362… but rightmost is 473+12=485
+      // y from min(1208,1209,1211,1210)=1208 to max bottom = max(1208+25,1209+24,1211+24,1210+23) = 1235
+      expect(result.x).toBe(307);
+      expect(result.width).toBe(485 - 307); // 178
+      expect(result.y).toBe(1208);
+      expect(result.height).toBe(1235 - 1208); // 27
+    });
+
+    it("falls back to phraseMatchDeepItem when anchorTextMatchDeepItems is undefined", () => {
+      const result = computeBracketTarget(broadPhraseLine, undefined);
+
+      expect(result.x).toBe(broadPhraseLine.x);
+      expect(result.y).toBe(broadPhraseLine.y);
+      expect(result.width).toBe(broadPhraseLine.width);
+      expect(result.height).toBe(broadPhraseLine.height);
+    });
+
+    it("falls back to phraseMatchDeepItem when anchorTextMatchDeepItems is empty", () => {
+      const result = computeBracketTarget(broadPhraseLine, []);
+
+      expect(result.x).toBe(broadPhraseLine.x);
+      expect(result.y).toBe(broadPhraseLine.y);
+      expect(result.width).toBe(broadPhraseLine.width);
+      expect(result.height).toBe(broadPhraseLine.height);
+    });
+
+    it("handles single anchor item correctly", () => {
+      const anchorItems = [makeItem(100, 200, 50, 20, "word")];
+      const phrase = makeItem(0, 200, 500, 20, "some long line of text");
+      const result = computeBracketTarget(phrase, anchorItems);
+
+      expect(result.x).toBe(100);
+      expect(result.width).toBe(50);
+    });
+
+    it("real-world: radial art line anchor should not span entire chart section", () => {
+      // phraseMatchDeepItem covers a massive area (many OCR lines merged)
+      const massivePhrase = makeItem(200, 800, 900, 300, "radial art line Bumex 5mg/hr ... PLAN: Optimize for transplant");
+      const anchorItems = [
+        makeItem(680, 950, 70, 20, "radial"),
+        makeItem(755, 950, 30, 20, "art"),
+        makeItem(790, 950, 40, 20, "line"),
+      ];
+      const result = computeBracketTarget(massivePhrase, anchorItems);
+
+      // Should be tight around "radial art line", NOT the massive phrase
+      expect(result.x).toBe(680);
+      expect(result.width).toBe(830 - 680); // 150, not 900
+      expect(result.y).toBe(950);
+      expect(result.height).toBe(20);
     });
   });
 });
