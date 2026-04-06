@@ -878,21 +878,30 @@ describe("FaviconImage", () => {
       expect(svg).toBeInTheDocument();
     });
 
-    it("falls back to GlobeIcon when image fails to load", async () => {
+    it("falls back to root-domain favicon then GlobeIcon when images fail to load", async () => {
       const { container } = render(
         <FaviconImage faviconUrl="https://invalid-url.com/broken.ico" domain="example.com" alt="Example" />,
       );
 
-      // Initially should show img
+      // Initially should show img with the provided faviconUrl
       const img = container.querySelector("img");
       expect(img).toBeInTheDocument();
 
-      // Trigger error event
+      // First error: falls back to root-domain /favicon.ico
       if (img) {
         fireEvent.error(img);
       }
+      await waitFor(() => {
+        const fallbackImg = container.querySelector("img");
+        expect(fallbackImg).toBeInTheDocument();
+        expect(fallbackImg?.getAttribute("src")).toBe("https://example.com/favicon.ico");
+      });
 
-      // After error, should show GlobeIcon (SVG)
+      // Second error: gives up and shows GlobeIcon (SVG)
+      const fallbackImg = container.querySelector("img");
+      if (fallbackImg) {
+        fireEvent.error(fallbackImg);
+      }
       await waitFor(() => {
         const svg = container.querySelector("svg");
         expect(svg).toBeInTheDocument();

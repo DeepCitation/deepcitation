@@ -5,8 +5,8 @@ import { extractDomain } from "../utils/urlSafety.js";
 import { getPortalContainer, TTC_TEXT_STYLE } from "./constants.js";
 import { useTranslation } from "./i18n.js";
 import { ChevronRightIcon, CloseIcon, SpinnerIcon } from "./icons.js";
-import { handleImageError, handleImageErrorOpacity } from "./imageUtils.js";
-import { detectSourceType, getFaviconUrl, getPlatformName } from "./SourcesListComponent.utils.js";
+import { useFaviconSrc } from "./imageUtils.js";
+import { detectSourceType, getPlatformName } from "./SourcesListComponent.utils.js";
 import { formatTtc } from "./timingUtils.js";
 import type { SourcesListItemProps, SourcesListProps, SourcesTriggerProps } from "./types.js";
 import { safeWindowOpen } from "./urlUtils.js";
@@ -110,7 +110,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
     );
 
     const platformName = useMemo(() => getPlatformName(url, domain), [url, domain]);
-    const favicon = useMemo(() => getFaviconUrl(url, faviconUrl), [url, faviconUrl]);
+    const { src: favicon, onError: faviconOnError } = useFaviconSrc(url, faviconUrl, 32);
     const detectedType = useMemo(() => sourceType || detectSourceType(url), [sourceType, url]);
 
     return (
@@ -152,14 +152,13 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
             })
           ) : (
             <img
-              src={favicon}
+              src={favicon || ""}
               alt=""
-              className="w-5 h-5 rounded"
+              className={classNames("w-5 h-5 rounded", !favicon && "hidden")}
               width={20}
               height={20}
               loading="lazy"
-              // Performance fix: use module-level handler to avoid re-render overhead
-              onError={handleImageError}
+              onError={faviconOnError}
             />
           )}
         </div>
@@ -218,6 +217,23 @@ SourcesListItem.displayName = "SourcesListItem";
 // SourcesTrigger Component
 // ============================================================================
 
+/** Stacked favicon with root-domain fallback (needs to be a component to use hooks). */
+const StackedFavicon = ({ url, faviconUrl, index }: { url: string; faviconUrl?: string; index: number }) => {
+  const { src, onError } = useFaviconSrc(url, faviconUrl, 16);
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt=""
+      className={classNames("w-4 h-4 rounded-full ring-2 ring-dc-background", index > 0 && "-ml-1")}
+      width={16}
+      height={16}
+      loading="lazy"
+      onError={onError}
+    />
+  );
+};
+
 /**
  * Compact trigger button that shows favicon previews and opens the sources list.
  * Matches the "Sources" button shown in the screenshots with stacked favicons.
@@ -249,17 +265,7 @@ export const SourcesTrigger = forwardRef<HTMLButtonElement, SourcesTriggerProps>
         {/* Stacked favicons */}
         <div className="flex items-center -space-x-1">
           {displaySources.map((source, i) => (
-            <img
-              key={source.id}
-              src={getFaviconUrl(source.url, source.faviconUrl)}
-              alt=""
-              className={classNames("w-4 h-4 rounded-full ring-2 ring-dc-background", i > 0 && "-ml-1")}
-              width={16}
-              height={16}
-              loading="lazy"
-              // Performance fix: use module-level handler to avoid re-render overhead
-              onError={handleImageErrorOpacity}
-            />
+            <StackedFavicon key={source.id} url={source.url} faviconUrl={source.faviconUrl} index={i} />
           ))}
           {hasMore && (
             <span className="w-4 h-4 rounded-full bg-dc-border ring-2 ring-dc-background flex items-center justify-center text-[9px] font-medium text-dc-muted-foreground">
