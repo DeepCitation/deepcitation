@@ -74,19 +74,10 @@ import { createCoworkFetch, createProxyFetch } from "./proxy.js";
 export const HELP = `deepcitation CLI
 
 Commands:
-  login     Log in to DeepCitation (browser flow, --key <key>, --stdin, or DEEPCITATION_API_KEY)
-  logout    Remove saved credentials
-  whoami    Show the currently logged-in user
-  status    Check auth status (exit 0 if logged in, exit 1 if not)
-  env       Print export DEEPCITATION_API_KEY=... for shell eval
+  auth      Authenticate (or show current status if already logged in)
   prepare   Prepare a file or URL for citation verification
   verify    Verify citations (--markdown, --html, or --citations)
-  hydrate   Fill in full_phrase from summary file (compact draft support)
-  inject    Inject DeepCitation verification into an existing HTML file
-  showcase  Build a local CDN comparison demo from markdownToHtml fixtures
-  keygen    Compute deterministic citation keys from a citations JSON file
-  get       Fetch full attachment metadata by ID
-  billing   Open the billing dashboard to add a payment method or manage spend cap
+  billing   Open the billing dashboard
 
 Run "deepcitation <command> --help" for command-specific options.
 `;
@@ -143,14 +134,14 @@ Arguments:
 
 Options:
   --out <file>              Output JSON path (default: .deepcitation/prepare-{name}.json)
-  --summary                 Print attachmentId and deepTextPages to stdout
+  --text                    Print attachmentId and deepTextPages to stdout
   --unsafe-fast             Use fast mode for URLs (skips rendering, vulnerable to hidden text)
   --skip-cache              Force a fresh fetch/conversion, bypassing the URL cache
   -h, --help                Show this help message
 
 Examples:
   deepcitation prepare report.pdf
-  deepcitation prepare report.pdf --summary
+  deepcitation prepare report.pdf --text
   deepcitation prepare https://example.com/article --out .deepcitation/prepare-article.json
   deepcitation prepare scan.jpg
   deepcitation prepare https://example.com/article --skip-cache
@@ -264,29 +255,23 @@ function writeVerifiedOutput(outPath: string, content: string): void {
   console.log(outPath);
 }
 
-/** Resolve auth or exit with the standard DeepCitation auth prompt. */
-export function requireAuth(): ResolvedAuth {
+/** Resolve auth or auto-trigger browser login. */
+export async function requireAuth(): Promise<ResolvedAuth> {
   const auth = resolveAuth();
-  if (!auth) {
-    const baseUrl = resolveBaseUrl();
-    if (IS_AI_AGENT) {
-      // Agent-friendly: tell the agent to log itself in via browser OAuth
-      console.error("DeepCitation — authentication required\n");
-      console.error("You are an AI agent. Log in by running:\n");
-      console.error("  npx deepcitation login --browser\n");
-      console.error("This opens a browser window for OAuth. The key is saved");
-      console.error("automatically so all future CLI commands just work.");
-      console.error(`\nAlternatively, set DEEPCITATION_API_KEY in your environment.`);
-    } else {
-      console.error("DeepCitation — action needed\n");
-      console.error(`1. Get your API key: ${baseUrl}/cli-auth?manual=true`);
-      console.error(`2. Run: npx deepcitation login --key '<your-key>'`);
-      console.error("   (This saves the key so all future commands just work.)");
-      console.error("   Or set: DEEPCITATION_API_KEY=<your-key>  (env var — no file written)");
-    }
+  if (auth) return auth;
+
+  console.error("DeepCitation — not logged in. Opening browser to authenticate...\n");
+  const baseUrl = resolveBaseUrl();
+  await login(["--browser"], baseUrl);
+
+  // Re-check after login completes
+  const afterLogin = resolveAuth();
+  if (!afterLogin) {
+    console.error("Login did not complete. You can also set DEEPCITATION_API_KEY manually.");
+    console.error(`  Get a key: ${baseUrl}/cli-auth?manual=true`);
     process.exit(1);
   }
-  return auth;
+  return afterLogin;
 }
 
 /** Create a DeepCitation client with automatic proxy detection. */
@@ -387,9 +372,9 @@ export function readKeyFromStdin(): { promise: Promise<string | null>; close: ()
 export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => string) {
   // Extract boolean flags before parseArgs (which only handles --key value pairs)
   const unsafeFast = argv.includes("--unsafe-fast");
-  const summary = argv.includes("--summary");
+  const text = argv.includes("--text") || argv.includes("--summary");
   const skipCache = argv.includes("--skip-cache");
-  const filteredArgv = argv.filter(a => a !== "--unsafe-fast" && a !== "--summary" && a !== "--skip-cache");
+  const filteredArgv = argv.filter(a => a !== "--unsafe-fast" && a !== "--text" && a !== "--summary" && a !== "--skip-cache");
 
   const args = parseArgs(filteredArgv, PREPARE_HELP);
 
@@ -397,7 +382,7 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   const positional = filteredArgv.find(a => !a.startsWith("--"));
   if (!positional) die("A file path or URL is required", PREPARE_HELP);
 
-  const { apiKey } = requireAuth();
+  const { apiKey } = await requireAuth();
 
   const dc = await createClient(apiKey);
 
@@ -437,7 +422,7 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   }
   console.error(`  Saved: ${outPath}`);
 
-  if (summary) {
+  if (text) {
     // Print attachmentId and deepTextPages as JSON to stdout so agents
     // can consume them with jq or JSON.parse (no extra Read call).
     console.log(
@@ -492,7 +477,7 @@ export async function verify(
   const citationsPath = args.citations;
   if (!citationsPath) die("--html or --citations is required", VERIFY_HELP);
 
-  const { apiKey } = requireAuth();
+  const { apiKey } = await requireAuth();
 
   const dc = await createClient(apiKey);
 
@@ -790,57 +775,54 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     parsed = parseCitationData(raw);
   }
 
-  // Auto-generate citations: prefer auto-gen over any <<<CITATION_DATA>>> block the
-  // agent may have emitted. Agents are instructed not to output citation JSON (the
-  // CLI generates it from the summary), but they sometimes do anyway — with wrong
-  // page IDs, verbose formats, or hallucinated values. Auto-gen always wins when
-  // [label](cite:N) markers exist and a summary is available.
-  const markers = extractMarkersFromBody(raw);
-  if (markers.length > 0) {
-    const summaryPath = args.summary ? resolve(args.summary as string) : findSummaryForMarkdown(resolved);
-    if (summaryPath && existsSync(summaryPath)) {
-      const summaryContent = readFileSync(summaryPath, "utf-8");
-      let attachmentId = "unknown";
-      try {
-        attachmentId = (JSON.parse(summaryContent) as { attachmentId?: string }).attachmentId ?? "unknown";
-      } catch {
-        /* use "unknown" */
-      }
-
-      const lineMap = parseSummaryToLineMap(summaryContent);
-      const allLines = getAllLines(lineMap);
-      const citations: CitationData[] = [];
-
-      for (const { id, displayLabel, anchorHint } of markers) {
-        const searchTerm = anchorHint ?? displayLabel;
-        const found = findAnchorWithFallback(searchTerm, allLines);
-        if (!found) {
-          console.error(`  Citation ${id} ("${displayLabel}"): not found in evidence`);
-          continue;
+  // Priority: <<<CITATION_DATA>>> block wins when present (agent provides
+  // deterministic page_id + line_ids). Fall back to auto-gen from body markers
+  // + heuristic search only when no CITATION_DATA block exists.
+  if (!parsed.success || parsed.citations.length === 0) {
+    const markers = extractMarkersFromBody(raw);
+    if (markers.length > 0) {
+      const summaryPath = args.summary ? resolve(args.summary as string) : findSummaryForMarkdown(resolved);
+      if (summaryPath && existsSync(summaryPath)) {
+        const summaryContent = readFileSync(summaryPath, "utf-8");
+        let attachmentId = "unknown";
+        try {
+          attachmentId = (JSON.parse(summaryContent) as { attachmentId?: string }).attachmentId ?? "unknown";
+        } catch {
+          /* use "unknown" */
         }
-        const { lineId, pageId, verbatimAnchor } = found;
-        const anchorText = anchorHint?.trim() || verbatimAnchor;
-        citations.push({
-          id,
-          anchor_text: anchorText,
-          page_id: toCompactPageId(pageId),
-          line_ids: [lineId],
-          attachment_id: attachmentId,
-          display_label: displayLabel.toLowerCase() !== anchorText.toLowerCase() ? displayLabel : undefined,
-        });
-      }
 
-      if (citations.length > 0) {
-        if (parsed.success && parsed.citations.length > 0) {
-          console.error(`  Note: <<<CITATION_DATA>>> block found but ignored — auto-gen takes priority`);
+        const lineMap = parseSummaryToLineMap(summaryContent);
+        const allLines = getAllLines(lineMap);
+        const citations: CitationData[] = [];
+
+        for (const { id, displayLabel, anchorHint } of markers) {
+          const searchTerm = anchorHint ?? displayLabel;
+          const found = findAnchorWithFallback(searchTerm, allLines);
+          if (!found) {
+            console.error(`  Citation ${id} ("${displayLabel}"): not found in evidence`);
+            continue;
+          }
+          const { lineId, pageId, verbatimAnchor } = found;
+          const anchorText = anchorHint?.trim() || verbatimAnchor;
+          citations.push({
+            id,
+            anchor_text: anchorText,
+            page_id: toCompactPageId(pageId),
+            line_ids: [lineId],
+            attachment_id: attachmentId,
+            display_label: displayLabel.toLowerCase() !== anchorText.toLowerCase() ? displayLabel : undefined,
+          });
         }
-        parsed = {
-          visibleText: raw,
-          citations,
-          citationMap: new Map(citations.map(c => [c.id, c])),
-          success: true,
-        };
-        console.error(`Auto-generated ${citations.length} citation(s) from body markers + summary`);
+
+        if (citations.length > 0) {
+          parsed = {
+            visibleText: raw,
+            citations,
+            citationMap: new Map(citations.map(c => [c.id, c])),
+            success: true,
+          };
+          console.error(`Auto-generated ${citations.length} citation(s) from body markers via heuristic search`);
+        }
       }
     }
   }
@@ -983,7 +965,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   const htmlPath = args.html;
   if (!htmlPath && !preloadedContent) die("--html is required", VERIFY_HELP);
 
-  const { apiKey } = requireAuth();
+  const { apiKey } = await requireAuth();
 
   const dc = await createClient(apiKey);
   // htmlPath is guaranteed set when preloadedContent is absent (die() above exits otherwise)
@@ -1189,6 +1171,50 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   console.error(`Run metadata → ${metaPath}`);
 }
 
+export const AUTH_HELP = `Usage: deepcitation auth [subcommand] [options]
+
+Authenticate with DeepCitation. With no arguments, shows your current status
+or starts browser login if not yet authenticated.
+
+Subcommands:
+  logout    Remove saved credentials
+  env       Print export DEEPCITATION_API_KEY=... for shell eval
+
+Options:
+  --key <key>   Save an API key directly
+  --stdin       Read API key from stdin (CI/agents)
+  -h, --help    Show this help message
+
+Examples:
+  deepcitation auth                   # Check status or log in
+  deepcitation auth --key sk-dc-...   # Save a key directly
+  deepcitation auth logout            # Remove credentials
+  deepcitation auth env               # Print export line for shell eval
+`;
+
+export async function auth(argv: string[], baseUrl: string) {
+  if (argv.includes("-h") || argv.includes("--help")) {
+    console.log(AUTH_HELP);
+    return;
+  }
+
+  // Subcommands
+  const [sub] = argv;
+  if (sub === "logout") return logout();
+  if (sub === "env") return env();
+
+  // --key and --stdin pass through to login
+  if (argv.includes("--key") || argv.includes("--stdin")) {
+    return login(argv, baseUrl);
+  }
+
+  // Default: if authed → show status, else → start browser login
+  const existing = resolveAuth();
+  if (existing) return status();
+
+  return login([], baseUrl);
+}
+
 export async function login(argv: string[], baseUrl: string) {
   // --stdin: read key from stdin (avoids key appearing in shell history)
   if (argv.includes("--stdin")) {
@@ -1226,14 +1252,14 @@ export async function login(argv: string[], baseUrl: string) {
       console.log(`   ${manualUrl}\n`);
       console.log("3. Save the key — set DEEPCITATION_API_KEY in your Cowork environment settings.");
       console.log("   This persists across sessions automatically.");
-      console.log("   Or for this session only: npx deepcitation login --key <your-key>");
+      console.log("   Or for this session only: npx deepcitation auth --key <your-key>");
     } else {
       console.log("Non-interactive environment detected (no TTY).\n");
       console.log(`1. Get your API key: ${manualUrl}`);
-      console.log("2. Run: npx deepcitation login --key '<your-key>'");
+      console.log("2. Run: npx deepcitation auth --key '<your-key>'");
       console.log("   (This saves the key so all future commands just work.)");
       console.log('   Or: export DEEPCITATION_API_KEY="<your-key>"  (env var for this session)');
-      console.log("   Or: npx deepcitation login --browser  (opens browser for OAuth)");
+      console.log("   Or: npx deepcitation auth  (opens browser for OAuth)");
     }
     process.exit(1);
   }
@@ -1291,10 +1317,8 @@ export async function login(argv: string[], baseUrl: string) {
       console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
       console.log(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
       process.stdin.destroy();
-      process.exit(0);
     } else {
       saveApiKey(winner.key, "terminal paste");
-      process.exit(0);
     }
   } catch (err) {
     if ((err as Error).message === "Login cancelled") return;
@@ -1331,7 +1355,7 @@ export function logout() {
 export function whoami() {
   const auth = resolveAuth();
   if (!auth) {
-    console.log('Not logged in. Run "npx deepcitation login" to get started.');
+    console.log('Not logged in. Run "npx deepcitation auth" to get started.');
     process.exit(1);
   }
   if (auth.credentials?.displayName) console.log(`Name:   ${sanitizeForLog(auth.credentials.displayName)}`);
@@ -1343,11 +1367,11 @@ export function whoami() {
 export function env() {
   const auth = resolveAuth();
   if (!auth) {
-    process.stderr.write('Not logged in. Run "npx deepcitation login" first.\n');
+    process.stderr.write('Not logged in. Run "npx deepcitation auth" first.\n');
     process.exit(1);
   }
   if (!isValidApiKeyFormat(auth.apiKey)) {
-    process.stderr.write('Saved API key has an unexpected format. Run "npx deepcitation login" again.\n');
+    process.stderr.write('Saved API key has an unexpected format. Run "npx deepcitation auth" again.\n');
     process.exit(1);
   }
   // stdout only — safe for eval "$(deepcitation env)"
@@ -1363,7 +1387,7 @@ export function status() {
     console.log(parts.join("\n"));
     process.exit(0);
   } else {
-    console.log('Not logged in. Run "npx deepcitation login" or set DEEPCITATION_API_KEY.');
+    console.log('Not logged in. Run "npx deepcitation auth" or set DEEPCITATION_API_KEY.');
     process.exit(1);
   }
 }
@@ -1398,7 +1422,7 @@ export async function getAttachment(argv: string[]) {
   }
   if (!positional) die("An attachment ID is required", GET_HELP);
 
-  const { apiKey } = requireAuth();
+  const { apiKey } = await requireAuth();
 
   const dc = await createClient(apiKey);
 

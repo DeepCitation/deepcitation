@@ -30,7 +30,7 @@ Use this when the draft was generated with the compact citation format
 
 Options:
   --markdown <file>   Path to draft markdown file with <<<CITATION_DATA>>> block
-  --summary <file>    Path to summary file from "deepcitation prepare --summary"
+  --summary <file>    Path to summary file from "deepcitation prepare --text"
   --out <file>        Output path (default: overwrites --markdown input)
   -h, --help          Show this help message
 
@@ -61,7 +61,7 @@ export interface LineMap {
 }
 
 export interface HydrateOptions {
-  /** Raw content of the summary file (JSON string from deepcitation prepare --summary) */
+  /** Raw content of the summary file (JSON string from deepcitation prepare --text) */
   summaryContent: string;
   /** Citations to hydrate in place — full_phrase is mutated on matching entries */
   citations: CitationData[];
@@ -283,7 +283,7 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
  *
  * Search order (most reliable first):
  *   1. `.deepcitation/prepare-*.json` — pure JSON output from `deepcitation prepare`
- *   2. `.deepcitation/summary-*.txt`  — text+JSON output from `prepare --summary`
+ *   2. `.deepcitation/summary-*.txt`  — text+JSON output from `prepare --text`
  *
  * `prepare-*.json` is preferred because it is valid JSON; `summary-*.txt` starts
  * with human-readable text before the JSON object and will fail JSON.parse().

@@ -152,15 +152,23 @@ beforeEach(() => {
 // ── Tests ─────────────────────────────────────────────────────────
 
 describe("requireAuth", () => {
-  it("returns auth when authenticated", () => {
+  it("returns auth when authenticated", async () => {
     const auth = makeAuth();
     mockResolveAuth.mockReturnValue(auth);
-    expect(requireAuth("help text")).toEqual(auth);
+    await expect(requireAuth()).resolves.toEqual(auth);
   });
 
-  it("exits when not authenticated", () => {
+  it("auto-triggers login and exits when login fails", async () => {
+    // First call: not authenticated → triggers login
+    // After login: still not authenticated → exits
     mockResolveAuth.mockReturnValue(null);
-    expect(() => requireAuth("help text")).toThrow("process.exit(1)");
+    mockStartCallbackServer.mockResolvedValue({
+      port: 12345,
+      result: new Promise(() => {}), // never resolves (simulates failed login)
+      cancel: jest.fn(),
+    });
+    // login will try to read stdin which fails in test → falls through to exit
+    await expect(requireAuth()).rejects.toThrow("process.exit(1)");
   });
 });
 
@@ -604,7 +612,7 @@ describe("prepare command", () => {
     }
   });
 
-  it("prints summary JSON when --summary is used", async () => {
+  it("prints text JSON when --text is used", async () => {
     const tmpDir = makeTmpDir();
     const origCwd = process.cwd();
     process.chdir(tmpDir);
@@ -616,7 +624,7 @@ describe("prepare command", () => {
         metadata: { pageCount: 2, textByteSize: 2048 },
       });
 
-      const { stdout } = await captureOutput(() => prepare(["https://example.com/article", "--summary"], fmtNetErr));
+      const { stdout } = await captureOutput(() => prepare(["https://example.com/article", "--text"], fmtNetErr));
 
       const summary = JSON.parse(stdout);
       expect(summary.attachmentId).toBe("att-123");

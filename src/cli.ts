@@ -17,6 +17,7 @@ import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { checkForUpdate, formatNetworkError } from "./cli/cliUtils.js";
 import {
+  auth,
   env,
   getAttachment,
   HELP,
@@ -75,6 +76,12 @@ if (command === "-v" || command === "--version") {
 }
 
 switch (command) {
+  case "auth":
+    auth(rest, BASE_URL).catch(err => {
+      console.error(`Error: ${err instanceof Error ? err.message : err}`);
+      process.exit(1);
+    });
+    break;
   case "prepare":
     prepare(rest, fmtNetErr).catch(err => {
       console.error(`Error: ${fmtNetErr(err)}`);

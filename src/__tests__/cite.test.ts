@@ -78,6 +78,12 @@ describe("extractMarkersFromBody", () => {
   it("returns empty array for body with no markers", () => {
     expect(extractMarkersFromBody("No citations here.")).toEqual([]);
   });
+
+  it("ignores extra text in parens that is not a quoted anchor", () => {
+    const body = "[declare War](cite:12 some extra stuff)";
+    const markers = extractMarkersFromBody(body);
+    expect(markers).toEqual([{ id: 12, displayLabel: "declare War" }]);
+  });
 });
 
 // ── getAllLines ───────────────────────────────────────────────────
