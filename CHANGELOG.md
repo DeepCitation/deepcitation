@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.11] - 2026-04-06
+
 ### Added
 
 - **`verifyIterative()` SDK method** — LLM-agnostic retry loop: verifies citations, invokes an `onAttemptComplete` callback so consumers can amend and re-verify up to `maxAttempts`. Includes `LlmSearchAttempt`, `LlmAmendment` types and `computeAmendments()` diff utility. (#404)
