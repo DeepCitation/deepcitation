@@ -832,7 +832,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
 
   if (!parsed.success || parsed.citations.length === 0) {
     die(
-      "No citations found — ensure body has [label](cite:N) markers and a summary exists in .deepcitation/",
+      "No citations found — ensure body has **bold** [N] or [label](cite:N) markers and a summary exists in .deepcitation/",
       VERIFY_HELP,
     );
   }

@@ -84,6 +84,30 @@ describe("extractMarkersFromBody", () => {
     const markers = extractMarkersFromBody(body);
     expect(markers).toEqual([{ id: 12, displayLabel: "declare War" }]);
   });
+
+  // Strategy 2c: **bold** [N] format
+  it("extracts **bold** [N] markers as fallback", () => {
+    const body = "The **Discount Rate** [1] is applied to the **conversion price** [2].";
+    const markers = extractMarkersFromBody(body);
+    expect(markers).toEqual([
+      { id: 1, displayLabel: "Discount Rate" },
+      { id: 2, displayLabel: "conversion price" },
+    ]);
+  });
+
+  it("prefers [text](cite:N) over **bold** [N] when both present", () => {
+    const body = "The [Discount Rate](cite:1) and **conversion price** [2].";
+    const markers = extractMarkersFromBody(body);
+    // cite:N format found, so **bold** [N] fallback is NOT used
+    expect(markers).toEqual([{ id: 1, displayLabel: "Discount Rate" }]);
+  });
+
+  it("deduplicates **bold** [N] markers by id", () => {
+    const body = "**Rate** [1] then **Rate** [1] again";
+    const markers = extractMarkersFromBody(body);
+    expect(markers).toHaveLength(1);
+    expect(markers[0].displayLabel).toBe("Rate");
+  });
 });
 
 // ── getAllLines ───────────────────────────────────────────────────

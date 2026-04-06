@@ -98,6 +98,29 @@ export function extractMarkersFromBody(body: string): BodyMarker[] {
 
     results.push(marker);
   }
+  // Fallback: **bold text** [N] markers (Strategy 2c format).
+  // Only used when no [text](cite:N) markers were found.
+  if (results.length === 0) {
+    const boldRe = /\*\*([^*]+)\*\*\s*\[(\d+)\]/g;
+    let bm: RegExpExecArray | null;
+    while ((bm = safeExec(boldRe, body)) !== null) {
+      const label = bm[1].trim();
+      const id = parseInt(bm[2], 10);
+      if (seen.has(id)) {
+        if (seen.get(id) !== label) {
+          console.error(
+            `  Warning: [${id}] reused with different label — ` +
+              `"${sanitizeForLog(seen.get(id) ?? "")}" (used) vs "${sanitizeForLog(label)}" (ignored). ` +
+              `Each distinct claim must use a unique ID.`,
+          );
+        }
+        continue;
+      }
+      seen.set(id, label);
+      results.push({ id, displayLabel: label });
+    }
+  }
+
   return results.sort((a, b) => a.id - b.id);
 }
 

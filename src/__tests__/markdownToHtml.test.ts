@@ -429,3 +429,31 @@ describe("markdownToHtml — cite: link format", () => {
     expect(result).not.toContain("[Discount Rate](cite:2)");
   });
 });
+
+// ── markdownToHtml — **bold** [N] format (Strategy 2c) ────────────
+
+describe("markdownToHtml — **bold** [N] format", () => {
+  it("converts **bold** [N] to data-cite span with strong tag", () => {
+    const result = markdownToHtml("The **Discount Rate** [1] is applied.", { style: "plain" });
+    expect(result).toContain('<span data-cite="1"><strong>Discount Rate</strong></span>');
+    expect(result).not.toContain("[1]");
+  });
+
+  it("handles multiple **bold** [N] markers in the same paragraph", () => {
+    const result = markdownToHtml("**Revenue** [1] grew while **costs** [2] fell.", { style: "plain" });
+    expect(result).toContain('<span data-cite="1"><strong>Revenue</strong></span>');
+    expect(result).toContain('<span data-cite="2"><strong>costs</strong></span>');
+  });
+
+  it("coexists with regular bold that has no [N] marker", () => {
+    const result = markdownToHtml("**Revenue** [1] grew. This is **important** context.", { style: "plain" });
+    expect(result).toContain('<span data-cite="1"><strong>Revenue</strong></span>');
+    expect(result).toContain("<strong>important</strong>");
+    expect(result).not.toContain('data-cite="2"');
+  });
+
+  it("works in list items", () => {
+    const result = markdownToHtml("- **First Amendment** [1] protects freedoms", { style: "plain" });
+    expect(result).toContain('<span data-cite="1"><strong>First Amendment</strong></span>');
+  });
+});
