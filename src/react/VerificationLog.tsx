@@ -36,7 +36,7 @@ import {
   type NarrativeRow,
   type SearchNarrative,
 } from "./searchNarrative.js";
-import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
+import type { DownloadInfo, IndicatorVariant, UrlFetchStatus } from "./types.js";
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn, isImageSource } from "./utils.js";
 
@@ -92,12 +92,8 @@ export interface SourceContextHeaderProps {
    * instead of the chevron-right expand affordance.
    */
   onClose?: () => void;
-  /**
-   * Download URL for the source file. When provided, renders a download button in the popover header.
-   */
-  downloadUrl?: string;
-  /** Explicit filename for the download. When omitted, inferred from the citation URL. */
-  downloadFilename?: string;
+  /** Download metadata for the source file. When provided, renders a download button in the popover header. */
+  download?: DownloadInfo;
   /**
    * Custom action buttons rendered in the header alongside the download button.
    */
@@ -458,16 +454,22 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
 function DownloadButtonIcon({
   dlState,
   displayPercent,
+  t,
 }: {
   dlState: "idle" | number | "done";
   displayPercent: number;
+  t: TranslateFunction;
 }) {
   if (dlState === "idle") return <DownloadIcon />;
   if (dlState === "done") return <CheckIcon />;
   if (typeof dlState === "number" && dlState >= 0) {
-    return <span className="text-[9px] font-semibold leading-none tabular-nums">{displayPercent}%</span>;
+    return (
+      <span className="text-[9px] font-semibold leading-none tabular-nums">
+        {t("download.percentComplete", { percent: String(displayPercent) })}
+      </span>
+    );
   }
-  return <span className="text-[9px] font-semibold leading-none">…</span>;
+  return <span className="text-[9px] font-semibold leading-none">{t("download.preparing")}</span>;
 }
 
 /** Extract a download filename from a URL path. */
@@ -486,8 +488,7 @@ export function SourceContextHeader({
   sourceLabel,
   onExpand,
   onClose,
-  downloadUrl,
-  downloadFilename,
+  download,
   customActions,
 }: SourceContextHeaderProps) {
   const t = useTranslation();
@@ -506,7 +507,7 @@ export function SourceContextHeader({
   // URL-specific data
   const url = isUrl ? citation.url || "" : "";
 
-  const shouldShowSourceDownloadButton = !!downloadUrl;
+  const shouldShowSourceDownloadButton = !!download;
 
   // Display name for document citations (never show attachmentId to users)
   const displayName = isUrl ? undefined : sourceLabel || verification?.label || t("drawer.document");
@@ -516,7 +517,19 @@ export function SourceContextHeader({
   // Animated counter that ticks toward the target percentage at 75ms/step.
   const [displayPercent, setDisplayPercent] = useState(0);
   const dlTargetRef = useRef(0);
-  const dlDoneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dlDoneTimerRef = useRef<number | null>(null);
+
+  // Aria-live announcement for download state changes.
+  // Only announce at 25% increments to avoid spamming screen readers.
+  const dlAnnouncement = useMemo(() => {
+    if (dlState === "idle") return "";
+    if (dlState === "done") return t("aria.downloadComplete");
+    if (typeof dlState === "number" && dlState >= 0) {
+      const bucket = Math.floor(displayPercent / 25) * 25;
+      return t("aria.downloadProgress", { percent: String(bucket) });
+    }
+    return t("aria.downloadStarted");
+  }, [dlState, dlState === "done" ? 0 : Math.floor(displayPercent / 25), t]);
 
   // Keep target ref in sync so the single interval always chases the latest value.
   if (typeof dlState === "number" && dlState >= 0) dlTargetRef.current = dlState;
@@ -595,11 +608,11 @@ export function SourceContextHeader({
             onClick={e => {
               e.stopPropagation();
               if (dlState !== "idle") return;
-              const safeUrl = downloadUrl ? sanitizeUrl(downloadUrl) : null;
+              const safeUrl = download ? sanitizeUrl(download.url) : null;
               const name = sourceLabel || displayName || url;
               let downloadName: string;
-              if (downloadFilename) {
-                downloadName = downloadFilename;
+              if (download?.filename) {
+                downloadName = download.filename;
               } else if (isUrl) {
                 const slug = toDownloadSlug(url || name || "");
                 downloadName = slug.endsWith(".pdf") ? slug : `${slug.replace(/\.[^.]+$/, "")}.pdf`;
@@ -622,9 +635,14 @@ export function SourceContextHeader({
             }}
           >
             <span className="size-3.5 flex items-center justify-center">
-              <DownloadButtonIcon dlState={dlState} displayPercent={displayPercent} />
+              <DownloadButtonIcon dlState={dlState} displayPercent={displayPercent} t={t} />
             </span>
           </button>
+        )}
+        {shouldShowSourceDownloadButton && dlAnnouncement && (
+          <span aria-live="polite" aria-atomic="true" className="sr-only">
+            {dlAnnouncement}
+          </span>
         )}
         {customActions?.map(action =>
           action.hidden ? null : (

@@ -242,6 +242,7 @@ export type {
   CitationVariant as CitationVariantType,
   // URL content verification types
   ContentMatchStatus,
+  DownloadInfo,
   GroupCitationsBySource,
   // Indicator variant type
   IndicatorVariant,
@@ -252,7 +253,6 @@ export type {
   SourcesListHeaderConfig,
   SourcesListItemProps,
   SourcesListProps,
-  // Sources list types (Anthropic-style aggregated citations)
   SourcesListVariant,
   SourcesTriggerProps,
   UrlCitationMeta,

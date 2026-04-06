@@ -592,7 +592,7 @@ describe("SourceContextHeader", () => {
   // ==========================================================================
 
   describe("Source download button", () => {
-    it("does not render download button when downloadUrl is absent", () => {
+    it("does not render download button when download is absent", () => {
       const citation: Citation = {
         type: "document",
         attachmentId: "abc123",
@@ -604,7 +604,7 @@ describe("SourceContextHeader", () => {
       expect(queryByRole("button", { name: /download source/i })).toBeNull();
     });
 
-    it("renders download button for document citation when downloadUrl is provided", () => {
+    it("renders download button for document citation when download is provided", () => {
       const citation: Citation = {
         type: "document",
         attachmentId: "abc123",
@@ -613,7 +613,7 @@ describe("SourceContextHeader", () => {
       };
 
       const { getByRole } = render(
-        <SourceContextHeader citation={citation} downloadUrl="https://example.com/file.pdf" />,
+        <SourceContextHeader citation={citation} download={{ url: "https://example.com/file.pdf" }} />,
       );
       expect(getByRole("button", { name: /download source/i })).toBeInTheDocument();
     });
@@ -627,7 +627,7 @@ describe("SourceContextHeader", () => {
       };
 
       const { getByRole } = render(
-        <SourceContextHeader citation={citation} downloadUrl="https://example.com/file.pdf" />,
+        <SourceContextHeader citation={citation} download={{ url: "https://example.com/file.pdf" }} />,
       );
       const button = getByRole("button", { name: /download source/i });
 
@@ -636,7 +636,7 @@ describe("SourceContextHeader", () => {
       expect(button.className).toContain("md:group-focus-within/source-header:opacity-100");
     });
 
-    it("does not render download button for URL citation when downloadUrl is omitted", () => {
+    it("does not render download button for URL citation when download is omitted", () => {
       const citation: Citation = {
         type: "url",
         url: "https://example.com/article",
@@ -648,7 +648,7 @@ describe("SourceContextHeader", () => {
       expect(queryByRole("button", { name: /download source/i })).toBeNull();
     });
 
-    it("renders download button for URL citation when downloadUrl is provided", () => {
+    it("renders download button for URL citation when download is provided", () => {
       const citation: Citation = {
         type: "url",
         url: "https://example.com/article",
@@ -664,7 +664,7 @@ describe("SourceContextHeader", () => {
         <SourceContextHeader
           citation={citation}
           verification={verification}
-          downloadUrl="https://example.com/article.pdf"
+          download={{ url: "https://example.com/article.pdf" }}
         />,
       );
       expect(getByRole("button", { name: /download source/i })).toBeInTheDocument();
@@ -687,7 +687,7 @@ describe("SourceContextHeader", () => {
         <SourceContextHeader
           citation={citation}
           verification={verification}
-          downloadUrl="https://example.com/file.pdf"
+          download={{ url: "https://example.com/file.pdf" }}
         />,
       );
 
@@ -706,7 +706,7 @@ describe("SourceContextHeader", () => {
       const appendChildSpy = jest.spyOn(document.body, "appendChild");
 
       const { getByRole } = render(
-        <SourceContextHeader citation={citation} downloadUrl="https://example.com/file.pdf" />,
+        <SourceContextHeader citation={citation} download={{ url: "https://example.com/file.pdf" }} />,
       );
       fireEvent.click(getByRole("button", { name: /download source/i }));
 
@@ -736,7 +736,7 @@ describe("SourceContextHeader", () => {
             if (e.key === "Enter" || e.key === " ") parentClick();
           }}
         >
-          <SourceContextHeader citation={citation} downloadUrl="https://example.com/file.pdf" />
+          <SourceContextHeader citation={citation} download={{ url: "https://example.com/file.pdf" }} />
         </div>,
       );
       fireEvent.click(getByRole("button", { name: /download source/i }));
@@ -746,7 +746,7 @@ describe("SourceContextHeader", () => {
   });
 
   describe("Image download button", () => {
-    it("does not render download button when only verification image exists (no downloadUrl)", () => {
+    it("does not render download button when only verification image exists (no download)", () => {
       const citation: Citation = {
         type: "document",
         attachmentId: "abc123",
@@ -760,8 +760,8 @@ describe("SourceContextHeader", () => {
       };
 
       const { queryByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
-      // Image-download button was removed in refactor (downloadUrl prop replaced onSourceDownload callback).
-      // Only the source download button remains, and it only appears when downloadUrl is provided.
+      // Image-download button was removed in refactor (download prop replaced onSourceDownload callback).
+      // Only the source download button remains, and it only appears when download is provided.
       expect(queryByRole("button", { name: /download/i })).toBeNull();
     });
 
@@ -784,7 +784,7 @@ describe("SourceContextHeader", () => {
         <SourceContextHeader
           citation={citation}
           verification={verification}
-          downloadUrl="https://example.com/article.pdf"
+          download={{ url: "https://example.com/article.pdf" }}
         />,
       );
 
@@ -805,7 +805,7 @@ describe("SourceContextHeader", () => {
       expect(queryByRole("button", { name: /download image/i })).toBeNull();
     });
 
-    it("prefers source download when downloadUrl is available", () => {
+    it("prefers source download when download is available", () => {
       const citation: Citation = {
         type: "url",
         url: "https://example.com/article",
@@ -823,7 +823,7 @@ describe("SourceContextHeader", () => {
         <SourceContextHeader
           citation={citation}
           verification={verification}
-          downloadUrl="https://example.com/article.pdf"
+          download={{ url: "https://example.com/article.pdf" }}
         />,
       );
 
@@ -974,7 +974,7 @@ describe("download domain-trust gate", () => {
     };
 
     const { getByRole } = render(
-      <SourceContextHeader citation={citation} downloadUrl="https://api.deepcitation.com/file.pdf" />,
+      <SourceContextHeader citation={citation} download={{ url: "https://api.deepcitation.com/file.pdf" }} />,
     );
     fireEvent.click(getByRole("button", { name: /download source/i }));
 
@@ -1001,7 +1001,7 @@ describe("download domain-trust gate", () => {
       <SourceContextHeader
         citation={citation}
         sourceLabel="My Report"
-        downloadUrl="https://api.deepcitation.com/report"
+        download={{ url: "https://api.deepcitation.com/report" }}
       />,
     );
     fireEvent.click(getByRole("button", { name: /download source/i }));

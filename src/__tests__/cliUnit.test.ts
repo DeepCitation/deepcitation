@@ -1,12 +1,28 @@
-import { describe, expect, it, jest } from "@jest/globals";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import {
   CLAUDE_COWORK_DOMAIN_HINT,
+  checkForUpdate,
   extractApiKey,
   formatNetworkError,
   isValidApiKeyFormat,
   parseArgs,
 } from "../cli/cliUtils.js";
 import { PaymentRequiredError } from "../client/errors.js";
+
+jest.mock("node:fs", () => ({
+  existsSync: jest.fn(() => false),
+  mkdirSync: jest.fn(),
+  readFileSync: jest.fn(() => {
+    throw new Error("ENOENT");
+  }),
+  writeFileSync: jest.fn(),
+}));
+jest.mock("node:os", () => ({
+  homedir: jest.fn(() => "/tmp/test-home"),
+}));
 
 // ── parseArgs ─────────────────────────────────────────────────────
 
@@ -281,5 +297,79 @@ describe("extractApiKey", () => {
 
   it("returns null for key that is too short", () => {
     expect(extractApiKey("sk-dc-short")).toBeNull();
+  });
+});
+
+// ── checkForUpdate throttling ────────────────────────────────────
+
+describe("checkForUpdate", () => {
+  const stampPath = join("/tmp/test-home", ".deepcitation", "update-check");
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    (readFileSync as jest.Mock).mockImplementation(() => {
+      throw new Error("ENOENT");
+    });
+  });
+
+  it("skips fetch when stamp is recent (within 24h)", async () => {
+    const fetchSpy = jest.spyOn(globalThis, "fetch");
+    // Stamp is 1 minute old
+    (readFileSync as jest.Mock).mockReturnValue(String(Date.now() - 60_000));
+
+    await checkForUpdate("0.3.10");
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  it("fetches when stamp is older than 24h", async () => {
+    const fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ version: "0.3.10" }), { status: 200 }),
+    );
+    // Stamp is 25 hours old
+    (readFileSync as jest.Mock).mockReturnValue(String(Date.now() - 25 * 60 * 60 * 1000));
+
+    await checkForUpdate("0.3.10");
+
+    expect(fetchSpy).toHaveBeenCalled();
+    expect(writeFileSync).toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  it("fetches when no stamp file exists", async () => {
+    const fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ version: "0.3.10" }), { status: 200 }),
+    );
+    // readFileSync throws (no file) — default mock behavior
+
+    await checkForUpdate("0.3.10");
+
+    expect(fetchSpy).toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  it("writes stderr when a newer version is available", async () => {
+    const stderrSpy = jest.spyOn(process.stderr, "write").mockReturnValue(true);
+    jest.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ version: "99.0.0" }), { status: 200 }),
+    );
+
+    await checkForUpdate("0.3.10");
+
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("Update available"));
+    stderrSpy.mockRestore();
+  });
+
+  it("does not write stderr when versions match", async () => {
+    const stderrSpy = jest.spyOn(process.stderr, "write").mockReturnValue(true);
+    jest.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ version: "0.3.10" }), { status: 200 }),
+    );
+
+    await checkForUpdate("0.3.10");
+
+    expect(stderrSpy).not.toHaveBeenCalled();
+    stderrSpy.mockRestore();
   });
 });

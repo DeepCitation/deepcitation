@@ -327,8 +327,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   onExpandedWidthChange,
   pageImages,
   prevBeforeExpandedPageRef,
-  downloadUrl,
-  downloadFilename,
+  download,
   escapeInterceptRef,
   customPopoverActions,
 }: {
@@ -347,8 +346,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   onExpandedWidthChange?: (width: number | null, source?: "expanded-keyhole" | "expanded-page" | null) => void;
   pageImages?: PageImage[];
   prevBeforeExpandedPageRef: React.RefObject<"summary" | "expanded-keyhole">;
-  downloadUrl?: string;
-  downloadFilename?: string;
+  download?: import("./types.js").DownloadInfo;
   escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
   customPopoverActions?: import("./types.js").PopoverAction[];
 }) {
@@ -377,8 +375,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
         onExpandedWidthChange={onExpandedWidthChange}
         pageImages={pageImages}
         prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
-        downloadUrl={downloadUrl}
-        downloadFilename={downloadFilename}
+        download={download}
         escapeInterceptRef={escapeInterceptRef}
         customPopoverActions={customPopoverActions}
       />
@@ -460,15 +457,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       return pageImagesByAttachmentId[attachmentId];
     }, [pageImagesByAttachmentId, verification]);
 
-    const downloadUrl = useMemo(
-      () => originalDownload?.link.url ?? convertedDownload?.link.url ?? null,
-      [originalDownload, convertedDownload],
-    );
-
-    const downloadFilename = useMemo(
-      () => (originalDownload ?? convertedDownload)?.filename ?? null,
-      [originalDownload, convertedDownload],
-    );
+    const download = useMemo(() => {
+      const dl = originalDownload ?? convertedDownload;
+      const url = dl?.link.url;
+      if (!url) return undefined;
+      return { url, filename: dl?.filename ?? undefined };
+    }, [originalDownload, convertedDownload]);
 
     const t = useTranslation();
 
@@ -1312,8 +1306,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           onExpandedWidthChange={viewState.onExpandedWidthChange}
           pageImages={pageImages}
           prevBeforeExpandedPageRef={viewState.prevBeforeExpandedPageRef}
-          downloadUrl={downloadUrl ?? undefined}
-          downloadFilename={downloadFilename ?? undefined}
+          download={download}
           escapeInterceptRef={viewState.escapeInterceptRef}
           customPopoverActions={customPopoverActions}
         />
