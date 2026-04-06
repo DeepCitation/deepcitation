@@ -18,6 +18,7 @@ import {
   type CitationData,
 } from "../prompts/citationPrompts.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
+import { findAnchorWithFallback, getAllLines } from "./cite.js";
 import { die, parseArgs } from "./cliUtils.js";
 
 export const HYDRATE_HELP = `Usage: deepcitation hydrate [options]
@@ -266,6 +267,20 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
 
     if (lineTexts.length > 0) {
       citation.full_phrase = lineTexts.join(" ");
+
+      // If anchor_text is paraphrased (not verbatim in full_phrase), promote it
+      // to display_label and find the actual verbatim anchor from the evidence.
+      if (citation.anchor_text && !citation.full_phrase.toLowerCase().includes(citation.anchor_text.toLowerCase())) {
+        if (!citation.display_label) {
+          citation.display_label = citation.anchor_text;
+        }
+        const allLines = getAllLines(lineMap);
+        const found = findAnchorWithFallback(citation.anchor_text, allLines);
+        if (found) {
+          citation.anchor_text = found.verbatimAnchor;
+        }
+      }
+
       hydrated++;
     } else {
       if (warnOnMiss) {
