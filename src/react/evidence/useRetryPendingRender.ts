@@ -130,6 +130,8 @@ export function useRetryPendingRender(
   // Starts the same retry cycle as a placeholder detection — the image may simply not be
   // ready yet while the server-side render job is in progress.
   const onImageError = useCallback((): boolean => {
+    // Guard against double-fire (Chrome can fire onerror twice when src changes mid-load)
+    if (timerRef.current) return true;
     if (retryCountRef.current < MAX_RETRIES) {
       setIsRetrying(true);
       scheduleRetry();

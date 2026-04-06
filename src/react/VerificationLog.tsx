@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { SearchAttempt, SearchStatus } from "../types/search.js";
@@ -454,6 +454,31 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
  *
  * The `sourceLabel` prop allows overriding the displayed source name for both types.
  */
+
+function DownloadButtonIcon({
+  dlState,
+  displayPercent,
+}: {
+  dlState: "idle" | number | "done";
+  displayPercent: number;
+}) {
+  if (dlState === "idle") return <DownloadIcon />;
+  if (dlState === "done") return <CheckIcon />;
+  if (typeof dlState === "number" && dlState >= 0) {
+    return <span className="text-[9px] font-semibold leading-none tabular-nums">{displayPercent}%</span>;
+  }
+  return <span className="text-[9px] font-semibold leading-none">…</span>;
+}
+
+/** Extract a download filename from a URL path. */
+function toDownloadSlug(sourceForName: string): string {
+  try {
+    return new URL(sourceForName).pathname.replace(/\/+$/, "").split("/").pop() || "document";
+  } catch {
+    return sourceForName.split("/").pop() || "document";
+  }
+}
+
 export function SourceContextHeader({
   citation,
   verification,
@@ -490,21 +515,31 @@ export function SourceContextHeader({
   const [dlState, setDlState] = useState<"idle" | number | "done">("idle");
   // Animated counter that ticks toward the target percentage at 75ms/step.
   const [displayPercent, setDisplayPercent] = useState(0);
+  const dlTargetRef = useRef(0);
+  const dlDoneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keep target ref in sync so the single interval always chases the latest value.
+  if (typeof dlState === "number" && dlState >= 0) dlTargetRef.current = dlState;
 
   useEffect(() => {
     if (typeof dlState !== "number" || dlState < 0) return;
-    const target = dlState;
     const id = setInterval(() => {
       setDisplayPercent(prev => {
-        if (prev >= target) {
-          clearInterval(id);
-          return prev;
-        }
+        if (prev >= dlTargetRef.current) return prev;
         return prev + 1;
       });
     }, 75);
     return () => clearInterval(id);
-  }, [dlState]);
+    // Only start/stop the interval on state-kind transitions, not every percent tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typeof dlState === "number" && dlState >= 0]);
+
+  // Clean up the "done → idle" reset timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (dlDoneTimerRef.current) clearTimeout(dlDoneTimerRef.current);
+    };
+  }, []);
 
   return (
     <div
@@ -566,14 +601,8 @@ export function SourceContextHeader({
               if (downloadFilename) {
                 downloadName = downloadFilename;
               } else if (isUrl) {
-                const sourceForName = url || name || "";
-                try {
-                  const slug = new URL(sourceForName).pathname.replace(/\/+$/, "").split("/").pop() || "document";
-                  downloadName = slug.endsWith(".pdf") ? slug : `${slug.replace(/\.[^.]+$/, "")}.pdf`;
-                } catch {
-                  const slug = sourceForName.split("/").pop() || "document";
-                  downloadName = slug.endsWith(".pdf") ? slug : `${slug.replace(/\.[^.]+$/, "")}.pdf`;
-                }
+                const slug = toDownloadSlug(url || name || "");
+                downloadName = slug.endsWith(".pdf") ? slug : `${slug.replace(/\.[^.]+$/, "")}.pdf`;
               } else {
                 downloadName = name ?? "document";
               }
@@ -584,21 +613,16 @@ export function SourceContextHeader({
                   setDlState(fraction < 0 ? -1 : Math.round(fraction * 100));
                 }).then(() => {
                   setDlState("done");
-                  window.setTimeout(() => setDlState("idle"), 1500);
+                  dlDoneTimerRef.current = window.setTimeout(() => {
+                    dlDoneTimerRef.current = null;
+                    setDlState("idle");
+                  }, 1500);
                 });
               }
             }}
           >
             <span className="size-3.5 flex items-center justify-center">
-              {dlState === "idle" ? (
-                <DownloadIcon />
-              ) : dlState === "done" ? (
-                <CheckIcon />
-              ) : typeof dlState === "number" && dlState >= 0 ? (
-                <span className="text-[9px] font-semibold leading-none tabular-nums">{displayPercent}%</span>
-              ) : (
-                <span className="text-[9px] font-semibold leading-none">…</span>
-              )}
+              <DownloadButtonIcon dlState={dlState} displayPercent={displayPercent} />
             </span>
           </button>
         )}
@@ -1090,7 +1114,6 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
       <div className="py-1.5 px-2 text-[11px] border-l-2 border-dc-border border-dashed bg-dc-muted/50 text-dc-subtle-foreground space-y-0.5">
         <div className="font-medium">{t("llmAttempt.amended")}</div>
         {row.descriptions.map((desc, i) => (
-          // CODE-AUDIT: index-key-ok — amendment descriptions are string literals with no stable id
           <div key={i} className="text-[10px]">
             {desc}
           </div>

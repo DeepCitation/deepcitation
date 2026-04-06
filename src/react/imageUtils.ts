@@ -1,5 +1,6 @@
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { extractDomain } from "../utils/urlSafety.js";
 
 /**
  * Module-level handler for hiding broken images.
@@ -18,18 +19,6 @@ export const handleImageErrorOpacity = (e: React.SyntheticEvent<HTMLImageElement
 };
 
 /**
- * Builds the origin from a URL string, returning null on invalid input.
- */
-function getOrigin(url: string | null | undefined): string | null {
-  if (!url) return null;
-  try {
-    return new URL(url).origin;
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Hook that provides a favicon src with a fallback chain:
  *   1. Custom favicon URL (if provided)
  *   2. Google Favicon Service (`google.com/s2/favicons`)
@@ -45,19 +34,28 @@ export function useFaviconSrc(
 
   // Reset fallback chain when inputs change (e.g. list virtualization reusing a component)
   useEffect(() => {
-    setStage(0);
+    setStage(prev => (prev !== 0 ? 0 : prev));
   }, [url, customFaviconUrl]);
 
-  const origin = getOrigin(url);
-  const domain = url ? domainFromUrl(url) : null;
+  const parsed = useMemo(() => {
+    if (!url) return null;
+    try {
+      const u = new URL(url);
+      return { origin: u.origin, domain: u.hostname };
+    } catch {
+      return null;
+    }
+  }, [url]);
+
+  const domain = parsed?.domain || (url ? extractDomain(url) : null);
 
   let src: string | null;
   if (stage === 0) {
     src =
       customFaviconUrl ||
       (domain ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${size}` : null);
-  } else if (stage === 1 && origin) {
-    src = `${origin}/favicon.ico`;
+  } else if (stage === 1 && parsed?.origin) {
+    src = `${parsed.origin}/favicon.ico`;
   } else {
     src = null;
   }
@@ -67,17 +65,4 @@ export function useFaviconSrc(
   }, []);
 
   return { src, onError };
-}
-
-/**
- * Extract domain from URL string, returning empty string on failure.
- * Lightweight version for this module — avoids importing extractDomain
- * to keep imageUtils dependency-free.
- */
-function domainFromUrl(url: string): string {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return "";
-  }
 }
