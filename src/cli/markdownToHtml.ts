@@ -56,7 +56,7 @@ function inlineFormat(text: string): string {
   // that escHtml would encode, breaking the regex. We replace cite links with
   // placeholder tokens, escHtml the rest, then restore them.
   const citePlaceholders: string[] = [];
-  const withPlaceholders = text.replace(
+  let withPlaceholders = text.replace(
     /\[([^\][]+)\]\(cite:(\d+)(?:\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?\s*\)/g,
     (_m, label: string, id: string) => {
       const idx = citePlaceholders.length;
@@ -69,6 +69,14 @@ function inlineFormat(text: string): string {
       return `\x00CITE${idx}\x00`;
     },
   );
+
+  // Strategy 2c: **bold text** [N] markers — extract before escHtml so the
+  // <strong> tags don't break wrapCitationMarkers' [^<>"] regex.
+  withPlaceholders = withPlaceholders.replace(/\*\*([^*]+)\*\*\s*\[(\d+)\]/g, (_m, label: string, id: string) => {
+    const idx = citePlaceholders.length;
+    citePlaceholders.push(`<span data-cite="${id}"><strong>${escHtml(label)}</strong></span>`);
+    return `\x00CITE${idx}\x00`;
+  });
 
   let result = escHtml(withPlaceholders)
     // inline code (before bold/italic to avoid conflicts)

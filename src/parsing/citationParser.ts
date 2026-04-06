@@ -122,6 +122,12 @@ function expandCompactKeys(
       continue;
     }
 
+    // Coerce line_ids to integers — LLMs sometimes output ["452"] instead of [452]
+    if (fullKey === "line_ids" && Array.isArray(value)) {
+      result[fullKey] = value.map((v: unknown) => (typeof v === "string" ? parseInt(v, 10) : v));
+      continue;
+    }
+
     // fullKey is guaranteed safe by isSafeKey check above (line 79)
     // lgtm[js/remote-property-injection]
     result[fullKey] = value;

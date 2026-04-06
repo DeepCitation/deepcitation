@@ -289,7 +289,8 @@ describe("EvidenceTray interaction styles", () => {
     );
 
     setKeyholeViewportSize(container, 500, 100);
-    fireKeyholeImageLoad(container, 800, 200);
+    // At natural size: 400px wide ≤ 500px container, 200px tall ≤ 2× 100px strip → fits completely
+    fireKeyholeImageLoad(container, 400, 200);
 
     // When the image fits completely and there is no page to expand to,
     // the keyhole shows "already full size" — no zoom-in cursor, no click action.
@@ -311,7 +312,8 @@ describe("EvidenceTray interaction styles", () => {
     );
 
     setKeyholeViewportSize(container, 500, 100);
-    fireKeyholeImageLoad(container, 800, 201);
+    // At natural size: 400px wide fits container, but 201px tall > 2× 100px strip → can expand
+    fireKeyholeImageLoad(container, 400, 201);
 
     await waitFor(() => {
       const strip = container.querySelector("[data-dc-keyhole]");

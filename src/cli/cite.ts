@@ -52,48 +52,75 @@ export interface BodyMarker {
 }
 
 /**
- * Extracts all [display label](cite:N) and [display label](cite:N "anchor")
- * markers from a body string.
+ * Extracts all `[display](cite:N ...)` markers from a body string.
  *
- * Supports two syntaxes (mirroring markdown's [text](url "title")):
- *   - `[display label](cite:N)` — auto-gen will search evidence for anchor
- *   - `[display label](cite:N "anchor text")` — agent provides verbatim anchor
+ * Supported marker syntaxes:
+ *   - `[display](cite:N)` — display = anchor
+ *   - `[display](cite:N 'anchor')` — explicit anchor hint (also `"anchor"`)
  *
- * The anchorHint (when provided) is the verbatim evidence substring that
- * should be used for the evidence highlight (full length is preserved).
- * The displayLabel is what the reader sees in the report body.
+ * Markers provide the in-text references. Citation coordinates (page_id,
+ * line_ids) come from a separate `<<<CITATION_DATA>>>` JSON block appended
+ * after the body. The CLI hydrates `full_phrase` from the summary using
+ * those coordinates.
  *
  * Deduplicates by id — first occurrence wins. Returns entries sorted by id.
  */
 export function extractMarkersFromBody(body: string): BodyMarker[] {
-  // Match [label](cite:N), [label](cite:N "anchor"), and [label](cite:N 'anchor')
-  // Supports both single and double quoted anchors, with escaped quotes inside
-  const re =
-    /\[([^\][]+)\]\(cite:(\d+)(?:\s+"((?:[^"\\]|\\.)*)")?\s*\)|\[([^\][]+)\]\(cite:(\d+)\s+'((?:[^'\\]|\\.)*)'\s*\)/g;
+  // Match [label](cite:N ...) — capture everything inside the parens after cite:N
+  const re = /\[([^\][]+)\]\(cite:(\d+)((?:\s+[^)]*)?)\)/g;
   const seen = new Map<number, string>(); // id → first display label
   const results: BodyMarker[] = [];
   let m: RegExpExecArray | null;
   while ((m = safeExec(re, body)) !== null) {
-    // Groups 1-3 match double-quote or no-quote form; groups 4-6 match single-quote form
-    const label = (m[1] ?? m[4]).trim();
-    const id = parseInt(m[2] ?? m[5], 10);
-    const anchor = m[3] ?? m[6];
-    if (!seen.has(id)) {
+    const label = m[1].trim();
+    const id = parseInt(m[2], 10);
+    const rest = m[3]?.trim() ?? "";
+
+    if (seen.has(id)) {
+      if (seen.get(id) !== label) {
+        console.error(
+          `  Warning: cite:${id} reused with different label — ` +
+            `"${sanitizeForLog(seen.get(id) ?? "")}" (used) vs "${sanitizeForLog(label)}" (ignored). ` +
+            `Each distinct claim must use a unique ID.`,
+        );
+      }
+      continue;
+    }
+    seen.set(id, label);
+
+    const marker: BodyMarker = { id, displayLabel: label };
+
+    // Parse optional anchor hint (single or double quoted)
+    const anchorDQ = rest.match(/"((?:[^"\\]|\\.)*)"/);
+    const anchorSQ = rest.match(/'((?:[^'\\]|\\.)*)'/);
+    const anchorRaw = anchorDQ?.[1] ?? anchorSQ?.[1];
+    if (anchorRaw?.trim()) marker.anchorHint = anchorRaw.trim();
+
+    results.push(marker);
+  }
+  // Fallback: **bold text** [N] markers (Strategy 2c format).
+  // Only used when no [text](cite:N) markers were found.
+  if (results.length === 0) {
+    const boldRe = /\*\*([^*]+)\*\*\s*\[(\d+)\]/g;
+    let bm: RegExpExecArray | null;
+    while ((bm = safeExec(boldRe, body)) !== null) {
+      const label = bm[1].trim();
+      const id = parseInt(bm[2], 10);
+      if (seen.has(id)) {
+        if (seen.get(id) !== label) {
+          console.error(
+            `  Warning: [${id}] reused with different label — ` +
+              `"${sanitizeForLog(seen.get(id) ?? "")}" (used) vs "${sanitizeForLog(label)}" (ignored). ` +
+              `Each distinct claim must use a unique ID.`,
+          );
+        }
+        continue;
+      }
       seen.set(id, label);
-      const marker: BodyMarker = { id, displayLabel: label };
-      const trimmedAnchor = anchor?.trim();
-      if (trimmedAnchor) marker.anchorHint = trimmedAnchor;
-      results.push(marker);
-    } else if (seen.get(id) !== label) {
-      // Same ID reused with a different label — the LLM is treating IDs as source references
-      // rather than per-claim identifiers. Warn so the user can see the error.
-      console.error(
-        `  Warning: cite:${id} reused with different label — ` +
-          `"${sanitizeForLog(seen.get(id) ?? "")}" (used) vs "${sanitizeForLog(label)}" (ignored). ` +
-          `Each distinct claim must use a unique ID.`,
-      );
+      results.push({ id, displayLabel: label });
     }
   }
+
   return results.sort((a, b) => a.id - b.id);
 }
 
@@ -182,14 +209,19 @@ export function findAnchorWithFallback(
   const words = displayLabel.trim().split(/\s+/);
   if (allLines.length === 0) return null;
 
+  // Pre-compute whitespace-normalized lowercase text for each line.
+  // Evidence text may contain newlines mid-phrase (e.g. "land and\nnaval Forces")
+  // which would prevent substring matches against space-joined search terms.
+  const normalizedLines = allLines.map(line => line.text.replace(/\s+/g, " ").toLowerCase());
+
   // Strategy 1: Sliding window — all contiguous N-grams, longest first
   for (let len = words.length; len >= 2; len--) {
     for (let start = 0; start <= words.length - len; start++) {
       const candidate = words.slice(start, start + len).join(" ");
       const needle = candidate.toLowerCase();
-      const match = allLines.find(line => line.text.toLowerCase().includes(needle));
-      if (match) {
-        return { lineId: match.lineId, pageId: match.pageId, verbatimAnchor: candidate };
+      const idx = normalizedLines.findIndex(norm => norm.includes(needle));
+      if (idx !== -1) {
+        return { lineId: allLines[idx].lineId, pageId: allLines[idx].pageId, verbatimAnchor: candidate };
       }
     }
   }
@@ -204,15 +236,15 @@ export function findAnchorWithFallback(
     let bestLine: LineEntry | null = null;
     let bestScore = 0;
 
-    for (const line of allLines) {
-      const lineLower = line.text.toLowerCase();
+    for (let i = 0; i < allLines.length; i++) {
+      const lineLower = normalizedLines[i];
       let score = 0;
       for (const w of significantWords) {
         if (lineLower.includes(w.toLowerCase())) score++;
       }
       if (score > bestScore) {
         bestScore = score;
-        bestLine = line;
+        bestLine = allLines[i];
       }
     }
 
@@ -238,10 +270,10 @@ export function findAnchorWithFallback(
 
   for (const word of sorted) {
     const needle = word.toLowerCase();
-    const match = allLines.find(line => line.text.toLowerCase().includes(needle));
-    if (match) {
+    const idx = normalizedLines.findIndex(norm => norm.includes(needle));
+    if (idx !== -1) {
       console.error(`  Warning: single-word fallback "${sanitizeForLog(word)}" for "${sanitizeForLog(displayLabel)}"`);
-      return { lineId: match.lineId, pageId: match.pageId, verbatimAnchor: word };
+      return { lineId: allLines[idx].lineId, pageId: allLines[idx].pageId, verbatimAnchor: word };
     }
   }
 

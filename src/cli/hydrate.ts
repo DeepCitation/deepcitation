@@ -18,6 +18,7 @@ import {
   type CitationData,
 } from "../prompts/citationPrompts.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
+import { findAnchorWithFallback, getAllLines, toCompactPageId } from "./cite.js";
 import { die, parseArgs } from "./cliUtils.js";
 
 export const HYDRATE_HELP = `Usage: deepcitation hydrate [options]
@@ -30,7 +31,7 @@ Use this when the draft was generated with the compact citation format
 
 Options:
   --markdown <file>   Path to draft markdown file with <<<CITATION_DATA>>> block
-  --summary <file>    Path to summary file from "deepcitation prepare --summary"
+  --summary <file>    Path to summary file from "deepcitation prepare --text"
   --out <file>        Output path (default: overwrites --markdown input)
   -h, --help          Show this help message
 
@@ -61,7 +62,7 @@ export interface LineMap {
 }
 
 export interface HydrateOptions {
-  /** Raw content of the summary file (JSON string from deepcitation prepare --summary) */
+  /** Raw content of the summary file (JSON string from deepcitation prepare --text) */
   summaryContent: string;
   /** Citations to hydrate in place — full_phrase is mutated on matching entries */
   citations: CitationData[];
@@ -92,13 +93,20 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
   const qualified = new Map<string, string>();
   const byId = new Map<number, string>();
 
-  let pages: string[];
+  let deepText: string;
+  let pages: string[] | null = null;
   try {
     const parsed = JSON.parse(summaryContent) as {
       deepTextPages?: unknown;
+      deepTextPromptPortion?: unknown;
     };
     if (Array.isArray(parsed.deepTextPages) && parsed.deepTextPages.every(page => typeof page === "string")) {
       pages = parsed.deepTextPages as string[];
+      if (pages.length === 0) return { qualified, byId };
+      deepText = pages.join("\n\n");
+    } else if (typeof parsed.deepTextPromptPortion === "string" && parsed.deepTextPromptPortion.length > 0) {
+      // deepTextPromptPortion is a single string containing <page_number_N_index_I> + <line id="N"> tags
+      deepText = parsed.deepTextPromptPortion;
     } else {
       return { qualified, byId };
     }
@@ -106,16 +114,12 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
     throw new Error("Summary file is not valid JSON");
   }
 
-  if (pages.length === 0) return { qualified, byId };
-
-  const deepText = pages.join("\n\n");
-
   // Check if the text contains <page_number_N_index_I> tags (from deepTextPromptPortion).
   // If not, the pages are raw deepTextPages entries — assign synthetic page IDs per array entry.
   const hasPageTags = PAGE_TAG_RE.test(deepText);
   PAGE_TAG_RE.lastIndex = 0; // Reset after .test()
 
-  if (!hasPageTags) {
+  if (!hasPageTags && pages) {
     // Each array entry is a separate page — assign page_number_{i+1}_index_{i} (1-based page, 0-based index).
     // Use a global synthetic line counter so IDs are unique across all pages.
     let globalLineId = 1;
@@ -138,8 +142,8 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
       } else {
         const rawLines = pageText
           .split("\n")
-          .map(l => l.trim())
-          .filter(l => l.length > 0);
+          .map((l: string) => l.trim())
+          .filter((l: string) => l.length > 0);
         for (const lineText of rawLines) {
           qualified.set(`${pageId}:${globalLineId}`, lineText);
           byId.set(globalLineId, lineText);
@@ -266,8 +270,40 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
 
     if (lineTexts.length > 0) {
       citation.full_phrase = lineTexts.join(" ");
+
+      // If anchor_text is paraphrased (not verbatim in full_phrase), promote it
+      // to display_label and find the actual verbatim anchor from the evidence.
+      if (citation.anchor_text && !citation.full_phrase.toLowerCase().includes(citation.anchor_text.toLowerCase())) {
+        if (!citation.display_label) {
+          citation.display_label = citation.anchor_text;
+        }
+        const allLines = getAllLines(lineMap);
+        const found = findAnchorWithFallback(citation.anchor_text, allLines);
+        if (found) {
+          citation.anchor_text = found.verbatimAnchor;
+        }
+      }
+
       hydrated++;
     } else {
+      // Line ID lookup failed (agent guessed wrong IDs). Fall back to anchor_text search
+      // across all lines so we still get a correct full_phrase and page/line location.
+      if (citation.anchor_text) {
+        const allLines = getAllLines(lineMap);
+        const found = findAnchorWithFallback(citation.anchor_text, allLines);
+        if (found) {
+          citation.full_phrase = found.verbatimAnchor;
+          // Preserve the original anchor_text as display_label before overwriting,
+          // mirroring the paraphrase-promotion pattern in the successful hydration path.
+          if (!citation.display_label) citation.display_label = citation.anchor_text;
+          citation.anchor_text = found.verbatimAnchor;
+          // Update page_id and line_ids to match what was actually found
+          citation.page_id = toCompactPageId(found.pageId);
+          citation.line_ids = [found.lineId];
+          hydrated++;
+          continue;
+        }
+      }
       if (warnOnMiss) {
         console.error(`  Citation ${citation.id}: line_ids [${lineIds.join(", ")}] not found in summary`);
       }
@@ -283,14 +319,15 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
  *
  * Search order (most reliable first):
  *   1. `.deepcitation/prepare-*.json` — pure JSON output from `deepcitation prepare`
- *   2. `.deepcitation/summary-*.txt`  — text+JSON output from `prepare --summary`
+ *   2. `.deepcitation/summary-*.txt`  — text+JSON output from `prepare --text`
  *
- * `prepare-*.json` is preferred because it is valid JSON; `summary-*.txt` starts
- * with human-readable text before the JSON object and will fail JSON.parse().
+ * When `attachmentId` is provided, scans each candidate and returns the first one
+ * whose JSON contains a matching `attachmentId`. This prevents the wrong evidence
+ * source from being used when multiple prepare files exist in `.deepcitation/`.
  *
- * Returns the newest file by mtime when multiple candidates exist, null if none found.
+ * Falls back to newest-by-mtime when no attachmentId match is found.
  */
-export function findSummaryForMarkdown(_mdPath: string): string | null {
+export function findSummaryForMarkdown(_mdPath: string, attachmentId?: string): string | null {
   const dcDir = join(process.cwd(), ".deepcitation");
   if (!existsSync(dcDir)) return null;
 
@@ -309,7 +346,23 @@ export function findSummaryForMarkdown(_mdPath: string): string | null {
   if (candidates.length === 0) return null;
   if (candidates.length === 1) return join(dcDir, candidates[0]);
 
-  // Multiple candidates — return newest by mtime
+  // When attachmentId is known, find the prepare file that matches it exactly.
+  // Never fall back to mtime guessing — a wrong summary produces wrong full_phrases.
+  if (attachmentId) {
+    for (const f of candidates) {
+      const filePath = join(dcDir, f);
+      try {
+        const content = readFileSync(filePath, "utf-8");
+        const parsed = JSON.parse(content) as { attachmentId?: string };
+        if (parsed.attachmentId === attachmentId) return filePath;
+      } catch {
+        // skip unparseable files
+      }
+    }
+    return null; // No match found — don't gamble on the wrong source
+  }
+
+  // No attachmentId available — return newest by mtime as last resort
   return candidates
     .map(f => ({ path: join(dcDir, f), mtime: statSync(join(dcDir, f)).mtimeMs }))
     .sort((a, b) => b.mtime - a.mtime)[0].path;

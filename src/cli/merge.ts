@@ -98,11 +98,17 @@ function toCompact(c: CitationData): Record<string, unknown> {
  * Used to determine where to start renumbering B's ids in body-only mode.
  */
 function findMaxCiteId(body: string, limit: number): number {
-  // Matches both (cite:N) and (cite:N "anchor") syntaxes
+  // Matches (cite:N), (cite:N "anchor"), and bare [N] markers
   const re = /\(cite:(\d+)(?:\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?\s*\)/g;
   let max = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(body)) !== null) {
+    const n = parseInt(m[1], 10);
+    if (n < limit && n > max) max = n;
+  }
+  // Also check **bold** [N] markers (Strategy 2c)
+  const boldRe = /\*\*[^*]+\*\*\s*\[(\d+)\]/g;
+  while ((m = boldRe.exec(body)) !== null) {
     const n = parseInt(m[1], 10);
     if (n < limit && n > max) max = n;
   }
@@ -115,19 +121,30 @@ function findMaxCiteId(body: string, limit: number): number {
  */
 function rewriteBCiteIds(bodyB: string, maxAId: number): string {
   const ids = new Set<number>();
+  // Collect IDs from (cite:N) markers
   const re = /\(cite:(\d+)(?:\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?\s*\)/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(bodyB)) !== null) {
     const n = parseInt(m[1], 10);
     if (n >= 100) ids.add(n);
   }
-  // Sort descending so "(cite:102)" replacement does not accidentally match "(cite:1002)"
+  // Collect IDs from **bold** [N] markers (Strategy 2c)
+  const boldRe = /\*\*[^*]+\*\*\s*\[(\d+)\]/g;
+  while ((m = boldRe.exec(bodyB)) !== null) {
+    const n = parseInt(m[1], 10);
+    if (n >= 100) ids.add(n);
+  }
+  // Sort descending so higher IDs are replaced first (avoids substring collision)
   const sorted = [...ids].sort((a, b) => b - a);
   let result = bodyB;
   for (const oldId of sorted) {
-    // Use regex replacement to handle both (cite:N) and (cite:N "anchor") forms
+    const newId = maxAId + oldId - 99;
+    // Rewrite (cite:N) and (cite:N "anchor") forms
     const oldRe = new RegExp(`\\(cite:${oldId}(\\s+(?:"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'))?\\s*\\)`, "g");
-    result = result.replace(oldRe, (_match, title) => `(cite:${maxAId + oldId - 99}${title ?? ""})`);
+    result = result.replace(oldRe, (_match, title) => `(cite:${newId}${title ?? ""})`);
+    // Rewrite **bold** [N] markers
+    const boldMarkerRe = new RegExp(`(\\*\\*[^*]+\\*\\*\\s*)\\[${oldId}\\]`, "g");
+    result = result.replace(boldMarkerRe, `$1[${newId}]`);
   }
   return result;
 }
@@ -181,9 +198,12 @@ export function mergeSections({ sectionAContent, sectionBContent }: MergeOptions
   let bodyB = parsedB.visibleText;
   for (const [oldId, newId] of renumberMap) {
     if (oldId !== newId) {
-      // Handle both (cite:N) and (cite:N "anchor") syntaxes
+      // Rewrite (cite:N) and (cite:N "anchor") syntaxes
       const oldRe = new RegExp(`\\(cite:${oldId}(\\s+(?:"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'))?\\s*\\)`, "g");
       bodyB = bodyB.replace(oldRe, (_match, title) => `(cite:${newId}${title ?? ""})`);
+      // Rewrite **bold** [N] markers (Strategy 2c)
+      const boldRe = new RegExp(`(\\*\\*[^*]+\\*\\*\\s*)\\[${oldId}\\]`, "g");
+      bodyB = bodyB.replace(boldRe, `$1[${newId}]`);
     }
   }
 
@@ -216,6 +236,9 @@ export function mergeSections({ sectionAContent, sectionBContent }: MergeOptions
       // Replace all occurrences of this B id in bodyB with A's id
       const dedupRe = new RegExp(`\\(cite:${b.id}(\\s+(?:"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'))?\\s*\\)`, "g");
       bodyB = bodyB.replace(dedupRe, (_match, title) => `(cite:${matchedAId}${title ?? ""})`);
+      // Also rewrite **bold** [N] markers (Strategy 2c)
+      const boldDedupRe = new RegExp(`(\\*\\*[^*]+\\*\\*\\s*)\\[${b.id}\\]`, "g");
+      bodyB = bodyB.replace(boldDedupRe, `$1[${matchedAId}]`);
       // Drop from output (deduplicated)
     } else {
       bFinal.push(b);

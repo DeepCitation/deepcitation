@@ -571,6 +571,11 @@ export const EXPANDED_MIN_READABLE_ZOOM = 0.5;
  *  container, switch to width-fit mode for readability. */
 export const KEYHOLE_WIDTH_FIT_THRESHOLD = 0.4;
 
+/** Target fraction of keyhole width that the anchor text should fill.
+ *  zoom-to-fit scales the image so anchor text occupies this proportion,
+ *  giving enough context without excessive empty space. */
+export const KEYHOLE_ANCHOR_FILL_TARGET = 0.7;
+
 // =============================================================================
 // EVIDENCE TRAY & EXPANDED VIEW
 // =============================================================================

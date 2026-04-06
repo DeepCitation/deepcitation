@@ -12,7 +12,7 @@ import {
 describe("citation prompts", () => {
   it("includes deferred JSON citation structure", () => {
     expect(CITATION_PROMPT).toContain(CITATION_DATA_START_DELIMITER);
-    expect(CITATION_PROMPT).toContain("(cite:N)");
+    expect(CITATION_PROMPT).toContain("[N]");
     // Grouped format uses attachment_id as object key, not field
     expect(CITATION_PROMPT).toContain("attachment_id");
     expect(CITATION_PROMPT).toContain('"full_phrase"');
@@ -52,7 +52,7 @@ describe("wrapSystemCitationPrompt", () => {
 
     expect(result).toContain("You are a helpful assistant.");
     expect(result).toContain(CITATION_DATA_START_DELIMITER);
-    expect(result).toContain("(cite:N)");
+    expect(result).toContain("[N]");
     expect(result).toContain("<citation-reminder>");
     // Citation instructions come first (wrap mode)
     expect(result.indexOf(CITATION_DATA_START_DELIMITER)).toBeLessThan(result.indexOf("You are a helpful assistant."));

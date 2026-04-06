@@ -152,15 +152,16 @@ beforeEach(() => {
 // ── Tests ─────────────────────────────────────────────────────────
 
 describe("requireAuth", () => {
-  it("returns auth when authenticated", () => {
+  it("returns auth when authenticated", async () => {
     const auth = makeAuth();
     mockResolveAuth.mockReturnValue(auth);
-    expect(requireAuth("help text")).toEqual(auth);
+    await expect(requireAuth()).resolves.toEqual(auth);
   });
 
-  it("exits when not authenticated", () => {
+  it("exits with action-needed message when not authenticated in non-interactive env", async () => {
+    // Test environment has no TTY → non-interactive path exits immediately with instructions
     mockResolveAuth.mockReturnValue(null);
-    expect(() => requireAuth("help text")).toThrow("process.exit(1)");
+    await expect(requireAuth()).rejects.toThrow("process.exit(1)");
   });
 });
 
@@ -195,9 +196,9 @@ describe("resolveBaseUrl", () => {
 describe("saveApiKey", () => {
   it("saves valid key", async () => {
     mockWriteCredentials.mockReturnValue(undefined);
-    const { stdout } = await captureOutput(() => saveApiKey(TEST_KEY, "--key flag"));
+    const { stderr } = await captureOutput(() => saveApiKey(TEST_KEY, "--key flag"));
     expect(mockWriteCredentials).toHaveBeenCalledWith(expect.objectContaining({ version: 1, apiKey: TEST_KEY }));
-    expect(stdout).toContain("Credentials saved");
+    expect(stderr).toContain("Credentials saved");
   });
 
   it("rejects key without sk-dc- prefix", () => {
@@ -604,7 +605,7 @@ describe("prepare command", () => {
     }
   });
 
-  it("prints summary JSON when --summary is used", async () => {
+  it("prints text JSON when --text is used", async () => {
     const tmpDir = makeTmpDir();
     const origCwd = process.cwd();
     process.chdir(tmpDir);
@@ -616,7 +617,7 @@ describe("prepare command", () => {
         metadata: { pageCount: 2, textByteSize: 2048 },
       });
 
-      const { stdout } = await captureOutput(() => prepare(["https://example.com/article", "--summary"], fmtNetErr));
+      const { stdout } = await captureOutput(() => prepare(["https://example.com/article", "--text"], fmtNetErr));
 
       const summary = JSON.parse(stdout);
       expect(summary.attachmentId).toBe("att-123");
@@ -1028,9 +1029,9 @@ describe("hydrate CLI command", () => {
 
 describe("login command", () => {
   it("saves key from --key flag", async () => {
-    const { stdout } = await captureOutput(() => login(["--key", TEST_KEY], TEST_BASE_URL));
+    const { stderr } = await captureOutput(() => login(["--key", TEST_KEY], TEST_BASE_URL));
     expect(mockWriteCredentials).toHaveBeenCalledWith(expect.objectContaining({ apiKey: TEST_KEY }));
-    expect(stdout).toContain("Credentials saved");
+    expect(stderr).toContain("Credentials saved");
   });
 
   it("exits when --key has no value", async () => {

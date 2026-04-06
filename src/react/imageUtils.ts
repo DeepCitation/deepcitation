@@ -33,6 +33,7 @@ export function useFaviconSrc(
   const [stage, setStage] = useState(0);
 
   // Reset fallback chain when inputs change (e.g. list virtualization reusing a component)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: url and customFaviconUrl are the reset triggers; they're not referenced inside the callback but must be deps
   useEffect(() => {
     setStage(prev => (prev !== 0 ? 0 : prev));
   }, [url, customFaviconUrl]);

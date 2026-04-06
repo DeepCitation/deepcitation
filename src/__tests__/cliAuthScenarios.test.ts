@@ -322,7 +322,7 @@ describe("login --stdin validation", () => {
     const home = freshHome();
     const r = run(["login", "--stdin"], { env: noAuthEnv(home), stdin: "sk-dc-validstdinkey012345\n" });
     expect(r.exitCode).toBe(0);
-    expect(r.stdout).toContain("Credentials saved");
+    expect(r.stderr).toContain("Credentials saved");
   });
 
   it("trims whitespace from stdin key", () => {
@@ -350,7 +350,7 @@ describe("login --stdin key extraction", () => {
     const home = freshHome();
     const r = run(["login", "--stdin"], { env: noAuthEnv(home), stdin: '"sk-dc-quotedstdinkey01234"\n' });
     expect(r.exitCode).toBe(0);
-    expect(r.stdout).toContain("Credentials saved");
+    expect(r.stderr).toContain("Credentials saved");
   });
 
   it("accepts full npx command from stdin", () => {
@@ -360,7 +360,7 @@ describe("login --stdin key extraction", () => {
       stdin: 'npx deepcitation login --key "sk-dc-fromcommandline01234"\n',
     });
     expect(r.exitCode).toBe(0);
-    expect(r.stdout).toContain("Credentials saved");
+    expect(r.stderr).toContain("Credentials saved");
   });
 
   it("rejects input with no valid key", () => {
@@ -379,24 +379,24 @@ describe("non-TTY / agent environment login", () => {
   it("shows instructions for non-interactive environment", () => {
     const r = run(["login"], { env: noAuthEnv() });
     expect(r.exitCode).toBe(1);
-    expect(r.stdout).toContain("Non-interactive");
-    expect(r.stdout).toContain("Get your API key");
-    expect(r.stdout).toContain("export DEEPCITATION_API_KEY");
+    expect(r.stderr).toContain("Non-interactive");
+    expect(r.stderr).toContain("Get your API key");
+    expect(r.stderr).toContain("export DEEPCITATION_API_KEY");
   });
 
   it("Cowork environment shows domain setup instructions", () => {
     const r = run(["login"], { env: { ...noAuthEnv(), CLAUDE_CODE_REMOTE: "true" } });
     expect(r.exitCode).toBe(1);
-    expect(r.stdout).toContain("Cowork");
-    expect(r.stdout).toContain("allowed domains");
-    expect(r.stdout).toContain("deepcitation.com");
-    expect(r.stdout).toContain("claude.ai/settings/capabilities");
+    expect(r.stderr).toContain("Cowork");
+    expect(r.stderr).toContain("allowed domains");
+    expect(r.stderr).toContain("deepcitation.com");
+    expect(r.stderr).toContain("claude.ai/settings/capabilities");
   });
 
   it("Cowork instructions mention persistent env var", () => {
     const r = run(["login"], { env: { ...noAuthEnv(), CLAUDE_CODE_REMOTE: "true" } });
-    expect(r.stdout).toContain("DEEPCITATION_API_KEY");
-    expect(r.stdout).toContain("Cowork environment settings");
+    expect(r.stderr).toContain("DEEPCITATION_API_KEY");
+    expect(r.stderr).toContain("Cowork environment settings");
   });
 });
 
@@ -598,7 +598,7 @@ describe("skill/agent auth lifecycle", () => {
     // 2. Agent logs in with --key
     const login = run(["login", "--key", "sk-dc-agentlifecycle012345"], { env, cwd });
     expect(login.exitCode).toBe(0);
-    expect(login.stdout).toContain("Credentials saved");
+    expect(login.stderr).toContain("Credentials saved");
 
     // 3. Agent verifies status
     const s2 = run(["status"], { env, cwd });

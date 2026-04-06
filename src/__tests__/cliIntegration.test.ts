@@ -56,7 +56,7 @@ describe("CLI dispatch", () => {
     const r = run([]);
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toContain("Commands:");
-    expect(r.stdout).toContain("login");
+    expect(r.stdout).toContain("auth");
     expect(r.stdout).toContain("prepare");
     expect(r.stdout).toContain("verify");
   });
@@ -180,7 +180,7 @@ describe("auth commands", () => {
       env: { HOME: loginHome, DEEPCITATION_API_KEY: "" },
     });
     expect(r.exitCode).toBe(0);
-    expect(r.stdout).toContain("Credentials saved");
+    expect(r.stderr).toContain("Credentials saved");
   });
 
   it("login --key rejects invalid key", () => {
@@ -203,7 +203,7 @@ describe("auth commands", () => {
       stdin: "sk-dc-test12345678901234\n",
     });
     expect(r.exitCode).toBe(0);
-    expect(r.stdout).toContain("Credentials saved");
+    expect(r.stderr).toContain("Credentials saved");
   });
 
   it("login --stdin rejects invalid key", () => {

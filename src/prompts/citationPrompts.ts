@@ -36,7 +36,9 @@ export const CITATION_PROMPT = `
 ## REQUIRED: Citation Format
 
 ### In-Text Markers
-For every claim, value, or fact from attachments, wrap the key phrase in citation link syntax: [anchor text](cite:N) where N is the sequential citation number. Each distinct piece of information needs its own unique marker number.
+Write naturally and **bold** the 1–4 word name of each key fact — a claim, value, fact, entity, date, or price. Not the surrounding clause, just the core term. Place a citation marker [N] immediately after each bolded term, where N is the sequential citation number (1, 2, 3…). One unique ID per distinct fact.
+
+Example: The company reported **45% growth** [1] in revenue, reaching **$2.3 billion** [2] in Q4.
 
 ### Citation Data Block
 At the END of your response, append a citation block. Group citations by attachment_id to avoid repetition.
@@ -61,25 +63,25 @@ To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, p=page_id, l=li
 2. **id** (or n): Each citation MUST have a unique ID matching its [N] marker. Do NOT reuse the same ID for different citations.
 3. **reasoning** (or r): Brief explanation connecting the citation to your claim (think first!)
 4. **full_phrase** (or f): Copy text VERBATIM from source. Use proper JSON escaping for quotes.
-5. **anchor_text** (or k): The 1-3 most important words from full_phrase
+5. **anchor_text** (or k): 1–4 verbatim words from the evidence line (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
 6. **page_id** (or p): Format "page_number_N_index_I" where N=page number, I=index (copy exactly from \`<page_number_N_index_I>\` tags in the source)
 7. **line_ids** (or l): Array of line IDs from the source (copy from line ID markers in the text). Include IDs for all relevant lines.
 
 ### Placement Rules
 
-- Wrap the key phrase with [anchor text](cite:N), e.g. [Discount Rate](cite:2)
+- **Bold** the key term and place [N] after it, e.g. **Discount Rate** [2]
 - One marker per distinct idea, concept, or value
 - Use sequential numbering starting from 1 - each citation gets a unique number
 - The JSON block MUST appear at the very end of your response
 
 ### Example Response
 
-The company reported [strong growth](cite:1). Revenue [increased significantly](cite:2) in Q4. The [competitor also grew](cite:3).
+The company reported **strong growth** [1] in the quarter. Revenue reached **$2.3 billion** [2] in Q4. The **competitor** [3] also reported gains.
 
 <<<CITATION_DATA>>>
 {
   "abc123": [
-    {"id": 1, "reasoning": "directly states growth metrics", "full_phrase": "The company achieved 45% year-over-year growth", "anchor_text": "45% year-over-year growth", "page_id": "page_number_2_index_1", "line_ids": [12, 13]},
+    {"id": 1, "reasoning": "directly states growth metrics", "full_phrase": "The company achieved 45% year-over-year growth", "anchor_text": "45% growth", "page_id": "page_number_2_index_1", "line_ids": [12, 13]},
     {"id": 2, "reasoning": "states Q4 revenue figure", "full_phrase": "Q4 revenue reached $2.3 billion, up from $1.8 billion", "anchor_text": "$2.3 billion", "page_id": "page_number_3_index_2", "line_ids": [5, 6, 7]}
   ],
   "def456": [
@@ -105,7 +107,7 @@ export const AV_CITATION_PROMPT = `
 ## REQUIRED: Audio/Video Citation Format
 
 ### In-Text Markers
-For every claim, value, or fact from media content, wrap the key phrase in citation link syntax: [anchor text](cite:N) where N is the sequential citation number.
+Write naturally and **bold** the 1–4 word name of each key fact — a claim, value, fact, entity, date, or price. Not the surrounding clause, just the core term. Place a citation marker [N] immediately after each bolded term, where N is the sequential citation number (1, 2, 3…). One unique ID per distinct fact.
 
 ### Citation Data Block
 At the END of your response, append a citation block. Group citations by attachment_id to avoid repetition.
@@ -130,19 +132,19 @@ To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, t=timestamps (w
 2. **id** (or n): Must match the [N] marker in your text (integer)
 3. **reasoning** (or r): Brief explanation connecting the citation to your claim (think first!)
 4. **full_phrase** (or f): Copy transcript text VERBATIM. Use proper JSON escaping.
-5. **anchor_text** (or k): The 1-3 most important words from full_phrase
+5. **anchor_text** (or k): 1–4 verbatim words from the transcript (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
 6. **timestamps** (or t): Object with start_time/s and end_time/e in HH:MM:SS.SSS format
 
 ### Placement Rules
 
-- Wrap the key phrase with [anchor text](cite:N), e.g. [exercise benefits](cite:1)
+- **Bold** the key term and place [N] after it, e.g. **exercise benefits** [1]
 - One marker per distinct idea, concept, or value
 - Use sequential numbering starting from 1
 - The JSON block MUST appear at the very end of your response
 
 ### Example Response
 
-The speaker discussed [exercise benefits](cite:1). They recommended [specific techniques](cite:2).
+The speaker discussed **exercise benefits** [1]. They recommended **specific techniques** [2].
 
 <<<CITATION_DATA>>>
 {
@@ -160,12 +162,12 @@ The speaker discussed [exercise benefits](cite:1). They recommended [specific te
  * A brief reminder to reinforce citation requirements in user messages.
  * Use this when you want to add emphasis without repeating full instructions.
  */
-export const CITATION_REMINDER = `<citation-reminder>STOP and CHECK: Did you use [anchor text](cite:N) markers for every claim and include the <<<CITATION_DATA>>> JSON block at the end?</citation-reminder>`;
+export const CITATION_REMINDER = `<citation-reminder>STOP and CHECK: Did you **bold** each key fact with [N] after it, and include the <<<CITATION_DATA>>> JSON block at the end?</citation-reminder>`;
 
 /**
  * Audio/video version of the citation reminder.
  */
-export const CITATION_AV_REMINDER = `<citation-reminder>STOP and CHECK: Did you use [anchor text](cite:N) markers for every claim and include the <<<CITATION_DATA>>> JSON block with timestamps at the end?</citation-reminder>`;
+export const CITATION_AV_REMINDER = `<citation-reminder>STOP and CHECK: Did you **bold** each key fact with [N] after it, and include the <<<CITATION_DATA>>> JSON block with timestamps at the end?</citation-reminder>`;
 
 export interface WrapSystemPromptOptions {
   /** The original system prompt to wrap with citation instructions */
@@ -388,7 +390,7 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
     anchor_text: {
       type: "string",
       description:
-        "1-3 key words from full_phrase; should match the anchor text used in [anchor](cite:N) inline markers",
+        "1–4 verbatim words from full_phrase (never more than 4). Drop leading articles. Should match the anchor text used in [anchor](cite:N) inline markers",
     },
     page_id: {
       type: "string",
@@ -421,7 +423,9 @@ export const COMPACT_CITATION_PROMPT = `
 ## REQUIRED: Citation Format (Compact)
 
 ### In-Text Markers
-For every claim, value, or fact from attachments, wrap the key phrase in citation link syntax: [anchor text](cite:N) where N is the sequential citation number.
+Write naturally and **bold** the 1–4 word name of each key fact — a claim, value, fact, entity, date, or price. Not the surrounding clause, just the core term. Bold text minimizes cognitive load for the reader: they scan the bolded terms to quickly grasp the key facts without reading every word. Place a citation marker [N] immediately after each bolded term, where N is the sequential citation number (1, 2, 3…). One unique ID per distinct fact.
+
+Example: The **Discount Rate** [1] is applied to the conversion price. Revenue grew **45%** [2].
 
 ### Citation Data Block
 At the END of your response, append a compact citation block grouped by attachment_id.
@@ -440,8 +444,8 @@ Do NOT output fullPhrase or reasoning — these are reconstructed automatically 
 
 ### Field Rules
 
-1. **n**: Citation id (integer, matches cite:N in text)
-2. **k** (anchorText): 1–3 contiguous verbatim words from the evidence line at the referenced lineId. Max 4 words. Pick the distinctive noun or term, not the surrounding verb phrase.
+1. **n**: Citation id (integer, matches [N] in text)
+2. **k** (anchorText): 1–4 verbatim words from the evidence line (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
 3. **p** (page_id): Compact form "N_I" where N=page number and I=index (extract from \`<page_number_N_index_I>\` tag)
 4. **l** (line_ids): Array of line IDs from \`<line id="N">\` tags
 
@@ -453,13 +457,13 @@ Do NOT output fullPhrase or reasoning — these are reconstructed automatically 
 - "SAFE (Simple Agreement for Future Equity)" → k: "SAFE" (not the 5-word expansion)
 
 ### Placement Rules
-- Wrap key phrase: [anchor text](cite:N), e.g. [Discount Rate](cite:2)
+- **Bold** the key term and place [N] after it, e.g. **Discount Rate** [2]
 - Sequential IDs starting from 1 — each citation gets a unique number
 - JSON block MUST appear at the very end of your response
 
 ### Example Response
 
-The [Discount Rate](cite:1) is applied to the conversion price. Revenue grew [45%](cite:2).
+The **Discount Rate** [1] is applied to the conversion price. Revenue grew **45%** [2].
 
 <<<CITATION_DATA>>>
 {
@@ -490,8 +494,7 @@ export const COMPACT_CITATION_JSON_OUTPUT_FORMAT = {
     },
     k: {
       type: "string",
-      description:
-        "anchorText: 1–3 contiguous verbatim words from the evidence line at the referenced lineId. Max 4 words.",
+      description: "anchorText: 1–4 verbatim words from the evidence line (never more than 4). Drop leading articles.",
     },
     p: {
       type: "string",
@@ -531,7 +534,7 @@ export const CITATION_AV_JSON_OUTPUT_FORMAT = {
     },
     anchor_text: {
       type: "string",
-      description: "1-3 key words from full_phrase",
+      description: "1–4 verbatim words from full_phrase (never more than 4). Drop leading articles.",
     },
     timestamps: {
       type: "object",
