@@ -1,7 +1,7 @@
 ---
-generated_at: "2026-03-31T01:31:51Z"
-commit_sha: "4a2c083"
-commit_sha_full: "4a2c08350a89e0f52651c45d31151a54289ed4ac"
+generated_at: "2026-04-06T14:01:20Z"
+commit_sha: "decf25c"
+commit_sha_full: "decf25cd859315d775838d7a1e9847e7dc06b785"
 stale_after_commits: 30
 ---
 
@@ -62,6 +62,7 @@ docs/  # Documentation (GitHub Pages site + agent docs)
 Scripts
 
 scripts/  # Build, validation, and maintenance scripts
+  add-use-client.mjs
   build-vanilla-runtime.mjs
   convert-snapshots-to-avif.js
   docs-audit-inventory.mjs  # Deterministic checks for documentation drift (broken links, staleness, etc.)
@@ -89,6 +90,7 @@ examples/  # Integration examples (Next.js, etc.)
   langchain-rag-chat/  # LangChain.js RAG chat example with Next.js
   mastra-rag-chat/  # Mastra RAG chat example with Next.js and LibSQLVector
   nextjs-ai-sdk/  # Next.js AI SDK integration example
+  output/  # (no description)
   static-html/  # CDN popover bundle in a plain HTML page (no build step)
   url-example/  # URL citation verification example
 ```
