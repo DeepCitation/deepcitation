@@ -18,7 +18,7 @@ import {
   type CitationData,
 } from "../prompts/citationPrompts.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
-import { findAnchorWithFallback, getAllLines } from "./cite.js";
+import { findAnchorWithFallback, getAllLines, toCompactPageId } from "./cite.js";
 import { die, parseArgs } from "./cliUtils.js";
 
 export const HYDRATE_HELP = `Usage: deepcitation hydrate [options]
@@ -93,23 +93,25 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
   const qualified = new Map<string, string>();
   const byId = new Map<number, string>();
 
-  let pages: string[];
+  let deepText: string;
   try {
     const parsed = JSON.parse(summaryContent) as {
       deepTextPages?: unknown;
+      deepTextPromptPortion?: unknown;
     };
     if (Array.isArray(parsed.deepTextPages) && parsed.deepTextPages.every(page => typeof page === "string")) {
-      pages = parsed.deepTextPages as string[];
+      const pages = parsed.deepTextPages as string[];
+      if (pages.length === 0) return { qualified, byId };
+      deepText = pages.join("\n\n");
+    } else if (typeof parsed.deepTextPromptPortion === "string" && parsed.deepTextPromptPortion.length > 0) {
+      // deepTextPromptPortion is a single string containing <page_number_N_index_I> + <line id="N"> tags
+      deepText = parsed.deepTextPromptPortion;
     } else {
       return { qualified, byId };
     }
   } catch {
     throw new Error("Summary file is not valid JSON");
   }
-
-  if (pages.length === 0) return { qualified, byId };
-
-  const deepText = pages.join("\n\n");
 
   // Check if the text contains <page_number_N_index_I> tags (from deepTextPromptPortion).
   // If not, the pages are raw deepTextPages entries — assign synthetic page IDs per array entry.
@@ -283,6 +285,21 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
 
       hydrated++;
     } else {
+      // Line ID lookup failed (agent guessed wrong IDs). Fall back to anchor_text search
+      // across all lines so we still get a correct full_phrase and page/line location.
+      if (citation.anchor_text) {
+        const allLines = getAllLines(lineMap);
+        const found = findAnchorWithFallback(citation.anchor_text, allLines);
+        if (found) {
+          citation.full_phrase = found.verbatimAnchor;
+          citation.anchor_text = found.verbatimAnchor;
+          // Update page_id and line_ids to match what was actually found
+          citation.page_id = toCompactPageId(found.pageId);
+          citation.line_ids = [found.lineId];
+          hydrated++;
+          continue;
+        }
+      }
       if (warnOnMiss) {
         console.error(`  Citation ${citation.id}: line_ids [${lineIds.join(", ")}] not found in summary`);
       }
@@ -300,12 +317,13 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
  *   1. `.deepcitation/prepare-*.json` — pure JSON output from `deepcitation prepare`
  *   2. `.deepcitation/summary-*.txt`  — text+JSON output from `prepare --text`
  *
- * `prepare-*.json` is preferred because it is valid JSON; `summary-*.txt` starts
- * with human-readable text before the JSON object and will fail JSON.parse().
+ * When `attachmentId` is provided, scans each candidate and returns the first one
+ * whose JSON contains a matching `attachmentId`. This prevents the wrong evidence
+ * source from being used when multiple prepare files exist in `.deepcitation/`.
  *
- * Returns the newest file by mtime when multiple candidates exist, null if none found.
+ * Falls back to newest-by-mtime when no attachmentId match is found.
  */
-export function findSummaryForMarkdown(_mdPath: string): string | null {
+export function findSummaryForMarkdown(_mdPath: string, attachmentId?: string): string | null {
   const dcDir = join(process.cwd(), ".deepcitation");
   if (!existsSync(dcDir)) return null;
 
@@ -324,7 +342,23 @@ export function findSummaryForMarkdown(_mdPath: string): string | null {
   if (candidates.length === 0) return null;
   if (candidates.length === 1) return join(dcDir, candidates[0]);
 
-  // Multiple candidates — return newest by mtime
+  // When attachmentId is known, find the prepare file that matches it exactly.
+  // Never fall back to mtime guessing — a wrong summary produces wrong full_phrases.
+  if (attachmentId) {
+    for (const f of candidates) {
+      const filePath = join(dcDir, f);
+      try {
+        const content = readFileSync(filePath, "utf-8");
+        const parsed = JSON.parse(content) as { attachmentId?: string };
+        if (parsed.attachmentId === attachmentId) return filePath;
+      } catch {
+        // skip unparseable files
+      }
+    }
+    return null; // No match found — don't gamble on the wrong source
+  }
+
+  // No attachmentId available — return newest by mtime as last resort
   return candidates
     .map(f => ({ path: join(dcDir, f), mtime: statSync(join(dcDir, f)).mtimeMs }))
     .sort((a, b) => b.mtime - a.mtime)[0].path;

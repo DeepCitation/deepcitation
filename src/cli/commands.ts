@@ -841,7 +841,10 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   // fill in full_phrase from the summary file before proceeding.
   const needsHydration = parsed.citations.some(c => !c.full_phrase && c.line_ids?.length);
   if (needsHydration) {
-    const summaryPath = args.summary ? resolve(args.summary as string) : findSummaryForMarkdown(resolved);
+    // Extract attachmentId from parsed citations to find the matching summary file.
+    // This prevents wrong-source hydration when multiple prepare files exist.
+    const knownAttachmentId = parsed.citations.find(c => c.attachment_id)?.attachment_id;
+    const summaryPath = args.summary ? resolve(args.summary as string) : findSummaryForMarkdown(resolved, knownAttachmentId);
     if (summaryPath && existsSync(summaryPath)) {
       const summaryContent = readFileSync(summaryPath, "utf-8");
       console.error(`Auto-hydrating citations from summary: ${summaryPath}`);
