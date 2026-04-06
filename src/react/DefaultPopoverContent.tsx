@@ -102,6 +102,8 @@ export interface PopoverContentProps {
    * Download URL for the source file. When provided, renders a download button in the popover header.
    */
   downloadUrl?: string;
+  /** Explicit filename for the download. When omitted, inferred from the citation URL. */
+  downloadFilename?: string;
   /**
    * Ref that sub-components set to a collapse function when they have an
    * expanded section (e.g. search log) that should consume Escape before the
@@ -576,11 +578,13 @@ function PopoverLoadingView({
   verification,
   sourceLabel,
   downloadUrl,
+  downloadFilename,
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
   sourceLabel?: string;
   downloadUrl?: string;
+  downloadFilename?: string;
 }) {
   const t = useTranslation();
   const anchorText = citation.anchorText?.toString();
@@ -598,6 +602,7 @@ function PopoverLoadingView({
         status={searchStatus}
         sourceLabel={sourceLabel}
         downloadUrl={downloadUrl}
+        downloadFilename={downloadFilename}
       />
       <div className="p-3 flex flex-col gap-2.5">
         {/* Skeleton: status bar placeholder */}
@@ -646,6 +651,7 @@ function PopoverFallbackView({
   urlAccessExplanation,
   indicatorVariant = "icon",
   downloadUrl,
+  downloadFilename,
   customActions,
 }: {
   citation: BaseCitationProps["citation"];
@@ -656,6 +662,7 @@ function PopoverFallbackView({
   urlAccessExplanation: UrlAccessExplanation | null;
   indicatorVariant?: IndicatorVariant;
   downloadUrl?: string;
+  downloadFilename?: string;
   customActions?: import("./types.js").PopoverAction[];
 }) {
   const t = useTranslation();
@@ -677,6 +684,7 @@ function PopoverFallbackView({
         status={searchStatus}
         sourceLabel={sourceLabel}
         downloadUrl={downloadUrl}
+        downloadFilename={downloadFilename}
         customActions={customActions}
       />
       {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
@@ -734,6 +742,7 @@ export function DefaultPopoverContent({
   onExpandedWidthChange,
   prevBeforeExpandedPageRef: propPrevBeforeExpandedPageRef,
   downloadUrl,
+  downloadFilename,
   escapeInterceptRef,
   customPopoverActions,
   popoverContentRef,
@@ -1011,6 +1020,7 @@ export function DefaultPopoverContent({
           verification={verification}
           sourceLabel={sourceLabel}
           downloadUrl={downloadUrl}
+          downloadFilename={downloadFilename}
         />
       </>
     );
@@ -1077,6 +1087,7 @@ export function DefaultPopoverContent({
               onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
               onClose={isFullPage ? handleCollapseFromExpandedPage : undefined}
               downloadUrl={downloadUrl}
+              downloadFilename={downloadFilename}
               customActions={customPopoverActions}
             />
             {/* Zone 2: Claim Body — Status + highlighted phrase */}
@@ -1153,6 +1164,7 @@ export function DefaultPopoverContent({
         urlAccessExplanation={urlAccessExplanation}
         indicatorVariant={indicatorVariant}
         downloadUrl={downloadUrl}
+        downloadFilename={downloadFilename}
         customActions={customPopoverActions}
       />
     </>

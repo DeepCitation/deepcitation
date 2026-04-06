@@ -328,6 +328,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   pageImages,
   prevBeforeExpandedPageRef,
   downloadUrl,
+  downloadFilename,
   escapeInterceptRef,
   customPopoverActions,
 }: {
@@ -347,6 +348,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   pageImages?: PageImage[];
   prevBeforeExpandedPageRef: React.RefObject<"summary" | "expanded-keyhole">;
   downloadUrl?: string;
+  downloadFilename?: string;
   escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
   customPopoverActions?: import("./types.js").PopoverAction[];
 }) {
@@ -376,6 +378,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
         pageImages={pageImages}
         prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
         downloadUrl={downloadUrl}
+        downloadFilename={downloadFilename}
         escapeInterceptRef={escapeInterceptRef}
         customPopoverActions={customPopoverActions}
       />
@@ -459,6 +462,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     const downloadUrl = useMemo(
       () => originalDownload?.link.url ?? convertedDownload?.link.url ?? null,
+      [originalDownload, convertedDownload],
+    );
+
+    const downloadFilename = useMemo(
+      () => (originalDownload ?? convertedDownload)?.filename ?? null,
       [originalDownload, convertedDownload],
     );
 
@@ -1305,6 +1313,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           pageImages={pageImages}
           prevBeforeExpandedPageRef={viewState.prevBeforeExpandedPageRef}
           downloadUrl={downloadUrl ?? undefined}
+          downloadFilename={downloadFilename ?? undefined}
           escapeInterceptRef={viewState.escapeInterceptRef}
           customPopoverActions={customPopoverActions}
         />
