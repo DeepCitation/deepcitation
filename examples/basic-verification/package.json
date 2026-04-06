@@ -8,12 +8,16 @@
     "start:openai": "bun run src/openai.ts",
     "start:anthropic": "bun run src/anthropic.ts",
     "start:gemini": "bun run src/gemini.ts",
-    "start:curl": "bun run src/curl.ts"
+    "start:curl": "bun run src/curl.ts",
+    "steps": "bun run src/step-runner.ts",
+    "steps:openai": "bun run src/step-runner.ts --provider=openai",
+    "steps:anthropic": "bun run src/step-runner.ts --provider=anthropic",
+    "steps:gemini": "bun run src/step-runner.ts --provider=gemini"
   },
   "dependencies": {
-    "deepcitation": "latest",
     "@anthropic-ai/sdk": "^0.30.1",
     "@google/generative-ai": "^0.21.0",
+    "deepcitation": "file:../../",
     "openai": "^4.104.0"
   },
   "devDependencies": {
