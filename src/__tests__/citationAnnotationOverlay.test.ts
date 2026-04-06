@@ -239,7 +239,13 @@ describe("CitationAnnotationOverlay utilities", () => {
 
     it("real-world: radial art line anchor should not span entire chart section", () => {
       // phraseMatchDeepItem covers a massive area (many OCR lines merged)
-      const massivePhrase = makeItem(200, 800, 900, 300, "radial art line Bumex 5mg/hr ... PLAN: Optimize for transplant");
+      const massivePhrase = makeItem(
+        200,
+        800,
+        900,
+        300,
+        "radial art line Bumex 5mg/hr ... PLAN: Optimize for transplant",
+      );
       const anchorItems = [
         makeItem(680, 950, 70, 20, "radial"),
         makeItem(755, 950, 30, 20, "art"),

@@ -315,7 +315,7 @@ describe("checkForUpdate", () => {
   it("skips fetch when stamp is recent (within 24h)", async () => {
     const fetchSpy = jest
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(JSON.stringify({ version: "0.3.10" }), { status: 200 }));
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "0.3.10" }) } as globalThis.Response);
     // Stamp is 1 minute old
     (readFileSync as jest.Mock).mockReturnValue(String(Date.now() - 60_000));
 
@@ -328,7 +328,7 @@ describe("checkForUpdate", () => {
   it("fetches when stamp is older than 24h", async () => {
     const fetchSpy = jest
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(JSON.stringify({ version: "0.3.10" }), { status: 200 }));
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "0.3.10" }) } as globalThis.Response);
     // Stamp is 25 hours old
     (readFileSync as jest.Mock).mockReturnValue(String(Date.now() - 25 * 60 * 60 * 1000));
 
@@ -342,7 +342,7 @@ describe("checkForUpdate", () => {
   it("fetches when no stamp file exists", async () => {
     const fetchSpy = jest
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(JSON.stringify({ version: "0.3.10" }), { status: 200 }));
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "0.3.10" }) } as globalThis.Response);
     // readFileSync throws (no file) — default mock behavior
 
     await checkForUpdate("0.3.10");
@@ -356,7 +356,7 @@ describe("checkForUpdate", () => {
     const stderrSpy = jest.spyOn(process.stderr, "write").mockReturnValue(true);
     jest
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(JSON.stringify({ version: "99.0.0" }), { status: 200 }));
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "99.0.0" }) } as globalThis.Response);
 
     await checkForUpdate("0.3.10");
 
@@ -368,7 +368,7 @@ describe("checkForUpdate", () => {
     const stderrSpy = jest.spyOn(process.stderr, "write").mockReturnValue(true);
     jest
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(JSON.stringify({ version: "0.3.10" }), { status: 200 }));
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "0.3.10" }) } as globalThis.Response);
 
     await checkForUpdate("0.3.10");
 

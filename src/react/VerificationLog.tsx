@@ -532,10 +532,11 @@ export function SourceContextHeader({
   }, [dlState, percentBucket, t]);
 
   // Keep target ref in sync so the single interval always chases the latest value.
-  if (typeof dlState === "number" && dlState >= 0) dlTargetRef.current = dlState;
+  const isDownloading = typeof dlState === "number" && dlState >= 0;
+  if (isDownloading) dlTargetRef.current = dlState;
 
   useEffect(() => {
-    if (typeof dlState !== "number" || dlState < 0) return;
+    if (!isDownloading) return;
     const id = setInterval(() => {
       setDisplayPercent(prev => {
         if (prev >= dlTargetRef.current) return prev;
@@ -543,9 +544,7 @@ export function SourceContextHeader({
       });
     }, 75);
     return () => clearInterval(id);
-    // Only start/stop the interval on state-kind transitions, not every percent tick.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typeof dlState === "number" && dlState >= 0]);
+  }, [isDownloading]);
 
   // Clean up the "done → idle" reset timer on unmount.
   useEffect(() => {
