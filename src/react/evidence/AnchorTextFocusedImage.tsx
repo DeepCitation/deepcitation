@@ -266,7 +266,7 @@ export function AnchorTextFocusedImage({
             data-dc-keyhole=""
             data-dc-page-expand-source=""
             data-dc-page-expand-source-kind="summary-keyhole"
-            className={cn(DOCUMENT_CANVAS_BG_CLASSES, "overflow-auto")}
+            className={cn(DOCUMENT_CANVAS_BG_CLASSES, "overflow-x-auto overflow-y-hidden")}
             style={{
               viewTransitionName: DC_EVIDENCE_VT_NAME,
               height: stripHeightStyle,
