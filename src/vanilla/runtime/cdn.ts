@@ -211,8 +211,13 @@ function CdnPopoverWrapper(props: {
     onDismiss: props.onDismiss,
   });
 
+  // Convert downloadUrl string to DownloadInfo object expected by DefaultPopoverContent
+  const { downloadUrl, ...rest } = props;
+  const download = downloadUrl ? { url: downloadUrl } : undefined;
+
   return createElement(DefaultPopoverContent, {
-    ...props,
+    ...rest,
+    download,
     popoverContentRef: setPopoverContentRef,
     viewState: viewState.current,
     onViewStateChange: viewState.transition,
