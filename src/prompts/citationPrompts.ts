@@ -494,8 +494,7 @@ export const COMPACT_CITATION_JSON_OUTPUT_FORMAT = {
     },
     k: {
       type: "string",
-      description:
-        "anchorText: 1–4 verbatim words from the evidence line (never more than 4). Drop leading articles.",
+      description: "anchorText: 1–4 verbatim words from the evidence line (never more than 4). Drop leading articles.",
     },
     p: {
       type: "string",

@@ -469,10 +469,10 @@ describe("markdownToHtml — **bold** [N] format", () => {
 
   it("strong tag remains inside span when anchorMap is used", () => {
     const anchorMap = { "1": "initial closing", "2": "automatically convert" };
-    const result = markdownToHtml(
-      "On **initial closing** [1] of an event, the SAFE **automatically convert** [2]s.",
-      { style: "plain", anchorMap },
-    );
+    const result = markdownToHtml("On **initial closing** [1] of an event, the SAFE **automatically convert** [2]s.", {
+      style: "plain",
+      anchorMap,
+    });
     // Both strong tags must be children of their data-cite spans
     expect(result).toContain('<span data-cite="1"><strong>initial closing</strong></span>');
     expect(result).toContain('<span data-cite="2"><strong>automatically convert</strong></span>');

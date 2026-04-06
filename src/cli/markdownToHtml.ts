@@ -72,14 +72,11 @@ function inlineFormat(text: string): string {
 
   // Strategy 2c: **bold text** [N] markers — extract before escHtml so the
   // <strong> tags don't break wrapCitationMarkers' [^<>"] regex.
-  withPlaceholders = withPlaceholders.replace(
-    /\*\*([^*]+)\*\*\s*\[(\d+)\]/g,
-    (_m, label: string, id: string) => {
-      const idx = citePlaceholders.length;
-      citePlaceholders.push(`<span data-cite="${id}"><strong>${escHtml(label)}</strong></span>`);
-      return `\x00CITE${idx}\x00`;
-    },
-  );
+  withPlaceholders = withPlaceholders.replace(/\*\*([^*]+)\*\*\s*\[(\d+)\]/g, (_m, label: string, id: string) => {
+    const idx = citePlaceholders.length;
+    citePlaceholders.push(`<span data-cite="${id}"><strong>${escHtml(label)}</strong></span>`);
+    return `\x00CITE${idx}\x00`;
+  });
 
   let result = escHtml(withPlaceholders)
     // inline code (before bold/italic to avoid conflicts)
