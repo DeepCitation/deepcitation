@@ -521,15 +521,15 @@ export function SourceContextHeader({
 
   // Aria-live announcement for download state changes.
   // Only announce at 25% increments to avoid spamming screen readers.
+  const percentBucket = dlState === "done" ? 0 : Math.floor(displayPercent / 25);
   const dlAnnouncement = useMemo(() => {
     if (dlState === "idle") return "";
     if (dlState === "done") return t("aria.downloadComplete");
     if (typeof dlState === "number" && dlState >= 0) {
-      const bucket = Math.floor(displayPercent / 25) * 25;
-      return t("aria.downloadProgress", { percent: String(bucket) });
+      return t("aria.downloadProgress", { percent: String(percentBucket * 25) });
     }
     return t("aria.downloadStarted");
-  }, [dlState, dlState === "done" ? 0 : Math.floor(displayPercent / 25), t]);
+  }, [dlState, percentBucket, t]);
 
   // Keep target ref in sync so the single interval always chases the latest value.
   if (typeof dlState === "number" && dlState >= 0) dlTargetRef.current = dlState;
@@ -639,7 +639,7 @@ export function SourceContextHeader({
             </span>
           </button>
         )}
-        {shouldShowSourceDownloadButton && dlAnnouncement && (
+        {shouldShowSourceDownloadButton && (
           <span aria-live="polite" aria-atomic="true" className="sr-only">
             {dlAnnouncement}
           </span>

@@ -141,7 +141,6 @@ function writeUpdateCheckStamp(): void {
 export async function checkForUpdate(currentVersion: string): Promise<void> {
   try {
     if (isUpdateCheckThrottled()) return;
-    writeUpdateCheckStamp();
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 1500);
     const res = await fetch("https://registry.npmjs.org/deepcitation/latest", {
@@ -149,6 +148,7 @@ export async function checkForUpdate(currentVersion: string): Promise<void> {
     });
     clearTimeout(timeout);
     if (!res.ok) return;
+    writeUpdateCheckStamp();
     const { version: latest } = (await res.json()) as { version: string };
     if (latest && latest !== currentVersion) {
       process.stderr.write(

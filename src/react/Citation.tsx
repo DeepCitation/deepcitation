@@ -39,6 +39,7 @@ import type {
   CitationEventHandlers,
   CitationRenderProps,
   CitationVariant,
+  DownloadInfo,
   IndicatorVariant,
 } from "./types.js";
 import { cn, generateCitationInstanceId } from "./utils.js";
@@ -346,7 +347,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   onExpandedWidthChange?: (width: number | null, source?: "expanded-keyhole" | "expanded-page" | null) => void;
   pageImages?: PageImage[];
   prevBeforeExpandedPageRef: React.RefObject<"summary" | "expanded-keyhole">;
-  download?: import("./types.js").DownloadInfo;
+  download?: DownloadInfo;
   escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
   customPopoverActions?: import("./types.js").PopoverAction[];
 }) {
