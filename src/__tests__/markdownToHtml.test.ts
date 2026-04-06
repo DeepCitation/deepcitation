@@ -456,4 +456,25 @@ describe("markdownToHtml — **bold** [N] format", () => {
     const result = markdownToHtml("- **First Amendment** [1] protects freedoms", { style: "plain" });
     expect(result).toContain('<span data-cite="1"><strong>First Amendment</strong></span>');
   });
+
+  it("strong tag is INSIDE data-cite span, not a sibling", () => {
+    // Regression: published 0.3.10 generated <strong>text</strong><span data-cite="1"></span>
+    // (siblings), making only the icon clickable, not the bold text.
+    const result = markdownToHtml("The **initial closing** [1] of an event.", { style: "plain" });
+    // Correct: <span data-cite="1"><strong>initial closing</strong></span>
+    expect(result).toContain('<span data-cite="1"><strong>initial closing</strong></span>');
+    // Wrong: <strong>initial closing</strong><span data-cite="1"></span>
+    expect(result).not.toMatch(/<strong>initial closing<\/strong>\s*<span data-cite="1">/);
+  });
+
+  it("strong tag remains inside span when anchorMap is used", () => {
+    const anchorMap = { "1": "initial closing", "2": "automatically convert" };
+    const result = markdownToHtml(
+      "On **initial closing** [1] of an event, the SAFE **automatically convert** [2]s.",
+      { style: "plain", anchorMap },
+    );
+    // Both strong tags must be children of their data-cite spans
+    expect(result).toContain('<span data-cite="1"><strong>initial closing</strong></span>');
+    expect(result).toContain('<span data-cite="2"><strong>automatically convert</strong></span>');
+  });
 });
