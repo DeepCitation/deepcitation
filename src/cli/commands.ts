@@ -260,7 +260,9 @@ export async function requireAuth(): Promise<ResolvedAuth> {
   if (auth) return auth;
 
   const baseUrl = resolveBaseUrl();
-  const isInteractive = process.stdin.isTTY || !!process.env.MSYSTEM;
+  // DC_NON_INTERACTIVE lets test runners and CI force the non-interactive path
+  // regardless of TTY state (e.g. when jest runs in a real terminal).
+  const isInteractive = !process.env.DC_NON_INTERACTIVE && (process.stdin.isTTY || !!process.env.MSYSTEM);
   if (!isInteractive) {
     // Non-interactive (CI, piped stdin, AI agent) — browser OAuth won't work.
     // Print actionable instructions and exit so commands fail fast with clear guidance.
@@ -1300,7 +1302,8 @@ export async function login(argv: string[], baseUrl: string) {
   // unless --browser is explicitly passed to force the flow.
   // Git Bash (mintty) on Windows reports isTTY=false even for interactive
   // terminals, so also check for MSYSTEM (set in MINGW32/MINGW64/UCRT64).
-  const isInteractive = process.stdin.isTTY || !!process.env.MSYSTEM;
+  // DC_NON_INTERACTIVE lets test runners force this path regardless of TTY.
+  const isInteractive = !process.env.DC_NON_INTERACTIVE && (process.stdin.isTTY || !!process.env.MSYSTEM);
   if (!isInteractive && !argv.includes("--browser")) {
     const manualUrl = `${baseUrl}/cli-auth?manual=true`;
     if (IS_COWORK) {
