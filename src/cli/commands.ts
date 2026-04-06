@@ -319,7 +319,7 @@ export function saveApiKey(key: string, source: string): void {
     );
   }
   writeCredentials({ version: 1, apiKey: key, createdAt: new Date().toISOString() });
-  console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
+  console.error(`Credentials saved to ${CREDENTIALS_PATH}`);
 }
 
 /**
@@ -328,9 +328,12 @@ export function saveApiKey(key: string, source: string): void {
  * prevents typed characters from leaking into the shell after exit.
  */
 export function readKeyFromStdin(): { promise: Promise<string | null>; close: () => void } {
-  if (!process.stdin.isTTY) {
-    return { promise: Promise.resolve(null), close: () => {} };
-  }
+  // Note: we intentionally do NOT gate on process.stdin.isTTY here.
+  // Git Bash (mintty) on Windows reports isTTY=false even for interactive
+  // terminals because mintty uses pipes, not Windows Console handles.
+  // The readline works fine on both real TTYs and mintty pipes.
+  // If stdin is truly non-interactive (CI, piped empty), readline will get
+  // 'close' immediately and resolve null — same effective behavior.
   let resolveKey: (v: string | null) => void;
   const promise = new Promise<string | null>(res => {
     resolveKey = res;
@@ -1212,7 +1215,10 @@ export async function auth(argv: string[], baseUrl: string) {
   const existing = resolveAuth();
   if (existing) return status();
 
-  return login([], baseUrl);
+  // Pass --browser through so login() can bypass the non-interactive guard
+  // (Git Bash/mintty reports isTTY=false even for interactive terminals).
+  const loginFlags = argv.includes("--browser") ? ["--browser"] : [];
+  return login(loginFlags, baseUrl);
 }
 
 export async function login(argv: string[], baseUrl: string) {
@@ -1241,25 +1247,28 @@ export async function login(argv: string[], baseUrl: string) {
 
   // Non-interactive (piped stdin, AI agent, CI) — browser OAuth won't work
   // unless --browser is explicitly passed to force the flow.
-  if (!process.stdin.isTTY && !argv.includes("--browser")) {
+  // Git Bash (mintty) on Windows reports isTTY=false even for interactive
+  // terminals, so also check for MSYSTEM (set in MINGW32/MINGW64/UCRT64).
+  const isInteractive = process.stdin.isTTY || !!process.env.MSYSTEM;
+  if (!isInteractive && !argv.includes("--browser")) {
     const manualUrl = `${baseUrl}/cli-auth?manual=true`;
     if (IS_COWORK) {
-      console.log("Claude Cowork (cloud session) detected. To set up DeepCitation:\n");
-      console.log("1. Add *.deepcitation.com to allowed domains:");
-      console.log("   https://claude.ai/settings/capabilities");
-      console.log('   → Under "Additional allowed domains", add *.deepcitation.com and press Add.\n');
-      console.log("2. Get an API key:");
-      console.log(`   ${manualUrl}\n`);
-      console.log("3. Save the key — set DEEPCITATION_API_KEY in your Cowork environment settings.");
-      console.log("   This persists across sessions automatically.");
-      console.log("   Or for this session only: npx deepcitation auth --key <your-key>");
+      console.error("Claude Cowork (cloud session) detected. To set up DeepCitation:\n");
+      console.error("1. Add *.deepcitation.com to allowed domains:");
+      console.error("   https://claude.ai/settings/capabilities");
+      console.error('   → Under "Additional allowed domains", add *.deepcitation.com and press Add.\n');
+      console.error("2. Get an API key:");
+      console.error(`   ${manualUrl}\n`);
+      console.error("3. Save the key — set DEEPCITATION_API_KEY in your Cowork environment settings.");
+      console.error("   This persists across sessions automatically.");
+      console.error("   Or for this session only: npx deepcitation auth --key <your-key>");
     } else {
-      console.log("Non-interactive environment detected (no TTY).\n");
-      console.log(`1. Get your API key: ${manualUrl}`);
-      console.log("2. Run: npx deepcitation auth --key '<your-key>'");
-      console.log("   (This saves the key so all future commands just work.)");
-      console.log('   Or: export DEEPCITATION_API_KEY="<your-key>"  (env var for this session)');
-      console.log("   Or: npx deepcitation auth  (opens browser for OAuth)");
+      console.error("Non-interactive environment detected (no TTY).\n");
+      console.error(`1. Get your API key: ${manualUrl}`);
+      console.error("2. Run: npx deepcitation auth --key '<your-key>'");
+      console.error("   (This saves the key so all future commands just work.)");
+      console.error('   Or: export DEEPCITATION_API_KEY="<your-key>"  (env var for this session)');
+      console.error("   Or: npx deepcitation auth  (opens browser for OAuth)");
     }
     process.exit(1);
   }
@@ -1269,12 +1278,12 @@ export async function login(argv: string[], baseUrl: string) {
 
   const url = `${baseUrl}/cli-auth?port=${port}&nonce=${nonce}`;
 
-  console.log("Opening browser to log in...");
-  console.log(`If the browser doesn't open, visit:\n  ${url}\n`);
+  console.error("Opening browser to log in...");
+  console.error(`If the browser doesn't open, visit:\n  ${url}\n`);
   openBrowser(url);
 
-  console.log("Waiting for browser authentication...");
-  console.log("Your key may be sent automatically. If not, copy it from the browser and paste it here:");
+  console.error("Waiting for browser authentication...");
+  console.error("Your key may be sent automatically. If not, copy it from the browser and paste it here:");
 
   // Race browser callback vs key pasted directly into the terminal.
   // Creating the readline interface also puts stdin into flowing mode,
@@ -1313,12 +1322,13 @@ export async function login(argv: string[], baseUrl: string) {
         displayName: winner.payload.displayName,
         createdAt: new Date().toISOString(),
       });
-      console.log(`\nLogged in as ${sanitizeForLog(winner.payload.displayName ?? winner.payload.email ?? "unknown")}.`);
-      console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
-      console.log(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
+      console.error(`\nLogged in as ${sanitizeForLog(winner.payload.displayName ?? winner.payload.email ?? "unknown")}.`);
+      console.error(`Credentials saved to ${CREDENTIALS_PATH}`);
+      console.error(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
       process.stdin.destroy();
     } else {
       saveApiKey(winner.key, "terminal paste");
+      process.stdin.destroy();
     }
   } catch (err) {
     if ((err as Error).message === "Login cancelled") return;

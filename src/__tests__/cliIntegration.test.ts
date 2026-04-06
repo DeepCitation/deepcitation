@@ -180,7 +180,7 @@ describe("auth commands", () => {
       env: { HOME: loginHome, DEEPCITATION_API_KEY: "" },
     });
     expect(r.exitCode).toBe(0);
-    expect(r.stdout).toContain("Credentials saved");
+    expect(r.stderr).toContain("Credentials saved");
   });
 
   it("login --key rejects invalid key", () => {
@@ -203,7 +203,7 @@ describe("auth commands", () => {
       stdin: "sk-dc-test12345678901234\n",
     });
     expect(r.exitCode).toBe(0);
-    expect(r.stdout).toContain("Credentials saved");
+    expect(r.stderr).toContain("Credentials saved");
   });
 
   it("login --stdin rejects invalid key", () => {
