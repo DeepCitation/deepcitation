@@ -390,7 +390,7 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
     anchor_text: {
       type: "string",
       description:
-        "1-3 key words from full_phrase; should match the anchor text used in [anchor](cite:N) inline markers",
+        "1–4 verbatim words from full_phrase (never more than 4). Drop leading articles. Should match the anchor text used in [anchor](cite:N) inline markers",
     },
     page_id: {
       type: "string",
@@ -495,7 +495,7 @@ export const COMPACT_CITATION_JSON_OUTPUT_FORMAT = {
     k: {
       type: "string",
       description:
-        "anchorText: 1–3 contiguous verbatim words from the evidence line at the referenced lineId. Max 4 words.",
+        "anchorText: 1–4 verbatim words from the evidence line (never more than 4). Drop leading articles.",
     },
     p: {
       type: "string",
@@ -535,7 +535,7 @@ export const CITATION_AV_JSON_OUTPUT_FORMAT = {
     },
     anchor_text: {
       type: "string",
-      description: "1-3 key words from full_phrase",
+      description: "1–4 verbatim words from full_phrase (never more than 4). Drop leading articles.",
     },
     timestamps: {
       type: "object",
