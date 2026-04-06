@@ -1,5 +1,11 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import { CLAUDE_COWORK_DOMAIN_HINT, formatNetworkError, isValidApiKeyFormat, parseArgs } from "../cli/cliUtils.js";
+import {
+  CLAUDE_COWORK_DOMAIN_HINT,
+  extractApiKey,
+  formatNetworkError,
+  isValidApiKeyFormat,
+  parseArgs,
+} from "../cli/cliUtils.js";
 import { PaymentRequiredError } from "../client/errors.js";
 
 // ── parseArgs ─────────────────────────────────────────────────────
@@ -229,5 +235,51 @@ describe("isValidApiKeyFormat", () => {
 
   it("rejects empty string", () => {
     expect(isValidApiKeyFormat("")).toBe(false);
+  });
+});
+
+// ── extractApiKey ───────────────────────────────────────────────
+
+describe("extractApiKey", () => {
+  const VALID_KEY = "sk-dc-validkey12345678";
+
+  it("extracts bare key", () => {
+    expect(extractApiKey(VALID_KEY)).toBe(VALID_KEY);
+  });
+
+  it("extracts key with surrounding whitespace", () => {
+    expect(extractApiKey(`  ${VALID_KEY}  `)).toBe(VALID_KEY);
+  });
+
+  it("extracts key wrapped in double quotes", () => {
+    expect(extractApiKey(`"${VALID_KEY}"`)).toBe(VALID_KEY);
+  });
+
+  it("extracts key wrapped in single quotes", () => {
+    expect(extractApiKey(`'${VALID_KEY}'`)).toBe(VALID_KEY);
+  });
+
+  it("extracts key from full npx command with quotes", () => {
+    expect(extractApiKey(`npx deepcitation login --key "${VALID_KEY}"`)).toBe(VALID_KEY);
+  });
+
+  it("extracts key from full npx command without quotes", () => {
+    expect(extractApiKey(`npx deepcitation login --key ${VALID_KEY}`)).toBe(VALID_KEY);
+  });
+
+  it("extracts key embedded in other text", () => {
+    expect(extractApiKey(`some text ${VALID_KEY} more text`)).toBe(VALID_KEY);
+  });
+
+  it("returns null for empty string", () => {
+    expect(extractApiKey("")).toBeNull();
+  });
+
+  it("returns null for non-key text", () => {
+    expect(extractApiKey("not-a-key")).toBeNull();
+  });
+
+  it("returns null for key that is too short", () => {
+    expect(extractApiKey("sk-dc-short")).toBeNull();
   });
 });

@@ -14,6 +14,7 @@ import {
   CREDENTIALS_PATH,
   deleteCredentials,
   generateNonce,
+  IS_AI_AGENT,
   IS_COWORK,
   maskKey,
   openBrowser,
@@ -52,7 +53,7 @@ import {
   stripExistingInjection,
 } from "../vanilla/reportUtils.js";
 import { extractMarkersFromBody, findAnchorWithFallback, getAllLines, toCompactPageId } from "./cite.js";
-import { die, isValidApiKeyFormat, parseArgs } from "./cliUtils.js";
+import { die, extractApiKey, isValidApiKeyFormat, parseArgs } from "./cliUtils.js";
 import { findSummaryForMarkdown, hydrateCitations, parseSummaryToLineMap } from "./hydrate.js";
 
 // Re-export so cli.ts and tests can import from the single commands module
@@ -144,6 +145,7 @@ Options:
   --out <file>              Output JSON path (default: .deepcitation/prepare-{name}.json)
   --summary                 Print attachmentId and deepTextPages to stdout
   --unsafe-fast             Use fast mode for URLs (skips rendering, vulnerable to hidden text)
+  --skip-cache              Force a fresh fetch/conversion, bypassing the URL cache
   -h, --help                Show this help message
 
 Examples:
@@ -151,6 +153,7 @@ Examples:
   deepcitation prepare report.pdf --summary
   deepcitation prepare https://example.com/article --out .deepcitation/prepare-article.json
   deepcitation prepare scan.jpg
+  deepcitation prepare https://example.com/article --skip-cache
 `;
 
 export const VERIFY_HELP = `Usage: deepcitation verify [options]
@@ -265,12 +268,22 @@ function writeVerifiedOutput(outPath: string, content: string): void {
 export function requireAuth(): ResolvedAuth {
   const auth = resolveAuth();
   if (!auth) {
-    const keyUrl = `${resolveBaseUrl()}/cli-auth?manual=true`;
-    console.error("DeepCitation — action needed\n");
-    console.error(`1. Get your API key: ${keyUrl}`);
-    console.error(`2. Run: npx deepcitation login --key '<your-key>'`);
-    console.error("   (This saves the key so all future commands just work.)");
-    console.error("   Or set: DEEPCITATION_API_KEY=<your-key>  (env var — no file written)");
+    const baseUrl = resolveBaseUrl();
+    if (IS_AI_AGENT) {
+      // Agent-friendly: tell the agent to log itself in via browser OAuth
+      console.error("DeepCitation — authentication required\n");
+      console.error("You are an AI agent. Log in by running:\n");
+      console.error("  npx deepcitation login --browser\n");
+      console.error("This opens a browser window for OAuth. The key is saved");
+      console.error("automatically so all future CLI commands just work.");
+      console.error(`\nAlternatively, set DEEPCITATION_API_KEY in your environment.`);
+    } else {
+      console.error("DeepCitation — action needed\n");
+      console.error(`1. Get your API key: ${baseUrl}/cli-auth?manual=true`);
+      console.error(`2. Run: npx deepcitation login --key '<your-key>'`);
+      console.error("   (This saves the key so all future commands just work.)");
+      console.error("   Or set: DEEPCITATION_API_KEY=<your-key>  (env var — no file written)");
+    }
     process.exit(1);
   }
   return auth;
@@ -342,12 +355,12 @@ export function readKeyFromStdin(): { promise: Promise<string | null>; close: ()
   const rl = createInterface({ input: process.stdin });
   rl.on("line", (line: string) => {
     if (done) return;
-    const key = line.trim();
-    if (isValidApiKeyFormat(key)) {
+    const key = extractApiKey(line);
+    if (key) {
       done = true;
       rl.close();
       resolveKey(key);
-    } else if (key) {
+    } else if (line.trim()) {
       process.stderr.write("Invalid key format (expected sk-dc-...). Try again: ");
     }
   });
@@ -375,7 +388,8 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   // Extract boolean flags before parseArgs (which only handles --key value pairs)
   const unsafeFast = argv.includes("--unsafe-fast");
   const summary = argv.includes("--summary");
-  const filteredArgv = argv.filter(a => a !== "--unsafe-fast" && a !== "--summary");
+  const skipCache = argv.includes("--skip-cache");
+  const filteredArgv = argv.filter(a => a !== "--unsafe-fast" && a !== "--summary" && a !== "--skip-cache");
 
   const args = parseArgs(filteredArgv, PREPARE_HELP);
 
@@ -399,7 +413,7 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   if (isUrl) {
     label = new URL(positional).hostname.replace(/^www\./, "");
     console.error(unsafeFast ? `Preparing URL (fast mode)...` : `Preparing URL (this may take ~30s)...`);
-    result = await dc.prepareUrl({ url: positional, unsafeFastUrlOutput: unsafeFast });
+    result = await dc.prepareUrl({ url: positional, unsafeFastUrlOutput: unsafeFast, skipCache });
   } else {
     const filePath = resolve(positional);
     if (!existsSync(filePath)) die(`File not found: ${positional}`, PREPARE_HELP);
@@ -1180,7 +1194,8 @@ export async function login(argv: string[], baseUrl: string) {
   if (argv.includes("--stdin")) {
     const chunks: Buffer[] = [];
     for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
-    const key = Buffer.concat(chunks).toString().trim();
+    const key = extractApiKey(Buffer.concat(chunks).toString());
+    if (!key) die("Invalid API key format (stdin). Keys start with 'sk-dc-' and are at least 20 characters.", HELP);
     saveApiKey(key, "stdin");
     return;
   }
@@ -1276,8 +1291,10 @@ export async function login(argv: string[], baseUrl: string) {
       console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
       console.log(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
       process.stdin.destroy();
+      process.exit(0);
     } else {
       saveApiKey(winner.key, "terminal paste");
+      process.exit(0);
     }
   } catch (err) {
     if ((err as Error).message === "Login cancelled") return;

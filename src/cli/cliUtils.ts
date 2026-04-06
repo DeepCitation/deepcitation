@@ -90,3 +90,36 @@ const VALID_API_KEY_RE = /^sk-dc-[a-zA-Z0-9]{14,}$/;
 export function isValidApiKeyFormat(key: string): boolean {
   return VALID_API_KEY_RE.test(key);
 }
+
+/** Extract a valid API key from arbitrary input (pasted command, quoted key, etc). */
+export function extractApiKey(input: string): string | null {
+  const match = input.match(/sk-dc-[a-zA-Z0-9]{14,}/);
+  return match && isValidApiKeyFormat(match[0]) ? match[0] : null;
+}
+
+// ── update check ─────────────────────────────────────────────────
+
+/**
+ * Non-blocking check against the npm registry. Prints a warning to
+ * stderr when a newer version is published. Swallows all errors so
+ * it never interferes with the CLI command the user is running.
+ */
+export async function checkForUpdate(currentVersion: string): Promise<void> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+    const res = await fetch("https://registry.npmjs.org/deepcitation/latest", {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return;
+    const { version: latest } = (await res.json()) as { version: string };
+    if (latest && latest !== currentVersion) {
+      process.stderr.write(
+        `\nUpdate available: ${currentVersion} → ${latest}. Run: npm install -g deepcitation@latest\n\n`,
+      );
+    }
+  } catch {
+    // Silent — network errors, timeouts, etc. should never block the CLI
+  }
+}

@@ -343,6 +343,33 @@ describe("login --stdin validation", () => {
   });
 });
 
+// ── login --stdin key extraction ─────────────────────────────────
+
+describe("login --stdin key extraction", () => {
+  it("accepts quoted key from stdin", () => {
+    const home = freshHome();
+    const r = run(["login", "--stdin"], { env: noAuthEnv(home), stdin: '"sk-dc-quotedstdinkey01234"\n' });
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout).toContain("Credentials saved");
+  });
+
+  it("accepts full npx command from stdin", () => {
+    const home = freshHome();
+    const r = run(["login", "--stdin"], {
+      env: noAuthEnv(home),
+      stdin: 'npx deepcitation login --key "sk-dc-fromcommandline01234"\n',
+    });
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout).toContain("Credentials saved");
+  });
+
+  it("rejects input with no valid key", () => {
+    const r = run(["login", "--stdin"], { env: noAuthEnv(), stdin: "some random text\n" });
+    expect(r.exitCode).toBe(1);
+    expect(r.stderr).toContain("Invalid API key format");
+  });
+});
+
 // ── Non-TTY / agent environment ───────────────────────────────────
 
 describe("non-TTY / agent environment login", () => {
