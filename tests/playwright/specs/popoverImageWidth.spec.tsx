@@ -139,9 +139,10 @@ test.describe("Popover Image Keyhole Strip", () => {
     const image = popover.locator("[data-dc-keyhole] img");
     await expect(image).toBeVisible();
 
-    // Image should have max-w-none class (no max-width constraint)
-    const hasMaxWNone = await image.evaluate(el => el.classList.contains("max-w-none"));
-    expect(hasMaxWNone).toBe(true);
+    // Image renders at explicit zoom-computed dimensions (no max-width squashing).
+    // After image loads, an inline width is set by the zoom-to-fit logic.
+    const hasExplicitWidth = await image.evaluate(el => !!(el as HTMLImageElement).style.width);
+    expect(hasExplicitWidth).toBe(true);
 
     // Image should NOT use object-fit (no squashing)
     const objectFit = await image.evaluate(el => (el as HTMLElement).style.objectFit);

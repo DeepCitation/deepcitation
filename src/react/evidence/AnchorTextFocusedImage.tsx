@@ -6,6 +6,7 @@ import {
   DOCUMENT_CANVAS_BG_CLASSES,
   DOCUMENT_IMAGE_EDGE_CLASSES,
   HIDE_SCROLLBAR_STYLE,
+  KEYHOLE_ANCHOR_FILL_TARGET,
   KEYHOLE_FADE_WIDTH,
   KEYHOLE_SKIP_THRESHOLD,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
@@ -78,7 +79,9 @@ export function AnchorTextFocusedImage({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageFitInfo, setImageFitInfo] = useState<{
     displayedWidth: number;
+    displayedHeight: number;
     imageFitsCompletely: boolean;
+    zoom: number;
   } | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -98,14 +101,26 @@ export function AnchorTextFocusedImage({
     const img = imageRef.current;
     if (!container || !img) return;
 
-    // Always render the image at natural pixel size (no zoom/scale).
-    // The strip container acts as a fixed-height viewport; the user pans to
-    // explore and clicks to expand. This guarantees text is always readable
-    // at the same size as the original document rendering.
     const stripHeight = container.clientHeight;
     const containerWidth = container.clientWidth;
-    const displayedWidth = img.naturalWidth;
-    const displayedHeight = img.naturalHeight;
+
+    // Compute zoom-to-fit anchor text: scale down so the anchor text fills
+    // ~70% of the keyhole width, giving useful context. Clamp:
+    //   max = 1.0 (never upscale — expanding reveals more content)
+    //   min = 1/renderScale.y (≈ 12pt readability: 1 image px per screen px)
+    let zoom = 1.0;
+    if (anchorScrollData) {
+      const { renderScale } = anchorScrollData;
+      const anchorWidthPx = anchorScrollData.anchorItem.width * renderScale.x;
+      if (anchorWidthPx > 0) {
+        const fitZoom = (containerWidth * KEYHOLE_ANCHOR_FILL_TARGET) / anchorWidthPx;
+        const minZoom = renderScale.y > 0 ? 1 / renderScale.y : 1.0;
+        zoom = Math.min(1.0, Math.max(minZoom, fitZoom));
+      }
+    }
+
+    const displayedWidth = img.naturalWidth * zoom;
+    const displayedHeight = img.naturalHeight * zoom;
 
     // Image fits completely when it doesn't overflow the container in either axis.
     // KEYHOLE_SKIP_THRESHOLD (2.0) gives slack — images up to 2× strip height still
@@ -115,7 +130,7 @@ export function AnchorTextFocusedImage({
       displayedHeight > 0 &&
       displayedHeight <= stripHeight * KEYHOLE_SKIP_THRESHOLD;
 
-    setImageFitInfo({ displayedWidth, imageFitsCompletely });
+    setImageFitInfo({ displayedWidth, displayedHeight, imageFitsCompletely, zoom });
     onKeyholeWidth?.(Math.min(displayedWidth, containerWidth));
 
     // Scroll to center on the anchor text (both axes); fall back to top-left.
@@ -125,7 +140,7 @@ export function AnchorTextFocusedImage({
         anchorScrollData.renderScale,
         img.naturalWidth,
         img.naturalHeight,
-        1.0, // natural size — no scaling
+        zoom,
         containerWidth,
         stripHeight,
         undefined,
@@ -270,7 +285,12 @@ export function AnchorTextFocusedImage({
                 ref={imageRef}
                 src={src}
                 alt={t("aria.verificationEvidence")}
-                className={cn(DOCUMENT_IMAGE_EDGE_CLASSES, "block select-none max-w-none")}
+                className={cn(DOCUMENT_IMAGE_EDGE_CLASSES, "block select-none")}
+                style={
+                  imageFitInfo
+                    ? { width: imageFitInfo.displayedWidth, height: imageFitInfo.displayedHeight }
+                    : { maxWidth: "none" }
+                }
                 loading="eager"
                 decoding="async"
                 draggable={false}
