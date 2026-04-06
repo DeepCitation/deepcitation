@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`verifyIterative()` SDK method** — LLM-agnostic retry loop: verifies citations, invokes an `onAttemptComplete` callback so consumers can amend and re-verify up to `maxAttempts`. Includes `LlmSearchAttempt`, `LlmAmendment` types and `computeAmendments()` diff utility. (#404)
+- **Amendment timeline UI** — `AmendmentRow` in the search narrative shows field-level diffs and false-positive rejections between LLM retry passes. Rendered as dashed-border markers in `VerificationLog`. i18n added for en/es/fr/vi. (#404)
+- **`deepTextPagesByAttachmentId`** — replaces `deepTextPages` / `deepTextPromptPortion` with a per-attachment page array keyed by `attachmentId`, eliminating ambiguity in multi-attachment workflows. (#403)
+- **`merge` CLI command** — merges citation JSON files from parallel-section workflows into a single output. (#403)
+- **Body-marker auto-cite** — `deepcitation verify --markdown` auto-generates citations from `cite:N` markers in the body when no citations file is provided. Supports `cite:N "anchor text"` for explicit anchor control. (#403)
+- **`AttachmentAssets` type** — `pageImages`, `originalDownload`, `convertedDownload` hoisted from per-citation objects to a top-level `attachments` map on `VerifyCitationsResponse`, eliminating per-citation duplication. `normalizeVerifyResponse()` handles backward-compat with legacy server responses. (#405)
+- **Interactive HTML reports in examples** — `fixture-to-html.ts` converts offline fixtures to full interactive HTML reports; `verify-html.ts` Playwright tests validate citation span rendering and popover initialization. (#405)
+- **Update checker** — CLI checks for new versions with a 24-hour throttle and prints a notice to stderr when an update is available. (#406)
+- **Unified `auth` command** — new `deepcitation auth` triggers the browser login flow automatically; includes `--text` fallback for non-browser environments and `IS_AI_AGENT` detection for agent-aware auth messages. (#407)
+- **Favicon fallback chain** — `useFaviconSrc` hook with `StackedFavicon` component; retries image loads on 404 during pending CDN renders. (#406)
+- **Download progress indicator** — animated percentage counter with `aria-live="polite"` announcements at 25% buckets. i18n strings added for en/es/fr/vi. (#406)
+- **`computeBracketTarget`** — tight bounding hull for anchor text highlights. (#406)
+
+### Changed
+
+- **Drawer UX** — document icon for non-URL sources, status indicator converts to collapse caret on hover/focus, auto-scroll on expand and page-badge click, status border moved to expanded content area, `CompactSingleCitationRow` removed. (#404)
+- **`StackedStatusIcons`** — drawer header verification indicators consolidated into a single row; gains `activeIndex`, `size`, `gap`, and `onPage` props. (#403)
+- **CDN popover** — switches to `position:fixed` when expanded-page height exceeds 80% of viewport, preventing scroll-away. Resets `lastCoords` on mode switch to avoid stale coordinate comparisons. (#407)
+- **Keyhole image** — simplified to natural-size rendering via `AnchorTextFocusedImage`; keyhole strips use `alignX: "start"` to show the anchor's left edge immediately. (#407, #404)
+- **`anchor_text` rules** — hard 4-word maximum enforced; paraphrased anchor text is promoted to `display_label` automatically during hydration. (#407)
+- **CLI output co-location** — URL source map enriches citations with `verifiedUrl`/`verifiedDomain` metadata for popover rendering. (#404)
+- **`SKIP_DTS` build toggle** — set `SKIP_DTS=true` to skip declaration generation during iterative development. (#405)
+
+### Fixed
+
+- **U+2060 word joiner** — inserted between anchor text and superscript/indicator in all `CitationContentDisplay` variants, preventing mid-citation line breaks. (#403)
+- **Body scroll lock in drawer** — prevents double scrollbar when drawer is open. (#403)
+- **CDN popover coordinate reset** — `lastCoords` cleared when switching between `position:fixed` and `position:absolute` modes. (#407)
+- **`pages` variable scope** — was block-scoped inside an `if` branch and referenced outside, causing a compile error. (#407)
+- **Jump-to-top on expand** — fixed scroll jump during `side=top` expand transitions. (#407)
+- **Stale-closure interval fix** — download progress interval now always reads current state. (#406)
+- **`safeTest()` for untrusted inputs** — replaces raw inline regex on `downloadUrl` and label values in `commands.ts` to prevent ReDoS. (#406, #403)
+- **Git Bash TTY detection** — fixed false non-TTY detection in Git Bash on Windows. (#407)
+
 ## [0.3.10] - 2026-04-02
 
 ### Added
