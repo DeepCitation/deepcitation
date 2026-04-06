@@ -22,6 +22,7 @@ import { usePopoverContext } from "./popoverContext.js";
 import { assignRef } from "./refUtils.js";
 import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "./scrollLock.js";
 import { cn } from "./utils.js";
+import { isViewTransitioning } from "./viewTransition.js";
 
 /**
  * Walk from `triggerEl` up the DOM to find the page's actual scroll container.
@@ -215,7 +216,18 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       let rafId = 0;
       const scheduleRecompute = () => {
         cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(() => recomputePosition());
+        rafId = requestAnimationFrame(() => {
+          // Skip ResizeObserver-driven repositioning while a view transition is
+          // in flight. During expand transitions the content resizes before the
+          // new sideOffset has propagated through React state, so recomputing
+          // here would use the OLD sideOffset with the NEW (larger) content
+          // height — for side="top" this shifts the popover upward by the height
+          // delta, causing a visible jump to the top of the page. The correct
+          // position is set by the useLayoutEffect recomputePosition call that
+          // fires after the sideOffset re-render completes.
+          if (isViewTransitioning()) return;
+          recomputePosition();
+        });
       };
 
       scheduleRecompute();
