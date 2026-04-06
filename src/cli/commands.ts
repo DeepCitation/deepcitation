@@ -843,16 +843,34 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   if (needsHydration) {
     const summaryPath = args.summary ? resolve(args.summary as string) : findSummaryForMarkdown(resolved);
     if (summaryPath && existsSync(summaryPath)) {
+      const summaryContent = readFileSync(summaryPath, "utf-8");
       console.error(`Auto-hydrating citations from summary: ${summaryPath}`);
       try {
         const { hydrated, misses } = hydrateCitations({
-          summaryContent: readFileSync(summaryPath, "utf-8"),
+          summaryContent,
           citations: parsed.citations,
           warnOnMiss: true,
         });
         console.error(`  Hydrated ${hydrated} citation(s)` + (misses.length ? `; ${misses.length} miss(es)` : ""));
       } catch (err) {
         console.error(`  Warning: failed to parse summary file — ${err instanceof Error ? err.message : String(err)}`);
+      }
+      // Backfill attachment_id from summary for citations missing it (flat array format).
+      // Only if hydration succeeded for at least one citation — this confirms the summary
+      // matches the citations and prevents assigning the wrong attachment_id.
+      const missingAttId = parsed.citations.some(c => !c.attachment_id);
+      const anyHydrated = parsed.citations.some(c => c.full_phrase && c.line_ids?.length);
+      if (missingAttId && anyHydrated) {
+        try {
+          const summaryAttId = (JSON.parse(summaryContent) as { attachmentId?: string }).attachmentId;
+          if (summaryAttId) {
+            let backfilled = 0;
+            for (const c of parsed.citations) {
+              if (!c.attachment_id) { c.attachment_id = summaryAttId; backfilled++; }
+            }
+            console.error(`  Backfilled attachment_id "${summaryAttId}" for ${backfilled} citation(s)`);
+          }
+        } catch { /* summary parse already handled above */ }
       }
     } else if (needsHydration) {
       console.error("Warning: citations missing full_phrase — pass --summary for auto-hydration");
