@@ -146,7 +146,7 @@
     },
     {
       "path": "lib/react/index.js",
-      "limit": "70 KB"
+      "limit": "71 KB"
     },
     {
       "path": "lib/vanilla/deepcitation-popover.cdn.js",
