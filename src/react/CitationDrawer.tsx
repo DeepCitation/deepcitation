@@ -106,8 +106,8 @@ function resolvePageImages(
   verification: Verification | null | undefined,
   pageImagesByAttachmentId: Record<string, PageImage[]> | undefined,
 ): PageImage[] | undefined {
-  const attachmentId = verification?.attachmentId;
-  return attachmentId ? pageImagesByAttachmentId?.[attachmentId] : undefined;
+  const key = verification?.attachmentId ?? verification?.label;
+  return key ? pageImagesByAttachmentId?.[key] : undefined;
 }
 
 /** Collect page numbers from successful search attempts. */

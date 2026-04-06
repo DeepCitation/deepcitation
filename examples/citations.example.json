@@ -1,7 +1,7 @@
 {
   "sources": [
     {
-      "url": "https://bundlephobia.com/package/deepcitation@0.2.3",
+      "url": "https://bundlephobia.com/package/deepcitation@0.3.10",
       "name": "bundlephobia.com/deepcitation"
     },
     {
@@ -24,7 +24,7 @@
   "citations": [
     {
       "type": "url",
-      "url": "https://bundlephobia.com/package/deepcitation@0.2.3",
+      "url": "https://bundlephobia.com/package/deepcitation@0.3.10",
       "anchorText": "no dependencies",
       "fullPhrase": "tree-shakeable side-effect free no dependencies",
       "reasoning": "Bundlephobia confirms the deepcitation package has no runtime dependencies.",
@@ -44,7 +44,7 @@
       "type": "url",
       "url": "https://deepcitation.com/legal/dpa",
       "anchorText": "Business Associate Agreement",
-      "fullPhrase": "Includes Business Associate Agreement BAA) and Information Manager Agreement IMA",
+      "fullPhrase": "Includes Business Associate Agreement (BAA) and Information Manager Agreement IMA",
       "reasoning": "The Data Processing Addendum includes a HIPAA Business Associate Agreement (BAA).",
       "pageNumber": 1,
       "lineIds": [1, 5]

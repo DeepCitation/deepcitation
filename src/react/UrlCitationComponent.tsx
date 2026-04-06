@@ -13,7 +13,7 @@ import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import type { MessageKey } from "./i18n.js";
 import { type TranslateFunction, useTranslation } from "./i18n.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
-import { handleImageError } from "./imageUtils.js";
+import { useFaviconSrc } from "./imageUtils.js";
 import type { IndicatorVariant, UrlCitationProps, UrlFetchStatus } from "./types.js";
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
 import { getUrlPath, safeWindowOpen, truncateString } from "./urlUtils.js";
@@ -85,10 +85,9 @@ const StatusIconWrapper = ({
  * Default favicon component.
  */
 const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl?: string; isBroken?: boolean }) => {
-  const domain = extractDomain(url);
-  const src = faviconUrl || `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=16`;
+  const { src, onError } = useFaviconSrc(url, faviconUrl, 16);
 
-  if (isBroken) {
+  if (isBroken || !src) {
     return (
       <span className="w-3.5 h-3.5 flex items-center justify-center text-xs text-dc-subtle-foreground shrink-0">
         🌐
@@ -104,8 +103,7 @@ const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl
       width={14}
       height={14}
       loading="lazy"
-      // Performance fix: use module-level handler to avoid re-render overhead
-      onError={handleImageError}
+      onError={onError}
     />
   );
 };

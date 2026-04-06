@@ -3,9 +3,13 @@
  * These are pure or near-pure functions used by the main CLI entry point.
  */
 
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { IS_COWORK } from "../auth.js";
 import { PaymentRequiredError } from "../client/errors.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
+import { safeMatch } from "../utils/regexSafety.js";
 
 // ── constants ─────────────────────────────────────────────────────
 
@@ -89,4 +93,69 @@ const VALID_API_KEY_RE = /^sk-dc-[a-zA-Z0-9]{14,}$/;
  */
 export function isValidApiKeyFormat(key: string): boolean {
   return VALID_API_KEY_RE.test(key);
+}
+
+/** Extract a valid API key from arbitrary input (pasted command, quoted key, etc). */
+export function extractApiKey(input: string): string | null {
+  const match = safeMatch(input, /sk-dc-[a-zA-Z0-9]{14,}/);
+  return match && isValidApiKeyFormat(match[0]) ? match[0] : null;
+}
+
+// ── update check ─────────────────────────────────────────────────
+
+const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/** Path to the timestamp file that throttles update checks. */
+function updateCheckStampPath(): string {
+  return join(homedir(), ".deepcitation", "update-check");
+}
+
+/** Returns true if the last check was within the throttle window. */
+function isUpdateCheckThrottled(): boolean {
+  try {
+    const stamp = readFileSync(updateCheckStampPath(), "utf8").trim();
+    const lastCheck = Number(stamp);
+    return Date.now() - lastCheck < UPDATE_CHECK_INTERVAL_MS;
+  } catch {
+    return false;
+  }
+}
+
+/** Persist the current timestamp so subsequent invocations skip the fetch. */
+function writeUpdateCheckStamp(): void {
+  try {
+    const dir = join(homedir(), ".deepcitation");
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    writeFileSync(updateCheckStampPath(), String(Date.now()), "utf8");
+  } catch {
+    // Best-effort — never block the CLI
+  }
+}
+
+/**
+ * Non-blocking check against the npm registry. Prints a warning to
+ * stderr when a newer version is published. Throttled to once per 24 hours
+ * via a timestamp file at `~/.deepcitation/update-check`. Swallows all
+ * errors so it never interferes with the CLI command the user is running.
+ */
+export async function checkForUpdate(currentVersion: string): Promise<void> {
+  try {
+    if (isUpdateCheckThrottled()) return;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+    const res = await fetch("https://registry.npmjs.org/deepcitation/latest", {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return;
+    writeUpdateCheckStamp();
+    const { version: latest } = (await res.json()) as { version: string };
+    if (latest && latest !== currentVersion) {
+      process.stderr.write(
+        `\nUpdate available: ${currentVersion} → ${latest}. Run: npm install -g deepcitation@latest\n\n`,
+      );
+    }
+  } catch {
+    // Silent — network errors, timeouts, etc. should never block the CLI
+  }
 }

@@ -202,6 +202,13 @@ export const defaultMessages = {
   "aria.closePageViewNum": "Close page {pageNumber} view",
   "aria.downloadSource": "Download source",
   "aria.downloadSourceName": "Download {name}",
+  "aria.downloadStarted": "Downloading source",
+  "aria.downloadProgress": "{percent}% downloaded",
+  "aria.downloadComplete": "Download complete",
+
+  // ── Download indicators ───────────────────────────────────────
+  "download.percentComplete": "{percent}%",
+  "download.preparing": "\u2026",
   "aria.collapseSearchLog": "Collapse search log",
   "aria.verificationEvidence": "Verification evidence",
   "aria.verificationProof": "Verification proof",

@@ -28,6 +28,20 @@ export interface Credentials {
 // CLAUDE_CODE_REMOTE=true is set in Claude Cowork (web-based cloud sessions).
 export const IS_COWORK = process.env.CLAUDE_CODE_REMOTE === "true";
 
+/**
+ * Detect whether the CLI is being run by an AI coding agent.
+ * Used to tailor auth error messages so agents can self-resolve.
+ * Only checks known agent env vars — non-TTY alone is too broad
+ * (catches test subprocesses, shell scripts, etc.).
+ */
+export const IS_AI_AGENT =
+  IS_COWORK ||
+  !!process.env.CLAUDE_CODE ||
+  !!process.env.CURSOR_TRACE_ID ||
+  !!process.env.CODEX_ENV ||
+  !!process.env.AIDER ||
+  !!process.env.CLINE_TASK_ID;
+
 // In Cowork, the homedir may not be writable — the project directory is the
 // guaranteed writable area. .deepcitation/ is already gitignored.
 // Note: process.cwd() is evaluated at module load, before any command runs.

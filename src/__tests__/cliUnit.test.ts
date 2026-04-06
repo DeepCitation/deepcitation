@@ -1,6 +1,28 @@
-import { describe, expect, it, jest } from "@jest/globals";
-import { CLAUDE_COWORK_DOMAIN_HINT, formatNetworkError, isValidApiKeyFormat, parseArgs } from "../cli/cliUtils.js";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  CLAUDE_COWORK_DOMAIN_HINT,
+  checkForUpdate,
+  extractApiKey,
+  formatNetworkError,
+  isValidApiKeyFormat,
+  parseArgs,
+} from "../cli/cliUtils.js";
 import { PaymentRequiredError } from "../client/errors.js";
+
+jest.mock("node:fs", () => ({
+  existsSync: jest.fn(() => false),
+  mkdirSync: jest.fn(),
+  readFileSync: jest.fn(() => {
+    throw new Error("ENOENT");
+  }),
+  writeFileSync: jest.fn(),
+}));
+jest.mock("node:os", () => ({
+  homedir: jest.fn(() => "/tmp/test-home"),
+}));
 
 // ── parseArgs ─────────────────────────────────────────────────────
 
@@ -229,5 +251,128 @@ describe("isValidApiKeyFormat", () => {
 
   it("rejects empty string", () => {
     expect(isValidApiKeyFormat("")).toBe(false);
+  });
+});
+
+// ── extractApiKey ───────────────────────────────────────────────
+
+describe("extractApiKey", () => {
+  const VALID_KEY = "sk-dc-validkey12345678";
+
+  it("extracts bare key", () => {
+    expect(extractApiKey(VALID_KEY)).toBe(VALID_KEY);
+  });
+
+  it("extracts key with surrounding whitespace", () => {
+    expect(extractApiKey(`  ${VALID_KEY}  `)).toBe(VALID_KEY);
+  });
+
+  it("extracts key wrapped in double quotes", () => {
+    expect(extractApiKey(`"${VALID_KEY}"`)).toBe(VALID_KEY);
+  });
+
+  it("extracts key wrapped in single quotes", () => {
+    expect(extractApiKey(`'${VALID_KEY}'`)).toBe(VALID_KEY);
+  });
+
+  it("extracts key from full npx command with quotes", () => {
+    expect(extractApiKey(`npx deepcitation login --key "${VALID_KEY}"`)).toBe(VALID_KEY);
+  });
+
+  it("extracts key from full npx command without quotes", () => {
+    expect(extractApiKey(`npx deepcitation login --key ${VALID_KEY}`)).toBe(VALID_KEY);
+  });
+
+  it("extracts key embedded in other text", () => {
+    expect(extractApiKey(`some text ${VALID_KEY} more text`)).toBe(VALID_KEY);
+  });
+
+  it("returns null for empty string", () => {
+    expect(extractApiKey("")).toBeNull();
+  });
+
+  it("returns null for non-key text", () => {
+    expect(extractApiKey("not-a-key")).toBeNull();
+  });
+
+  it("returns null for key that is too short", () => {
+    expect(extractApiKey("sk-dc-short")).toBeNull();
+  });
+});
+
+// ── checkForUpdate throttling ────────────────────────────────────
+
+describe("checkForUpdate", () => {
+  const stampPath = join("/tmp/test-home", ".deepcitation", "update-check");
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    (readFileSync as jest.Mock).mockImplementation(() => {
+      throw new Error("ENOENT");
+    });
+  });
+
+  it("skips fetch when stamp is recent (within 24h)", async () => {
+    const fetchSpy = jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "0.3.10" }) } as globalThis.Response);
+    // Stamp is 1 minute old
+    (readFileSync as jest.Mock).mockReturnValue(String(Date.now() - 60_000));
+
+    await checkForUpdate("0.3.10");
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  it("fetches when stamp is older than 24h", async () => {
+    const fetchSpy = jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "0.3.10" }) } as globalThis.Response);
+    // Stamp is 25 hours old
+    (readFileSync as jest.Mock).mockReturnValue(String(Date.now() - 25 * 60 * 60 * 1000));
+
+    await checkForUpdate("0.3.10");
+
+    expect(fetchSpy).toHaveBeenCalled();
+    expect(writeFileSync).toHaveBeenCalledWith(stampPath, expect.any(String), "utf8");
+    fetchSpy.mockRestore();
+  });
+
+  it("fetches when no stamp file exists", async () => {
+    const fetchSpy = jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "0.3.10" }) } as globalThis.Response);
+    // readFileSync throws (no file) — default mock behavior
+
+    await checkForUpdate("0.3.10");
+
+    expect(fetchSpy).toHaveBeenCalled();
+    expect(writeFileSync).toHaveBeenCalledWith(stampPath, expect.any(String), "utf8");
+    fetchSpy.mockRestore();
+  });
+
+  it("writes stderr when a newer version is available", async () => {
+    const stderrSpy = jest.spyOn(process.stderr, "write").mockReturnValue(true);
+    jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "99.0.0" }) } as globalThis.Response);
+
+    await checkForUpdate("0.3.10");
+
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("Update available"));
+    stderrSpy.mockRestore();
+  });
+
+  it("does not write stderr when versions match", async () => {
+    const stderrSpy = jest.spyOn(process.stderr, "write").mockReturnValue(true);
+    jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "0.3.10" }) } as globalThis.Response);
+
+    await checkForUpdate("0.3.10");
+
+    expect(stderrSpy).not.toHaveBeenCalled();
+    stderrSpy.mockRestore();
   });
 });

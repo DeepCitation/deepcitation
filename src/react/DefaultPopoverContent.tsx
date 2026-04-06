@@ -36,7 +36,7 @@ import { useTranslation } from "./i18n.js";
 import { SpinnerIcon } from "./icons.js";
 import { getBlinkContainerMotionStyle } from "./motion/blinkAnimation.js";
 import { buildIntentSummary, type MatchSnippet } from "./searchSummaryUtils.js";
-import type { BaseCitationProps, IndicatorVariant } from "./types.js";
+import type { BaseCitationProps, DownloadInfo, IndicatorVariant } from "./types.js";
 import {
   getUrlAccessExplanation,
   mapSearchStatusToFetchStatus,
@@ -98,10 +98,8 @@ export interface PopoverContentProps {
   onExpandedWidthChange?: (width: number | null, source?: "expanded-keyhole" | "expanded-page" | null) => void;
   /** Ref tracking which state preceded expanded-page, for correct Escape back-navigation. */
   prevBeforeExpandedPageRef?: RefObject<"summary" | "expanded-keyhole">;
-  /**
-   * Download URL for the source file. When provided, renders a download button in the popover header.
-   */
-  downloadUrl?: string;
+  /** Download metadata for the source file. When provided, renders a download button in the popover header. */
+  download?: DownloadInfo;
   /**
    * Ref that sub-components set to a collapse function when they have an
    * expanded section (e.g. search log) that should consume Escape before the
@@ -575,12 +573,12 @@ function PopoverLoadingView({
   citation,
   verification,
   sourceLabel,
-  downloadUrl,
+  download,
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
   sourceLabel?: string;
-  downloadUrl?: string;
+  download?: DownloadInfo;
 }) {
   const t = useTranslation();
   const anchorText = citation.anchorText?.toString();
@@ -597,7 +595,7 @@ function PopoverLoadingView({
         verification={verification}
         status={searchStatus}
         sourceLabel={sourceLabel}
-        downloadUrl={downloadUrl}
+        download={download}
       />
       <div className="p-3 flex flex-col gap-2.5">
         {/* Skeleton: status bar placeholder */}
@@ -645,7 +643,7 @@ function PopoverFallbackView({
   status,
   urlAccessExplanation,
   indicatorVariant = "icon",
-  downloadUrl,
+  download,
   customActions,
 }: {
   citation: BaseCitationProps["citation"];
@@ -655,7 +653,7 @@ function PopoverFallbackView({
   status: CitationStatus;
   urlAccessExplanation: UrlAccessExplanation | null;
   indicatorVariant?: IndicatorVariant;
-  downloadUrl?: string;
+  download?: DownloadInfo;
   customActions?: import("./types.js").PopoverAction[];
 }) {
   const t = useTranslation();
@@ -676,7 +674,7 @@ function PopoverFallbackView({
         verification={verification}
         status={searchStatus}
         sourceLabel={sourceLabel}
-        downloadUrl={downloadUrl}
+        download={download}
         customActions={customActions}
       />
       {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
@@ -733,7 +731,7 @@ export function DefaultPopoverContent({
   expandedImageSrcOverride,
   onExpandedWidthChange,
   prevBeforeExpandedPageRef: propPrevBeforeExpandedPageRef,
-  downloadUrl,
+  download,
   escapeInterceptRef,
   customPopoverActions,
   popoverContentRef,
@@ -1010,7 +1008,7 @@ export function DefaultPopoverContent({
           citation={citation}
           verification={verification}
           sourceLabel={sourceLabel}
-          downloadUrl={downloadUrl}
+          download={download}
         />
       </>
     );
@@ -1076,7 +1074,7 @@ export function DefaultPopoverContent({
               sourceLabel={sourceLabel}
               onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
               onClose={isFullPage ? handleCollapseFromExpandedPage : undefined}
-              downloadUrl={downloadUrl}
+              download={download}
               customActions={customPopoverActions}
             />
             {/* Zone 2: Claim Body — Status + highlighted phrase */}
@@ -1152,7 +1150,7 @@ export function DefaultPopoverContent({
         status={status}
         urlAccessExplanation={urlAccessExplanation}
         indicatorVariant={indicatorVariant}
-        downloadUrl={downloadUrl}
+        download={download}
         customActions={customPopoverActions}
       />
     </>

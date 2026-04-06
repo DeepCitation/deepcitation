@@ -15,7 +15,7 @@
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
-import { formatNetworkError } from "./cli/cliUtils.js";
+import { checkForUpdate, formatNetworkError } from "./cli/cliUtils.js";
 import {
   env,
   getAttachment,
@@ -54,6 +54,11 @@ function resolveSpecPath(): string | null {
   const dcRoot = dirname(require.resolve("deepcitation/package.json"));
   const specPath = resolve(dcRoot, "docs/prompts/citation-format.md");
   return existsSync(specPath) ? specPath : null;
+}
+
+// ── update check (non-blocking, stderr only) ──────────────────────
+if (!IS_DEV_BUILD) {
+  checkForUpdate(CLI_VERSION);
 }
 
 // ── dispatch ──────────────────────────────────────────────────────

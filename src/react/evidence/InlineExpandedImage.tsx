@@ -103,7 +103,12 @@ export function InlineExpandedImage({
 }) {
   const t = useTranslation();
   const { containerRef, isDragging, handlers: panHandlers, wasDraggingRef } = useDragToPan({ direction: "xy" });
-  const { effectiveSrc: retrySrc, onImageLoaded: onRetryImageLoaded } = useRetryPendingRender(src, expectedDimensions);
+  const {
+    effectiveSrc: retrySrc,
+    isRetrying,
+    onImageLoaded: onRetryImageLoaded,
+    onImageError: onRetryImageError,
+  } = useRetryPendingRender(src, expectedDimensions);
   const expandedImgRef = useRef<HTMLImageElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [naturalWidth, setNaturalWidth] = useState<number | null>(null);
@@ -930,7 +935,7 @@ export function InlineExpandedImage({
               ...(fill ? { display: "block" } : undefined),
             }}
           >
-            {!imageLoaded && (
+            {(!imageLoaded || isRetrying) && (
               <div
                 className="animate-pulse rounded bg-dc-muted"
                 style={{
@@ -972,8 +977,9 @@ export function InlineExpandedImage({
                   if (!fill) onNaturalSize?.(w, h);
                 }}
                 onError={e => {
-                  setImageLoaded(true); // exit spinner so the component doesn't hang
                   handleImageError(e); // hide broken-image browser icon
+                  const willRetry = onRetryImageError(); // start retry if image is a pending CDN render
+                  if (!willRetry) setImageLoaded(true); // terminal failure — stop the loading skeleton
                 }}
                 draggable={false}
               />

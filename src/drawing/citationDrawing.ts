@@ -140,6 +140,43 @@ export function shouldHighlightAnchorText(
 }
 
 /**
+ * Computes the bounding box to use for bracket marks and spotlight overlay.
+ *
+ * When `anchorTextMatchDeepItems` are available, returns a tight bounding hull
+ * around just the anchor words — so the highlight frames the specific text that
+ * was cited, not the entire OCR line. Falls back to `phraseMatchDeepItem` when
+ * anchor items are missing or empty.
+ */
+export function computeBracketTarget<T extends { x: number; y: number; width: number; height: number }>(
+  phraseMatchDeepItem: T,
+  anchorTextMatchDeepItems: T[] | undefined,
+): T {
+  if (!anchorTextMatchDeepItems || anchorTextMatchDeepItems.length === 0) {
+    return phraseMatchDeepItem;
+  }
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxRight = -Infinity;
+  let maxBottom = -Infinity;
+
+  for (const item of anchorTextMatchDeepItems) {
+    minX = Math.min(minX, item.x);
+    minY = Math.min(minY, item.y);
+    maxRight = Math.max(maxRight, item.x + item.width);
+    maxBottom = Math.max(maxBottom, item.y + item.height);
+  }
+
+  return {
+    ...anchorTextMatchDeepItems[0],
+    x: minX,
+    y: minY,
+    width: maxRight - minX,
+    height: maxBottom - minY,
+  };
+}
+
+/**
  * Computes whether the anchorText keyspan should be highlighted and extracts
  * the anchorText bounding box item to use for drawing.
  *

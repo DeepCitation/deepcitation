@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { SearchAttempt, SearchStatus } from "../types/search.js";
@@ -28,6 +28,7 @@ import {
   XCircleIcon,
   XIcon,
 } from "./icons.js";
+import { useFaviconSrc } from "./imageUtils.js";
 import {
   buildSearchNarrative,
   getStatusColorScheme,
@@ -35,7 +36,7 @@ import {
   type NarrativeRow,
   type SearchNarrative,
 } from "./searchNarrative.js";
-import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
+import type { DownloadInfo, IndicatorVariant, UrlFetchStatus } from "./types.js";
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn, isImageSource } from "./utils.js";
 
@@ -91,10 +92,8 @@ export interface SourceContextHeaderProps {
    * instead of the chevron-right expand affordance.
    */
   onClose?: () => void;
-  /**
-   * Download URL for the source file. When provided, renders a download button in the popover header.
-   */
-  downloadUrl?: string;
+  /** Download metadata for the source file. When provided, renders a download button in the popover header. */
+  download?: DownloadInfo;
   /**
    * Custom action buttons rendered in the header alongside the download button.
    */
@@ -158,9 +157,13 @@ function isSameOrigin(url: string): boolean {
  * new-tab flash. Falls back to a plain anchor (no target="_blank") if CORS
  * blocks the fetch — Content-Disposition: attachment still downloads in-place.
  */
-function triggerBackgroundDownload(url: string, filename?: string): void {
+function triggerBackgroundDownload(
+  url: string,
+  filename?: string,
+  onProgress?: (fraction: number) => void,
+): Promise<void> {
   if (typeof document === "undefined") {
-    return;
+    return Promise.resolve();
   }
 
   const isHappyDom = typeof navigator !== "undefined" && /HappyDOM/i.test(navigator.userAgent);
@@ -182,40 +185,42 @@ function triggerBackgroundDownload(url: string, filename?: string): void {
 
   if (isHappyDom) {
     anchorDownload();
-    return;
+    return Promise.resolve();
   }
 
   // Same-origin: iframe path (seamless, no navigation risk).
   if (isSameOrigin(url)) {
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    iframe.setAttribute(DOWNLOAD_IFRAME_DATA_ATTR, "true");
+    return new Promise<void>(resolve => {
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.setAttribute(DOWNLOAD_IFRAME_DATA_ATTR, "true");
 
-    const cleanup = () => {
-      if (iframe.parentNode) {
-        iframe.remove();
+      const cleanup = () => {
+        if (iframe.parentNode) {
+          iframe.remove();
+        }
+        resolve();
+      };
+
+      const timeoutId = window.setTimeout(cleanup, DOWNLOAD_IFRAME_CLEANUP_DELAY_MS);
+      iframe.addEventListener("load", () => {
+        window.clearTimeout(timeoutId);
+        cleanup();
+      });
+      iframe.addEventListener("error", () => {
+        window.clearTimeout(timeoutId);
+        cleanup();
+      });
+
+      try {
+        iframe.src = url;
+        document.body.appendChild(iframe);
+      } catch {
+        window.clearTimeout(timeoutId);
+        cleanup();
+        anchorDownload();
       }
-    };
-
-    const timeoutId = window.setTimeout(cleanup, DOWNLOAD_IFRAME_CLEANUP_DELAY_MS);
-    iframe.addEventListener("load", () => {
-      window.clearTimeout(timeoutId);
-      cleanup();
     });
-    iframe.addEventListener("error", () => {
-      window.clearTimeout(timeoutId);
-      cleanup();
-    });
-
-    try {
-      iframe.src = url;
-      document.body.appendChild(iframe);
-    } catch {
-      window.clearTimeout(timeoutId);
-      cleanup();
-      anchorDownload();
-    }
-    return;
   }
 
   // Cross-origin: only take the fetch→blob path for trusted hosts (TRUSTED_IMAGE_HOSTS).
@@ -224,13 +229,33 @@ function triggerBackgroundDownload(url: string, filename?: string): void {
   const isTrustedHost = TRUSTED_IMAGE_HOSTS.some(trustedHost => isDomainMatch(url, trustedHost));
   if (!isTrustedHost) {
     anchorDownload();
-    return;
+    return Promise.resolve();
   }
 
   // Trusted cross-origin: fetch → blob URL for a seamless, no-new-tab download.
-  fetch(url, { credentials: "omit" })
-    .then(res => {
+  return fetch(url, { credentials: "omit" })
+    .then(async res => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      // Stream response for progress reporting when Content-Length is available.
+      const contentLength = res.headers.get("Content-Length");
+      if (onProgress && res.body && contentLength) {
+        const total = Number.parseInt(contentLength, 10);
+        const reader = res.body.getReader();
+        const chunks: Uint8Array[] = [];
+        let received = 0;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          received += value.byteLength;
+          onProgress(received / total);
+        }
+        return new Blob(chunks as BlobPart[], { type: res.headers.get("Content-Type") || undefined });
+      }
+
+      // No Content-Length — signal indeterminate progress.
+      if (onProgress) onProgress(-1);
       return res.blob();
     })
     .then(blob => {
@@ -272,19 +297,11 @@ export function FaviconImage({
   alt: string;
 }) {
   const t = useTranslation();
-  const [hasError, setHasError] = useState(false);
+  // Build a synthetic URL from domain so the hook can derive origin for fallback
+  const syntheticUrl = domain ? `https://${domain}` : null;
+  const { src, onError } = useFaviconSrc(syntheticUrl, faviconUrl, 32);
 
-  // Build fallback chain for favicon URL (simple computation, no useMemo needed)
-  // Privacy: Google Favicon Service is used as fallback, which sends domain to Google
-  let effectiveFaviconUrl: string | null = null;
-  if (faviconUrl) {
-    effectiveFaviconUrl = faviconUrl;
-  } else if (domain) {
-    effectiveFaviconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=32`;
-  }
-
-  // Show GlobeIcon if no URL or if image failed to load
-  if (!effectiveFaviconUrl || hasError) {
+  if (!src) {
     return (
       <span className="w-4 h-4 shrink-0 text-dc-pending">
         <GlobeIcon />
@@ -294,10 +311,10 @@ export function FaviconImage({
 
   return (
     <img
-      src={effectiveFaviconUrl}
+      src={src}
       alt={alt?.trim() || t("drawer.source")}
       className="w-4 h-4 shrink-0"
-      onError={() => setHasError(true)}
+      onError={onError}
       loading="lazy"
     />
   );
@@ -433,6 +450,37 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
  *
  * The `sourceLabel` prop allows overriding the displayed source name for both types.
  */
+
+function DownloadButtonIcon({
+  dlState,
+  displayPercent,
+  t,
+}: {
+  dlState: "idle" | number | "done";
+  displayPercent: number;
+  t: TranslateFunction;
+}) {
+  if (dlState === "idle") return <DownloadIcon />;
+  if (dlState === "done") return <CheckIcon />;
+  if (typeof dlState === "number" && dlState >= 0) {
+    return (
+      <span className="text-[9px] font-semibold leading-none tabular-nums">
+        {t("download.percentComplete", { percent: String(displayPercent) })}
+      </span>
+    );
+  }
+  return <span className="text-[9px] font-semibold leading-none">{t("download.preparing")}</span>;
+}
+
+/** Extract a download filename from a URL path. */
+function toDownloadSlug(sourceForName: string): string {
+  try {
+    return new URL(sourceForName).pathname.replace(/\/+$/, "").split("/").pop() || "document";
+  } catch {
+    return sourceForName.split("/").pop() || "document";
+  }
+}
+
 export function SourceContextHeader({
   citation,
   verification,
@@ -440,7 +488,7 @@ export function SourceContextHeader({
   sourceLabel,
   onExpand,
   onClose,
-  downloadUrl,
+  download,
   customActions,
 }: SourceContextHeaderProps) {
   const t = useTranslation();
@@ -459,10 +507,51 @@ export function SourceContextHeader({
   // URL-specific data
   const url = isUrl ? citation.url || "" : "";
 
-  const shouldShowSourceDownloadButton = !!downloadUrl;
+  const shouldShowSourceDownloadButton = !!download;
 
   // Display name for document citations (never show attachmentId to users)
   const displayName = isUrl ? undefined : sourceLabel || verification?.label || t("drawer.document");
+
+  // Download button state: "idle" | number (0–100 target%) | "done"
+  const [dlState, setDlState] = useState<"idle" | number | "done">("idle");
+  // Animated counter that ticks toward the target percentage at 75ms/step.
+  const [displayPercent, setDisplayPercent] = useState(0);
+  const dlTargetRef = useRef(0);
+  const dlDoneTimerRef = useRef<number | null>(null);
+
+  // Aria-live announcement for download state changes.
+  // Only announce at 25% increments to avoid spamming screen readers.
+  const percentBucket = dlState === "done" ? 0 : Math.floor(displayPercent / 25);
+  const dlAnnouncement = useMemo(() => {
+    if (dlState === "idle") return "";
+    if (dlState === "done") return t("aria.downloadComplete");
+    if (typeof dlState === "number" && dlState >= 0) {
+      return t("aria.downloadProgress", { percent: String(percentBucket * 25) });
+    }
+    return t("aria.downloadStarted");
+  }, [dlState, percentBucket, t]);
+
+  // Keep target ref in sync so the single interval always chases the latest value.
+  const isDownloading = typeof dlState === "number" && dlState >= 0;
+  if (isDownloading) dlTargetRef.current = dlState;
+
+  useEffect(() => {
+    if (!isDownloading) return;
+    const id = setInterval(() => {
+      setDisplayPercent(prev => {
+        if (prev >= dlTargetRef.current) return prev;
+        return prev + 1;
+      });
+    }, 75);
+    return () => clearInterval(id);
+  }, [isDownloading]);
+
+  // Clean up the "done → idle" reset timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (dlDoneTimerRef.current) clearTimeout(dlDoneTimerRef.current);
+    };
+  }, []);
 
   return (
     <div
@@ -509,34 +598,50 @@ export function SourceContextHeader({
             type="button"
             aria-label={t("aria.downloadSource")}
             title={t("aria.downloadSourceName", { name: displayName ?? url })}
-            className={cn(HEADER_DOWNLOAD_BUTTON_BASE_CLASSES, HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES)}
+            className={cn(
+              HEADER_DOWNLOAD_BUTTON_BASE_CLASSES,
+              HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES,
+              dlState !== "idle" && "!opacity-100 !pointer-events-auto",
+              dlState === "done" && "text-dc-verified",
+            )}
             onClick={e => {
               e.stopPropagation();
-              const safeUrl = downloadUrl ? sanitizeUrl(downloadUrl) : null;
+              if (dlState !== "idle") return;
+              const safeUrl = download ? sanitizeUrl(download.url) : null;
               const name = sourceLabel || displayName || url;
               let downloadName: string;
-              if (isUrl) {
-                // Extract just the last path segment from the source URL as the filename.
-                // `name` is the full URL for URL citations — using it verbatim produces an
-                // unusable filename like "https://example.com/bill-60.pdf".
-                const sourceForName = url || name || "";
-                try {
-                  const slug = new URL(sourceForName).pathname.replace(/\/+$/, "").split("/").pop() || "document";
-                  downloadName = slug.endsWith(".pdf") ? slug : `${slug}.pdf`;
-                } catch {
-                  const slug = sourceForName.split("/").pop() || "document";
-                  downloadName = slug.endsWith(".pdf") ? slug : `${slug}.pdf`;
-                }
+              if (download?.filename) {
+                downloadName = download.filename;
+              } else if (isUrl) {
+                const slug = toDownloadSlug(url || name || "");
+                downloadName = slug.endsWith(".pdf") ? slug : `${slug.replace(/\.[^.]+$/, "")}.pdf`;
               } else {
                 downloadName = name ?? "document";
               }
-              if (safeUrl) triggerBackgroundDownload(safeUrl, downloadName);
+              if (safeUrl) {
+                setDlState(0);
+                setDisplayPercent(0);
+                triggerBackgroundDownload(safeUrl, downloadName, fraction => {
+                  setDlState(fraction < 0 ? -1 : Math.round(fraction * 100));
+                }).then(() => {
+                  setDlState("done");
+                  dlDoneTimerRef.current = window.setTimeout(() => {
+                    dlDoneTimerRef.current = null;
+                    setDlState("idle");
+                  }, 1500);
+                });
+              }
             }}
           >
-            <span className="size-3.5 block">
-              <DownloadIcon />
+            <span className="size-3.5 flex items-center justify-center">
+              <DownloadButtonIcon dlState={dlState} displayPercent={displayPercent} t={t} />
             </span>
           </button>
+        )}
+        {shouldShowSourceDownloadButton && (
+          <span aria-live="polite" aria-atomic="true" className="sr-only">
+            {dlAnnouncement}
+          </span>
         )}
         {customActions?.map(action =>
           action.hidden ? null : (

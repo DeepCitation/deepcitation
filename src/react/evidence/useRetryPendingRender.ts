@@ -6,16 +6,19 @@ const MAX_RETRIES = 20;
 const DIMENSION_TOLERANCE_PX = 4;
 
 /**
- * Detects placeholder page images (renders still pending on the server) and
- * polls until the real render is available. The CDN returns a 800×600 placeholder
- * PNG when page renders haven't completed; once ready, it serves the real image
- * at the expected dimensions. Cache-busting query params ensure fresh responses.
+ * Detects pending page renders and retries until the real image is available.
  *
- * Returns `{ effectiveSrc, isRetrying }`:
- * - `effectiveSrc`: the src to use on the `<img>` — updated with cache-buster on success
- * - `isRetrying`: true while polling, so the consumer can show a skeleton
+ * Handles two cases:
+ * - **404 / network error on initial load**: the CDN returns 404 while the server-side
+ *   Pub/Sub render job is still in progress. `onImageError()` starts the retry cycle.
+ * - **Placeholder PNG** (legacy): the CDN served an 800×600 placeholder instead of the
+ *   real render. `onImageLoaded(w, h)` detects dimension mismatch and starts polling.
  *
- * Call `onImageLoaded(naturalWidth, naturalHeight)` from the img's onLoad handler.
+ * Returns `{ effectiveSrc, isRetrying, onImageLoaded, onImageError }`:
+ * - `effectiveSrc`: the src to use on the `<img>` — updated with a cache-buster on success
+ * - `isRetrying`: true while polling; use this to show a skeleton placeholder
+ * - `onImageLoaded(w, h)`: call from `<img onLoad>` — returns true if polling started
+ * - `onImageError()`: call from `<img onError>` — starts retry when the image is 404/missing
  */
 export function useRetryPendingRender(
   src: string,
@@ -25,6 +28,9 @@ export function useRetryPendingRender(
   isRetrying: boolean;
   /** Returns true if the image is a placeholder (polling started). */
   onImageLoaded: (naturalWidth: number, naturalHeight: number) => boolean;
+  /** Call from onError — starts retry when the image URL returns 404 or fails to load.
+   *  Returns true if a retry was scheduled, false if max retries have been exhausted. */
+  onImageError: () => boolean;
 } {
   const [effectiveSrc, setEffectiveSrc] = useState(src);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -120,5 +126,19 @@ export function useRetryPendingRender(
     [isPlaceholder, scheduleRetry],
   );
 
-  return { effectiveSrc, isRetrying, onImageLoaded };
+  // Called from <img onError> when the initial image load returns 404 or a network error.
+  // Starts the same retry cycle as a placeholder detection — the image may simply not be
+  // ready yet while the server-side render job is in progress.
+  const onImageError = useCallback((): boolean => {
+    // Guard against double-fire (Chrome can fire onerror twice when src changes mid-load)
+    if (timerRef.current) return true;
+    if (retryCountRef.current < MAX_RETRIES) {
+      setIsRetrying(true);
+      scheduleRetry();
+      return true;
+    }
+    return false;
+  }, [scheduleRetry]);
+
+  return { effectiveSrc, isRetrying, onImageLoaded, onImageError };
 }

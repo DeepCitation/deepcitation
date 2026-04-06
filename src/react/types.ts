@@ -110,6 +110,17 @@ export interface UrlCitationMeta {
 }
 
 /**
+ * Bundled download metadata for the source file download button.
+ * When present, renders a download button in the popover header.
+ */
+export interface DownloadInfo {
+  /** Sanitized download URL for the source file. */
+  url: string;
+  /** Explicit filename for the download. When omitted, inferred from the citation URL. */
+  filename?: string;
+}
+
+/**
  * Style configuration for the citation component.
  * All properties are optional class name strings.
  */

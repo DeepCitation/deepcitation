@@ -18,9 +18,11 @@ import {
   getAllCitationsFromLlmOutput,
   getCitationStatus,
   getVerificationTextIndicator,
-  replaceDeferredMarkers,
+  replaceCitationMarkers,
   wrapCitationPrompt,
 } from "deepcitation";
+import type { CitationRecord } from "../../../src/types/citation.js";
+import type { AttachmentAssets } from "../../../src/types/verification.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { createInterface } from "readline";
@@ -110,7 +112,161 @@ export async function promptSourceSelection(): Promise<Source> {
   }
 }
 
-// ─── Workflow ───────────────────────────────────────────────────────────────
+// ─── Step result types ─────────────────────────────────────────────────────
+
+export interface Step1Result {
+  attachmentId: string;
+  deepTextPages: string[];
+  imageBase64?: string;
+  sourceLabel: string;
+}
+
+export interface Step2Result {
+  enhancedSystemPrompt: string;
+  enhancedUserPrompt: string;
+  systemPrompt: string;
+  userPrompt: string;
+}
+
+export interface Step3Result {
+  llmResponse: string;
+}
+
+export interface Step4Result {
+  parsedCitations: CitationRecord;
+  visibleText: string;
+  citationCount: number;
+}
+
+export interface Step5Result {
+  verifications: Record<string, unknown>;
+  attachments?: Record<string, AttachmentAssets>;
+}
+
+export interface Step6Result {
+  htmlPath: string;
+  snapshotPath: string;
+}
+
+// ─── Step functions (silent — no console output) ───────────────────────────
+
+export async function stepUpload(dc: DeepCitation, source: Source): Promise<Step1Result> {
+  const sourceLabel = source.type === "url" ? source.url : "filename" in source ? source.filename : source.label;
+
+  if (source.type === "url") {
+    const result = await dc.prepareUrl({ url: source.url });
+    return { attachmentId: result.attachmentId, deepTextPages: result.deepTextPages, sourceLabel };
+  }
+
+  const fileBuffer = readFileSync(source.path);
+  const { fileDataParts, deepTextPagesByAttachmentId } = await dc.prepareAttachments([
+    { file: fileBuffer, filename: source.filename },
+  ]);
+
+  const attachmentId = fileDataParts[0].attachmentId;
+  const deepTextPages = deepTextPagesByAttachmentId[attachmentId] ?? [];
+
+  return {
+    attachmentId,
+    deepTextPages,
+    imageBase64: source.type === "image" ? fileBuffer.toString("base64") : undefined,
+    sourceLabel,
+  };
+}
+
+export function stepWrapPrompts(
+  deepTextPages: string[],
+  opts?: { systemPrompt?: string; userPrompt?: string },
+): Step2Result {
+  const systemPrompt =
+    opts?.systemPrompt ??
+    process.env.SYSTEM_PROMPT ??
+    `You are a helpful assistant. Answer questions about the
+provided documents accurately and cite your sources.`;
+
+  const userPrompt =
+    opts?.userPrompt ??
+    process.env.USER_PROMPT ??
+    "Summarize the key information shown in this document.";
+
+  const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
+    systemPrompt,
+    userPrompt,
+    deepTextPages,
+  });
+
+  return { enhancedSystemPrompt, enhancedUserPrompt, systemPrompt, userPrompt };
+}
+
+export async function stepCallLlm(
+  streamLlm: StreamLlmFn,
+  prompts: Step2Result,
+  imageBase64?: string,
+): Promise<Step3Result> {
+  const llmResponse = await streamLlm({
+    enhancedSystemPrompt: prompts.enhancedSystemPrompt,
+    enhancedUserPrompt: prompts.enhancedUserPrompt,
+    imageBase64,
+  });
+  return { llmResponse };
+}
+
+export function stepParseCitations(llmResponse: string): Step4Result {
+  const parsedCitations = getAllCitationsFromLlmOutput(llmResponse);
+  const visibleText = extractVisibleText(llmResponse);
+  return { parsedCitations, visibleText, citationCount: Object.keys(parsedCitations).length };
+}
+
+export async function stepVerify(
+  dc: DeepCitation,
+  attachmentId: string,
+  parsedCitations: CitationRecord,
+): Promise<Step5Result> {
+  const result = await dc.verifyAttachment(attachmentId, parsedCitations);
+  return {
+    verifications: result.verifications,
+    attachments: result.attachments,
+  };
+}
+
+export function stepGenerateHtml(
+  step4: Step4Result,
+  step5: Step5Result,
+  sourceLabel: string,
+  outDir: string,
+): Step6Result {
+  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+
+  const html = generateHtmlReport({
+    visibleText: step4.visibleText,
+    parsedCitations: step4.parsedCitations,
+    verifications: step5.verifications,
+    title: sourceLabel,
+    attachments: step5.attachments,
+  });
+
+  const safeName = toSafeName(sourceLabel);
+  const htmlPath = resolve(outDir, `${safeName}-verified.html`);
+  writeFileSync(htmlPath, html);
+
+  const snapshotPath = resolve(outDir, `${safeName}-snapshot.json`);
+  writeFileSync(snapshotPath, JSON.stringify({
+    llmResponse: undefined, // caller can override if available
+    verifications: step5.verifications,
+    attachments: step5.attachments,
+    title: sourceLabel,
+  }, null, 2));
+
+  return { htmlPath, snapshotPath };
+}
+
+export function toSafeName(label: string): string {
+  return label.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 50);
+}
+
+export const DEFAULT_OUT_DIR = resolve(__dirname, "../../output");
+
+// ─── Workflow (uses step functions with logging) ───────────────────────────
 
 /**
  * Run the full DeepCitation verification workflow for one source.
@@ -130,137 +286,77 @@ async function runSingleSource(
   console.log(`▓  Type:   ${source.type}`);
   console.log(`${"▓".repeat(60)}\n`);
 
-  // ============================================
-  // STEP 1: SETUP
-  // Upload documents and prepare citation-enhanced prompts
-  // ============================================
-
+  // ── Step 1: Upload ──
   console.log("📄 Step 1: Uploading document and preparing prompts...\n");
+  if (source.type === "url") console.log(`   URL: ${source.url}\n`);
 
-  let attachmentId: string;
-  let deepTextPages: string[];
-  let imageBase64: string | undefined;
-
-  if (source.type === "url") {
-    // URL source — use prepareUrl
-    console.log(`   URL: ${source.url}\n`);
-
-    const result = await deepcitation.prepareUrl({ url: source.url });
-    attachmentId = result.attachmentId;
-    deepTextPages = result.deepTextPages;
-  } else {
-    // File source (image or pdf) — use prepareAttachments
-    const fileBuffer = readFileSync(source.path);
-
-    const { fileDataParts, deepTextPages: dtp } = await deepcitation.prepareAttachments([
-      { file: fileBuffer, filename: source.filename },
-    ]);
-
-    attachmentId = fileDataParts[0].attachmentId;
-    deepTextPages = dtp;
-
-    // Only pass base64 image data for image sources (vision APIs)
-    if (source.type === "image") {
-      imageBase64 = fileBuffer.toString("base64");
-    }
-  }
+  const s1 = await stepUpload(deepcitation, source);
 
   console.log("✅ Document uploaded successfully");
-  console.log(`   Attachment ID: ${attachmentId}\n`);
+  console.log(`   Attachment ID: ${s1.attachmentId}\n`);
 
-  // Wrap your prompts with citation instructions
-  const systemPrompt =
-    process.env.SYSTEM_PROMPT ||
-    `You are a helpful assistant. Answer questions about the
-provided documents accurately and cite your sources.`;
+  // ── Step 2: Wrap Prompts ──
+  const s2 = stepWrapPrompts(s1.deepTextPages);
 
-  const userQuestion = process.env.USER_PROMPT || "Summarize the key information shown in this document.";
-
-  // Show before prompts
   console.log("📋 System Prompt (BEFORE):");
   console.log(separator);
-  console.log(systemPrompt);
+  console.log(s2.systemPrompt);
   console.log(separator + "\n");
 
   console.log("📋 User Prompt (BEFORE):");
   console.log(separator);
-  console.log(userQuestion);
+  console.log(s2.userPrompt);
   console.log(separator + "\n");
 
-  const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
-    systemPrompt,
-    userPrompt: userQuestion,
-    deepTextPages,
-  });
-
-  // Show after prompts
   console.log("📋 System Prompt (AFTER):");
   console.log(separator);
-  console.log(enhancedSystemPrompt);
+  console.log(s2.enhancedSystemPrompt);
   console.log(separator + "\n");
 
   console.log("📋 User Prompt (AFTER):");
   console.log(separator);
-  console.log(enhancedUserPrompt);
+  console.log(s2.enhancedUserPrompt);
   console.log(separator + "\n");
 
-  // ============================================
-  // STEP 2: CALL LLM
-  // Provider-specific streaming call
-  // ============================================
-
+  // ── Step 3: Call LLM ──
   console.log(`🤖 Step 2: Calling ${providerName}...\n`);
-
   console.log("📝 LLM Response (raw with citations):");
   console.log(separator);
 
-  const llmResponse = await streamLlm({ enhancedSystemPrompt, enhancedUserPrompt, imageBase64 });
+  const s3 = await stepCallLlm(streamLlm, s2, s1.imageBase64);
 
   console.log("\n" + separator + "\n");
 
-  // ============================================
-  // STEP 3: PARSE CITATIONS & EXTRACT VISIBLE TEXT
-  // ============================================
-
+  // ── Step 4: Parse Citations ──
   console.log("🔍 Step 3: Parsing citations and extracting visible text...\n");
 
-  const parsedCitations = getAllCitationsFromLlmOutput(llmResponse);
-  const citationCount = Object.keys(parsedCitations).length;
+  const s4 = stepParseCitations(s3.llmResponse);
 
-  // IMPORTANT: Extract visible text to strip the <<<CITATION_DATA>>> block
-  const visibleText = extractVisibleText(llmResponse);
-
-  console.log(`📋 Parsed ${citationCount} citation(s) from LLM output`);
-  for (const [key, citation] of Object.entries(parsedCitations)) {
+  console.log(`📋 Parsed ${s4.citationCount} citation(s) from LLM output`);
+  for (const [key, citation] of Object.entries(s4.parsedCitations)) {
     console.log(`   [${key}]: "${citation.fullPhrase?.slice(0, 50)}..."`);
   }
   console.log();
 
   console.log("📖 Visible Text (citation data block stripped):");
   console.log(separator);
-  console.log(visibleText);
+  console.log(s4.visibleText);
   console.log(separator + "\n");
 
-  if (citationCount === 0) {
+  if (s4.citationCount === 0) {
     console.log("⚠️  No citations found in the LLM response.\n");
     return;
   }
 
-  // ============================================
-  // STEP 4: VERIFY CITATIONS
-  // ============================================
-
+  // ── Step 5: Verify ──
   console.log("🔍 Step 4: Verifying citations against source document...\n");
 
-  const verificationResult = await deepcitation.verifyAttachment(attachmentId, parsedCitations);
+  const s5 = await stepVerify(deepcitation, s1.attachmentId, s4.parsedCitations);
 
-  // ============================================
-  // STEP 5: DISPLAY RESULTS
-  // ============================================
-
+  // ── Display Results ──
   console.log("✨ Step 5: Verification Results\n");
 
-  const verifications = Object.entries(verificationResult.verifications);
+  const verifications = Object.entries(s5.verifications) as [string, any][];
 
   if (verifications.length === 0) {
     console.log("⚠️  No citations found in the response.\n");
@@ -274,12 +370,12 @@ provided documents accurately and cite your sources.`;
       console.log(`Citation [${key}]: ${statusIndicator} ${verification.status} | Page: ${verification.document?.verifiedPageNumber ?? "N/A"}`);
       console.log(wideSubSeparator);
 
-      const fullPhrase = (parsedCitations[key] || verification.citation)?.fullPhrase;
+      const fullPhrase = (s4.parsedCitations[key] || verification.citation)?.fullPhrase;
       if (fullPhrase) {
         console.log(
           `  📝 Claimed: "${fullPhrase.slice(0, 100)}${fullPhrase.length > 100 ? "..." : ""}"`,
         );
-      } 
+      }
 
       if (verification.verifiedMatchSnippet) {
         console.log(
@@ -298,14 +394,11 @@ provided documents accurately and cite your sources.`;
     console.log(wideSeparator + "\n");
   }
 
-  // Clean response — replace [N] markers with [N + indicator]
-  console.log("📖 Clean Response (for display, with verification status):");
+  // Clean response
+  console.log("📖 Clean Response (for display):");
   console.log(separator);
   console.log(
-    replaceDeferredMarkers(visibleText, {
-      verifications: verificationResult.verifications,
-      showVerificationStatus: true,
-    }),
+    replaceCitationMarkers(s4.visibleText),
   );
   console.log(separator + "\n");
 
@@ -322,53 +415,35 @@ provided documents accurately and cite your sources.`;
     console.log(`   Not found: ${missed}`);
   }
 
-  // ============================================
-  // STEP 6: GENERATE HTML REPORT
-  // The LLM response embeds citation claims in a <<<CITATION_DATA>>> JSON footer.
-  // Steps 3-4 already parsed those claims (parsedCitations) and verified them against
-  // the source document (verificationResult). Now we stitch both into an interactive
-  // HTML report:
-  //
-  //   parsedCitations   → anchorMap + keyMap  (what the LLM claimed)
-  //   verificationResult → dc-data JSON       (what the API verified)
-  //
-  // The CDN popover runtime reads dc-data and dc-key-map at init time, finds HTML
-  // elements with data-citation-key="<hash>", and attaches interactive popovers
-  // showing verification status, proof images, and matched snippets.
-  // ============================================
-
+  // ── Step 6: Generate HTML ──
   console.log("\n📄 Step 6: Generating HTML report...\n");
 
-  const sourceLabel = source.type === "url" ? source.url : "filename" in source ? source.filename : source.label;
-  const html = generateHtmlReport({
-    visibleText,
-    parsedCitations,
-    verifications: verificationResult.verifications,
+  const sourceLabel = s1.sourceLabel;
+  const outDir = DEFAULT_OUT_DIR;
+  const s6 = stepGenerateHtml(s4, s5, sourceLabel, outDir);
+
+  // Overwrite snapshot with llmResponse included
+  writeFileSync(s6.snapshotPath, JSON.stringify({
+    llmResponse: s3.llmResponse,
+    verifications: s5.verifications,
+    attachments: s5.attachments,
     title: sourceLabel,
-    attachments: verificationResult.attachments,
-  });
+  }, null, 2));
 
-  // Write HTML to output directory and open in browser
-  const outDir = resolve(__dirname, "../../output");
-  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
-  const safeName = sourceLabel.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 50);
-  const outPath = resolve(outDir, `${safeName}-verified.html`);
-  writeFileSync(outPath, html);
-
-  console.log(`   Written: ${outPath}`);
-  console.log(`   Citations: ${citationCount}, Verifications: ${Object.keys(verificationResult.verifications).length}`);
+  console.log(`   Snapshot: ${s6.snapshotPath}`);
+  console.log(`   Written: ${s6.htmlPath}`);
+  console.log(`   Citations: ${s4.citationCount}, Verifications: ${Object.keys(s5.verifications).length}`);
 
   // Open in browser (WSL → Linux → macOS — silent on failure)
   try {
-    // WSL: convert to Windows path for explorer.exe
-    const winPath = execFileSync("wslpath", ["-w", outPath], { encoding: "utf-8" }).trim();
+    const winPath = execFileSync("wslpath", ["-w", s6.htmlPath], { encoding: "utf-8" }).trim();
     execFileSync("explorer.exe", [winPath], { stdio: "ignore", timeout: 5000 });
   } catch {
-    try { execFileSync("xdg-open", [outPath], { stdio: "ignore", timeout: 5000 }); }
-    catch { try { execFileSync("open", [outPath], { stdio: "ignore", timeout: 5000 }); } catch { /* manual open */ } }
+    try { execFileSync("xdg-open", [s6.htmlPath], { stdio: "ignore", timeout: 5000 }); }
+    catch { try { execFileSync("open", [s6.htmlPath], { stdio: "ignore", timeout: 5000 }); } catch { /* manual open */ } }
   }
 
-  console.log(`   Open: ${outPath}\n`);
+  console.log(`   Open: ${s6.htmlPath}\n`);
 }
 
 /**
