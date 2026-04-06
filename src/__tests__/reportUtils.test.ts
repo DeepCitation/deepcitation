@@ -108,7 +108,7 @@ describe("injectCdnRuntime", () => {
     // The init call should only have theme, not indicatorVariant
     const initMatch = result.html.match(/DeepCitationPopover\.init\(\{([^}]+)\}\)/);
     expect(initMatch).toBeTruthy();
-    expect(initMatch![1]).not.toContain("indicatorVariant");
+    expect(initMatch?.[1]).not.toContain("indicatorVariant");
   });
 
   it("falls back to </html> when no </body>", () => {

@@ -56,7 +56,7 @@ describe("CLI dispatch", () => {
     const r = run([]);
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toContain("Commands:");
-    expect(r.stdout).toContain("login");
+    expect(r.stdout).toContain("auth");
     expect(r.stdout).toContain("prepare");
     expect(r.stdout).toContain("verify");
   });

@@ -158,16 +158,9 @@ describe("requireAuth", () => {
     await expect(requireAuth()).resolves.toEqual(auth);
   });
 
-  it("auto-triggers login and exits when login fails", async () => {
-    // First call: not authenticated → triggers login
-    // After login: still not authenticated → exits
+  it("exits with action-needed message when not authenticated in non-interactive env", async () => {
+    // Test environment has no TTY → non-interactive path exits immediately with instructions
     mockResolveAuth.mockReturnValue(null);
-    mockStartCallbackServer.mockResolvedValue({
-      port: 12345,
-      result: new Promise(() => {}), // never resolves (simulates failed login)
-      cancel: jest.fn(),
-    });
-    // login will try to read stdin which fails in test → falls through to exit
     await expect(requireAuth()).rejects.toThrow("process.exit(1)");
   });
 });
@@ -203,9 +196,9 @@ describe("resolveBaseUrl", () => {
 describe("saveApiKey", () => {
   it("saves valid key", async () => {
     mockWriteCredentials.mockReturnValue(undefined);
-    const { stdout } = await captureOutput(() => saveApiKey(TEST_KEY, "--key flag"));
+    const { stderr } = await captureOutput(() => saveApiKey(TEST_KEY, "--key flag"));
     expect(mockWriteCredentials).toHaveBeenCalledWith(expect.objectContaining({ version: 1, apiKey: TEST_KEY }));
-    expect(stdout).toContain("Credentials saved");
+    expect(stderr).toContain("Credentials saved");
   });
 
   it("rejects key without sk-dc- prefix", () => {
@@ -1036,9 +1029,9 @@ describe("hydrate CLI command", () => {
 
 describe("login command", () => {
   it("saves key from --key flag", async () => {
-    const { stdout } = await captureOutput(() => login(["--key", TEST_KEY], TEST_BASE_URL));
+    const { stderr } = await captureOutput(() => login(["--key", TEST_KEY], TEST_BASE_URL));
     expect(mockWriteCredentials).toHaveBeenCalledWith(expect.objectContaining({ apiKey: TEST_KEY }));
-    expect(stdout).toContain("Credentials saved");
+    expect(stderr).toContain("Credentials saved");
   });
 
   it("exits when --key has no value", async () => {

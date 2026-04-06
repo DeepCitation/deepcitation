@@ -270,8 +270,7 @@ export function AnchorTextFocusedImage({
                 ref={imageRef}
                 src={src}
                 alt={t("aria.verificationEvidence")}
-                className={cn(DOCUMENT_IMAGE_EDGE_CLASSES, "block select-none")}
-                style={{ maxWidth: "none" }}
+                className={cn(DOCUMENT_IMAGE_EDGE_CLASSES, "block select-none max-w-none")}
                 loading="eager"
                 decoding="async"
                 draggable={false}

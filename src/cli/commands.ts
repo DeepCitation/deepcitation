@@ -14,7 +14,6 @@ import {
   CREDENTIALS_PATH,
   deleteCredentials,
   generateNonce,
-  IS_AI_AGENT,
   IS_COWORK,
   maskKey,
   openBrowser,
@@ -260,8 +259,25 @@ export async function requireAuth(): Promise<ResolvedAuth> {
   const auth = resolveAuth();
   if (auth) return auth;
 
-  console.error("DeepCitation — not logged in. Opening browser to authenticate...\n");
   const baseUrl = resolveBaseUrl();
+  const isInteractive = process.stdin.isTTY || !!process.env.MSYSTEM;
+  if (!isInteractive) {
+    // Non-interactive (CI, piped stdin, AI agent) — browser OAuth won't work.
+    // Print actionable instructions and exit so commands fail fast with clear guidance.
+    console.error("DeepCitation — action needed: no credentials found.\n");
+    if (IS_COWORK) {
+      console.error("1. Add *.deepcitation.com to allowed domains: https://claude.ai/settings/capabilities");
+      console.error(`2. Get an API key: ${baseUrl}/cli-auth?manual=true`);
+      console.error("3. Set DEEPCITATION_API_KEY in your Cowork environment settings.");
+    } else {
+      console.error(`Set DEEPCITATION_API_KEY to authenticate.`);
+      console.error(`  Get a key: ${baseUrl}/cli-auth?manual=true`);
+      console.error("  Or run: npx deepcitation auth --key '<your-key>'");
+    }
+    process.exit(1);
+  }
+
+  console.error("DeepCitation — not logged in. Opening browser to authenticate...\n");
   await login(["--browser"], baseUrl);
 
   // Re-check after login completes
