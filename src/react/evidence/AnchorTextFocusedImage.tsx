@@ -1,17 +1,15 @@
 import type React from "react";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Verification } from "../../types/verification.js";
 import {
   buildKeyholeMaskImage,
   DOCUMENT_CANVAS_BG_CLASSES,
   DOCUMENT_IMAGE_EDGE_CLASSES,
-  EXPANDED_MIN_READABLE_ZOOM,
   HIDE_SCROLLBAR_STYLE,
   KEYHOLE_FADE_WIDTH,
   KEYHOLE_SKIP_THRESHOLD,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
   KEYHOLE_STRIP_HEIGHT_VAR,
-  KEYHOLE_WIDTH_FIT_THRESHOLD,
   MIN_PAN_OVERFLOW_PX,
 } from "../constants.js";
 import { useDragToPan } from "../hooks/useDragToPan.js";
@@ -81,7 +79,6 @@ export function AnchorTextFocusedImage({
   const [imageFitInfo, setImageFitInfo] = useState<{
     displayedWidth: number;
     imageFitsCompletely: boolean;
-    isWidthFit?: boolean;
   } | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -101,87 +98,47 @@ export function AnchorTextFocusedImage({
     const img = imageRef.current;
     if (!container || !img) return;
 
-    // The image renders at natural aspect ratio constrained by strip height.
-    // Its displayed width = naturalWidth * (stripHeight / naturalHeight).
+    // Always render the image at natural pixel size (no zoom/scale).
+    // The strip container acts as a fixed-height viewport; the user pans to
+    // explore and clicks to expand. This guarantees text is always readable
+    // at the same size as the original document rendering.
     const stripHeight = container.clientHeight;
-    const displayedWidth =
-      img.naturalHeight > 0 ? img.naturalWidth * (stripHeight / img.naturalHeight) : img.naturalWidth;
     const containerWidth = container.clientWidth;
+    const displayedWidth = img.naturalWidth;
+    const displayedHeight = img.naturalHeight;
 
-    // Width-fit mode: when the image at height-fit scale is too narrow to read
-    // (a tiny sliver for tall images like full-page screenshots), switch to
-    // width-fit mode — fill the container width and scroll vertically instead.
-    const isWidthFit = displayedWidth < containerWidth * KEYHOLE_WIDTH_FIT_THRESHOLD && img.naturalHeight > stripHeight;
+    // Image fits completely when it doesn't overflow the container in either axis.
+    // KEYHOLE_SKIP_THRESHOLD (2.0) gives slack — images up to 2× strip height still
+    // count as "fits" since expanding would reveal little new content.
+    const imageFitsCompletely =
+      displayedWidth <= containerWidth &&
+      displayedHeight > 0 &&
+      displayedHeight <= stripHeight * KEYHOLE_SKIP_THRESHOLD;
 
-    if (isWidthFit) {
-      // Apply a readable-minimum zoom: width-fit scale can be tiny for large full-page
-      // screenshots (e.g. 800×1200 in a 280px strip → 0.35). Clamp to 50% so the
-      // content is legible. When the readable scale exceeds the container width the image
-      // overflows both axes — the existing overflow-auto + xy drag-to-pan handles it.
-      const widthFitScale = Math.min(containerWidth, img.naturalWidth) / img.naturalWidth;
-      const readableScale = Math.max(widthFitScale, EXPANDED_MIN_READABLE_ZOOM);
-      const effectiveWidth = img.naturalWidth * readableScale;
-      const effectiveHeight = img.naturalHeight * readableScale;
+    setImageFitInfo({ displayedWidth, imageFitsCompletely });
+    onKeyholeWidth?.(Math.min(displayedWidth, containerWidth));
 
-      setImageFitInfo({ displayedWidth: effectiveWidth, imageFitsCompletely: false, isWidthFit: true });
-      // Report the visible footprint (container width), not the overflowing image width.
-      onKeyholeWidth?.(Math.min(effectiveWidth, containerWidth));
-
-      // Center on the anchor text (both axes); fall back to image center.
-      // computeAnnotationScrollTarget uses the same coord transform as the overlay.
-      const widthFitTarget =
-        anchorScrollData &&
-        computeAnnotationScrollTarget(
-          anchorScrollData.anchorItem,
-          anchorScrollData.renderScale,
-          img.naturalWidth,
-          img.naturalHeight,
-          readableScale,
-          containerWidth,
-          stripHeight,
-          undefined,
-          anchorScrollData.viewBoxOriginY,
-          "start",
-        );
-      if (widthFitTarget) {
-        container.scrollLeft = widthFitTarget.scrollLeft;
-        container.scrollTop = widthFitTarget.scrollTop;
-      } else {
-        container.scrollLeft = Math.max(0, (effectiveWidth - containerWidth) / 2);
-        container.scrollTop = Math.max(0, (effectiveHeight - stripHeight) / 2);
+    // Scroll to center on the anchor text (both axes); fall back to top-left.
+    if (anchorScrollData) {
+      const target = computeAnnotationScrollTarget(
+        anchorScrollData.anchorItem,
+        anchorScrollData.renderScale,
+        img.naturalWidth,
+        img.naturalHeight,
+        1.0, // natural size — no scaling
+        containerWidth,
+        stripHeight,
+        undefined,
+        anchorScrollData.viewBoxOriginY,
+        "start",
+      );
+      if (target) {
+        container.scrollLeft = target.scrollLeft;
+        container.scrollTop = target.scrollTop;
       }
     } else {
-      // Height-fit mode (default): detect whether the image nearly fits within the keyhole.
-      // Uses KEYHOLE_SKIP_THRESHOLD (2.0) so images up to 100% taller than the strip
-      // are treated as "fits" — expanding would reveal almost nothing new.
-      // displayedWidth <= containerWidth → image is narrow enough to show in full horizontally.
-      // When both are true, the keyhole already reveals nearly everything — expand adds no value.
-      if (displayedWidth > 0) {
-        const imageFitsCompletely =
-          img.naturalHeight > 0 &&
-          img.naturalHeight <= stripHeight * KEYHOLE_SKIP_THRESHOLD &&
-          displayedWidth <= containerWidth;
-        setImageFitInfo({ displayedWidth, imageFitsCompletely });
-        onKeyholeWidth?.(displayedWidth);
-      }
-
-      // Scroll just enough to keep the anchor's right edge visible while
-      // maximizing left reading context. If the anchor fits on-screen from
-      // scrollLeft=0, the user sees the full left margin. If the anchor is
-      // further right (mid-line, end-of-line, or multi-line starting at end
-      // of a line), we scroll the minimum amount so its right edge clears
-      // the right fade gradient.
-      const displayScale = img.naturalWidth > 0 ? displayedWidth / img.naturalWidth : 1;
-      if (anchorScrollData) {
-        const anchorRightPx =
-          (anchorScrollData.anchorItem.x * anchorScrollData.renderScale.x +
-            anchorScrollData.anchorItem.width * anchorScrollData.renderScale.x) *
-          displayScale;
-        const maxScroll = Math.max(0, displayedWidth - containerWidth);
-        container.scrollLeft = Math.min(maxScroll, Math.max(0, anchorRightPx - containerWidth + KEYHOLE_FADE_WIDTH));
-      } else {
-        container.scrollLeft = 0;
-      }
+      container.scrollLeft = 0;
+      container.scrollTop = 0;
     }
 
     // Trigger scroll event so useDragToPan updates fade state for initial position
@@ -196,7 +153,6 @@ export function AnchorTextFocusedImage({
   );
 
   const stripHeightStyle = `var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px)`;
-  const isWidthFit = imageFitInfo?.isWidthFit ?? false;
   const isPannable =
     scrollState.canScrollLeft || scrollState.canScrollRight || scrollState.canScrollUp || scrollState.canScrollDown;
 
@@ -228,26 +184,13 @@ export function AnchorTextFocusedImage({
     keyholeAriaLabel = t("aria.keyhole.expandPage");
   }
 
-  const getDisplayedScale = useCallback(
-    (img: HTMLImageElement, stripHeight: number): number => {
-      if (imageFitInfo?.isWidthFit && img.naturalWidth > 0) {
-        return imageFitInfo.displayedWidth / img.naturalWidth;
-      }
-      if (img.naturalHeight > 0) {
-        return stripHeight / img.naturalHeight;
-      }
-      return 1;
-    },
-    [imageFitInfo],
-  );
-
   return (
     <div className="relative">
       {/* Keyhole strip container — clickable to expand, draggable to pan.
           maxWidth clamps to the image's rendered width so no blank space appears to the right. */}
       <div
         className="relative group/keyhole"
-        style={imageFitInfo && !isWidthFit ? { maxWidth: imageFitInfo.displayedWidth } : undefined}
+        style={imageFitInfo ? { maxWidth: imageFitInfo.displayedWidth } : undefined}
       >
         <button
           type="button"
@@ -287,10 +230,8 @@ export function AnchorTextFocusedImage({
               const img = imageRef.current;
               const container = containerRef.current;
               if (onScrollCapture && img && container) {
-                const stripHeight = container.clientHeight;
-                const displayedScale = getDisplayedScale(img, stripHeight);
-                const ds = displayedScale > 0 ? displayedScale : 1;
-                onScrollCapture(container.scrollLeft / ds, container.scrollTop / ds);
+                // Scale is 1.0 — scroll positions are already in natural pixel coords
+                onScrollCapture(container.scrollLeft, container.scrollTop);
               }
               onImageClick?.();
             } else if (canExpandToPage) {
@@ -310,15 +251,11 @@ export function AnchorTextFocusedImage({
             data-dc-keyhole=""
             data-dc-page-expand-source=""
             data-dc-page-expand-source-kind="summary-keyhole"
-            className={cn(
-              DOCUMENT_CANVAS_BG_CLASSES,
-              isWidthFit ? "overflow-auto" : "overflow-x-auto overflow-y-hidden",
-            )}
+            className={cn(DOCUMENT_CANVAS_BG_CLASSES, "overflow-auto")}
             style={{
               viewTransitionName: DC_EVIDENCE_VT_NAME,
               height: stripHeightStyle,
-              // Fade mask only applies in height-fit mode (horizontal overflow).
-              // In width-fit mode, there's no horizontal overflow so mask is "none" automatically.
+              // Horizontal fade mask — indicates pannable content left/right.
               WebkitMaskImage: maskImage,
               maskImage,
               ...HIDE_SCROLLBAR_STYLE,
@@ -333,17 +270,8 @@ export function AnchorTextFocusedImage({
                 ref={imageRef}
                 src={src}
                 alt={t("aria.verificationEvidence")}
-                className={cn(
-                  DOCUMENT_IMAGE_EDGE_CLASSES,
-                  isWidthFit ? "block select-none" : "block w-auto max-w-none select-none",
-                )}
-                style={
-                  isWidthFit
-                    ? { width: imageFitInfo?.displayedWidth, height: "auto", maxWidth: "none" }
-                    : {
-                        height: stripHeightStyle,
-                      }
-                }
+                className={cn(DOCUMENT_IMAGE_EDGE_CLASSES, "block select-none")}
+                style={{ maxWidth: "none" }}
                 loading="eager"
                 decoding="async"
                 draggable={false}
