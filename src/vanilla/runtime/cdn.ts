@@ -245,16 +245,33 @@ function reposition(): void {
   const triggerRect = getTriggerRect(activeTrigger);
   const contentRect = contentEl.getBoundingClientRect();
   const pos = computePosition(triggerRect, contentRect.width, contentRect.height, SIDE_OFFSET);
-  // Convert viewport-relative coords to scroll-container-relative so the
-  // position:absolute wrapper is placed in document space and scrolls naturally.
-  const container = wrapperEl.parentElement ?? document.body;
-  const cRect = container.getBoundingClientRect();
-  const x = pos.x - cRect.left + container.scrollLeft;
-  const y = pos.y - cRect.top + container.scrollTop;
-  if (!(Math.abs(lastCoords.x - x) < 0.5 && Math.abs(lastCoords.y - y) < 0.5)) {
-    lastCoords = { x, y };
-    wrapperEl.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-    wrapperEl.setAttribute("data-side", pos.side);
+
+  // When expanded to fill the viewport, use position:fixed so the popover stays
+  // anchored to the viewport as the user scrolls. position:absolute would scroll
+  // the popover away from the viewport top, then the guard would snap it back to y=0.
+  const isExpandedPage = contentRect.height > window.innerHeight * 0.8;
+  if (isExpandedPage) {
+    wrapperEl.style.position = "fixed";
+    const x = pos.x;
+    const y = pos.y;
+    if (!(Math.abs(lastCoords.x - x) < 0.5 && Math.abs(lastCoords.y - y) < 0.5)) {
+      lastCoords = { x, y };
+      wrapperEl.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      wrapperEl.setAttribute("data-side", pos.side);
+    }
+  } else {
+    wrapperEl.style.position = "absolute";
+    // Convert viewport-relative coords to scroll-container-relative so the
+    // position:absolute wrapper is placed in document space and scrolls naturally.
+    const container = wrapperEl.parentElement ?? document.body;
+    const cRect = container.getBoundingClientRect();
+    const x = pos.x - cRect.left + container.scrollLeft;
+    const y = pos.y - cRect.top + container.scrollTop;
+    if (!(Math.abs(lastCoords.x - x) < 0.5 && Math.abs(lastCoords.y - y) < 0.5)) {
+      lastCoords = { x, y };
+      wrapperEl.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      wrapperEl.setAttribute("data-side", pos.side);
+    }
   }
 
   // Post-position viewport guard: if the content overflows the visible viewport
