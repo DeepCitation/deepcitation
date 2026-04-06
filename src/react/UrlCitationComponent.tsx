@@ -13,7 +13,7 @@ import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import type { MessageKey } from "./i18n.js";
 import { type TranslateFunction, useTranslation } from "./i18n.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
-import { handleImageError, useFaviconSrc } from "./imageUtils.js";
+import { useFaviconSrc } from "./imageUtils.js";
 import type { IndicatorVariant, UrlCitationProps, UrlFetchStatus } from "./types.js";
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
 import { getUrlPath, safeWindowOpen, truncateString } from "./urlUtils.js";

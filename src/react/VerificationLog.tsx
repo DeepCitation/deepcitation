@@ -28,6 +28,7 @@ import {
   XCircleIcon,
   XIcon,
 } from "./icons.js";
+import { useFaviconSrc } from "./imageUtils.js";
 import {
   buildSearchNarrative,
   getStatusColorScheme,
@@ -37,7 +38,6 @@ import {
 } from "./searchNarrative.js";
 import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 import { sanitizeUrl } from "./urlUtils.js";
-import { useFaviconSrc } from "./imageUtils.js";
 import { cn, isImageSource } from "./utils.js";
 
 // =============================================================================
@@ -255,7 +255,7 @@ function triggerBackgroundDownload(
           received += value.byteLength;
           onProgress(received / total);
         }
-        return new Blob(chunks, { type: res.headers.get("Content-Type") || undefined });
+        return new Blob(chunks as BlobPart[], { type: res.headers.get("Content-Type") || undefined });
       }
 
       // No Content-Length — signal indeterminate progress.
@@ -555,7 +555,7 @@ export function SourceContextHeader({
               HEADER_DOWNLOAD_BUTTON_BASE_CLASSES,
               HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES,
               dlState !== "idle" && "!opacity-100 !pointer-events-auto",
-              dlState === "done" && "text-dc-success",
+              dlState === "done" && "text-dc-verified",
             )}
             onClick={e => {
               e.stopPropagation();

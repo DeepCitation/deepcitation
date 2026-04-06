@@ -6,6 +6,7 @@
 import { IS_COWORK } from "../auth.js";
 import { PaymentRequiredError } from "../client/errors.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
+import { safeMatch } from "../utils/regexSafety.js";
 
 // ── constants ─────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ export function isValidApiKeyFormat(key: string): boolean {
 
 /** Extract a valid API key from arbitrary input (pasted command, quoted key, etc). */
 export function extractApiKey(input: string): string | null {
-  const match = input.match(/sk-dc-[a-zA-Z0-9]{14,}/);
+  const match = safeMatch(input, /sk-dc-[a-zA-Z0-9]{14,}/);
   return match && isValidApiKeyFormat(match[0]) ? match[0] : null;
 }
 

@@ -1,5 +1,5 @@
 import type React from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /**
  * Module-level handler for hiding broken images.
@@ -43,6 +43,11 @@ export function useFaviconSrc(
 ): { src: string | null; onError: () => void } {
   const [stage, setStage] = useState(0);
 
+  // Reset fallback chain when inputs change (e.g. list virtualization reusing a component)
+  useEffect(() => {
+    setStage(0);
+  }, [url, customFaviconUrl]);
+
   const origin = getOrigin(url);
   const domain = url ? domainFromUrl(url) : null;
 
@@ -58,7 +63,7 @@ export function useFaviconSrc(
   }
 
   const onError = useCallback(() => {
-    setStage((prev) => (prev < 2 ? prev + 1 : prev));
+    setStage(prev => (prev < 2 ? prev + 1 : prev));
   }, []);
 
   return { src, onError };
