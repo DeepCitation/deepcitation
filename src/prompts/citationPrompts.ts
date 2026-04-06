@@ -63,7 +63,7 @@ To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, p=page_id, l=li
 2. **id** (or n): Each citation MUST have a unique ID matching its [N] marker. Do NOT reuse the same ID for different citations.
 3. **reasoning** (or r): Brief explanation connecting the citation to your claim (think first!)
 4. **full_phrase** (or f): Copy text VERBATIM from source. Use proper JSON escaping for quotes.
-5. **anchor_text** (or k): 1–4 contiguous verbatim words from the evidence line. Pick the distinctive noun or term, not the surrounding verb phrase. This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
+5. **anchor_text** (or k): 1–4 verbatim words from the evidence line (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
 6. **page_id** (or p): Format "page_number_N_index_I" where N=page number, I=index (copy exactly from \`<page_number_N_index_I>\` tags in the source)
 7. **line_ids** (or l): Array of line IDs from the source (copy from line ID markers in the text). Include IDs for all relevant lines.
 
@@ -132,7 +132,7 @@ To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, t=timestamps (w
 2. **id** (or n): Must match the [N] marker in your text (integer)
 3. **reasoning** (or r): Brief explanation connecting the citation to your claim (think first!)
 4. **full_phrase** (or f): Copy transcript text VERBATIM. Use proper JSON escaping.
-5. **anchor_text** (or k): 1–4 contiguous verbatim words from the transcript. Pick the distinctive noun or term, not the surrounding verb phrase. This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
+5. **anchor_text** (or k): 1–4 verbatim words from the transcript (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
 6. **timestamps** (or t): Object with start_time/s and end_time/e in HH:MM:SS.SSS format
 
 ### Placement Rules
@@ -445,7 +445,7 @@ Do NOT output fullPhrase or reasoning — these are reconstructed automatically 
 ### Field Rules
 
 1. **n**: Citation id (integer, matches [N] in text)
-2. **k** (anchorText): 1–4 contiguous verbatim words from the evidence line at the referenced lineId. Pick the distinctive noun or term, not the surrounding verb phrase. This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
+2. **k** (anchorText): 1–4 verbatim words from the evidence line (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
 3. **p** (page_id): Compact form "N_I" where N=page number and I=index (extract from \`<page_number_N_index_I>\` tag)
 4. **l** (line_ids): Array of line IDs from \`<line id="N">\` tags
 
