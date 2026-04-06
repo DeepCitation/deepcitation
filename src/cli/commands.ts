@@ -377,7 +377,9 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   const unsafeFast = argv.includes("--unsafe-fast");
   const text = argv.includes("--text") || argv.includes("--summary");
   const skipCache = argv.includes("--skip-cache");
-  const filteredArgv = argv.filter(a => a !== "--unsafe-fast" && a !== "--text" && a !== "--summary" && a !== "--skip-cache");
+  const filteredArgv = argv.filter(
+    a => a !== "--unsafe-fast" && a !== "--text" && a !== "--summary" && a !== "--skip-cache",
+  );
 
   const args = parseArgs(filteredArgv, PREPARE_HELP);
 
@@ -844,7 +846,14 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     // Extract attachmentId from parsed citations to find the matching summary file.
     // This prevents wrong-source hydration when multiple prepare files exist.
     const knownAttachmentId = parsed.citations.find(c => c.attachment_id)?.attachment_id;
-    const summaryPath = args.summary ? resolve(args.summary as string) : findSummaryForMarkdown(resolved, knownAttachmentId);
+    const summaryPath = args.summary
+      ? resolve(args.summary as string)
+      : findSummaryForMarkdown(resolved, knownAttachmentId);
+    if (!summaryPath && knownAttachmentId) {
+      console.error(
+        `  Warning: no summary file found matching attachmentId ${sanitizeForLog(knownAttachmentId)} — skipping auto-hydration`,
+      );
+    }
     if (summaryPath && existsSync(summaryPath)) {
       const summaryContent = readFileSync(summaryPath, "utf-8");
       console.error(`Auto-hydrating citations from summary: ${summaryPath}`);
@@ -869,11 +878,16 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
           if (summaryAttId) {
             let backfilled = 0;
             for (const c of parsed.citations) {
-              if (!c.attachment_id) { c.attachment_id = summaryAttId; backfilled++; }
+              if (!c.attachment_id) {
+                c.attachment_id = summaryAttId;
+                backfilled++;
+              }
             }
             console.error(`  Backfilled attachment_id "${summaryAttId}" for ${backfilled} citation(s)`);
           }
-        } catch { /* summary parse already handled above */ }
+        } catch {
+          /* summary parse already handled above */
+        }
       }
     } else if (needsHydration) {
       console.error("Warning: citations missing full_phrase — pass --summary for auto-hydration");
@@ -1343,7 +1357,9 @@ export async function login(argv: string[], baseUrl: string) {
         displayName: winner.payload.displayName,
         createdAt: new Date().toISOString(),
       });
-      console.error(`\nLogged in as ${sanitizeForLog(winner.payload.displayName ?? winner.payload.email ?? "unknown")}.`);
+      console.error(
+        `\nLogged in as ${sanitizeForLog(winner.payload.displayName ?? winner.payload.email ?? "unknown")}.`,
+      );
       console.error(`Credentials saved to ${CREDENTIALS_PATH}`);
       console.error(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
       process.stdin.destroy();

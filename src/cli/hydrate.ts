@@ -94,13 +94,14 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
   const byId = new Map<number, string>();
 
   let deepText: string;
+  let pages: string[] | null = null;
   try {
     const parsed = JSON.parse(summaryContent) as {
       deepTextPages?: unknown;
       deepTextPromptPortion?: unknown;
     };
     if (Array.isArray(parsed.deepTextPages) && parsed.deepTextPages.every(page => typeof page === "string")) {
-      const pages = parsed.deepTextPages as string[];
+      pages = parsed.deepTextPages as string[];
       if (pages.length === 0) return { qualified, byId };
       deepText = pages.join("\n\n");
     } else if (typeof parsed.deepTextPromptPortion === "string" && parsed.deepTextPromptPortion.length > 0) {
@@ -118,7 +119,7 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
   const hasPageTags = PAGE_TAG_RE.test(deepText);
   PAGE_TAG_RE.lastIndex = 0; // Reset after .test()
 
-  if (!hasPageTags) {
+  if (!hasPageTags && pages) {
     // Each array entry is a separate page — assign page_number_{i+1}_index_{i} (1-based page, 0-based index).
     // Use a global synthetic line counter so IDs are unique across all pages.
     let globalLineId = 1;
@@ -141,8 +142,8 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
       } else {
         const rawLines = pageText
           .split("\n")
-          .map(l => l.trim())
-          .filter(l => l.length > 0);
+          .map((l: string) => l.trim())
+          .filter((l: string) => l.length > 0);
         for (const lineText of rawLines) {
           qualified.set(`${pageId}:${globalLineId}`, lineText);
           byId.set(globalLineId, lineText);
@@ -292,6 +293,9 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
         const found = findAnchorWithFallback(citation.anchor_text, allLines);
         if (found) {
           citation.full_phrase = found.verbatimAnchor;
+          // Preserve the original anchor_text as display_label before overwriting,
+          // mirroring the paraphrase-promotion pattern in the successful hydration path.
+          if (!citation.display_label) citation.display_label = citation.anchor_text;
           citation.anchor_text = found.verbatimAnchor;
           // Update page_id and line_ids to match what was actually found
           citation.page_id = toCompactPageId(found.pageId);

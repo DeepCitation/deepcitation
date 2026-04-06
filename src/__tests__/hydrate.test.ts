@@ -6,19 +6,19 @@ import type { CitationData } from "../prompts/citationPrompts.js";
 const SUMMARY_JSON = JSON.stringify({
   attachmentId: "test-attachment-id",
   deepTextPromptPortion: [
-    '<page_number_1_index_0>',
+    "<page_number_1_index_0>",
     '<line id="1">Version 1.2</line>',
-    'DISCOUNT ONLY',
-    'THIS INSTRUMENT AND ANY SECURITIES ISSUABLE PURSUANT HERETO',
+    "DISCOUNT ONLY",
+    "THIS INSTRUMENT AND ANY SECURITIES ISSUABLE PURSUANT HERETO",
     '<line id="5">CERTAIN STATES.</line>',
     'The "Discount Rate" is [100 minus the discount]%.',
-    'See Section 2.',
-    '1. Events',
-    '(a) Equity Financing. If there is an Equity Financing before the termination of this Safe, on the initial closing',
+    "See Section 2.",
+    "1. Events",
+    "(a) Equity Financing. If there is an Equity Financing before the termination of this Safe, on the initial closing",
     '<line id="10">of such Equity Financing, this Safe will automatically convert into shares of Safe Preferred Stock equal to the</line>',
-    'Purchase Amount divided by the Discount Price.',
-    '</page_number_1_index_0>',
-  ].join('\n'),
+    "Purchase Amount divided by the Discount Price.",
+    "</page_number_1_index_0>",
+  ].join("\n"),
 });
 
 describe("parseSummaryToLineMap", () => {
@@ -42,7 +42,10 @@ describe("hydrateCitations — fullPhrase context", () => {
         id: 1,
         anchor_text: "initial closing",
         page_id: "1_0",
-        line_ids: [9, 10, 11],
+        // Lines 9 and 10 both exist in the fixture (9 is synthetic, 10 is tagged).
+        // Line 9: "(a) Equity Financing ... initial closing"
+        // Line 10: "of such Equity Financing ... automatically convert ..."
+        line_ids: [9, 10],
       } as CitationData,
     ];
 
@@ -55,15 +58,14 @@ describe("hydrateCitations — fullPhrase context", () => {
     expect(result.hydrated).toBe(1);
     expect(result.misses).toEqual([]);
 
-    // full_phrase must be longer than anchor_text — it should contain
-    // text from all three lines (9, 10, 11)
+    // full_phrase must be longer than anchor_text — it should contain text from both lines
     const fp = citations[0].full_phrase;
     expect(fp).toBeDefined();
-    expect(fp!.length).toBeGreaterThan("initial closing".length);
+    expect(fp?.length).toBeGreaterThan("initial closing".length);
     // anchor_text must be a substring of full_phrase
-    expect(fp!.toLowerCase()).toContain("initial closing");
-    // full_phrase should also include text from adjacent lines
-    expect(fp!.toLowerCase()).toContain("automatically convert");
+    expect(fp?.toLowerCase()).toContain("initial closing");
+    // full_phrase should also include text from the adjacent tagged line
+    expect(fp?.toLowerCase()).toContain("automatically convert");
   });
 
   it("does NOT set full_phrase = anchor_text when line IDs resolve", () => {
@@ -75,7 +77,7 @@ describe("hydrateCitations — fullPhrase context", () => {
         id: 1,
         anchor_text: "initial closing",
         page_id: "1_0",
-        line_ids: [9, 10, 11],
+        line_ids: [9, 10],
       } as CitationData,
     ];
 
