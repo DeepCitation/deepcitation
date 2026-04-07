@@ -22,6 +22,9 @@ import { DC_EVIDENCE_VT_NAME } from "../viewTransition.js";
 import { animateScrollLeft } from "./animateScrollLeft.js";
 import { IDENTITY_RENDER_SCALE } from "./resolvers.js";
 
+/** Left-edge padding (px) when using "start" alignment — matches overlayGeometry.ts. */
+const SNIPPET_START_INSET_PX = 24;
+
 /**
  * Displays a verification image as a "keyhole" strip — a fixed-height horizontal
  * window showing the image at 100% natural scale, cropped and centered on the
@@ -69,7 +72,8 @@ export function AnchorTextFocusedImage({
       verification.document?.renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);
     if (!renderScale) return null;
     const viewBoxOriginY = verification.document?.viewBoxOriginY;
-    return { anchorItem, renderScale, viewBoxOriginY };
+    const phraseItem = verification.document?.phraseMatchDeepItem;
+    return { anchorItem, renderScale, viewBoxOriginY, phraseItem };
   }, [verification]);
   // Drag-to-pan hook for mouse interaction (xy enables vertical pan for width-fit tall images;
   // when no vertical overflow exists, scrollTop stays 0 — no visible effect on normal crops).
@@ -135,21 +139,62 @@ export function AnchorTextFocusedImage({
 
     // Scroll to center on the anchor text (both axes); fall back to top-left.
     if (anchorScrollData) {
-      const target = computeAnnotationScrollTarget(
-        anchorScrollData.anchorItem,
-        anchorScrollData.renderScale,
-        img.naturalWidth,
-        img.naturalHeight,
-        zoom,
-        containerWidth,
-        stripHeight,
-        undefined,
-        anchorScrollData.viewBoxOriginY,
-        "start",
-      );
-      if (target) {
-        container.scrollLeft = target.scrollLeft;
-        container.scrollTop = target.scrollTop;
+      const { anchorItem, renderScale } = anchorScrollData;
+
+      // Detect snippet mode: the verify API may return a cropped evidence image
+      // (e.g. 976×354) while bounding-box coordinates are in full-page PDF space
+      // (y ≈ 722 in a ~791-unit-tall page). The Y-flip formula
+      // `imageH - y*scale` goes negative when imageH is the snippet, not the
+      // full page. Detect this by checking whether the anchor's converted pixelY
+      // would land outside the image bounds.
+      const testPixelY = img.naturalHeight - (anchorItem.y - (anchorScrollData.viewBoxOriginY ?? 0)) * renderScale.y;
+      const isSnippet = testPixelY < 0 || testPixelY > img.naturalHeight;
+
+      if (isSnippet && anchorScrollData.phraseItem) {
+        // Snippet mode: compute anchor position relative to the phraseMatch,
+        // which the snippet is roughly centered on. This avoids needing the
+        // full-page image dimensions.
+        const phrase = anchorScrollData.phraseItem;
+        const phrasePixelH = phrase.height * renderScale.y;
+        // Approximate phrase center Y within the snippet (assumes centered crop)
+        const phrasePadY = (img.naturalHeight - phrasePixelH) / 2;
+        // Anchor offset below phrase top (PDF Y-flip: higher y = higher on page)
+        const anchorBelowPhraseTop = (phrase.y - anchorItem.y) * renderScale.y;
+        const anchorPixelYInSnippet = Math.max(0, phrasePadY + anchorBelowPhraseTop);
+        const anchorPixelHInSnippet = anchorItem.height * renderScale.y;
+
+        // Horizontal: anchor X in snippet. The phrase X padding gives the crop offset.
+        const phrasePixelW = phrase.width * renderScale.x;
+        const phrasePadX = (img.naturalWidth - phrasePixelW) / 2;
+        const anchorRightOfPhraseLeft = (anchorItem.x - phrase.x) * renderScale.x;
+        const anchorPixelXInSnippet = Math.max(0, phrasePadX + anchorRightOfPhraseLeft);
+
+        // Scroll: same centering logic as computeAnnotationScrollTarget
+        const zoomedCenterY = (anchorPixelYInSnippet + anchorPixelHInSnippet / 2) * zoom;
+        const scrollTop = Math.max(0, Math.min(zoomedCenterY - stripHeight / 2, img.naturalHeight * zoom - stripHeight));
+        const zoomedStartX = anchorPixelXInSnippet * zoom;
+        const scrollLeft = Math.max(0, Math.min(zoomedStartX - SNIPPET_START_INSET_PX, img.naturalWidth * zoom - containerWidth));
+
+        container.scrollLeft = scrollLeft;
+        container.scrollTop = scrollTop;
+      } else {
+        // Full-page image mode: use standard coordinate transform
+        const target = computeAnnotationScrollTarget(
+          anchorItem,
+          renderScale,
+          img.naturalWidth,
+          img.naturalHeight,
+          zoom,
+          containerWidth,
+          stripHeight,
+          undefined,
+          anchorScrollData.viewBoxOriginY,
+          "start",
+        );
+        if (target) {
+          container.scrollLeft = target.scrollLeft;
+          container.scrollTop = target.scrollTop;
+        }
       }
     } else {
       container.scrollLeft = 0;

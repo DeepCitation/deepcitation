@@ -10,6 +10,7 @@
 import type { DeepTextItem, ScreenBox } from "../../types/boxes.js";
 import type { PageImage, Verification } from "../../types/verification.js";
 import { isValidProofImageSrc } from "../constants.js";
+import { normalizeQuotes } from "../../utils/normalizeQuotes.js";
 
 /** Identity render scale for image sources where coords are already in pixel space. */
 export const IDENTITY_RENDER_SCALE = { x: 1, y: 1 } as const;
@@ -130,7 +131,7 @@ export function resolveExpandedImageForPage(
 }
 
 function normalizeEvidenceText(text: string | null | undefined): string {
-  return text?.toLowerCase().replace(/\s+/g, " ").trim() ?? "";
+  return normalizeQuotes(text?.toLowerCase().replace(/\s+/g, " ").trim() ?? "");
 }
 
 export function resolveEvidenceSourceAnchorRatio(
