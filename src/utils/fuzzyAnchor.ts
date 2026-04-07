@@ -1,3 +1,5 @@
+import { normalizeQuotes } from "./normalizeQuotes.js";
+
 /**
  * Find start/end indices in `text` that best cover `anchor` using word matching.
  * Returns null if fewer than 60% of anchor words (length ≥ 2) are found in order.
@@ -7,14 +9,15 @@
  * source has inserted inline characters that break exact substring matching.
  */
 export function fuzzyAnchorRange(text: string, anchor: string): { start: number; end: number } | null {
-  const anchorWords = anchor
+  const anchorWords = normalizeQuotes(anchor)
     .toLowerCase()
     .split(/\s+/)
     .map(w => w.replace(/[^a-z0-9]/g, ""))
     .filter(w => w.length >= 2);
   if (anchorWords.length === 0) return null;
 
-  const textLower = text.toLowerCase();
+  // normalizeQuotes is length-preserving so indices remain valid on original text.
+  const textLower = normalizeQuotes(text.toLowerCase());
   let searchFrom = 0;
   let firstIdx = -1;
   let lastIdx = -1;

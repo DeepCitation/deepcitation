@@ -3,6 +3,7 @@
  * These operate on the raw page text format used by the attachment system,
  * not on citation tags.
  */
+import { normalizeQuotes } from "./normalizeQuotes.js";
 import { safeMatch } from "./regexSafety.js";
 
 const PAGE_NUMBER_RE = /<\/?page_number_\d+_index_\d+>/g;
@@ -39,7 +40,7 @@ export const trimPhraseToAnchorWindow = (
   const noTrim = { text: fullPhrase, prefixTrimmed: false, suffixTrimmed: false };
   if (!anchorText) return noTrim;
 
-  const idx = fullPhrase.toLowerCase().indexOf(anchorText.toLowerCase());
+  const idx = normalizeQuotes(fullPhrase.toLowerCase()).indexOf(normalizeQuotes(anchorText.toLowerCase()));
   if (idx === -1) return noTrim;
 
   const anchorEnd = idx + anchorText.length;

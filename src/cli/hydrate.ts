@@ -18,6 +18,7 @@ import {
   type CitationData,
 } from "../prompts/citationPrompts.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
+import { normalizeQuotes } from "../utils/normalizeQuotes.js";
 import { findAnchorWithFallback, getAllLines, toCompactPageId } from "./cite.js";
 import { die, parseArgs } from "./cliUtils.js";
 
@@ -273,7 +274,14 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
 
       // If anchor_text is paraphrased (not verbatim in full_phrase), promote it
       // to display_label and find the actual verbatim anchor from the evidence.
-      if (citation.anchor_text && !citation.full_phrase.toLowerCase().includes(citation.anchor_text.toLowerCase())) {
+      // Normalize curly/smart quotes before comparing — OCR text may have \u201c/\u201d
+      // while the citation anchor uses straight ASCII quotes.
+      if (
+        citation.anchor_text &&
+        !normalizeQuotes(citation.full_phrase.toLowerCase()).includes(
+          normalizeQuotes(citation.anchor_text.toLowerCase()),
+        )
+      ) {
         if (!citation.display_label) {
           citation.display_label = citation.anchor_text;
         }

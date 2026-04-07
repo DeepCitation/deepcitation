@@ -1,5 +1,6 @@
 import { defaultTranslator, type MessageKey, type TranslateFunction } from "../react/i18n.js";
 import type { DeepTextItem } from "../types/boxes.js";
+import { normalizeQuotes } from "../utils/normalizeQuotes.js";
 import { isDocumentCitation } from "../types/citation.js";
 import type { MatchedVariation, SearchAttempt, SearchMethod } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
@@ -124,7 +125,7 @@ function findContextWindow(
   if (!prepared || !matchedText) return null;
 
   const { fullText, lowerFull } = prepared;
-  const idx = lowerFull.indexOf(matchedText.toLowerCase());
+  const idx = normalizeQuotes(lowerFull).indexOf(normalizeQuotes(matchedText.toLowerCase()));
   if (idx === -1) return null;
 
   // idx comes from the lowercase search but matchedText.length is identical
