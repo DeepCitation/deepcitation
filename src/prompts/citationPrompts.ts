@@ -65,7 +65,7 @@ To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, p=page_id, l=li
 4. **full_phrase** (or f): Copy text VERBATIM from source. Use proper JSON escaping for quotes.
 5. **anchor_text** (or k): 1–4 verbatim words from the evidence line (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
 6. **page_id** (or p): Format "page_number_N_index_I" where N=page number, I=index (copy exactly from \`<page_number_N_index_I>\` tags in the source)
-7. **line_ids** (or l): Array of line IDs from the source (copy from line ID markers in the text). Include IDs for all relevant lines.
+7. **line_ids** (or l): Array of line IDs from the source (copy from line ID markers in the text). Count from the nearest \`<line id="N">\` tag above your text — if the tag says \`<line id="10">\` and your text is 3 lines below, the line ID is 13. Do NOT default to \`[1]\`.
 
 ### Placement Rules
 
@@ -422,10 +422,21 @@ export const COMPACT_CITATION_PROMPT = `
 <citation-instructions priority="critical">
 ## REQUIRED: Citation Format (Compact)
 
-### In-Text Markers
-Write naturally and **bold** the 1–4 word name of each key fact — a claim, value, fact, entity, date, or price. Not the surrounding clause, just the core term. Bold text minimizes cognitive load for the reader: they scan the bolded terms to quickly grasp the key facts without reading every word. Place a citation marker [N] immediately after each bolded term, where N is the sequential citation number (1, 2, 3…). One unique ID per distinct fact.
+### In-Text Markers — the k-first method
+For each fact you cite, first pick a **k value**: 1–4 distinctive words copied verbatim from the source. Then **bold exactly those words** in your prose and place [N] after them. Your surrounding sentence provides context; the bold text is just the keyword.
 
-Example: The **Discount Rate** [1] is applied to the conversion price. Revenue grew **45%** [2].
+The k value gets highlighted in yellow in the PDF. The reader sees bold text in your report → clicks → sees the identical words highlighted. If you bold a full sentence, the entire sentence turns yellow — unreadable. Bold only the keyword.
+
+**Target: 1–4 words. Acceptable: up to 7 words for multi-part terms (e.g. "legal costs as between solicitor and client"). Never exceed 7. Never copy a full clause or sentence.**
+
+Example — source says "seventy-seven (77) residential apartment units and six (6) ground floor commercial units in a nine (9) storey building":
+- GOOD: "The building has **77 residential** [1] apartment units and **6 commercial** [2] units." / k₁: "77 residential", k₂: "6 commercial"
+- BAD: "**seventy-seven (77) residential apartment units and six (6) ground floor commercial units** [1]" / k: entire clause (13 words!)
+
+More examples:
+- Source: "Each parking unit shall be used and occupied only for motor vehicle parking purposes" → Bold: **motor vehicle parking** [3] / k: "motor vehicle parking"
+- Source: "The Corporation shall maintain separate reserve funds" → Bold: **separate reserve funds** [4] / k: "separate reserve funds"
+- Source: "No animal, livestock or fowl, other than ordinary household pets may be kept" → Bold: **ordinary household pets** [5] / k: "ordinary household pets"
 
 ### Citation Data Block
 At the END of your response, append a compact citation block grouped by attachment_id.
@@ -445,16 +456,26 @@ Do NOT output fullPhrase or reasoning — these are reconstructed automatically 
 ### Field Rules
 
 1. **n**: Citation id (integer, matches [N] in text)
-2. **k** (anchorText): 1–4 verbatim words from the evidence line (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
+2. **k** (anchorText): 1–4 verbatim words from the source (up to 7 for multi-part terms). This is the yellow highlight in the PDF — short highlights are precise, full sentences in yellow are unreadable. k = the bold text in your report. Must be copied character-for-character from the source — never paraphrase (e.g. source says "The cost of cooling" → k: "cost of cooling", NOT "Cooling costs").
 3. **p** (page_id): Compact form "N_I" where N=page number and I=index (extract from \`<page_number_N_index_I>\` tag)
-4. **l** (line_ids): Array of line IDs from \`<line id="N">\` tags
+4. **l** (line_ids): Array of line IDs from \`<line id="N">\` tags. Find the nearest \`<line id="N">\` tag ABOVE your text on the SAME page, then count lines down: if \`<line id="10">\` is 3 lines above, use \`[13]\`. Do NOT default to \`[1]\`. Double-check p and l are from the same page — if your text is on page 9, don't use a lineId from page 10.
 
-### anchorText Examples
-- "multiplied by the Discount Rate" → k: "Discount Rate" (not the verb phrase)
-- "Junior to payment of outstanding indebtedness" → k: "Junior to"
-- "a voluntary termination of operations" → k: "voluntary termination"
-- "this Safe will automatically convert" → k: "automatically convert"
-- "SAFE (Simple Agreement for Future Equity)" → k: "SAFE" (not the 5-word expansion)
+### anchorText Rules
+k = bold text = yellow highlight. All three must be the same phrase, copied verbatim from the source.
+
+**Target 1–4 words. Up to 7 for compound terms. Never >7. Never a full sentence.**
+
+How to shorten a long source clause to a good k:
+| Source clause | k | What to bold |
+|---|---|---|
+| "seventy-seven (77) residential apartment units" | "77 residential" (2w) | **77 residential** [N] |
+| "Board of Directors shall decide whether any addition..." | "Board of Directors" (3w) | **Board of Directors** [N] |
+| "No animal, livestock or fowl, other than ordinary household pets" | "ordinary household pets" (3w) | **ordinary household pets** [N] |
+| "maintain separate reserve funds for major repair" | "separate reserve funds" (3w) | **separate reserve funds** [N] |
+| "legal costs as between solicitor and client" | "legal costs as between solicitor and client" (7w, compound term ✓) | **legal costs as between solicitor and client** [N] |
+| "The cost of cooling the units is billed directly to the owner" | "cost of cooling" (3w) | **cost of cooling** [N] |
+
+Pick the most distinctive noun phrase — the thing a reader would ctrl+F for. Never paraphrase: if the source says "cost of cooling", don't write "Cooling costs".
 
 ### Placement Rules
 - **Bold** the key term and place [N] after it, e.g. **Discount Rate** [2]
@@ -473,6 +494,111 @@ The **Discount Rate** [1] is applied to the conversion price. Revenue grew **45%
   ]
 }
 <<<END_CITATION_DATA>>>
+</citation-instructions>
+
+`;
+
+/**
+ * Scenario-2 citation prompt — for user-supplied content that already exists.
+ *
+ * Unlike COMPACT_CITATION_PROMPT (scenario 1) where we generate both prose
+ * and citations together (k-first method), this variant is for when the user
+ * sends pre-existing text (reports, summaries, form drafts) and we must find
+ * the best source anchors for their paraphrased claims.
+ *
+ * Key differences from scenario 1:
+ * - Text is FROZEN — no rewriting, no bold markers
+ * - Only [N] markers are inserted
+ * - k must be verbatim from SOURCE, not from user's text (user may paraphrase)
+ * - display_label ≠ k is expected (handled by hydrate's paraphrase-promotion)
+ *
+ * Tested on OCSCC 748 Declaration (46-page legal document):
+ * - 135 citations, 0% long anchors, 75% exact verbatim, ~93% pipeline-findable
+ */
+export const COMPACT_CITATION_SCENARIO2_PROMPT = `
+<citation-instructions priority="critical">
+## REQUIRED: Add Citations to Existing Text
+
+The text is FROZEN — do not rewrite, reorder, or rephrase any of it. Your job is to:
+
+1. Identify every factual claim in the text that can be traced to the source document
+2. Insert a [N] marker after each claim — one unique N per distinct fact
+3. Produce a <<<CITATION_DATA>>> JSON block at the end
+
+### How to Insert Markers
+
+Place [N] after each individual factual claim. Every distinct fact gets its own unique [N].
+
+Example: "The building has 77 residential units [1] and 6 commercial units [2] in a 9-storey structure [3]."
+
+### Coverage: One Marker Per Fact
+
+Every specific number, entity, rule, restriction, or condition gets its own [N]. Do not merge multiple facts under one marker. Aim for high density — cite every claim with source support. Skip only headings and transitional phrases.
+
+### The k Rule — CONTIGUOUS VERBATIM SUBSTRING
+
+k must be a **contiguous sequence of consecutive words** copied exactly from the source. Not cherry-picked words. Not paraphrased. CONSECUTIVE WORDS as they appear.
+
+**k = 2–4 consecutive words from the source. Up to 7 for compound terms. NEVER more than 7.**
+
+Open the source, find the passage, copy 2–4 ADJACENT words. Do not skip words between them.
+
+| Source text | GOOD k (contiguous) | BAD k (non-contiguous) |
+|---|---|---|
+| "performance of the objects and duties" | "objects and duties" | "performance objects duties" ✗ |
+| "garbage room and loading bay" | "garbage room" | "garbage room loading bay" ✗ |
+| "maintain and repair all pipes, wires, cables, utility lines" | "pipes, wires, cables" | "pipes utility lines" ✗ |
+| "damage caused to improvements made to a unit" | "damage caused to improvements" | "damage improvements unit" ✗ |
+| "Corporation and the owners from time to time" | "Corporation and the owners" | "Corporation owners time" ✗ |
+| "indemnify and save harmless the Corporation" | "indemnify and save harmless" | "indemnify save harmless" ✗ |
+| "legal costs as between solicitor and client" | "legal costs as between solicitor and client" | "legal costs solicitor" ✗ |
+
+**TEST**: After writing each k, ask: "If I search for this exact string in the source document, will I find it?" If not, it's not contiguous.
+
+**WHY**: k gets highlighted in yellow in the PDF. Non-contiguous phrases won't be found → no highlight → broken citation.
+
+### Finding the Right Anchor
+
+The user's text may paraphrase — your k must come from the SOURCE, not from the user's text.
+
+| User text says | Source says | k |
+|---|---|---|
+| "77 residential units" | "seventy-seven (77) residential apartment units" | "77 residential" |
+| "Board of Directors governs" | "Board of Directors shall decide" | "Board of Directors" |
+| "pets are allowed" | "ordinary household pets may be kept" | "ordinary household pets" |
+| "cooling is billed to owners" | "The cost of cooling the units is billed directly to the owner" | "cost of cooling" |
+
+### Citation Data Block
+
+At the END of your response:
+
+\`\`\`
+<<<CITATION_DATA>>>
+{
+  "attachment_id_here": [
+    {"n": 1, "k": "verbatim source phrase", "p": "N_I", "l": [lineId]}
+  ]
+}
+<<<END_CITATION_DATA>>>
+\`\`\`
+
+### Field Rules
+
+1. **n**: Unique citation id (integer, matches [N] in text)
+2. **k**: 2–4 contiguous verbatim words from SOURCE (up to 7 for compounds). Must be findable as exact substring in source.
+3. **p** (page_id): Compact form "N_I" (from \`<page_number_N_index_I>\` tag)
+4. **l** (line_ids): Array of line IDs from \`<line id="N">\` tags. Count from nearest tag above.
+
+### Placement Rules
+- Place [N] at the end of each claim phrase
+- Sequential IDs starting from 1 — every fact gets a unique number
+- Do NOT output bold markers (**) — the text is the user's
+- JSON block MUST appear at the very end
+
+### SELF-CHECK per citation:
+1. Is k a contiguous substring of the source? (Can I ctrl+F find it?)
+2. Is k ≤4 words? (≤7 for compounds?)
+3. Does [N] appear after the right claim in the text?
 </citation-instructions>
 
 `;

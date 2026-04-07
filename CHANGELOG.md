@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **k-first citation method** — new compact prompt strategy where the model picks verbatim anchor words (k = 1–4 words) first, then writes the citation prose and bolds exactly those words, improving anchor precision for long-document workflows.
+- **Scenario-2 citation prompt** — dedicated prompt variant for user-supplied content (as distinct from document-extracted content); enables prompt selection by content source type.
 - **`verifyIterative()` SDK method** — LLM-agnostic retry loop: verifies citations, invokes an `onAttemptComplete` callback so consumers can amend and re-verify up to `maxAttempts`. Includes `LlmSearchAttempt`, `LlmAmendment` types and `computeAmendments()` diff utility. (#404)
 - **Amendment timeline UI** — `AmendmentRow` in the search narrative shows field-level diffs and false-positive rejections between LLM retry passes. Rendered as dashed-border markers in `VerificationLog`. i18n added for en/es/fr/vi. (#404)
 - **`deepTextPagesByAttachmentId`** — replaces `deepTextPages` / `deepTextPromptPortion` with a per-attachment page array keyed by `attachmentId`, eliminating ambiguity in multi-attachment workflows. (#403)
@@ -36,6 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Smart quote normalization** — curly/typographic quotes are now normalized across the anchor matching pipeline, preventing false mismatches when source PDFs use `"…"` or `'…'` variants.
+- **Keyhole snippet mode detection** — corrected the evidence image snippet-mode flag so keyhole strips activate the right rendering path.
+- **`prepare --text` metadata leak** — line-ID and page-number tags are now stripped from `--text` CLI output so consumers receive clean plaintext.
+- **`COMPACT_CITATION_JSON_OUTPUT_FORMAT` export** — missing named export added; import sort fixed.
 - **U+2060 word joiner** — inserted between anchor text and superscript/indicator in all `CitationContentDisplay` variants, preventing mid-citation line breaks. (#403)
 - **Body scroll lock in drawer** — prevents double scrollbar when drawer is open. (#403)
 - **CDN popover coordinate reset** — `lastCoords` cleared when switching between `position:fixed` and `position:absolute` modes. (#407)

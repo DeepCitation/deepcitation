@@ -9,7 +9,7 @@
  *   → hydrate reads summary + fills full_phrase → verify runs normally
  */
 
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseCitationData, parsePageId } from "../parsing/citationParser.js";
 import {
@@ -18,6 +18,7 @@ import {
   type CitationData,
 } from "../prompts/citationPrompts.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
+import { normalizeQuotes } from "../utils/normalizeQuotes.js";
 import { findAnchorWithFallback, getAllLines, toCompactPageId } from "./cite.js";
 import { die, parseArgs } from "./cliUtils.js";
 
@@ -273,7 +274,14 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
 
       // If anchor_text is paraphrased (not verbatim in full_phrase), promote it
       // to display_label and find the actual verbatim anchor from the evidence.
-      if (citation.anchor_text && !citation.full_phrase.toLowerCase().includes(citation.anchor_text.toLowerCase())) {
+      // Normalize curly/smart quotes before comparing — OCR text may have \u201c/\u201d
+      // while the citation anchor uses straight ASCII quotes.
+      if (
+        citation.anchor_text &&
+        !normalizeQuotes(citation.full_phrase.toLowerCase()).includes(
+          normalizeQuotes(citation.anchor_text.toLowerCase()),
+        )
+      ) {
         if (!citation.display_label) {
           citation.display_label = citation.anchor_text;
         }
@@ -362,10 +370,9 @@ export function findSummaryForMarkdown(_mdPath: string, attachmentId?: string): 
     return null; // No match found — don't gamble on the wrong source
   }
 
-  // No attachmentId available — return newest by mtime as last resort
-  return candidates
-    .map(f => ({ path: join(dcDir, f), mtime: statSync(join(dcDir, f)).mtimeMs }))
-    .sort((a, b) => b.mtime - a.mtime)[0].path;
+  // Multiple prepare files, no attachmentId to disambiguate — refuse to guess.
+  // Returning null forces the caller to require --summary from the user.
+  return null;
 }
 
 /**

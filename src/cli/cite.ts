@@ -8,6 +8,7 @@
  */
 
 import { sanitizeForLog } from "../utils/logSafety.js";
+import { normalizeQuotes } from "../utils/normalizeQuotes.js";
 import { safeExec } from "../utils/regexSafety.js";
 import type { LineMap } from "./hydrate.js";
 
@@ -209,16 +210,17 @@ export function findAnchorWithFallback(
   const words = displayLabel.trim().split(/\s+/);
   if (allLines.length === 0) return null;
 
-  // Pre-compute whitespace-normalized lowercase text for each line.
+  // Pre-compute whitespace-normalized, quote-normalized, lowercase text for each line.
   // Evidence text may contain newlines mid-phrase (e.g. "land and\nnaval Forces")
   // which would prevent substring matches against space-joined search terms.
-  const normalizedLines = allLines.map(line => line.text.replace(/\s+/g, " ").toLowerCase());
+  // Quote normalization handles curly/smart quotes from OCR (e.g. \u201cC\u201d → "C").
+  const normalizedLines = allLines.map(line => normalizeQuotes(line.text.replace(/\s+/g, " ").toLowerCase()));
 
   // Strategy 1: Sliding window — all contiguous N-grams, longest first
   for (let len = words.length; len >= 2; len--) {
     for (let start = 0; start <= words.length - len; start++) {
       const candidate = words.slice(start, start + len).join(" ");
-      const needle = candidate.toLowerCase();
+      const needle = normalizeQuotes(candidate.toLowerCase());
       const idx = normalizedLines.findIndex(norm => norm.includes(needle));
       if (idx !== -1) {
         return { lineId: allLines[idx].lineId, pageId: allLines[idx].pageId, verbatimAnchor: candidate };
@@ -269,7 +271,7 @@ export function findAnchorWithFallback(
     });
 
   for (const word of sorted) {
-    const needle = word.toLowerCase();
+    const needle = normalizeQuotes(word.toLowerCase());
     const idx = normalizedLines.findIndex(norm => norm.includes(needle));
     if (idx !== -1) {
       console.error(`  Warning: single-word fallback "${sanitizeForLog(word)}" for "${sanitizeForLog(displayLabel)}"`);

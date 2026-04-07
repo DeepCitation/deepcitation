@@ -42,6 +42,7 @@ import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
 import { detectProxyUrl } from "../utils/proxy.js";
 import { safeExec, safeReplace, safeTest } from "../utils/regexSafety.js";
+import { cleanDeepTextPage } from "../utils/textCleanup.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import {
@@ -446,12 +447,12 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   console.error(`  Saved: ${outPath}`);
 
   if (text) {
-    // Print attachmentId and deepTextPages as JSON to stdout so agents
-    // can consume them with jq or JSON.parse (no extra Read call).
+    // Print attachmentId and clean deepTextPages (no <line id> / <page_number> tags)
+    // as JSON to stdout so agents can consume with jq or JSON.parse.
     console.log(
       JSON.stringify({
         attachmentId: result.attachmentId,
-        deepTextPages: result.deepTextPages,
+        deepTextPages: result.deepTextPages.map(cleanDeepTextPage),
       }),
     );
   } else {
@@ -852,7 +853,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
 
   if (!parsed.success || parsed.citations.length === 0) {
     die(
-      "No citations found — ensure body has **bold** [N] or [label](cite:N) markers and a summary exists in .deepcitation/",
+      "No citations found. If body has [label](cite:N) markers, pass --summary <prepare-file.json> to specify which document to cite (required when multiple prepare files exist in .deepcitation/).",
       VERIFY_HELP,
     );
   }
