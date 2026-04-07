@@ -637,8 +637,9 @@ describe("prepare command", () => {
         attachmentId: "att-tagged",
         deepTextPages: [
           `<page_number_1_index_0><line id="1">Hello world.</line><line id="2">Second line.</line></page_number_1_index_0>`,
+          `<page_number_2_index_0><line id="3">Page two content.</line></page_number_2_index_0>`,
         ],
-        metadata: { pageCount: 1, textByteSize: 512 },
+        metadata: { pageCount: 2, textByteSize: 512 },
       });
 
       const { stdout } = await captureOutput(() => prepare(["https://example.com/doc", "--text"], fmtNetErr));
@@ -648,6 +649,9 @@ describe("prepare command", () => {
       expect(summary.deepTextPages[0]).not.toContain("<page_number_");
       expect(summary.deepTextPages[0]).toContain("Hello world.");
       expect(summary.deepTextPages[0]).toContain("Second line.");
+      expect(summary.deepTextPages[1]).not.toContain("<line id=");
+      expect(summary.deepTextPages[1]).not.toContain("<page_number_");
+      expect(summary.deepTextPages[1]).toContain("Page two content.");
     } finally {
       process.chdir(origCwd);
     }

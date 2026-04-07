@@ -5,6 +5,8 @@ import {
   CITATION_DATA_START_DELIMITER,
   CITATION_JSON_OUTPUT_FORMAT,
   CITATION_PROMPT,
+  COMPACT_CITATION_JSON_OUTPUT_FORMAT,
+  COMPACT_CITATION_SCENARIO2_PROMPT,
   wrapCitationPrompt,
   wrapSystemCitationPrompt,
 } from "../prompts/citationPrompts.js";
@@ -42,6 +44,16 @@ describe("citation prompts", () => {
   it("defines timestamp requirements for AV citations in JSON schema", () => {
     const timestamps = CITATION_AV_JSON_OUTPUT_FORMAT.properties?.timestamps;
     expect(timestamps?.required).toEqual(["start_time", "end_time"]);
+  });
+
+  it("COMPACT_CITATION_SCENARIO2_PROMPT instructs verbatim contiguous source anchors", () => {
+    expect(COMPACT_CITATION_SCENARIO2_PROMPT).toContain("CONTIGUOUS VERBATIM");
+    expect(COMPACT_CITATION_SCENARIO2_PROMPT).toContain("<<<CITATION_DATA>>>");
+    expect(COMPACT_CITATION_SCENARIO2_PROMPT).toContain("[N]");
+  });
+
+  it("COMPACT_CITATION_JSON_OUTPUT_FORMAT defines compact required fields", () => {
+    expect(COMPACT_CITATION_JSON_OUTPUT_FORMAT.required).toEqual(["n", "a", "k", "p", "l"]);
   });
 });
 
