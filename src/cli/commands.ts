@@ -40,6 +40,7 @@ import type { AttachmentAssets } from "../types/index.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
+import { removeLineIdMetadata, removePageNumberMetadata } from "../utils/textCleanup.js";
 import { detectProxyUrl } from "../utils/proxy.js";
 import { safeExec, safeReplace, safeTest } from "../utils/regexSafety.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
@@ -446,12 +447,12 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   console.error(`  Saved: ${outPath}`);
 
   if (text) {
-    // Print attachmentId and deepTextPages as JSON to stdout so agents
-    // can consume them with jq or JSON.parse (no extra Read call).
+    // Print attachmentId and clean deepTextPages (no <line id> / <page_number> tags)
+    // as JSON to stdout so agents can consume with jq or JSON.parse.
     console.log(
       JSON.stringify({
         attachmentId: result.attachmentId,
-        deepTextPages: result.deepTextPages,
+        deepTextPages: result.deepTextPages.map(p => removeLineIdMetadata(removePageNumberMetadata(p))),
       }),
     );
   } else {

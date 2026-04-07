@@ -627,6 +627,32 @@ describe("prepare command", () => {
     }
   });
 
+  it("--text strips <line id> and <page_number> metadata from deepTextPages", async () => {
+    const tmpDir = makeTmpDir();
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+
+    try {
+      mockPrepareUrl.mockResolvedValue({
+        attachmentId: "att-tagged",
+        deepTextPages: [
+          `<page_number_1_index_0><line id="1">Hello world.</line><line id="2">Second line.</line></page_number_1_index_0>`,
+        ],
+        metadata: { pageCount: 1, textByteSize: 512 },
+      });
+
+      const { stdout } = await captureOutput(() => prepare(["https://example.com/doc", "--text"], fmtNetErr));
+
+      const summary = JSON.parse(stdout);
+      expect(summary.deepTextPages[0]).not.toContain("<line id=");
+      expect(summary.deepTextPages[0]).not.toContain("<page_number_");
+      expect(summary.deepTextPages[0]).toContain("Hello world.");
+      expect(summary.deepTextPages[0]).toContain("Second line.");
+    } finally {
+      process.chdir(origCwd);
+    }
+  });
+
   it("warns on http:// URL", async () => {
     const tmpDir = makeTmpDir();
     const origCwd = process.cwd();
