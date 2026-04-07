@@ -499,6 +499,111 @@ The **Discount Rate** [1] is applied to the conversion price. Revenue grew **45%
 `;
 
 /**
+ * Scenario-2 citation prompt — for user-supplied content that already exists.
+ *
+ * Unlike COMPACT_CITATION_PROMPT (scenario 1) where we generate both prose
+ * and citations together (k-first method), this variant is for when the user
+ * sends pre-existing text (reports, summaries, form drafts) and we must find
+ * the best source anchors for their paraphrased claims.
+ *
+ * Key differences from scenario 1:
+ * - Text is FROZEN — no rewriting, no bold markers
+ * - Only [N] markers are inserted
+ * - k must be verbatim from SOURCE, not from user's text (user may paraphrase)
+ * - display_label ≠ k is expected (handled by hydrate's paraphrase-promotion)
+ *
+ * Tested on OCSCC 748 Declaration (46-page legal document):
+ * - 135 citations, 0% long anchors, 75% exact verbatim, ~93% pipeline-findable
+ */
+export const COMPACT_CITATION_SCENARIO2_PROMPT = `
+<citation-instructions priority="critical">
+## REQUIRED: Add Citations to Existing Text
+
+The text is FROZEN — do not rewrite, reorder, or rephrase any of it. Your job is to:
+
+1. Identify every factual claim in the text that can be traced to the source document
+2. Insert a [N] marker after each claim — one unique N per distinct fact
+3. Produce a <<<CITATION_DATA>>> JSON block at the end
+
+### How to Insert Markers
+
+Place [N] after each individual factual claim. Every distinct fact gets its own unique [N].
+
+Example: "The building has 77 residential units [1] and 6 commercial units [2] in a 9-storey structure [3]."
+
+### Coverage: One Marker Per Fact
+
+Every specific number, entity, rule, restriction, or condition gets its own [N]. Do not merge multiple facts under one marker. Aim for high density — cite every claim with source support. Skip only headings and transitional phrases.
+
+### The k Rule — CONTIGUOUS VERBATIM SUBSTRING
+
+k must be a **contiguous sequence of consecutive words** copied exactly from the source. Not cherry-picked words. Not paraphrased. CONSECUTIVE WORDS as they appear.
+
+**k = 2–4 consecutive words from the source. Up to 7 for compound terms. NEVER more than 7.**
+
+Open the source, find the passage, copy 2–4 ADJACENT words. Do not skip words between them.
+
+| Source text | GOOD k (contiguous) | BAD k (non-contiguous) |
+|---|---|---|
+| "performance of the objects and duties" | "objects and duties" | "performance objects duties" ✗ |
+| "garbage room and loading bay" | "garbage room" | "garbage room loading bay" ✗ |
+| "maintain and repair all pipes, wires, cables, utility lines" | "pipes, wires, cables" | "pipes utility lines" ✗ |
+| "damage caused to improvements made to a unit" | "damage caused to improvements" | "damage improvements unit" ✗ |
+| "Corporation and the owners from time to time" | "Corporation and the owners" | "Corporation owners time" ✗ |
+| "indemnify and save harmless the Corporation" | "indemnify and save harmless" | "indemnify save harmless" ✗ |
+| "legal costs as between solicitor and client" | "legal costs as between solicitor and client" | "legal costs solicitor" ✗ |
+
+**TEST**: After writing each k, ask: "If I search for this exact string in the source document, will I find it?" If not, it's not contiguous.
+
+**WHY**: k gets highlighted in yellow in the PDF. Non-contiguous phrases won't be found → no highlight → broken citation.
+
+### Finding the Right Anchor
+
+The user's text may paraphrase — your k must come from the SOURCE, not from the user's text.
+
+| User text says | Source says | k |
+|---|---|---|
+| "77 residential units" | "seventy-seven (77) residential apartment units" | "77 residential" |
+| "Board of Directors governs" | "Board of Directors shall decide" | "Board of Directors" |
+| "pets are allowed" | "ordinary household pets may be kept" | "ordinary household pets" |
+| "cooling is billed to owners" | "The cost of cooling the units is billed directly to the owner" | "cost of cooling" |
+
+### Citation Data Block
+
+At the END of your response:
+
+\`\`\`
+<<<CITATION_DATA>>>
+{
+  "attachment_id_here": [
+    {"n": 1, "k": "verbatim source phrase", "p": "N_I", "l": [lineId]}
+  ]
+}
+<<<END_CITATION_DATA>>>
+\`\`\`
+
+### Field Rules
+
+1. **n**: Unique citation id (integer, matches [N] in text)
+2. **k**: 2–4 contiguous verbatim words from SOURCE (up to 7 for compounds). Must be findable as exact substring in source.
+3. **p** (page_id): Compact form "N_I" (from \`<page_number_N_index_I>\` tag)
+4. **l** (line_ids): Array of line IDs from \`<line id="N">\` tags. Count from nearest tag above.
+
+### Placement Rules
+- Place [N] at the end of each claim phrase
+- Sequential IDs starting from 1 — every fact gets a unique number
+- Do NOT output bold markers (**) — the text is the user's
+- JSON block MUST appear at the very end
+
+### SELF-CHECK per citation:
+1. Is k a contiguous substring of the source? (Can I ctrl+F find it?)
+2. Is k ≤4 words? (≤7 for compounds?)
+3. Does [N] appear after the right claim in the text?
+</citation-instructions>
+
+`;
+
+/**
  * JSON schema for compact citation data (structured output LLMs, hydrate pipeline).
  * Omits full_phrase and reasoning — these are reconstructed by deepcitation hydrate.
  */

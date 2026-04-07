@@ -107,6 +107,8 @@ export {
   CITATION_JSON_OUTPUT_FORMAT,
   CITATION_PROMPT,
   CITATION_REMINDER,
+  COMPACT_CITATION_PROMPT,
+  COMPACT_CITATION_SCENARIO2_PROMPT,
   wrapCitationPrompt,
   wrapSystemCitationPrompt,
 } from "./prompts/citationPrompts.js";
