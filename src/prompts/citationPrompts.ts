@@ -65,7 +65,7 @@ To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, p=page_id, l=li
 4. **full_phrase** (or f): Copy text VERBATIM from source. Use proper JSON escaping for quotes.
 5. **anchor_text** (or k): 1–4 verbatim words from the evidence line (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
 6. **page_id** (or p): Format "page_number_N_index_I" where N=page number, I=index (copy exactly from \`<page_number_N_index_I>\` tags in the source)
-7. **line_ids** (or l): Array of line IDs from the source (copy from line ID markers in the text). Include IDs for all relevant lines.
+7. **line_ids** (or l): Array of line IDs from the source (copy from line ID markers in the text). Count from the nearest \`<line id="N">\` tag above your text — if the tag says \`<line id="10">\` and your text is 3 lines below, the line ID is 13. Do NOT default to \`[1]\`.
 
 ### Placement Rules
 
@@ -422,10 +422,21 @@ export const COMPACT_CITATION_PROMPT = `
 <citation-instructions priority="critical">
 ## REQUIRED: Citation Format (Compact)
 
-### In-Text Markers
-Write naturally and **bold** the 1–4 word name of each key fact — a claim, value, fact, entity, date, or price. Not the surrounding clause, just the core term. Bold text minimizes cognitive load for the reader: they scan the bolded terms to quickly grasp the key facts without reading every word. Place a citation marker [N] immediately after each bolded term, where N is the sequential citation number (1, 2, 3…). One unique ID per distinct fact.
+### In-Text Markers — the k-first method
+For each fact you cite, first pick a **k value**: 1–4 distinctive words copied verbatim from the source. Then **bold exactly those words** in your prose and place [N] after them. Your surrounding sentence provides context; the bold text is just the keyword.
 
-Example: The **Discount Rate** [1] is applied to the conversion price. Revenue grew **45%** [2].
+The k value gets highlighted in yellow in the PDF. The reader sees bold text in your report → clicks → sees the identical words highlighted. If you bold a full sentence, the entire sentence turns yellow — unreadable. Bold only the keyword.
+
+**Target: 1–4 words. Acceptable: up to 7 words for multi-part terms (e.g. "legal costs as between solicitor and client"). Never exceed 7. Never copy a full clause or sentence.**
+
+Example — source says "seventy-seven (77) residential apartment units and six (6) ground floor commercial units in a nine (9) storey building":
+- GOOD: "The building has **77 residential** [1] apartment units and **6 commercial** [2] units." / k₁: "77 residential", k₂: "6 commercial"
+- BAD: "**seventy-seven (77) residential apartment units and six (6) ground floor commercial units** [1]" / k: entire clause (13 words!)
+
+More examples:
+- Source: "Each parking unit shall be used and occupied only for motor vehicle parking purposes" → Bold: **motor vehicle parking** [3] / k: "motor vehicle parking"
+- Source: "The Corporation shall maintain separate reserve funds" → Bold: **separate reserve funds** [4] / k: "separate reserve funds"
+- Source: "No animal, livestock or fowl, other than ordinary household pets may be kept" → Bold: **ordinary household pets** [5] / k: "ordinary household pets"
 
 ### Citation Data Block
 At the END of your response, append a compact citation block grouped by attachment_id.
@@ -445,16 +456,26 @@ Do NOT output fullPhrase or reasoning — these are reconstructed automatically 
 ### Field Rules
 
 1. **n**: Citation id (integer, matches [N] in text)
-2. **k** (anchorText): 1–4 verbatim words from the evidence line (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
+2. **k** (anchorText): 1–4 verbatim words from the source (up to 7 for multi-part terms). This is the yellow highlight in the PDF — short highlights are precise, full sentences in yellow are unreadable. k = the bold text in your report. Must be copied character-for-character from the source — never paraphrase (e.g. source says "The cost of cooling" → k: "cost of cooling", NOT "Cooling costs").
 3. **p** (page_id): Compact form "N_I" where N=page number and I=index (extract from \`<page_number_N_index_I>\` tag)
-4. **l** (line_ids): Array of line IDs from \`<line id="N">\` tags
+4. **l** (line_ids): Array of line IDs from \`<line id="N">\` tags. Find the nearest \`<line id="N">\` tag ABOVE your text on the SAME page, then count lines down: if \`<line id="10">\` is 3 lines above, use \`[13]\`. Do NOT default to \`[1]\`. Double-check p and l are from the same page — if your text is on page 9, don't use a lineId from page 10.
 
-### anchorText Examples
-- "multiplied by the Discount Rate" → k: "Discount Rate" (not the verb phrase)
-- "Junior to payment of outstanding indebtedness" → k: "Junior to"
-- "a voluntary termination of operations" → k: "voluntary termination"
-- "this Safe will automatically convert" → k: "automatically convert"
-- "SAFE (Simple Agreement for Future Equity)" → k: "SAFE" (not the 5-word expansion)
+### anchorText Rules
+k = bold text = yellow highlight. All three must be the same phrase, copied verbatim from the source.
+
+**Target 1–4 words. Up to 7 for compound terms. Never >7. Never a full sentence.**
+
+How to shorten a long source clause to a good k:
+| Source clause | k | What to bold |
+|---|---|---|
+| "seventy-seven (77) residential apartment units" | "77 residential" (2w) | **77 residential** [N] |
+| "Board of Directors shall decide whether any addition..." | "Board of Directors" (3w) | **Board of Directors** [N] |
+| "No animal, livestock or fowl, other than ordinary household pets" | "ordinary household pets" (3w) | **ordinary household pets** [N] |
+| "maintain separate reserve funds for major repair" | "separate reserve funds" (3w) | **separate reserve funds** [N] |
+| "legal costs as between solicitor and client" | "legal costs as between solicitor and client" (7w, compound term ✓) | **legal costs as between solicitor and client** [N] |
+| "The cost of cooling the units is billed directly to the owner" | "cost of cooling" (3w) | **cost of cooling** [N] |
+
+Pick the most distinctive noun phrase — the thing a reader would ctrl+F for. Never paraphrase: if the source says "cost of cooling", don't write "Cooling costs".
 
 ### Placement Rules
 - **Bold** the key term and place [N] after it, e.g. **Discount Rate** [2]
