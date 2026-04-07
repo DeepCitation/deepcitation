@@ -42,7 +42,7 @@ import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
 import { detectProxyUrl } from "../utils/proxy.js";
 import { safeExec, safeReplace, safeTest } from "../utils/regexSafety.js";
-import { removeLineIdMetadata, removePageNumberMetadata } from "../utils/textCleanup.js";
+import { cleanDeepTextPage } from "../utils/textCleanup.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import {
@@ -452,7 +452,7 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
     console.log(
       JSON.stringify({
         attachmentId: result.attachmentId,
-        deepTextPages: result.deepTextPages.map(p => removeLineIdMetadata(removePageNumberMetadata(p))),
+        deepTextPages: result.deepTextPages.map(cleanDeepTextPage),
       }),
     );
   } else {

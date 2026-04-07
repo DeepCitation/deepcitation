@@ -16,14 +16,11 @@ import {
 import { useDragToPan } from "../hooks/useDragToPan.js";
 import { useTranslation } from "../i18n.js";
 import { handleImageError } from "../imageUtils.js";
-import { computeAnnotationScrollTarget } from "../overlayGeometry.js";
+import { computeAnnotationScrollTarget, START_ALIGNMENT_INSET_PX } from "../overlayGeometry.js";
 import { cn, isImageSource } from "../utils.js";
 import { DC_EVIDENCE_VT_NAME } from "../viewTransition.js";
 import { animateScrollLeft } from "./animateScrollLeft.js";
 import { IDENTITY_RENDER_SCALE } from "./resolvers.js";
-
-/** Left-edge padding (px) when using "start" alignment — matches overlayGeometry.ts. */
-const SNIPPET_START_INSET_PX = 24;
 
 /**
  * Displays a verification image as a "keyhole" strip — a fixed-height horizontal
@@ -178,7 +175,7 @@ export function AnchorTextFocusedImage({
         const zoomedStartX = anchorPixelXInSnippet * zoom;
         const scrollLeft = Math.max(
           0,
-          Math.min(zoomedStartX - SNIPPET_START_INSET_PX, img.naturalWidth * zoom - containerWidth),
+          Math.min(zoomedStartX - START_ALIGNMENT_INSET_PX, img.naturalWidth * zoom - containerWidth),
         );
 
         container.scrollLeft = scrollLeft;

@@ -4,18 +4,25 @@
  * not on citation tags.
  */
 import { normalizeQuotes } from "./normalizeQuotes.js";
-import { safeMatch, safeReplace } from "./regexSafety.js";
+import { safeMatch } from "./regexSafety.js";
 
 const PAGE_NUMBER_RE = /<\/?page_number_\d+_index_\d+>/g;
 const LINE_ID_RE = /<line id="[^"]*">|<\/line>/g;
 
 export const removePageNumberMetadata = (pageText: string): string => {
-  return safeReplace(pageText, PAGE_NUMBER_RE, "").trim();
+  // PAGE_NUMBER_RE is O(n) with no backtracking — safeReplace's 100KB guard
+  // would reject large pages, so we call .replace() directly.
+  return pageText.replace(PAGE_NUMBER_RE, "").trim();
 };
 
 export const removeLineIdMetadata = (pageText: string): string => {
-  return safeReplace(pageText, LINE_ID_RE, "");
+  // LINE_ID_RE is O(n) with no backtracking — safeReplace's 100KB guard
+  // would reject large pages, so we call .replace() directly.
+  return pageText.replace(LINE_ID_RE, "");
 };
+
+/** Strip all page-number and line-id metadata tags from a raw deep-text page. */
+export const cleanDeepTextPage = (pageText: string): string => removeLineIdMetadata(removePageNumberMetadata(pageText));
 
 /**
  * Trims a long fullPhrase to a window around the anchorText for display.
