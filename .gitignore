@@ -3,6 +3,7 @@ node_modules
 .env
 # Ignore built ts files
 lib/**/*
+/dist/
 *.tsbuildinfo
 
 bun.lock
