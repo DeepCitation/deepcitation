@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **k-first citation method** — new compact prompt strategy selects the top-k citations first, then ranks within that set, improving precision for long-document workflows.
+- **k-first citation method** — new compact prompt strategy where the model picks verbatim anchor words (k = 1–4 words) first, then writes the citation prose and bolds exactly those words, improving anchor precision for long-document workflows.
 - **Scenario-2 citation prompt** — dedicated prompt variant for user-supplied content (as distinct from document-extracted content); enables prompt selection by content source type.
 - **`verifyIterative()` SDK method** — LLM-agnostic retry loop: verifies citations, invokes an `onAttemptComplete` callback so consumers can amend and re-verify up to `maxAttempts`. Includes `LlmSearchAttempt`, `LlmAmendment` types and `computeAmendments()` diff utility. (#404)
 - **Amendment timeline UI** — `AmendmentRow` in the search narrative shows field-level diffs and false-positive rejections between LLM retry passes. Rendered as dashed-border markers in `VerificationLog`. i18n added for en/es/fr/vi. (#404)

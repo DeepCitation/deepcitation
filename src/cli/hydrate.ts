@@ -9,7 +9,7 @@
  *   → hydrate reads summary + fills full_phrase → verify runs normally
  */
 
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseCitationData, parsePageId } from "../parsing/citationParser.js";
 import {
@@ -370,10 +370,9 @@ export function findSummaryForMarkdown(_mdPath: string, attachmentId?: string): 
     return null; // No match found — don't gamble on the wrong source
   }
 
-  // No attachmentId available — return newest by mtime as last resort
-  return candidates
-    .map(f => ({ path: join(dcDir, f), mtime: statSync(join(dcDir, f)).mtimeMs }))
-    .sort((a, b) => b.mtime - a.mtime)[0].path;
+  // Multiple prepare files, no attachmentId to disambiguate — refuse to guess.
+  // Returning null forces the caller to require --summary from the user.
+  return null;
 }
 
 /**

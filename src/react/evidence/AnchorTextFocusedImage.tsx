@@ -153,8 +153,9 @@ export function AnchorTextFocusedImage({
         // full-page image dimensions.
         const phrase = anchorScrollData.phraseItem;
         const phrasePixelH = phrase.height * renderScale.y;
-        // Approximate phrase center Y within the snippet (assumes centered crop)
-        const phrasePadY = (img.naturalHeight - phrasePixelH) / 2;
+        // Approximate phrase center Y within the snippet (assumes centered crop).
+        // Clamp to 0: if the phrase is taller than the snippet, padding goes negative.
+        const phrasePadY = Math.max(0, (img.naturalHeight - phrasePixelH) / 2);
         // Anchor offset below phrase top (PDF Y-flip: higher y = higher on page)
         const anchorBelowPhraseTop = (phrase.y - anchorItem.y) * renderScale.y;
         const anchorPixelYInSnippet = Math.max(0, phrasePadY + anchorBelowPhraseTop);
@@ -162,7 +163,8 @@ export function AnchorTextFocusedImage({
 
         // Horizontal: anchor X in snippet. The phrase X padding gives the crop offset.
         const phrasePixelW = phrase.width * renderScale.x;
-        const phrasePadX = (img.naturalWidth - phrasePixelW) / 2;
+        // Clamp to 0: if the phrase is wider than the snippet, padding goes negative.
+        const phrasePadX = Math.max(0, (img.naturalWidth - phrasePixelW) / 2);
         const anchorRightOfPhraseLeft = (anchorItem.x - phrase.x) * renderScale.x;
         const anchorPixelXInSnippet = Math.max(0, phrasePadX + anchorRightOfPhraseLeft);
 
