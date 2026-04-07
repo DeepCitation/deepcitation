@@ -171,9 +171,15 @@ export function AnchorTextFocusedImage({
 
         // Scroll: same centering logic as computeAnnotationScrollTarget
         const zoomedCenterY = (anchorPixelYInSnippet + anchorPixelHInSnippet / 2) * zoom;
-        const scrollTop = Math.max(0, Math.min(zoomedCenterY - stripHeight / 2, img.naturalHeight * zoom - stripHeight));
+        const scrollTop = Math.max(
+          0,
+          Math.min(zoomedCenterY - stripHeight / 2, img.naturalHeight * zoom - stripHeight),
+        );
         const zoomedStartX = anchorPixelXInSnippet * zoom;
-        const scrollLeft = Math.max(0, Math.min(zoomedStartX - SNIPPET_START_INSET_PX, img.naturalWidth * zoom - containerWidth));
+        const scrollLeft = Math.max(
+          0,
+          Math.min(zoomedStartX - SNIPPET_START_INSET_PX, img.naturalWidth * zoom - containerWidth),
+        );
 
         container.scrollLeft = scrollLeft;
         container.scrollTop = scrollTop;

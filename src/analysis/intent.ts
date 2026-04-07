@@ -1,9 +1,9 @@
 import { defaultTranslator, type MessageKey, type TranslateFunction } from "../react/i18n.js";
 import type { DeepTextItem } from "../types/boxes.js";
-import { normalizeQuotes } from "../utils/normalizeQuotes.js";
 import { isDocumentCitation } from "../types/citation.js";
 import type { MatchedVariation, SearchAttempt, SearchMethod } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
+import { normalizeQuotes } from "../utils/normalizeQuotes.js";
 import { getVariationLabel } from "./variationLabels.js";
 
 // =============================================================================

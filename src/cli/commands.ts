@@ -40,9 +40,9 @@ import type { AttachmentAssets } from "../types/index.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
-import { removeLineIdMetadata, removePageNumberMetadata } from "../utils/textCleanup.js";
 import { detectProxyUrl } from "../utils/proxy.js";
 import { safeExec, safeReplace, safeTest } from "../utils/regexSafety.js";
+import { removeLineIdMetadata, removePageNumberMetadata } from "../utils/textCleanup.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import {
