@@ -266,10 +266,29 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
     // Resolve the normalized pageId for qualified lookups (handles both "N_I" and "page_number_N_index_I")
     const normalizedPageId = citation.page_id ? (parsePageId(citation.page_id).startPageId ?? "") : "";
 
+    // Always pull ±1 neighbor lines around the cited range so full_phrase is
+    // reliably wider than anchor_text. Without surrounding context, the popover
+    // quote has nothing to highlight (phrase === anchor) and the verify API
+    // has no enclosing phrase to narrow the match — falls back to pageText →
+    // partial_text_found. Mirrors the wrong-lineId fallback path below.
+    const minCitedId = Math.min(...lineIds);
+    const maxCitedId = Math.max(...lineIds);
+    const expandedIds: number[] = [];
+    for (let id = Math.max(1, minCitedId - 1); id <= maxCitedId + 1; id++) {
+      expandedIds.push(id);
+    }
+
+    // Fallback rule: byId is page-agnostic, so resolving a neighbor through it
+    // can bleed text across pages. Only the originally cited IDs (which carry
+    // the agent's intent) are allowed to fall back to byId as tolerance for a
+    // missing/wrong page_id. Synthetic neighbor IDs must match the qualified
+    // page or be dropped.
+    const citedIdSet = new Set(lineIds);
     const lineTexts: string[] = [];
-    for (const lid of lineIds) {
+    for (const lid of expandedIds) {
       const qualKey = normalizedPageId ? `${normalizedPageId}:${lid}` : null;
-      const text = (qualKey && lineMap.qualified.get(qualKey)) ?? lineMap.byId.get(lid);
+      const qualified = qualKey ? lineMap.qualified.get(qualKey) : undefined;
+      const text = qualified ?? (citedIdSet.has(lid) ? lineMap.byId.get(lid) : undefined);
       if (text) lineTexts.push(text);
     }
 

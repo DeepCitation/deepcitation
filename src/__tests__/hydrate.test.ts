@@ -150,6 +150,51 @@ describe("hydrateCitations — fullPhrase context", () => {
     // full_phrase must NOT equal anchor_text
     expect(citations[0].full_phrase).not.toBe(citations[0].anchor_text);
   });
+
+  it("expands full_phrase with neighbor lines when a single cited line matches the anchor verbatim", () => {
+    // Iter 23 motor.png root cause: agent cited l:[N] where the resolved line
+    // is an OCR-fragmented chunk that happens to equal anchor_text exactly.
+    // Without expansion, full_phrase === anchor_text, HighlightedPhrase has
+    // nothing to highlight inside the quote, and the display→popover→evidence
+    // threading collapses (the <q> just shows the same 4 words as the inline).
+    //
+    // Fix: the happy path must always pull ±1 neighbor lines so full_phrase is
+    // reliably wider than anchor_text — same behavior the wrong-lineId
+    // fallback already provides.
+    const ocrFragmentedSummary = JSON.stringify({
+      attachmentId: "test-id",
+      deepTextPages: [
+        [
+          "c )", // line 1 — label fragment
+          "Each parking unit shall", // line 2 — OCR-fragmented, matches anchor verbatim
+          "be used and occupied only for motor vehicle parking purposes.", // line 3
+          "The term motor vehicle shall be deemed to include automobiles.", // line 4
+        ].join("\n"),
+      ],
+    });
+
+    const citations: CitationData[] = [
+      {
+        id: 1,
+        anchor_text: "Each parking unit shall",
+        page_id: "1_0",
+        line_ids: [2],
+      } as CitationData,
+    ];
+
+    hydrateCitations({ summaryContent: ocrFragmentedSummary, citations, warnOnMiss: false });
+
+    const fp = citations[0].full_phrase;
+    expect(fp).toBeDefined();
+    // Anchor still present
+    expect(fp?.toLowerCase()).toContain("each parking unit shall");
+    // Must be broader than the bare anchor — needs surrounding context so the
+    // popover quote has something to highlight INSIDE the phrase.
+    expect(fp).not.toBe("Each parking unit shall");
+    // Specifically, neighbor lines must be pulled in so the reader sees the
+    // "be used and occupied only for motor vehicle parking purposes" context.
+    expect(fp?.toLowerCase()).toContain("be used and occupied");
+  });
 });
 
 // ── RC5 failure scenario (iter 19 Run 3) ────────────────────────────────────
