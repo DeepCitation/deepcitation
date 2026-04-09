@@ -128,11 +128,21 @@ export function usePopoverPosition(config: UsePopoverPositionConfig): PopoverPos
   const sideOffset = useExpandedPageSideOffset(viewStateHandle.current, triggerRef, side);
 
   // 4. Width projection (absorbed from Citation.tsx inline useMemo)
+  //
+  // Estimates the displayed keyhole width as `naturalWidth × zoom` where
+  // `zoom ≤ 1.0` — the keyhole never upscales (see AnchorTextFocusedImage
+  // `zoom = Math.min(1.0, ...)`). When `naturalHeight ≤ stripHeight` the
+  // image fits at full zoom and the projected width equals `naturalWidth`;
+  // when taller, it's downscaled to fit the strip. The previous formula
+  // `width × (STRIP_HEIGHT / height)` upscaled short images and projected
+  // nonsensical widths (e.g. 1200×80 → 1800), causing the popover to pop
+  // between widths during the initial render.
   const projectedSummaryKeyholeWidth = useMemo(() => {
     if (!evidenceDimensions) return null;
     const { width, height } = evidenceDimensions;
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
-    return width * (KEYHOLE_STRIP_HEIGHT_DEFAULT / height);
+    const zoomEstimate = Math.min(1, KEYHOLE_STRIP_HEIGHT_DEFAULT / height);
+    return width * zoomEstimate;
   }, [evidenceDimensions]);
 
   const projectedPopoverWidthPx = useMemo(() => {

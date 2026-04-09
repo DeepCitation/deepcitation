@@ -785,10 +785,14 @@ export function DefaultPopoverContent({
 
   // Content-adaptive summary width: pre-seed from verification dimensions to avoid
   // a width flash, then confirm/correct when the keyhole image actually renders.
+  // Projected width = naturalWidth × min(1, STRIP_HEIGHT / height) — the keyhole
+  // never upscales (zoom clamped to ≤1.0), so short images (naturalHeight <
+  // stripHeight) project to naturalWidth, not an upscaled phantom.
   const [keyholeDisplayedWidth, setKeyholeDisplayedWidth] = useState<number | null>(() => {
     const dims = verification?.evidence?.dimensions;
     if (!dims || dims.height <= 0) return null;
-    return dims.width * (KEYHOLE_STRIP_HEIGHT_DEFAULT / dims.height);
+    const zoomEstimate = Math.min(1, KEYHOLE_STRIP_HEIGHT_DEFAULT / dims.height);
+    return dims.width * zoomEstimate;
   });
 
   const summaryWidth = useMemo(() => getSummaryPopoverWidth(keyholeDisplayedWidth), [keyholeDisplayedWidth]);

@@ -285,6 +285,22 @@ The keyhole→expanded-keyhole transition uses a CSS View Transition (`viewTrans
 
 **Critical**: In non-fill mode, both old and new VT elements must be height-constrained scroll containers. If the VT name is on an unconstrained inner `<div>`, the browser morphs to the full image height — overshooting the visible area.
 
+### Keyhole Strip Height Clamping (`stripHeightStyle`)
+
+The keyhole scroll container's height is **not** a constant `120px`. It is:
+
+```ts
+imageFitInfo
+  ? `min(${displayedHeight}px, var(--dc-keyhole-strip-height, 120px))`
+  : `var(--dc-keyhole-strip-height, 120px)`
+```
+
+Why: the keyhole image never upscales (`zoom = Math.min(1.0, …)`). For images whose natural height is less than the strip cap (e.g. a cropped status-page evidence snippet ~80px tall), rendering inside a fixed 120px container leaves dead `DOCUMENT_CANVAS_BG` space below the image — the "squish" bug where content looked compressed into the top of an oversized frame. Clamping to `displayedHeight` collapses the strip for short images while preserving the 120px cap (and external `--dc-keyhole-strip-height` override) for tall ones.
+
+**Invariant this relies on**: when `displayedHeight < stripHeight`, the scroll math inside the `useLayoutEffect` naturally resolves `scrollTop = 0` (vertical overflow is negative → clamped). So shrinking the container after measurement is safe — no scroll reposition is needed. If you ever change the scroll math to depend on the post-clamp container height, re-derive `stripHeight` from the clamped value.
+
+**Projected width seed must also not upscale**: the `projectedSummaryKeyholeWidth` in `usePopoverPosition.ts` and the matching `keyholeDisplayedWidth` seed in `DefaultPopoverContent.tsx` both use `naturalWidth × Math.min(1, STRIP_HEIGHT / height)`. The `min(1, …)` is load-bearing — the previous formula `width × (STRIP_HEIGHT / height)` projected phantom upscaled widths (e.g. 1200×80 → 1800) for short images, causing the popover to render too wide and then pop narrower once the real keyhole measured in.
+
 ### Easing & Timing
 
 | Direction | Duration | Easing | Constant |

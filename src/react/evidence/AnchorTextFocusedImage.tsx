@@ -217,7 +217,15 @@ export function AnchorTextFocusedImage({
     [scrollState.canScrollLeft, scrollState.canScrollRight],
   );
 
-  const stripHeightStyle = `var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px)`;
+  // Container height — clamped to the actual displayed image height so short
+  // images (e.g. a cropped status-page strip) don't sit inside a 120px-tall
+  // frame with empty canvas below them. The image never upscales (zoom ≤ 1),
+  // so whenever `displayedHeight < stripHeight` the extra space is pure waste.
+  // Using CSS min() preserves the `--dc-keyhole-strip-height` override for
+  // tall images where the strip still caps the visible rect.
+  const stripHeightStyle = imageFitInfo
+    ? `min(${imageFitInfo.displayedHeight}px, var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px))`
+    : `var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px)`;
   const isPannable =
     scrollState.canScrollLeft || scrollState.canScrollRight || scrollState.canScrollUp || scrollState.canScrollDown;
 
