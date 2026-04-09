@@ -9,6 +9,7 @@ jest.mock("react-dom", () => {
 });
 
 import { CitationComponent } from "../react/Citation";
+import { HighlightedPhrase } from "../react/HighlightedPhrase";
 import type { CitationBehaviorActions, CitationBehaviorContext } from "../react/types";
 import type { Citation } from "../types/citation";
 
@@ -1314,6 +1315,60 @@ describe("CitationComponent behaviorConfig", () => {
       });
       expect(actualHighlights.length).toBe(0);
     });
+  });
+});
+
+// =============================================================================
+// HIGHLIGHTED PHRASE - DIRECT UNIT TESTS
+// Render HighlightedPhrase in isolation to exercise edge cases that are awkward
+// to reach through CitationComponent (e.g. anchorText === fullPhrase, where the
+// snippet IS the anchor — common in the no-image fallback popover for short
+// citations after normalizeSnippetText cleans OCR spacing).
+// =============================================================================
+
+describe("HighlightedPhrase - direct rendering", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  // Helper: count spans that carry ANCHOR_HIGHLIGHT_STYLE
+  // (borderRadius:2px, padding:0 1px). The backgroundColor uses a CSS var that
+  // jsdom does not resolve, so we identify the highlight by its layout props.
+  const countHighlightSpans = (root: HTMLElement): number => {
+    const spans = root.querySelectorAll("span[style*='border-radius']");
+    return Array.from(spans).filter(el => {
+      const style = (el as HTMLElement).style;
+      return style.borderRadius === "2px" && style.padding === "0px 1px";
+    }).length;
+  };
+
+  it("highlights the entire phrase when anchorText === fullPhrase", () => {
+    // When normalizeSnippetText collapses the snippet to exactly the anchor
+    // (short citations, single-clause phrases), we still want a visible
+    // highlight so the reader sees that the popover snippet IS the matched
+    // anchor — not flat text indistinguishable from non-cited copy.
+    const { container } = render(<HighlightedPhrase fullPhrase="motor vehicle" anchorText="motor vehicle" />);
+    expect(countHighlightSpans(container)).toBe(1);
+    expect(container.textContent).toBe("motor vehicle");
+  });
+
+  it("still highlights an anchor that has surrounding context", () => {
+    // Sanity check: the partial-match path keeps working unchanged.
+    const { container } = render(
+      <HighlightedPhrase fullPhrase="The driver of the motor vehicle yielded." anchorText="motor vehicle" />,
+    );
+    expect(countHighlightSpans(container)).toBe(1);
+    expect(container.textContent).toBe("The driver of the motor vehicle yielded.");
+  });
+
+  it("does not highlight when isMiss is true even if anchor === phrase", () => {
+    // Miss citations must never render the highlight — the anchor was not
+    // found, so highlighting it would be misleading regardless of length.
+    const { container } = render(
+      <HighlightedPhrase fullPhrase="motor vehicle" anchorText="motor vehicle" isMiss={true} />,
+    );
+    expect(countHighlightSpans(container)).toBe(0);
+    expect(container.textContent).toBe("motor vehicle");
   });
 });
 
