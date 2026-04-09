@@ -283,6 +283,12 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
     // the agent's intent) are allowed to fall back to byId as tolerance for a
     // missing/wrong page_id. Synthetic neighbor IDs must match the qualified
     // page or be dropped.
+    //
+    // Caveat: when page_id is absent, `normalizedPageId === ""` so `qualKey` is
+    // null and neighbors can never resolve (they aren't in `citedIdSet`, so
+    // byId is blocked too). Neighbor expansion silently no-ops for citations
+    // missing a page_id — originally cited IDs still resolve via byId, so
+    // full_phrase will just equal the cited line text alone.
     const citedIdSet = new Set(lineIds);
     const lineTexts: string[] = [];
     for (const lid of expandedIds) {

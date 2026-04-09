@@ -208,6 +208,31 @@ export const KEYHOLE_STRIP_HEIGHT_DEFAULT = 120;
 export const KEYHOLE_FADE_WIDTH = 32;
 
 /**
+ * Project the keyhole's displayed width from the source image's natural
+ * dimensions, assuming it renders inside a strip of `stripHeight` tall.
+ *
+ * **Load-bearing invariant**: `zoom` is clamped to `Math.min(1, …)` because
+ * the keyhole never upscales (see `AnchorTextFocusedImage` where the same
+ * clamp is applied to the actual render). Without the clamp, a short image
+ * (naturalHeight < stripHeight, e.g. 1200×80) projects to a phantom
+ * upscaled width (1800), causing the popover to render too wide and then
+ * pop narrower once the real keyhole measures in.
+ *
+ * Returns `null` for non-positive or non-finite dimensions so callers can
+ * fall back to a measured width.
+ */
+export function projectKeyholeDisplayedWidth(
+  dimensions: { width: number; height: number } | null | undefined,
+  stripHeight: number = KEYHOLE_STRIP_HEIGHT_DEFAULT,
+): number | null {
+  if (!dimensions) return null;
+  const { width, height } = dimensions;
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
+  const zoom = Math.min(1, stripHeight / height);
+  return width * zoom;
+}
+
+/**
  * Builds a CSS mask-image linear-gradient for the keyhole strip.
  * Fades edges to transparent to indicate "there's more content" in that direction.
  *
