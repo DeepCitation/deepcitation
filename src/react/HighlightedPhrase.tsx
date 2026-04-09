@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
 import { fuzzyAnchorRange } from "../utils/fuzzyAnchor.js";
+import { normalizeQuotes } from "../utils/normalizeQuotes.js";
 import { trimPhraseToAnchorWindow } from "../utils/textCleanup.js";
 import { ANCHOR_HIGHLIGHT_STYLE } from "./constants.js";
 
@@ -51,7 +52,8 @@ export function HighlightedPhrase({
     );
   }
 
-  // Prefer exact match; fall back to case-insensitive; then fuzzy word-span.
+  // Prefer exact match; fall back to case-insensitive; then quote-normalized; then fuzzy.
+  // normalizeQuotes is length-preserving so indices are valid on the original string.
   let start = displayPhrase.indexOf(anchorText);
   let end = start !== -1 ? start + anchorText.length : -1;
 
@@ -60,6 +62,12 @@ export function HighlightedPhrase({
     const anchorLower = anchorText.toLowerCase();
     start = phraseLower.indexOf(anchorLower);
     end = start !== -1 ? start + anchorLower.length : -1;
+
+    // Quote-normalized fallback: OCR curly quotes vs ASCII anchor
+    if (start === -1) {
+      start = normalizeQuotes(phraseLower).indexOf(normalizeQuotes(anchorLower));
+      end = start !== -1 ? start + anchorLower.length : -1;
+    }
   }
 
   if (start === -1) {

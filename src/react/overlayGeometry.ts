@@ -105,7 +105,7 @@ export function toPercentRect(
 export type ScrollAlignment = "center" | "start";
 
 /** Left-edge padding (px) when using "start" alignment — enough context without wasting space. */
-const START_ALIGNMENT_INSET_PX = 24;
+export const START_ALIGNMENT_INSET_PX = 24;
 
 /**
  * Computes the scroll position needed to position an annotation in a

@@ -1,4 +1,5 @@
 import type { CitationData } from "../prompts/citationPrompts.js";
+import { normalizeQuotes } from "./normalizeQuotes.js";
 import { validateRegexInput } from "./regexSafety.js";
 
 export interface CitationWarning {
@@ -245,7 +246,7 @@ export function validateCitationData(citations: CitationData[]): ValidationRepor
     }
 
     // Warning: anchor_text not a substring of full_phrase
-    if (cd.full_phrase && !cd.full_phrase.includes(anchor)) {
+    if (cd.full_phrase && !normalizeQuotes(cd.full_phrase).includes(normalizeQuotes(anchor))) {
       warnings.push({
         citationId: id,
         field: "anchor_text",
