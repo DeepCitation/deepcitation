@@ -19,12 +19,17 @@ import { decodeChunked } from "../utils/proxy.js";
  * request can exceed this" bound; sub-phase timeouts fire first and produce
  * more specific errors.
  */
+function parseTimeoutEnv(name: string, defaultMs: number): number {
+  const v = parseInt(process.env[name] ?? "", 10);
+  return Number.isNaN(v) || v <= 0 ? defaultMs : v;
+}
+
 const TIMEOUTS = {
-  proxyConnect: parseInt(process.env.DC_PROXY_CONNECT_MS ?? "5000", 10),
-  tlsHandshake: parseInt(process.env.DC_TLS_HANDSHAKE_MS ?? "10000", 10),
-  headers: parseInt(process.env.DC_HEADERS_TIMEOUT_MS ?? "60000", 10),
-  idleData: parseInt(process.env.DC_IDLE_DATA_MS ?? "30000", 10),
-  overall: parseInt(process.env.DC_REQUEST_TIMEOUT_MS ?? "90000", 10),
+  proxyConnect: parseTimeoutEnv("DC_PROXY_CONNECT_MS", 5000),
+  tlsHandshake: parseTimeoutEnv("DC_TLS_HANDSHAKE_MS", 10000),
+  headers: parseTimeoutEnv("DC_HEADERS_TIMEOUT_MS", 60000),
+  idleData: parseTimeoutEnv("DC_IDLE_DATA_MS", 30000),
+  overall: parseTimeoutEnv("DC_REQUEST_TIMEOUT_MS", 90000),
 };
 
 /**
@@ -284,6 +289,10 @@ export function createProxyFetch(
         });
       });
     })();
+
+    // Drain inner's rejection after the race resolves so it doesn't become an
+    // unhandled rejection warning when teardown() destroys the socket mid-flight.
+    inner.catch(() => {});
 
     try {
       return await Promise.race([inner, overallPromise]);

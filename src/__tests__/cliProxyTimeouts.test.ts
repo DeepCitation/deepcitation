@@ -11,7 +11,7 @@
  * in under a few seconds rather than 90s+.
  */
 
-import { type Socket, type Server, createServer } from "node:net";
+import { createServer, type Server, type Socket } from "node:net";
 import { afterEach, describe, expect, it } from "@jest/globals";
 
 // Set short timeouts BEFORE importing proxy.ts (the constants are read at module load).

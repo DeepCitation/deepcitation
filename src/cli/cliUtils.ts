@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { IS_COWORK } from "../auth.js";
 import { PaymentRequiredError } from "../client/errors.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
-import { safeMatch } from "../utils/regexSafety.js";
+import { safeMatch, safeReplace } from "../utils/regexSafety.js";
 import { TimeoutError } from "./proxy.js";
 
 // ── constants ─────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ function formatTimeoutError(err: TimeoutError): string {
   const lines: string[] = [
     `Request to ${err.target} timed out after ${err.elapsedMs}ms (phase: ${err.phase}).`,
     `Why: ${phaseExplanation[err.phase]}.`,
-    `Proxy: ${sanitizeForLog(err.proxyUrl.replace(/\/\/[^@]+@/, "//***@"))}`,
+    `Proxy: ${sanitizeForLog(safeReplace(err.proxyUrl, /\/\/[^@]+@/, "//***@"))}`,
   ];
   if (IS_COWORK) {
     lines.push(`Environment: Claude Cowork (CLAUDE_CODE_REMOTE=true)`);

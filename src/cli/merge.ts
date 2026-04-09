@@ -315,15 +315,16 @@ export function merge(argv: string[]): void {
   // and the caller would only notice downstream when verify ships a citation-less HTML.
   // See plans/noble-skipping-wolf.md for the failure history.
   if (mode === "json") {
-    const aFailed = parseErrorA !== undefined || aCount === 0;
-    const bFailed = parseErrorB !== undefined || bOrigCount === 0;
-    if (aFailed || bFailed) {
+    // Only fail on an actual parse error, not on zero citations: a section may
+    // legitimately contain no cited claims (parseable `[]`). The whitespace-only
+    // check in parseCitationData ensures that truly empty blocks set parseError.
+    if (parseErrorA !== undefined || parseErrorB !== undefined) {
       const lines: string[] = ["Error: merge refusing to write output — citation parsing failed."];
-      if (aFailed) {
-        lines.push(`  A (${aPath}): ${parseErrorA ?? "0 citations parsed from <<<CITATION_DATA>>> block"}`);
+      if (parseErrorA !== undefined) {
+        lines.push(`  A (${aPath}): ${parseErrorA}`);
       }
-      if (bFailed) {
-        lines.push(`  B (${bPath}): ${parseErrorB ?? "0 citations parsed from <<<CITATION_DATA>>> block"}`);
+      if (parseErrorB !== undefined) {
+        lines.push(`  B (${bPath}): ${parseErrorB}`);
       }
       lines.push("");
       lines.push("Check the section files for:");

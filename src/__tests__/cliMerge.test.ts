@@ -96,10 +96,7 @@ describe("mergeSections — silent-failure detection", () => {
   });
 
   it("surfaces parseErrorA when the JSON is missing the required `n` field", () => {
-    const badSchema = sectionWithBlock(
-      "## A\nText.",
-      JSON.stringify([{ k: "foo", p: "1_0", l: [1] }]),
-    );
+    const badSchema = sectionWithBlock("## A\nText.", JSON.stringify([{ k: "foo", p: "1_0", l: [1] }]));
     const result = mergeSections({ sectionAContent: badSchema, sectionBContent: VALID_B });
 
     expect(result.parseErrorA).toBeDefined();
