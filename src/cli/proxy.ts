@@ -84,6 +84,18 @@ export function createProxyFetch(
       return globalThis.fetch(input, init);
     }
 
+    // If the caller passed FormData, serialize it to a multipart body + derived
+    // Content-Type header BEFORE opening the socket. This used to fall out to
+    // sendViaUndiciProxy, which failed in Cowork when `undici` wasn't importable.
+    // Now multipart goes over the same hand-rolled tunnel as JSON.
+    let preBuiltBody: Buffer | undefined;
+    let preBuiltContentType: string | undefined;
+    if (init?.body instanceof FormData) {
+      const encoded = await encodeMultipart(init.body);
+      preBuiltBody = encoded.body;
+      preBuiltContentType = encoded.contentType;
+    }
+
     // Track everything we open so the overall-timeout watchdog can tear it all down.
     let openSocket: Socket | undefined;
     let openTlsSocket: TLSSocket | undefined;
@@ -173,20 +185,20 @@ export function createProxyFetch(
       if (!headers.has("host")) headers.set("host", targetHost);
 
       let bodyBuffer: Buffer | undefined;
-      if (init?.body) {
+      if (preBuiltBody) {
+        // Multipart was serialized above the socket open — splice it in and set
+        // the boundary-aware Content-Type header (unless the caller already set one).
+        bodyBuffer = preBuiltBody;
+        if (preBuiltContentType && !headers.has("content-type")) {
+          headers.set("content-type", preBuiltContentType);
+        }
+      } else if (init?.body) {
         if (init.body instanceof ArrayBuffer) {
           bodyBuffer = Buffer.from(init.body);
         } else if (Buffer.isBuffer(init.body)) {
           bodyBuffer = init.body;
         } else if (typeof init.body === "string") {
           bodyBuffer = Buffer.from(init.body);
-        } else if (init.body instanceof FormData) {
-          // For FormData, fall back to undici or global fetch with dispatcher.
-          // Clean up the TLS socket we already opened — sendViaUndiciProxy creates its own connection.
-          tlsSocket.destroy();
-          openTlsSocket = undefined;
-          openSocket = undefined;
-          return sendViaUndiciProxy(proxyUrl, input, init);
         } else {
           // ReadableStream or other — collect into buffer
           const chunks: Uint8Array[] = [];
@@ -303,81 +315,59 @@ export function createProxyFetch(
 }
 
 /**
- * Convert globalThis.FormData → undici.FormData.
- * undici.fetch cannot serialize globalThis.FormData (the server receives no file).
+ * Escape a header-parameter token for safe inclusion inside a quoted string in
+ * Content-Disposition (field name / filename). Matches what modern browsers do:
+ * percent-encode CR, LF, and double-quote.
  */
-function convertFormData(
-  body: BodyInit | null | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // biome-ignore lint/suspicious/noExplicitAny: undici types not available at runtime
-  undici: any,
-): BodyInit | null | undefined {
-  if (body instanceof FormData) {
-    const ufd = new undici.FormData();
-    for (const [key, value] of (body as globalThis.FormData).entries()) {
-      if (value instanceof Blob) {
-        ufd.append(key, value, (value as File).name || key);
-      } else {
-        ufd.append(key, value);
-      }
-    }
-    // undici.FormData is not assignable to globalThis.BodyInit; safe because
-    // undici.fetch accepts its own FormData via the dispatcher path.
-    return ufd as unknown as BodyInit;
-  }
-  return body;
+function escapeHeaderParam(s: string): string {
+  return s.replace(/["\r\n]/g, c => {
+    if (c === '"') return "%22";
+    if (c === "\r") return "%0D";
+    return "%0A";
+  });
 }
 
 /**
- * FormData proxy fallback: try undici ProxyAgent, then EnvHttpProxyAgent,
- * or fall back to global fetch if undici isn't importable.
+ * Serialize a WHATWG FormData to an RFC 7578 multipart/form-data body buffer
+ * plus the matching Content-Type header (including the generated boundary).
  *
- * Both ProxyAgent and EnvHttpProxyAgent are constructed with the same per-phase
- * timeouts as the manual CONNECT path, plus an AbortSignal.timeout matching the
- * overall ceiling. This keeps the FormData path's failure mode aligned with the
- * JSON path: a stuck request bails out within the same budgets, regardless of
- * which transport carried it.
+ * Exported for unit tests. Used internally by `createProxyFetch` so multipart
+ * uploads can ride the same hand-rolled CONNECT tunnel as JSON POSTs —
+ * eliminating the `undici` runtime dependency that used to block the FormData
+ * path in Cowork sandboxes where `import("undici")` fails.
  */
-async function sendViaUndiciProxy(proxyUrl: string, input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // biome-ignore lint/suspicious/noExplicitAny: undici types not available at runtime
-  let undici: any;
-  try {
-    undici = await import(/* webpackIgnore: true */ "undici" as string);
-  } catch {
-    // undici not installed — warn and try direct (import failure only, not network errors)
-    console.error("Warning: FormData upload through proxy requires the 'undici' package. Trying direct connection...");
-    return globalThis.fetch(input, init);
+export async function encodeMultipart(fd: FormData): Promise<{ body: Buffer; contentType: string }> {
+  // Random + timestamp suffix makes boundary collisions with any uploaded byte
+  // sequence vanishingly unlikely for the upload workloads this CLI handles.
+  const boundary = `----dc${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+  const CRLF = "\r\n";
+  const parts: Buffer[] = [];
+
+  for (const [name, value] of fd.entries()) {
+    const escName = escapeHeaderParam(name);
+    if (typeof value === "string") {
+      const header = `--${boundary}${CRLF}Content-Disposition: form-data; name="${escName}"${CRLF}${CRLF}`;
+      parts.push(Buffer.from(header));
+      parts.push(Buffer.from(value, "utf8"));
+    } else {
+      // Blob or File (File extends Blob in Node's WHATWG implementation).
+      const filename = escapeHeaderParam((value as File).name || "blob");
+      const contentType = value.type || "application/octet-stream";
+      const header =
+        `--${boundary}${CRLF}` +
+        `Content-Disposition: form-data; name="${escName}"; filename="${filename}"${CRLF}` +
+        `Content-Type: ${contentType}${CRLF}${CRLF}`;
+      parts.push(Buffer.from(header));
+      parts.push(Buffer.from(await value.arrayBuffer()));
+    }
+    parts.push(Buffer.from(CRLF));
   }
+  parts.push(Buffer.from(`--${boundary}--${CRLF}`));
 
-  const body = convertFormData(init?.body, undici);
-
-  const dispatcherOptions = {
-    connectTimeout: TIMEOUTS.proxyConnect,
-    headersTimeout: TIMEOUTS.headers,
-    bodyTimeout: TIMEOUTS.idleData,
-    keepAliveTimeout: 10_000,
+  return {
+    body: Buffer.concat(parts),
+    contentType: `multipart/form-data; boundary=${boundary}`,
   };
-
-  // Try explicit ProxyAgent first (works in non-cowork environments)
-  let agent;
-  try {
-    agent = new undici.ProxyAgent({ uri: proxyUrl, ...dispatcherOptions });
-  } catch (err) {
-    // ProxyAgent construction can fail in Cowork (e.g. malformed URL from env). Log the
-    // real error so users can diagnose misconfigurations, then fall back to EnvHttpProxyAgent.
-    console.error(`Warning: ProxyAgent construction failed (${err}), falling back to EnvHttpProxyAgent.`);
-    agent = new undici.EnvHttpProxyAgent(dispatcherOptions);
-  }
-
-  // Must use undici.fetch (not globalThis.fetch) — only undici.fetch respects `dispatcher`.
-  // AbortSignal.timeout enforces the same overall ceiling as the manual CONNECT path.
-  return (await undici.fetch(input, {
-    ...init,
-    body,
-    dispatcher: agent,
-    signal: AbortSignal.timeout(TIMEOUTS.overall),
-  })) as Response;
 }
 
 /**
@@ -388,12 +378,9 @@ async function sendViaUndiciProxy(proxyUrl: string, input: RequestInfo | URL, in
  * localhost:3128 (while FormData multipart succeeded). Rather than guess
  * at the root cause inside undici's pooling layer, we now route through
  * the same hand-rolled CONNECT tunnel used in non-Cowork environments —
- * which is built only on Node built-ins and has explicit per-phase timeouts
- * (see TIMEOUTS at top of this file).
- *
- * The FormData fallback inside `createProxyFetch` (which delegates to
- * `sendViaUndiciProxy`) is preserved unchanged, so multipart uploads still
- * work via undici but with timeouts now applied.
+ * which is built only on Node built-ins, has explicit per-phase timeouts
+ * (see TIMEOUTS at top of this file), and serializes FormData inline via
+ * `encodeMultipart`. There is no remaining `undici` dependency on any path.
  */
 export async function createCoworkFetch(
   proxyUrl: string,
