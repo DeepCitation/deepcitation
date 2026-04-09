@@ -122,7 +122,9 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
 
   if (!hasPageTags && pages) {
     // Each array entry is a separate page — assign page_number_{i+1}_index_{i} (1-based page, 0-based index).
-    // Use a global synthetic line counter so IDs are unique across all pages.
+    // globalLineId keeps byId entries unique across all pages.
+    // qualified keys use per-page counters (1..N) so IDs match the verify API's
+    // per-page expectation — global IDs would be "out of bounds" for later pages.
     let globalLineId = 1;
     for (let i = 0; i < pages.length; i++) {
       const pageId = `page_number_${i + 1}_index_${i}`;
@@ -145,9 +147,11 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
           .split("\n")
           .map((l: string) => l.trim())
           .filter((l: string) => l.length > 0);
+        let perPageLineId = 1;
         for (const lineText of rawLines) {
-          qualified.set(`${pageId}:${globalLineId}`, lineText);
+          qualified.set(`${pageId}:${perPageLineId}`, lineText);
           byId.set(globalLineId, lineText);
+          perPageLineId++;
           globalLineId++;
         }
       }

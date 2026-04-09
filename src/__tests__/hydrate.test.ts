@@ -33,6 +33,30 @@ describe("parseSummaryToLineMap", () => {
     const line9 = lineMap.qualified.get("page_number_1_index_0:9");
     expect(line9).toContain("initial closing");
   });
+
+  it("assigns per-page line IDs for untagged deepTextPages (not global)", () => {
+    // Root cause of iter 20 4% partial rate: global IDs (149, 150, 151) were sent
+    // to the verify API which expects per-page IDs (page had only 101 lines).
+    // Each untagged page must use a 1-based counter that resets per page.
+    const rawPagesSummary = JSON.stringify({
+      attachmentId: "test-id",
+      deepTextPages: [
+        // Page 1: 5 lines
+        "line A\nline B\nline C\nline D\nline E",
+        // Page 2: 3 lines
+        "line X\nline Y\nline Z",
+      ],
+    });
+    const lineMap = parseSummaryToLineMap(rawPagesSummary);
+    // Page 1 lines should use per-page IDs 1-5
+    expect(lineMap.qualified.get("page_number_1_index_0:1")).toBe("line A");
+    expect(lineMap.qualified.get("page_number_1_index_0:5")).toBe("line E");
+    // Page 2 lines should ALSO start at 1 (per-page reset), NOT 6
+    expect(lineMap.qualified.get("page_number_2_index_1:1")).toBe("line X");
+    expect(lineMap.qualified.get("page_number_2_index_1:3")).toBe("line Z");
+    // Global IDs (6, 7, 8) must NOT appear as page 2 qualified keys
+    expect(lineMap.qualified.get("page_number_2_index_1:6")).toBeUndefined();
+  });
 });
 
 // Summary with two pages: page 17 has certificate OCR garbage at lines 4-6,
