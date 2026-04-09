@@ -266,17 +266,27 @@ export async function requireAuth(): Promise<ResolvedAuth> {
   const isInteractive = !process.env.DC_NON_INTERACTIVE && (process.stdin.isTTY || !!process.env.MSYSTEM);
   if (!isInteractive) {
     // Non-interactive (CI, piped stdin, AI agent) — browser OAuth won't work.
-    // Print actionable instructions and exit so commands fail fast with clear guidance.
-    console.error("DeepCitation — action needed: no credentials found.\n");
+    // Print actionable, recoverable instructions and exit non-zero so the caller
+    // can surface the recovery flow to the user instead of treating this as a
+    // hard blocker. See plans/verify-qa.md §2.0 and verify/SKILL.md Step 1.
+    console.error("DeepCitation — action needed: no credentials found.");
+    console.error("This is recoverable. Follow one of the options below, then re-run the command.\n");
     if (IS_COWORK) {
-      console.error("1. Add *.deepcitation.com to allowed domains: https://claude.ai/settings/capabilities");
-      console.error(`2. Get an API key: ${baseUrl}/cli-auth?manual=true`);
-      console.error("3. Set DEEPCITATION_API_KEY in your Cowork environment settings.");
+      console.error("Cowork environment detected:");
+      console.error("  1. Add *.deepcitation.com to allowed domains: https://claude.ai/settings/capabilities");
+      console.error(`  2. Get an API key: ${baseUrl}/cli-auth?manual=true`);
+      console.error("  3. Set DEEPCITATION_API_KEY in your Cowork environment settings.");
     } else {
-      console.error(`Set DEEPCITATION_API_KEY to authenticate.`);
-      console.error(`  Get a key: ${baseUrl}/cli-auth?manual=true`);
-      console.error("  Or run: npx deepcitation auth --key '<your-key>'");
+      console.error("To authenticate (choose one):");
+      console.error(`  A) Force PTY:     script -q -c "npx -y deepcitation@latest auth" /dev/null`);
+      console.error(`     Works in all Claude Code / AI agent contexts. Allocates a pseudo-TTY`);
+      console.error(`     so browser OAuth runs. No pipes. Timeout ≥180s. Self-sufficient.`);
+      console.error(`  B) Paste a key:   npx deepcitation auth --key '<your-key>'`);
+      console.error(`     Get one at:    ${baseUrl}/cli-auth?manual=true`);
+      console.error(`  C) Env var:       export DEEPCITATION_API_KEY='<your-key>'`);
     }
+    console.error("\nAI agents: option A is self-sufficient — run it yourself, do not stop and ask the user.");
+    console.error("Then retry the exact command that printed this.");
     process.exit(1);
   }
 
@@ -302,11 +312,13 @@ export async function createClient(apiKey: string): Promise<DeepCitation> {
     const safeProxy = sanitizeForLog(proxyUrl.replace(/\/\/[^@]+@/, "//***@"));
     console.error(`Using proxy: ${safeProxy}`);
 
-    // In Cowork, globalThis.fetch does NOT transparently proxy — use undici's
-    // EnvHttpProxyAgent which reads HTTP_PROXY/HTTPS_PROXY from env vars.
+    // In Cowork, route through the same hand-rolled CONNECT tunnel used in
+    // non-Cowork environments. EnvHttpProxyAgent has been observed to hang
+    // indefinitely on JSON POSTs through the Cowork proxy at localhost:3128;
+    // the manual tunnel is deterministic and has explicit per-phase timeouts.
     if (IS_COWORK) {
-      console.error("Cowork session — using undici EnvHttpProxyAgent.");
-      const coworkFetch = await createCoworkFetch();
+      console.error("Cowork session — using manual CONNECT tunnel with timeouts.");
+      const coworkFetch = await createCoworkFetch(proxyUrl);
       return new DeepCitation({ apiKey, fetch: coworkFetch });
     }
 
@@ -1319,11 +1331,13 @@ export async function login(argv: string[], baseUrl: string) {
       console.error("   Or for this session only: npx deepcitation auth --key <your-key>");
     } else {
       console.error("Non-interactive environment detected (no TTY).\n");
-      console.error(`1. Get your API key: ${manualUrl}`);
-      console.error("2. Run: npx deepcitation auth --key '<your-key>'");
-      console.error("   (This saves the key so all future commands just work.)");
-      console.error('   Or: export DEEPCITATION_API_KEY="<your-key>"  (env var for this session)');
-      console.error("   Or: npx deepcitation auth  (opens browser for OAuth)");
+      console.error("AI agents / Claude Code — self-recover with:");
+      console.error('  script -q -c "npx -y deepcitation@latest auth" /dev/null');
+      console.error("  `script` allocates a pseudo-TTY so browser OAuth works. Run directly,");
+      console.error("  no pipes, timeout ≥180s. Credentials save automatically. Then retry.\n");
+      console.error("Manual fallback:");
+      console.error(`  1. Get your API key: ${manualUrl}`);
+      console.error("  2. Run: npx deepcitation auth --key '<your-key>'");
     }
     process.exit(1);
   }
