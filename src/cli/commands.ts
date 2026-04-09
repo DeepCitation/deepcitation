@@ -46,6 +46,7 @@ import { cleanDeepTextPage } from "../utils/textCleanup.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import {
+  autoFixDisplayLabels,
   escapeJsForScript,
   escapeJsonForScript,
   injectCdnRuntime,
@@ -637,52 +638,19 @@ export function inject(argv: string[]) {
     console.error("Warning: stripped existing DeepCitation injection before re-injecting.");
   }
 
-  // ── Auto-fix display-label mismatches ────────────────────────────
-  // When an annotated element's visible text differs from its anchorText
-  // and no data-dc-display-label is set, automatically add the attribute.
-  // The CDN reads data-dc-display-label at click time so the popover
-  // trigger shows the visible text rather than the full anchorText.
-  const autoFixLog: string[] = [];
-  const elementRe = /<([a-zA-Z][a-zA-Z0-9]*)[^>]*\sdata-citation-key="([^"]+)"([^>]*)>([\s\S]*?)<\/\1>/g;
-  const fixedHtml = stripped.html.replace(elementRe, (fullMatch, _tag, hashedKey, rest, content) => {
-    // Skip if data-dc-display-label is already set
-    if (/data-dc-display-label=/.test(rest) || /data-dc-display-label=/.test(fullMatch)) return fullMatch;
-    const anchorText: string | undefined = (
-      verifications[hashedKey] as { citation?: { anchorText?: string } } | undefined
-    )?.citation?.anchorText;
-    if (!anchorText) return fullMatch;
-    // Strip inner HTML tags to get approximate visible text.
-    // Loop until stable to handle nested fragments like <scr<script>ipt>.
-    let visibleText = content as string;
-    let prev: string;
-    do {
-      prev = visibleText;
-      visibleText = visibleText.replace(/<[^>]+>/g, "");
-    } while (visibleText !== prev);
-    visibleText = visibleText.trim();
-    if (!visibleText || visibleText.length > 80) return fullMatch;
-    // Auto-fix if visible text does not appear inside anchorText (case-insensitive)
-    if (!anchorText.toLowerCase().includes(visibleText.toLowerCase())) {
-      const escaped = visibleText.replace(/"/g, "&quot;");
-      autoFixLog.push(
-        `  [${hashedKey.slice(0, 8)}…] displayLabel="${visibleText}" anchorText="${anchorText.slice(0, 60)}${anchorText.length > 60 ? "…" : ""}"`,
-      );
-      // Insert data-dc-display-label right after the opening tag name
-      return fullMatch.replace(
-        `data-citation-key="${hashedKey}"`,
-        `data-citation-key="${hashedKey}" data-dc-display-label="${escaped}"`,
-      );
-    }
-    return fullMatch;
-  });
-  if (autoFixLog.length > 0) {
+  // Stamp data-dc-display-label on paraphrase inlines so the popover's
+  // "displayed as" annotation fires for visible text that differs from the
+  // citation's anchorText. Shared with injectCdnRuntime so the verify
+  // --markdown path produces identical HTML.
+  const autoFixed = autoFixDisplayLabels(stripped.html, verifications);
+  if (autoFixed.log.length > 0) {
     console.error(
-      `Auto-set display label on ${autoFixLog.length} element(s) where visible text differs from anchorText:\n` +
-        autoFixLog.join("\n"),
+      `Auto-set display label on ${autoFixed.log.length} element(s) where visible text differs from anchorText:\n` +
+        autoFixed.log.join("\n"),
     );
   }
 
-  let output = fixedHtml;
+  let output = autoFixed.html;
 
   if (output.includes("</body>")) {
     output = output.replace("</body>", () => `${snippet}\n</body>`);

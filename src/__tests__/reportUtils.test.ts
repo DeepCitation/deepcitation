@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import {
+  autoFixDisplayLabels,
   buildCitationMaps,
   injectCdnRuntime,
   reattachPageImages,
@@ -130,5 +131,76 @@ describe("injectCdnRuntime", () => {
     // Should only have ONE dc-data block
     const matches = result.html.match(/id="dc-data"/g);
     expect(matches).toHaveLength(1);
+  });
+
+  // Iter 23 RC: 16 paraphrase inlines in the verify --markdown path lost their
+  // "displayed as" annotation because the data-dc-display-label auto-fix only
+  // ran in the standalone `inject` command. The verify path went through
+  // injectCdnRuntime which has no auto-fix. Now both paths share the helper.
+  it("auto-fixes display-label for paraphrase inlines (verify --markdown parity)", () => {
+    const html = '<html><body><span data-citation-key="abc123">motor vehicle</span></body></html>';
+    const verifications = {
+      abc123: { status: "found", citation: { anchorText: "Each parking unit shall" } },
+    };
+    const result = injectCdnRuntime(html, verifications, { "cite-1": "abc123" });
+    expect(result.html).toContain('data-dc-display-label="motor vehicle"');
+    // Original anchor element preserved
+    expect(result.html).toContain('data-citation-key="abc123"');
+  });
+
+  it("does NOT auto-fix when visible text is a substring of anchorText", () => {
+    // "parking unit" appears inside "Each parking unit shall" → no annotation needed
+    // because the trigger label is consistent with the anchor.
+    const html = '<html><body><span data-citation-key="abc123">parking unit</span></body></html>';
+    const verifications = {
+      abc123: { status: "found", citation: { anchorText: "Each parking unit shall" } },
+    };
+    const result = injectCdnRuntime(html, verifications, {});
+    expect(result.html).not.toContain("data-dc-display-label=");
+  });
+});
+
+describe("autoFixDisplayLabels", () => {
+  it("stamps data-dc-display-label when visible text is not in anchorText", () => {
+    const html = '<p data-citation-key="h1">motor vehicle</p>';
+    const result = autoFixDisplayLabels(html, {
+      h1: { citation: { anchorText: "Each parking unit shall" } },
+    });
+    expect(result.html).toContain('data-dc-display-label="motor vehicle"');
+    expect(result.log).toHaveLength(1);
+  });
+
+  it("skips elements that already have data-dc-display-label", () => {
+    const html = '<p data-citation-key="h1" data-dc-display-label="custom">visible</p>';
+    const result = autoFixDisplayLabels(html, {
+      h1: { citation: { anchorText: "completely different" } },
+    });
+    // Should not add a second data-dc-display-label
+    expect(result.html.match(/data-dc-display-label/g)).toHaveLength(1);
+    expect(result.html).toContain('data-dc-display-label="custom"');
+    expect(result.log).toHaveLength(0);
+  });
+
+  it("skips when verifications has no entry for the hash", () => {
+    const html = '<p data-citation-key="orphan">stranded</p>';
+    const result = autoFixDisplayLabels(html, {});
+    expect(result.html).not.toContain("data-dc-display-label");
+    expect(result.log).toHaveLength(0);
+  });
+
+  it("escapes quotes in the visible text", () => {
+    const html = '<p data-citation-key="h1">say "hi"</p>';
+    const result = autoFixDisplayLabels(html, {
+      h1: { citation: { anchorText: "completely different" } },
+    });
+    expect(result.html).toContain('data-dc-display-label="say &quot;hi&quot;"');
+  });
+
+  it("strips inner HTML to compute visible text", () => {
+    const html = '<p data-citation-key="h1"><em>motor</em> <em>vehicle</em></p>';
+    const result = autoFixDisplayLabels(html, {
+      h1: { citation: { anchorText: "Each parking unit shall" } },
+    });
+    expect(result.html).toContain('data-dc-display-label="motor vehicle"');
   });
 });
