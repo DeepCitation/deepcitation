@@ -289,6 +289,27 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
         const found = findAnchorWithFallback(citation.anchor_text, allLines);
         if (found) {
           citation.anchor_text = found.verbatimAnchor;
+          // The assembled lines don't contain the anchor — the agent cited the wrong
+          // location. Relocate the citation to the actual evidence and expand to
+          // include adjacent lines so full_phrase is broader than the anchor alone.
+          // Without surrounding context, fullPhrase === anchorText → the API's search
+          // has no enclosing phrase to narrow → pageText fallback → partial_text_found.
+          const { lineId, pageId } = found;
+          const neighborIds = [lineId - 1, lineId, lineId + 1].filter(id => id > 0);
+          const neighborTexts: string[] = [];
+          const resolvedIds: number[] = [];
+          for (const id of neighborIds) {
+            const text = lineMap.qualified.get(`${pageId}:${id}`) ?? lineMap.byId.get(id);
+            if (text) {
+              neighborTexts.push(text);
+              resolvedIds.push(id);
+            }
+          }
+          if (neighborTexts.length > 1) {
+            citation.full_phrase = neighborTexts.join(" ");
+            citation.page_id = toCompactPageId(pageId);
+            citation.line_ids = resolvedIds;
+          }
         }
       }
 
@@ -300,14 +321,26 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
         const allLines = getAllLines(lineMap);
         const found = findAnchorWithFallback(citation.anchor_text, allLines);
         if (found) {
-          citation.full_phrase = found.verbatimAnchor;
           // Preserve the original anchor_text as display_label before overwriting,
           // mirroring the paraphrase-promotion pattern in the successful hydration path.
           if (!citation.display_label) citation.display_label = citation.anchor_text;
           citation.anchor_text = found.verbatimAnchor;
-          // Update page_id and line_ids to match what was actually found
+          // Update page_id and include adjacent lines so full_phrase is broader than
+          // anchor_text alone. Without surrounding context the API cannot compute the
+          // anchor highlight position and falls back to pageText → partial_text_found.
           citation.page_id = toCompactPageId(found.pageId);
-          citation.line_ids = [found.lineId];
+          const neighborIds = [found.lineId - 1, found.lineId, found.lineId + 1].filter(id => id > 0);
+          const neighborTexts: string[] = [];
+          const resolvedIds: number[] = [];
+          for (const id of neighborIds) {
+            const text = lineMap.qualified.get(`${found.pageId}:${id}`) ?? lineMap.byId.get(id);
+            if (text) {
+              neighborTexts.push(text);
+              resolvedIds.push(id);
+            }
+          }
+          citation.full_phrase = neighborTexts.length > 1 ? neighborTexts.join(" ") : found.verbatimAnchor;
+          citation.line_ids = resolvedIds.length > 0 ? resolvedIds : [found.lineId];
           hydrated++;
           continue;
         }
