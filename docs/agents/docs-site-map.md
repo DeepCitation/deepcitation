@@ -1,9 +1,9 @@
 ---
-generated_at: "2026-04-06T14:01:33Z"
-commit_sha: "decf25c"
+generated_at: "2026-04-09T23:49:39Z"
+commit_sha: "daadc13"
 page_count: 22
 tracked: 22
-stale: 4
+stale: 5
 ---
 
 # Public Docs Site Map
@@ -27,27 +27,27 @@ stale: 4
 ### Home
 - **File**: `docs/index.md`
 - **Description**: DeepCitation - Verify AI citations against source documents with visual proof
-- **Staleness**: FRESH (25/30 commits since last update)
+- **Staleness**: FRESH (26/30 commits since last update)
 
 ### SDK Reference
 - **File**: `docs/sdk-reference.md`
 - **Description**: TypeScript SDK client methods and utility functions
-- **Staleness**: FRESH (9/10 commits since last update)
+- **Staleness**: STALE (10/10 commits since last update)
 
 ### Types
 - **File**: `docs/types.md`
 - **Description**: TypeScript interface definitions for DeepCitation
-- **Staleness**: STALE (11/10 commits since last update)
+- **Staleness**: STALE (12/10 commits since last update)
 
 ### Next.js App Router
 - **File**: `docs/frameworks/nextjs.md`
 - **Description**: DeepCitation + Next.js App Router: server components, streaming, and use client boundaries
-- **Staleness**: FRESH (13/15 commits since last update)
+- **Staleness**: FRESH (14/15 commits since last update)
 
 ### Getting Started
 - **File**: `docs/getting-started.md`
 - **Description**: Installation and quick start guide for DeepCitation
-- **Staleness**: FRESH (13/20 commits since last update)
+- **Staleness**: FRESH (14/20 commits since last update)
 
 ### Verification Statuses
 - **File**: `docs/verification-statuses.md`
@@ -62,12 +62,12 @@ stale: 4
 ### Express.js
 - **File**: `docs/frameworks/express.md`
 - **Description**: DeepCitation + Express.js: citation verification in your Node.js API
-- **Staleness**: FRESH (10/20 commits since last update)
+- **Staleness**: FRESH (11/20 commits since last update)
 
 ### Vercel AI SDK
 - **File**: `docs/frameworks/vercel-ai-sdk.md`
 - **Description**: DeepCitation + Vercel AI SDK: streamText, useChat, and citation verification
-- **Staleness**: FRESH (13/15 commits since last update)
+- **Staleness**: FRESH (14/15 commits since last update)
 
 ### Prompts
 - **File**: `docs/prompts.md`
@@ -87,7 +87,7 @@ stale: 4
 ### Frameworks
 - **File**: `docs/frameworks/index.md`
 - **Description**: Framework-specific integration guides for DeepCitation
-- **Staleness**: FRESH (24/30 commits since last update)
+- **Staleness**: FRESH (25/30 commits since last update)
 
 ### Mastra
 - **File**: `docs/frameworks/mastra.md`
@@ -97,7 +97,7 @@ stale: 4
 ### Components
 - **File**: `docs/components.md`
 - **Description**: React CitationComponent documentation
-- **Staleness**: FRESH (10/15 commits since last update)
+- **Staleness**: FRESH (13/15 commits since last update)
 
 ### AG-UI
 - **File**: `docs/frameworks/agui.md`
@@ -107,7 +107,7 @@ stale: 4
 ### Styling
 - **File**: `docs/styling.md`
 - **Description**: CSS customization options for CitationComponent
-- **Staleness**: FRESH (7/20 commits since last update)
+- **Staleness**: FRESH (10/20 commits since last update)
 
 ### Error Handling
 - **File**: `docs/error-handling.md`
@@ -116,8 +116,8 @@ stale: 4
 
 ### 404
 - **File**: `docs/404.md`
-- **Staleness**: FRESH (14/50 commits since last update)
+- **Staleness**: FRESH (18/50 commits since last update)
 
 ### Contributing
 - **File**: `docs/CONTRIBUTING.md`
-- **Staleness**: FRESH (14/50 commits since last update)
+- **Staleness**: FRESH (18/50 commits since last update)
