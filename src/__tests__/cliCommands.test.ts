@@ -963,16 +963,15 @@ Raw OCR line B`,
 });
 
 describe("hydrateCitations", () => {
+  // Hydration always widens the cited range by ±1 so full_phrase is reliably
+  // broader than anchor_text — otherwise HighlightedPhrase has nothing to
+  // highlight inside the popover quote when the cited line happens to equal
+  // the anchor verbatim (OCR-fragmented sources).
   it("fills full_phrase from a single lineId and pulls ±1 neighbor lines", () => {
-    // Hydration always widens the cited range by ±1 so full_phrase is reliably
-    // broader than anchor_text. Without this, OCR-fragmented source lines can
-    // collapse full_phrase to exactly the anchor, leaving HighlightedPhrase
-    // with nothing to highlight inside the popover quote.
     const citations = [{ id: 1, anchor_text: "Discount Rate", page_id: "page_number_1_index_0", line_ids: [1] }];
     const { hydrated, misses } = hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
     expect(hydrated).toBe(1);
     expect(misses).toEqual([]);
-    // Cited [1], expanded to [1, 2] — line 0 is clamped away.
     expect(citations[0].full_phrase).toBe(
       "The Discount Rate is 80% of the lowest price per share. The Purchase Amount is the amount invested.",
     );
@@ -981,7 +980,6 @@ describe("hydrateCitations", () => {
   it("concatenates text for multi-lineId citations and pulls ±1 neighbor lines", () => {
     const citations = [{ id: 1, anchor_text: "Purchase Amount", page_id: "page_number_1_index_0", line_ids: [2, 3] }];
     hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
-    // Cited [2, 3], expanded to [1, 2, 3, 4] — line 4 is missing so omitted.
     expect(citations[0].full_phrase).toBe(
       "The Discount Rate is 80% of the lowest price per share. The Purchase Amount is the amount invested. A Dissolution Event means a liquidation.",
     );
@@ -1016,16 +1014,17 @@ describe("hydrateCitations", () => {
     expect(misses).toEqual([3]);
   });
 
+  // Guards cross-page bleed: neighbor expansion must not let page 2's line 2
+  // (absent on page 2) resolve via the page-agnostic byId map to page 1's
+  // "Page one line two." The qualified-only rule for non-cited neighbor IDs
+  // is what prevents that.
   it("uses qualified map when page_id matches and pulls ±1 neighbor lines", () => {
     const citations = [
       { id: 1, anchor_text: "page one line one", page_id: "page_number_1_index_0", line_ids: [1] },
       { id: 2, anchor_text: "page two line one", page_id: "page_number_2_index_0", line_ids: [1] },
     ];
     hydrateCitations({ summaryContent: MULTI_PAGE_SUMMARY, citations });
-    // Page 1 has lines 1 and 2 — cited [1], expanded to [1, 2].
     expect(citations[0].full_phrase).toBe("Page one line one. Page one line two.");
-    // Page 2 has only line 1 tagged (next tag is line 3, nothing between) —
-    // cited [1], expanded to [1, 2] but line 2 is absent so we get just line 1.
     expect(citations[1].full_phrase).toBe("Page two line one.");
   });
 });

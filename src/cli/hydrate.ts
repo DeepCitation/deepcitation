@@ -271,30 +271,22 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
     // quote has nothing to highlight (phrase === anchor) and the verify API
     // has no enclosing phrase to narrow the match — falls back to pageText →
     // partial_text_found. Mirrors the wrong-lineId fallback path below.
+    //
+    // byId is page-agnostic, so resolving a *neighbor* through it can bleed
+    // text across pages. Only the originally cited IDs (which carry the
+    // agent's intent) may fall back to byId as tolerance for a missing/wrong
+    // page_id. Synthetic neighbor IDs must match the qualified page or drop.
+    // When page_id is absent, `normalizedPageId === ""` so neighbors can
+    // never resolve and expansion silently no-ops for that citation.
     const minCitedId = Math.min(...lineIds);
     const maxCitedId = Math.max(...lineIds);
-    const expandedIds: number[] = [];
-    for (let id = Math.max(1, minCitedId - 1); id <= maxCitedId + 1; id++) {
-      expandedIds.push(id);
-    }
-
-    // Fallback rule: byId is page-agnostic, so resolving a neighbor through it
-    // can bleed text across pages. Only the originally cited IDs (which carry
-    // the agent's intent) are allowed to fall back to byId as tolerance for a
-    // missing/wrong page_id. Synthetic neighbor IDs must match the qualified
-    // page or be dropped.
-    //
-    // Caveat: when page_id is absent, `normalizedPageId === ""` so `qualKey` is
-    // null and neighbors can never resolve (they aren't in `citedIdSet`, so
-    // byId is blocked too). Neighbor expansion silently no-ops for citations
-    // missing a page_id — originally cited IDs still resolve via byId, so
-    // full_phrase will just equal the cited line text alone.
-    const citedIdSet = new Set(lineIds);
+    const loId = Math.max(1, minCitedId - 1);
+    const hiId = maxCitedId + 1;
     const lineTexts: string[] = [];
-    for (const lid of expandedIds) {
+    for (let lid = loId; lid <= hiId; lid++) {
       const qualKey = normalizedPageId ? `${normalizedPageId}:${lid}` : null;
       const qualified = qualKey ? lineMap.qualified.get(qualKey) : undefined;
-      const text = qualified ?? (citedIdSet.has(lid) ? lineMap.byId.get(lid) : undefined);
+      const text = qualified ?? (lineIds.includes(lid) ? lineMap.byId.get(lid) : undefined);
       if (text) lineTexts.push(text);
     }
 

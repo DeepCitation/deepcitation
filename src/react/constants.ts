@@ -217,9 +217,6 @@ export const KEYHOLE_FADE_WIDTH = 32;
  * (naturalHeight < stripHeight, e.g. 1200×80) projects to a phantom
  * upscaled width (1800), causing the popover to render too wide and then
  * pop narrower once the real keyhole measures in.
- *
- * Returns `null` for non-positive or non-finite dimensions so callers can
- * fall back to a measured width.
  */
 export function projectKeyholeDisplayedWidth(
   dimensions: { width: number; height: number } | null | undefined,
