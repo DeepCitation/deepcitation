@@ -1257,6 +1257,35 @@ describe("CitationComponent behaviorConfig", () => {
       expect(actualHighlights.length).toBeGreaterThan(0);
     });
 
+    it("highlights anchor inside the snippet in the no-image fallback view", async () => {
+      // Iter 23 polish: PopoverFallbackView (verified citation, no evidence
+      // image) used to render the snippet as flat text via normalizeSnippetText.
+      // The reader saw the broader phrase but never saw the anchor highlighted
+      // inside it — breaking the display→popover→evidence threading the
+      // expanded view (ClaimQuote) already provided. The fallback now uses
+      // HighlightedPhrase too, mirroring the main path.
+      const { container } = render(
+        <CitationComponent citation={baseCitation} verification={verificationWithoutImage} />,
+      );
+
+      const trigger = container.querySelector("[data-citation-id]");
+      await act(async () => {
+        fireEvent.click(trigger as HTMLElement);
+      });
+      await waitForPopoverVisible(container);
+
+      // ANCHOR_HIGHLIGHT_STYLE: borderRadius: "2px", padding: "0 1px"
+      // The fallback popover renders inside the open popover container
+      // (CitationDrawer/Popover may rely on portal — search document scope,
+      // mirroring the verified-status test above).
+      const highlightedElements = document.querySelectorAll("span[style*='border-radius']");
+      const actualHighlights = Array.from(highlightedElements).filter(el => {
+        const style = (el as HTMLElement).style;
+        return style.borderRadius === "2px" && style.padding === "0px 1px";
+      });
+      expect(actualHighlights.length).toBeGreaterThan(0);
+    });
+
     it("should not highlight when anchorText is missing", async () => {
       const citationWithoutAnchor: Citation = {
         ...baseCitation,

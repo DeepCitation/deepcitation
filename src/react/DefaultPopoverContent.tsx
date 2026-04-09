@@ -694,7 +694,20 @@ function PopoverFallbackView({
         )}
         {hasSnippet && (
           <q className="border-l border-dc-border pl-1.5 ml-0.5 text-sm text-dc-foreground" style={{ quotes: "none" }}>
-            {normalizeSnippetText(hasSnippet, citation.fullPhrase ?? verification?.verifiedFullPhrase)}
+            {/*
+              Iter 23 polish: highlight the anchor inside the snippet so the
+              fallback popover threads display→popover→evidence the same way
+              the main path's ClaimQuote does. The snippet (verifiedMatchSnippet)
+              is what the API actually found in the PDF, so we use it as the
+              phrase and let HighlightedPhrase locate the anchor inside it.
+              normalizeSnippetText still cleans OCR-collapsed spacing using
+              the agent's fullPhrase as a reference template.
+            */}
+            <HighlightedPhrase
+              fullPhrase={normalizeSnippetText(hasSnippet, citation.fullPhrase ?? verification?.verifiedFullPhrase)}
+              anchorText={citation.anchorText}
+              isMiss={status.isMiss}
+            />
           </q>
         )}
         {displayLabel && displayLabel !== citation.anchorText?.toString() && (
