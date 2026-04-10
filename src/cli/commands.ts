@@ -1231,14 +1231,15 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   //     auto-followed by verify. Surface a banner so the user knows the
   //     citations are anchored to the report's own text, not the linked
   //     evidence — preventing silent cyclical-evidence failures.
-  let unfollowedLocalLinks: string[] = [];
+  const unfollowedLocalLinks: string[] = [];
   if (htmlPath) {
     const sourceDirAbs = dirname(resolve(htmlPath));
-    const hrefRe = /<a\s+[^>]*href="([^"]+)"/gi;
+    // Match href="...", href='...', and unquoted href=value (up to whitespace or >).
+    const hrefRe = /<a\s+[^>]*href\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi;
     const seen = new Set<string>();
     let am: RegExpExecArray | null;
     while ((am = safeExec(hrefRe, raw)) !== null) {
-      const href = am[1];
+      const href = am[1] ?? am[2] ?? am[3] ?? "";
       // Skip absolute URLs, anchors, mailto/tel/javascript, data URIs
       if (/^[a-z][a-z0-9+.-]*:/i.test(href)) continue;
       if (href.startsWith("#") || href.startsWith("?") || href.trim() === "") continue;
@@ -1265,7 +1266,13 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   // avoid relying on stylesheet load order.
   if (unfollowedLocalLinks.length > 0) {
     const count = unfollowedLocalLinks.length;
-    const preview = unfollowedLocalLinks.slice(0, 5).map(p => `<code style="background:#FEF3C7;padding:1px 4px;border-radius:3px;">${p.replace(/[<>&"]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c] ?? c))}</code>`).join(", ");
+    const preview = unfollowedLocalLinks
+      .slice(0, 5)
+      .map(
+        p =>
+          `<code style="background:#FEF3C7;padding:1px 4px;border-radius:3px;">${p.replace(/[<>&"']/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" })[c] ?? c)}</code>`,
+      )
+      .join(", ");
     const more = count > 5 ? ` <em>(and ${count - 5} more)</em>` : "";
     const banner = `<div role="alert" style="margin:0 0 1rem;padding:0.85rem 1rem;background:#FEF3C7;border:1px solid #F59E0B;border-left:4px solid #F59E0B;border-radius:6px;font-size:13px;line-height:1.5;color:#78350F;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"><strong>⚠ Unfollowed evidence links.</strong> This report cites against the source HTML's own text, but the source links to <strong>${count}</strong> local file${count === 1 ? "" : "s"} that were <strong>not</strong> ingested as evidence: ${preview}${more}. To verify against those files, run <code style="background:#FEF3C7;padding:1px 4px;border-radius:3px;">npx deepcitation prepare</code> on each one and re-run verify with all attachmentIds. Otherwise, citations are anchored to the report itself — not to the underlying evidence.</div>`;
     if (output.includes("<body")) {
