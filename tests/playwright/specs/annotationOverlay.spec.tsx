@@ -11,8 +11,8 @@ import type { PageImage, Verification } from "../../../src/types/verification";
 const baseCitation: Citation = {
   type: "document",
   citationNumber: 1,
-  anchorText: "Functional status",
-  fullPhrase: "Functional status: He is at baseline, no assistance needed, independent ADLs",
+  sourceMatch: "Functional status",
+  sourceContext: "Functional status: He is at baseline, no assistance needed, independent ADLs",
   pageNumber: 5,
   attachmentId: "att-annotation-overlay",
 };
@@ -51,17 +51,17 @@ const ANCHOR_ITEM: DeepTextItem = {
   text: "Functional status",
 };
 
-// Verification with phraseMatchDeepItem, anchorTextMatchDeepItems, and renderScale.
+// Verification with phraseMatchDeepItem, sourceMatchDeepItems, and renderScale.
 const verificationWithAnnotation: Verification = {
   status: "found",
   verifiedMatchSnippet: "Functional status: He is at baseline",
-  verifiedAnchorText: "Functional status",
-  verifiedFullPhrase: "Functional status: He is at baseline, no assistance needed, independent ADLs",
+  verifiedSourceMatch: "Functional status",
+  verifiedSourceContext: "Functional status: He is at baseline, no assistance needed, independent ADLs",
   attachmentId,
   document: {
     verifiedPageNumber: 5,
     phraseMatchDeepItem: PHRASE_ITEM,
-    anchorTextMatchDeepItems: [ANCHOR_ITEM],
+    sourceMatchDeepItems: [ANCHOR_ITEM],
     renderScale: { x: 1, y: 1 },
   },
   evidence: {
@@ -73,13 +73,13 @@ const verificationWithAnnotation: Verification = {
 const verificationNoRenderScale: Verification = {
   status: "found",
   verifiedMatchSnippet: "Functional status: He is at baseline",
-  verifiedAnchorText: "Functional status",
-  verifiedFullPhrase: "Functional status: He is at baseline, no assistance needed, independent ADLs",
+  verifiedSourceMatch: "Functional status",
+  verifiedSourceContext: "Functional status: He is at baseline, no assistance needed, independent ADLs",
   attachmentId,
   document: {
     verifiedPageNumber: 5,
     phraseMatchDeepItem: PHRASE_ITEM,
-    anchorTextMatchDeepItems: [ANCHOR_ITEM],
+    sourceMatchDeepItems: [ANCHOR_ITEM],
   },
   evidence: {
     src: tallImageBase64,
@@ -164,7 +164,7 @@ test.describe("Annotation Overlay — rendering", () => {
     await expect(overlay.locator("[data-dc-bracket-right]")).toBeVisible();
   });
 
-  test("anchor highlight renders when fullPhrase has enough words beyond anchorText", async ({
+  test("anchor highlight renders when sourceContext has enough words beyond sourceMatch", async ({
     mount,
     page,
   }) => {

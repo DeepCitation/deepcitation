@@ -312,7 +312,7 @@ export class DeepCitation {
     if (Array.isArray(citations)) {
       for (const c of citations) citationMap[getCitationKey(c)] = c;
     } else if (typeof citations === "object" && citations !== null) {
-      if ("sourceContext" in citations || "sourceContext" in citations || "value" in citations) {
+      if ("sourceContext" in citations || "sourceMatch" in citations || "value" in citations) {
         const key = getCitationKey(citations as Citation);
         citationMap[key] = citations as Citation;
       } else {

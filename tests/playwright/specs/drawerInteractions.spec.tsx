@@ -47,8 +47,8 @@ function makeCitation(overrides: Partial<Citation> & { pageNumber: number }): Ci
   return {
     type: "document",
     citationNumber: 1,
-    anchorText: "test anchor text",
-    fullPhrase: "The document states test anchor text in the context of verification.",
+    sourceMatch: "test anchor text",
+    sourceContext: "The document states test anchor text in the context of verification.",
     lineIds: [10, 11],
     ...overrides,
   };
@@ -71,7 +71,7 @@ function makeVerification(page: number, status: "found" | "not_found" = "found")
 function makeItem(page: number, key: string, phrase: string, anchor: string): CitationDrawerItem {
   return {
     citationKey: key,
-    citation: makeCitation({ pageNumber: page, fullPhrase: phrase, anchorText: anchor, citationNumber: 1 }),
+    citation: makeCitation({ pageNumber: page, sourceContext: phrase, sourceMatch: anchor, citationNumber: 1 }),
     verification: makeVerification(page),
   };
 }

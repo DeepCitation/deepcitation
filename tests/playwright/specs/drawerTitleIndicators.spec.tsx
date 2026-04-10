@@ -17,8 +17,8 @@ function makeCitation(overrides: Partial<Citation>): Citation {
   return {
     type: "document",
     citationNumber: 1,
-    anchorText: "test anchor",
-    fullPhrase: "The document states test anchor in context.",
+    sourceMatch: "test anchor",
+    sourceContext: "The document states test anchor in context.",
     lineIds: [1],
     ...overrides,
   };
@@ -40,7 +40,7 @@ function makeVerification(page: number): Verification {
 function makeItem(key: string, page: number, anchor: string): CitationDrawerItem {
   return {
     citationKey: key,
-    citation: makeCitation({ pageNumber: page, anchorText: anchor }),
+    citation: makeCitation({ pageNumber: page, sourceMatch: anchor }),
     verification: makeVerification(page),
   };
 }

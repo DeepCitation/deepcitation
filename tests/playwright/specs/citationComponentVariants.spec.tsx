@@ -9,14 +9,14 @@ import type { Verification } from "../../../src/types/verification";
 
 const baseCitation: Citation = {
   citationNumber: 42,
-  anchorText: "25% revenue growth",
-  fullPhrase: "The company reported 25% revenue growth in Q4",
+  sourceMatch: "25% revenue growth",
+  sourceContext: "The company reported 25% revenue growth in Q4",
   pageNumber: 5,
 };
 
 const citationWithoutAnchorText: Citation = {
   citationNumber: 7,
-  fullPhrase: "Some important fact from the document",
+  sourceContext: "Some important fact from the document",
   pageNumber: 3,
 };
 
@@ -54,12 +54,12 @@ const pendingVerification: Verification = {
 // =============================================================================
 
 test.describe("CitationComponent - Brackets Variant", () => {
-  test("renders anchorText in brackets by default", async ({ mount, page }) => {
+  test("renders sourceMatch in brackets by default", async ({ mount, page }) => {
     await mount(<CitationComponent citation={baseCitation} variant="brackets" />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
-    // brackets variant defaults to anchorText content
+    // brackets variant defaults to sourceMatch content
     await expect(citation).toContainText("[25% revenue growth");
     await expect(citation).toContainText("]");
   });
@@ -71,8 +71,8 @@ test.describe("CitationComponent - Brackets Variant", () => {
     await expect(citation).toContainText("42");
   });
 
-  test("shows anchorText when content is anchorText", async ({ mount, page }) => {
-    await mount(<CitationComponent citation={baseCitation} variant="brackets" content="anchorText" />);
+  test("shows sourceMatch when content is sourceMatch", async ({ mount, page }) => {
+    await mount(<CitationComponent citation={baseCitation} variant="brackets" content="sourceMatch" />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toContainText("25% revenue growth");
@@ -83,7 +83,7 @@ test.describe("CitationComponent - Brackets Variant", () => {
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
-    // brackets variant defaults to anchorText content
+    // brackets variant defaults to sourceMatch content
     await expect(citation).toContainText("25% revenue growth");
   });
 
@@ -133,12 +133,12 @@ test.describe("CitationComponent - Superscript Variant", () => {
 // =============================================================================
 
 test.describe("CitationComponent - Text Variant", () => {
-  test("renders anchorText by default", async ({ mount, page }) => {
+  test("renders sourceMatch by default", async ({ mount, page }) => {
     await mount(<CitationComponent citation={baseCitation} variant="text" />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
-    // Should show anchorText
+    // Should show sourceMatch
     await expect(citation).toContainText("25% revenue growth");
   });
 
@@ -149,11 +149,11 @@ test.describe("CitationComponent - Text Variant", () => {
     await expect(citation).toBeVisible();
   });
 
-  test("falls back to citation number when no anchorText", async ({ mount, page }) => {
+  test("falls back to citation number when no sourceMatch", async ({ mount, page }) => {
     await mount(<CitationComponent citation={citationWithoutAnchorText} variant="text" />);
     const citation = page.locator("[data-citation-id]");
 
-    // Should fall back to citation number since no anchorText
+    // Should fall back to citation number since no sourceMatch
     await expect(citation).toContainText("7");
   });
 });
@@ -188,7 +188,7 @@ test.describe("CitationComponent - Linter Variant", () => {
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
-    // Linter variant defaults to anchorText content
+    // Linter variant defaults to sourceMatch content
     await expect(citation).toContainText("25% revenue growth");
 
     // The linter styles are on a nested span inside the citation wrapper
@@ -270,11 +270,11 @@ test.describe("CitationComponent - All Variants Visual", () => {
           <CitationComponent citation={baseCitation} variant="brackets" verification={verifiedVerification} />
         </div>
         <div>
-          <strong>Brackets with anchorText:</strong>{" "}
+          <strong>Brackets with sourceMatch:</strong>{" "}
           <CitationComponent
             citation={baseCitation}
             variant="brackets"
-            content="anchorText"
+            content="sourceMatch"
             verification={verifiedVerification}
           />
         </div>
@@ -414,7 +414,7 @@ test.describe("CitationComponent - Popover", () => {
 
     const citation = page.locator("[data-citation-id]");
     await expect(citation).toBeVisible();
-    // brackets variant defaults to anchorText content
+    // brackets variant defaults to sourceMatch content
     await expect(citation).toContainText("25% revenue growth");
   });
 

@@ -62,9 +62,9 @@ test.describe("Annotation Overlay Drawing — elements", () => {
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
-          anchorTextDeepItems={[ANCHOR_ITEM]}
-          anchorText="Functional status"
-          fullPhrase="Functional status: He is at baseline, no assistance needed, independent ADLs"
+          sourceMatchDeepItems={[ANCHOR_ITEM]}
+          sourceMatch="Functional status"
+          sourceContext="Functional status: He is at baseline, no assistance needed, independent ADLs"
         />
       </div>,
     );
@@ -408,9 +408,9 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
-          anchorTextDeepItems={[ANCHOR_ITEM]}
-          anchorText="Functional status"
-          fullPhrase="Functional status: He is at baseline, no assistance needed, independent ADLs"
+          sourceMatchDeepItems={[ANCHOR_ITEM]}
+          sourceMatch="Functional status"
+          sourceContext="Functional status: He is at baseline, no assistance needed, independent ADLs"
         />
       </div>,
     );
@@ -433,9 +433,9 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
-          anchorTextDeepItems={[ANCHOR_ITEM]}
-          anchorText="Functional status"
-          fullPhrase="Functional status: He is at baseline, no assistance needed, independent ADLs"
+          sourceMatchDeepItems={[ANCHOR_ITEM]}
+          sourceMatch="Functional status"
+          sourceContext="Functional status: He is at baseline, no assistance needed, independent ADLs"
         />
       </div>,
     );
@@ -456,7 +456,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
     expect(styles.height).toBe("1.25%");
   });
 
-  test("anchor highlight shown when anchorText and fullPhrase are identical text", async ({
+  test("anchor highlight shown when sourceMatch and sourceContext are identical text", async ({
     mount,
     page,
   }) => {
@@ -472,14 +472,14 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
-          anchorTextDeepItems={[sameTextAnchor]}
-          anchorText="Functional status"
-          fullPhrase="Functional status" // same as anchorText — still shown
+          sourceMatchDeepItems={[sameTextAnchor]}
+          sourceMatch="Functional status"
+          sourceContext="Functional status" // same as sourceMatch — still shown
         />
       </div>,
     );
 
-    // Always show anchor highlight when both anchorText and fullPhrase are non-empty
+    // Always show anchor highlight when both sourceMatch and sourceContext are non-empty
     await expect(page.locator("[data-dc-anchor-highlight]")).toHaveCount(1);
   });
 
@@ -496,18 +496,18 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
-          anchorTextDeepItems={[shortAnchor]}
-          anchorText="Functional status"
-          fullPhrase="Functional status is" // 3 words vs 2 — still shown
+          sourceMatchDeepItems={[shortAnchor]}
+          sourceMatch="Functional status"
+          sourceContext="Functional status is" // 3 words vs 2 — still shown
         />
       </div>,
     );
 
-    // Always show anchor highlight when both anchorText and fullPhrase are non-empty
+    // Always show anchor highlight when both sourceMatch and sourceContext are non-empty
     await expect(page.locator("[data-dc-anchor-highlight]")).toHaveCount(1);
   });
 
-  test("anchor highlight hidden when no anchorTextDeepItems is provided", async ({
+  test("anchor highlight hidden when no sourceMatchDeepItems is provided", async ({
     mount,
     page,
   }) => {
@@ -518,13 +518,13 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
-          anchorText="Functional status"
-          fullPhrase="Functional status: He is at baseline, no assistance needed, independent ADLs"
+          sourceMatch="Functional status"
+          sourceContext="Functional status: He is at baseline, no assistance needed, independent ADLs"
         />
       </div>,
     );
 
-    // No anchorTextDeepItems → computeKeySpanHighlight has no items to compare
+    // No sourceMatchDeepItems → computeKeySpanHighlight has no items to compare
     await expect(page.locator("[data-dc-anchor-highlight]")).toHaveCount(0);
   });
 });

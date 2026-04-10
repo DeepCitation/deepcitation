@@ -10,8 +10,8 @@ import type { Verification } from "../../../src/types/verification";
 
 const baseCitation: Citation = {
   citationNumber: 1,
-  anchorText: "Functional status",
-  fullPhrase: "Functional status: He is at baseline, no assistance needed, independent ADLs",
+  sourceMatch: "Functional status",
+  sourceContext: "Functional status: He is at baseline, no assistance needed, independent ADLs",
   pageNumber: 5,
 };
 

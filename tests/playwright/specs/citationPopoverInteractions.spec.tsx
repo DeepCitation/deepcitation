@@ -10,8 +10,8 @@ import type { Verification } from "../../../src/types/verification";
 const baseCitation: Citation = {
   attachmentId: "att-popover-1",
   citationNumber: 1,
-  anchorText: "25% revenue growth",
-  fullPhrase: "The company reported 25% revenue growth in Q4",
+  sourceMatch: "25% revenue growth",
+  sourceContext: "The company reported 25% revenue growth in Q4",
   pageNumber: 5,
   lineIds: [12, 13],
 };

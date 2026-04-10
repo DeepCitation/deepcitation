@@ -7,8 +7,8 @@ const baseCitation: Citation = {
   type: "document",
   attachmentId: "att-generated-image",
   citationNumber: 1,
-  anchorText: "Functional status",
-  fullPhrase: "Functional status: He is at baseline, no assistance needed, independent ADLs",
+  sourceMatch: "Functional status",
+  sourceContext: "Functional status: He is at baseline, no assistance needed, independent ADLs",
   pageNumber: 5,
 };
 

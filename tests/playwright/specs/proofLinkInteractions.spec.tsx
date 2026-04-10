@@ -12,8 +12,8 @@ const attachmentId = "test-attachment-123";
 const documentCitation: Citation = {
   type: "document",
   citationNumber: 1,
-  anchorText: "25% revenue growth",
-  fullPhrase: "The company reported 25% revenue growth in Q4",
+  sourceMatch: "25% revenue growth",
+  sourceContext: "The company reported 25% revenue growth in Q4",
   pageNumber: 5,
   lineIds: [12, 13],
   attachmentId,

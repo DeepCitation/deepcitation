@@ -7,8 +7,8 @@ const baseCitation: Citation = {
   type: "document",
   attachmentId: "att-page-expand-geometry",
   citationNumber: 1,
-  anchorText: "Collision installation",
-  fullPhrase:
+  sourceMatch: "Collision installation",
+  sourceContext:
     'At YC we use the term "Collision installation" for the technique they invented. More diffident founders ask "Will you try our beta?"',
   pageNumber: 5,
 };
@@ -52,8 +52,8 @@ export function PageExpandGeometryCitation() {
       status: "found",
       attachmentId: "att-page-expand-geometry",
       verifiedMatchSnippet: 'At YC we use the term "Collision installation" for the technique they invented.',
-      verifiedAnchorText: "Collision installation",
-      verifiedFullPhrase:
+      verifiedSourceMatch: "Collision installation",
+      verifiedSourceContext:
         'At YC we use the term "Collision installation" for the technique they invented. More diffident founders ask "Will you try our beta?"',
       document: {
         verifiedPageNumber: 5,
@@ -64,7 +64,7 @@ export function PageExpandGeometryCitation() {
           height: 34,
           text: 'At YC we use the term "Collision installation" for the technique they invented.',
         },
-        anchorTextMatchDeepItems: [
+        sourceMatchDeepItems: [
           {
             x: 330,
             y: 1280,

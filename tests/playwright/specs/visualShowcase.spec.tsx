@@ -38,7 +38,7 @@ test.describe("Visual Showcase - Desktop", () => {
   test("content types section renders all types", async ({ mount, page }) => {
     await mount(<VisualShowcase />);
 
-    for (const content of ["number", "anchorText", "indicator"]) {
+    for (const content of ["number", "sourceMatch", "indicator"]) {
       const section = page.locator(`[data-content-type="${content}"]`);
       await expect(section).toBeVisible();
     }
