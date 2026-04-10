@@ -8,6 +8,8 @@ export interface CitationDrawerItem {
   citation: Citation;
   verification: Verification | null;
   page?: PageImage | null;
+  /** The text as it appeared in the asserting document (Domain A). When different from sourceMatch, triggers a variance annotation. */
+  claimText?: string;
 }
 
 /** Group of citations from the same source (for "+N" display). */

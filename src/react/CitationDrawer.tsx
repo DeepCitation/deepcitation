@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { CitationStatus } from "../types/citation.js";
+import { buildIntentSummary } from "../analysis/intent.js";
+import { type CitationStatus, isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
 import type {
   CitationDrawerItem,
@@ -42,8 +43,15 @@ import { useDrawerDragToClose } from "./hooks/useDrawerDragToClose.js";
 import { type TranslateFunction, tPlural, useTranslation } from "./i18n.js";
 import { DocumentIcon } from "./icons.js";
 import { getBlinkRowMotionStyle } from "./motion/blinkAnimation.js";
+import { SnippetZone } from "./SnippetZone.js";
 import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
 import type { IndicatorVariant } from "./types.js";
+import {
+  getUrlAccessExplanation,
+  mapSearchStatusToFetchStatus,
+  mapUrlAccessStatusToFetchStatus,
+  UrlAccessExplanationSection,
+} from "./urlAccessExplanation.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";
 
@@ -258,7 +266,7 @@ function SourceGroupHeader({
 
   return (
     <div
-      className="w-full px-4 py-2.5 flex items-center gap-2.5 bg-dc-muted border-b border-dc-border"
+      className="w-full px-4 py-2 flex items-center gap-2.5 bg-dc-muted border-b border-dc-border"
       role="heading"
       aria-level={3}
       aria-label={sourceAriaLabel}
@@ -421,6 +429,24 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     [statusCategory],
   );
 
+  // URL access explanation — colored banner for blocked/error states
+  const urlAccessExplanation = useMemo(() => {
+    if (!isUrlCitation(citation)) return null;
+    const urlAccessStatus = verification?.url?.urlAccessStatus;
+    const errorMsg = verification?.url?.urlVerificationError;
+    const fetchStatus = urlAccessStatus
+      ? mapUrlAccessStatusToFetchStatus(urlAccessStatus, errorMsg)
+      : mapSearchStatusToFetchStatus(verification?.status);
+    return getUrlAccessExplanation(fetchStatus, errorMsg, t);
+  }, [citation, verification, t]);
+
+  // Closest-match snippets for partial/miss states
+  const intentSnippets = useMemo(() => {
+    if (isUrlCitation(citation)) return [];
+    const summary = buildIntentSummary(verification ?? null, verification?.searchAttempts ?? []);
+    return summary?.outcome === "related_found" ? summary.snippets : [];
+  }, [citation, verification]);
+
   // Derive effective keyhole state: when collapsed, always null (prevents stale
   // keyhole from re-showing on external collapse like Escape key). When expanded
   // again via handleClick, the state is already cleared by the click handler.
@@ -547,26 +573,21 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           <div className="overflow-hidden" style={{ minHeight: 0 }}>
             <div
               className={cn(
-                "ml-[25px] border-l-2 border-t border-dc-border",
+                "ml-[calc(1rem+10px)] border-l-2 border-t border-dc-border",
                 statusBorderColor,
                 wasAutoExpanded && isNotFound && "animate-[dc-pulse-once_800ms_ease-out]",
               )}
               onAnimationEnd={() => setWasAutoExpanded(false)}
             >
-              {/* Evidence area: keyhole for found, thumbnail+analysis for miss */}
-              {effectiveKeyholeSrc ? (
-                <InlineExpandedImage
-                  src={effectiveKeyholeSrc}
-                  onCollapse={() => {
-                    setInlineKeyholeSrc(null);
-                    setInlineKeyholeInitialScroll(null);
-                  }}
-                  onExpand={pageImageSrc ? handleExpandToPage : undefined}
-                  verification={verification ?? undefined}
-                  initialScroll={effectiveKeyholeScroll ?? undefined}
-                  pageNumberForCta={itemPageNumber}
-                />
-              ) : (
+              {/* URL access failure banner */}
+              {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
+              {/* Closest-match snippets for partial/miss states */}
+              {(isNotFound || citationStatus.isPartialMatch) && !urlAccessExplanation && intentSnippets.length > 0 && (
+                <SnippetZone snippets={intentSnippets} />
+              )}
+              {/* Evidence area — always-render both slots to keep hook tree stable (React 19 fiber safety) */}
+              {/* Slot A: EvidenceTray — hidden when keyhole is expanded */}
+              <div style={effectiveKeyholeSrc ? { display: "none" } : undefined}>
                 <EvidenceTray
                   verification={verification ?? null}
                   status={citationStatus}
@@ -576,6 +597,28 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                   pageNumberForCta={itemPageNumber}
                   onScrollCapture={(left, top) => setInlineKeyholeInitialScroll({ left, top })}
                 />
+              </div>
+              {/* Slot B: InlineExpandedImage — hidden when keyhole is collapsed */}
+              {evidenceSrc && (
+                <div style={!effectiveKeyholeSrc ? { display: "none" } : undefined}>
+                  <InlineExpandedImage
+                    src={effectiveKeyholeSrc || evidenceSrc}
+                    onCollapse={() => {
+                      setInlineKeyholeSrc(null);
+                      setInlineKeyholeInitialScroll(null);
+                    }}
+                    onExpand={pageImageSrc ? handleExpandToPage : undefined}
+                    verification={verification ?? undefined}
+                    initialScroll={effectiveKeyholeScroll ?? undefined}
+                    pageNumberForCta={itemPageNumber}
+                  />
+                </div>
+              )}
+              {/* Variance annotation — shown when claimText differs from sourceMatch */}
+              {item.claimText && sourceMatch && item.claimText !== sourceMatch && (
+                <div className="px-4 py-2 text-xs text-dc-subtle-foreground border-t border-dc-border">
+                  {t("popover.displayedAs", { label: item.claimText })}
+                </div>
               )}
             </div>
           </div>
@@ -754,59 +797,6 @@ function DrawerSourceGroup({
           );
         })}
       </div>
-    </div>
-  );
-}
-
-// =========
-// DrawerSourceHeading — favicon + name label for the drawer header
-// =========
-
-/**
- * Drawer header source label — renders the same text as CitationDrawerTrigger
- * (favicon/letter avatar + generateDefaultLabel output) so heading and trigger
- * always agree regardless of how sourceName is set.
- */
-function DrawerSourceHeading({
-  citationGroups,
-  label,
-  fallbackTitle,
-}: {
-  citationGroups: SourceCitationGroup[];
-  /** Explicit label override — same as CitationDrawerTrigger's `label` prop */
-  label?: string;
-  fallbackTitle: string;
-}) {
-  const t = useTranslation();
-
-  if (citationGroups.length === 0) {
-    return <h2 className="text-base font-semibold text-dc-foreground break-words">{fallbackTitle}</h2>;
-  }
-  const firstGroup = citationGroups[0];
-  // Use the exact same label as CitationDrawerTrigger — generateDefaultLabel handles
-  // truncation and "+N" overflow in one place, ensuring heading and trigger always match.
-  const claimText = label?.trim() || generateDefaultLabel(citationGroups, t);
-  const isUrlSource = !!firstGroup.sourceDomain;
-
-  return (
-    <div className="flex items-center gap-2 min-w-0">
-      {/* Favicon for URL sources, document icon for documents */}
-      <div className="shrink-0">
-        {isUrlSource ? (
-          <FaviconImage
-            faviconUrl={firstGroup.sourceFavicon || null}
-            domain={firstGroup.sourceDomain || null}
-            alt={claimText}
-          />
-        ) : (
-          <span className="w-4 h-4 shrink-0 text-dc-pending">
-            <DocumentIcon />
-          </span>
-        )}
-      </div>
-
-      {/* Source label — identical text to CitationDrawerTrigger */}
-      <h2 className="text-base font-semibold text-dc-foreground">{claimText}</h2>
     </div>
   );
 }
@@ -1250,13 +1240,32 @@ function OpenCitationDrawer({
           </div>
         )}
 
-        {/* Header with summary and view toggle */}
-        <div className={cn("px-4 py-2 shrink-0", !headerInline && "border-b border-dc-border")}>
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="shrink min-w-0 max-w-[80%]">
-              <DrawerSourceHeading citationGroups={resolvedGroups} label={label} fallbackTitle={resolvedTitle} />
-            </div>
-            {/* Status overview icons — always shown when drawer has citations */}
+        {/* Header — single flat flex row: favicon, title, status icons, page badges */}
+        <div className={cn("px-4 py-2.5 shrink-0", !headerInline && "border-b border-dc-border")}>
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Favicon / document icon — inlined from DrawerSourceHeading */}
+            {resolvedGroups.length > 0 && (
+              <div className="shrink-0">
+                {resolvedGroups[0].sourceDomain ? (
+                  <FaviconImage
+                    faviconUrl={resolvedGroups[0].sourceFavicon || null}
+                    domain={resolvedGroups[0].sourceDomain || null}
+                    alt={label?.trim() || generateDefaultLabel(resolvedGroups, t)}
+                  />
+                ) : (
+                  <span className="w-4 h-4 shrink-0 text-dc-pending">
+                    <DocumentIcon />
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Title — truncates, takes available space */}
+            <h2 className="text-sm font-semibold text-dc-foreground truncate min-w-0 flex-1">
+              {resolvedGroups.length > 0 ? label?.trim() || generateDefaultLabel(resolvedGroups, t) : resolvedTitle}
+            </h2>
+
+            {/* Status overview icons */}
             {totalCitations > 0 && indicatorVariant !== "none" && (
               <div className="shrink-0">
                 <StackedStatusIcons
@@ -1274,7 +1283,7 @@ function OpenCitationDrawer({
                       ? flatCitations.findIndex(f => f.item.citationKey === activeIndicatorKey)
                       : null
                   }
-                  iconSize={24}
+                  iconSize={20}
                   iconGap="0.125rem"
                   onPageIndices={onPageIndices}
                 />
@@ -1297,7 +1306,6 @@ function OpenCitationDrawer({
                 ))}
               </div>
             )}
-            <div className="flex-1" />
             {/* Page badges in header only for single-group drawers; multi-group shows them per file header */}
             {isSingleGroup && drawerPages.length > 0 && (
               <div
@@ -1314,22 +1322,6 @@ function OpenCitationDrawer({
                 </div>
               </div>
             )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded hover:bg-dc-muted transition-colors cursor-pointer shrink-0"
-              aria-label={t("action.close")}
-            >
-              <svg
-                className="w-5 h-5 text-dc-subtle-foreground"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
         </div>
         <style>{`.dc-drawer-page-strip::-webkit-scrollbar { display: none; }`}</style>
@@ -1352,13 +1344,13 @@ function OpenCitationDrawer({
                 }}
                 verification={headerInline.verification ?? undefined}
                 renderScale={headerInline.renderScale}
-                initialOverlayHidden
-                showOverlay={activeIndicatorKey !== null}
+                initialOverlayHidden={false}
+                showOverlay={activeIndicatorKey !== null || citationsOnActivePage.length > 0}
                 highlightItem={
                   activeIndicatorKey
                     ? (citationsOnActivePage.find(c => c.citationKey === activeIndicatorKey)?.verification?.document
                         ?.sourceContextDeepItem ?? undefined)
-                    : undefined
+                    : (citationsOnActivePage[0]?.verification?.document?.sourceContextDeepItem ?? undefined)
                 }
                 fill={isFullPage}
               />

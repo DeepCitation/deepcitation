@@ -90,7 +90,7 @@ export function dedupeGroupCitations(groups: SourceCitationGroup[]): SourceCitat
  * Falls back to "Source" if empty.
  *
  * This is the canonical source name computation used by both
- * CitationDrawerTrigger and DrawerSourceHeading. The heading renders
+ * CitationDrawerTrigger and the drawer header. The heading renders
  * the "+N" overflow separately in a styled span, so this function
  * returns only the primary name (no overflow suffix).
  */
