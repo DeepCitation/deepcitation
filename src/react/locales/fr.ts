@@ -17,7 +17,7 @@ export const frOverrides = {
   "status.verifying": "Vérification…",
   "outcome.exactMatch": "Correspondance exacte",
   "outcome.normalizedMatch": "Correspondance normalisée",
-  "outcome.sourceMatchMatch": "Correspondance du texte d'ancrage",
+  "outcome.sourceMatchOnly": "Correspondance du texte source",
   "outcome.partialMatch": "Correspondance partielle",
   "outcome.firstWordMatch": "Correspondance du premier mot",
   "outcome.foundDifferentLocation": "Trouvé à un autre emplacement",

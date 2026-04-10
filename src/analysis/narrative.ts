@@ -189,7 +189,7 @@ function getOutcomeSummary(
         return t("outcome.normalizedMatch");
       case "exact_source_match":
       case "normalized_source_match":
-        return t("outcome.sourceMatchMatch");
+        return t("outcome.sourceMatchOnly");
       case "partial_source_context":
       case "partial_source_match":
         return t("outcome.partialMatch");
@@ -205,7 +205,7 @@ function getOutcomeSummary(
     case "found_context_missed_source_match":
       return t("outcome.exactMatch");
     case "found_source_match_only":
-      return t("outcome.sourceMatchMatch");
+      return t("outcome.sourceMatchOnly");
     case "found_on_other_page":
     case "found_on_other_line":
       return t("outcome.foundDifferentLocation");

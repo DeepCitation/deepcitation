@@ -44,15 +44,7 @@ const FIELD_ALIAS_MAP: Record<string, readonly string[]> = {
     "start_page",
     "start-page",
   ],
-  sourceContext: [
-    "source_context",
-    "source-context",
-    "fullPhrase",
-    "full_phrase",
-    "full-phrase",
-    "phrase",
-    "full",
-  ],
+  sourceContext: ["source_context", "source-context", "fullPhrase", "full_phrase", "full-phrase", "phrase", "full"],
   sourceMatch: [
     "source_match",
     "source-match",

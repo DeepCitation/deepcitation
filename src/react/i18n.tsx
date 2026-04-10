@@ -77,7 +77,7 @@ export const defaultMessages = {
   // ── Outcome labels ─────────────────────────────────────────────
   "outcome.exactMatch": "Exact match",
   "outcome.normalizedMatch": "Normalized match",
-  "outcome.sourceMatchMatch": "Anchor text match",
+  "outcome.sourceMatchOnly": "Source text match",
   "outcome.partialMatch": "Partial match",
   "outcome.firstWordMatch": "First word match",
   "outcome.foundDifferentLocation": "Found at different location",

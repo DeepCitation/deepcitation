@@ -17,7 +17,7 @@ export const esOverrides = {
   "status.verifying": "Verificando…",
   "outcome.exactMatch": "Coincidencia exacta",
   "outcome.normalizedMatch": "Coincidencia normalizada",
-  "outcome.sourceMatchMatch": "Coincidencia de texto ancla",
+  "outcome.sourceMatchOnly": "Coincidencia de texto fuente",
   "outcome.partialMatch": "Coincidencia parcial",
   "outcome.firstWordMatch": "Coincidencia de primera palabra",
   "outcome.foundDifferentLocation": "Encontrado en una ubicación diferente",

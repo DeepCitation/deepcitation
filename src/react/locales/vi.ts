@@ -17,7 +17,7 @@ export const viOverrides = {
   "status.verifying": "Đang xác minh…",
   "outcome.exactMatch": "Khớp chính xác",
   "outcome.normalizedMatch": "Khớp đã chuẩn hóa",
-  "outcome.sourceMatchMatch": "Khớp văn bản neo",
+  "outcome.sourceMatchOnly": "Khớp văn bản nguồn",
   "outcome.partialMatch": "Khớp một phần",
   "outcome.firstWordMatch": "Khớp từ đầu tiên",
   "outcome.foundDifferentLocation": "Tìm thấy ở vị trí khác",
