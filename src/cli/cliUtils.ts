@@ -9,7 +9,8 @@ import { join } from "node:path";
 import { IS_COWORK } from "../auth.js";
 import { PaymentRequiredError } from "../client/errors.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
-import { safeMatch } from "../utils/regexSafety.js";
+import { safeMatch, safeReplace } from "../utils/regexSafety.js";
+import { TimeoutError } from "./proxy.js";
 
 // ── constants ─────────────────────────────────────────────────────
 
@@ -52,8 +53,16 @@ export function parseArgs(argv: string[], help: string): Record<string, string> 
 /**
  * Wrap a network error with actionable hints for the CLI user.
  * `baseUrl` is the login/billing base URL (e.g. "https://deepcitation.com").
+ *
+ * For TimeoutError (transport-layer hangs caught by createProxyFetch's
+ * per-phase timeouts), emits a structured multi-line block plus a final
+ * `__DC_ERROR__ {...}` JSON marker line that agent-driven callers can
+ * parse to short-circuit their recovery loops.
  */
 export function formatNetworkError(err: unknown, baseUrl: string): string {
+  if (err instanceof TimeoutError) {
+    return formatTimeoutError(err);
+  }
   if (err instanceof PaymentRequiredError) {
     return [
       `\nPayment required: ${sanitizeForLog(err.message)}`,
@@ -80,6 +89,59 @@ export function formatNetworkError(err: unknown, baseUrl: string): string {
     return `Network error: ${msg}.${proxyHint}`;
   }
   return msg;
+}
+
+/**
+ * Format a TimeoutError as a multi-line message for humans plus a final
+ * single-line `__DC_ERROR__ {...}` JSON marker that agents can grep for.
+ *
+ * The "Do NOT" block is intentionally explicit so an LLM agent reading the
+ * stderr output recognizes that workaround attempts (npm install undici,
+ * NO_PROXY, smaller payloads, etc.) cannot help and will waste time.
+ */
+function formatTimeoutError(err: TimeoutError): string {
+  const overallSec = Math.round(parseInt(process.env.DC_REQUEST_TIMEOUT_MS ?? "90000", 10) / 1000);
+  const phaseExplanation: Record<TimeoutError["phase"], string> = {
+    proxy_connect: "could not establish a TCP CONNECT to the proxy",
+    tls_handshake: "completed CONNECT but the TLS handshake stalled",
+    response_headers: "sent the request but the API never began responding",
+    response_idle: "started receiving the response but the connection stalled mid-stream",
+    request_overall: `exceeded the absolute ${overallSec}-second ceiling for the entire request`,
+  };
+
+  const lines: string[] = [
+    `Request to ${err.target} timed out after ${err.elapsedMs}ms (phase: ${err.phase}).`,
+    `Why: ${phaseExplanation[err.phase]}.`,
+    `Proxy: ${sanitizeForLog(safeReplace(err.proxyUrl, /\/\/[^@]+@/, "//***@"))}`,
+  ];
+  if (IS_COWORK) {
+    lines.push(`Environment: Claude Cowork (CLAUDE_CODE_REMOTE=true)`);
+  }
+  lines.push(
+    ``,
+    `This is a TRANSPORT failure, not an API or authentication failure. The CLI's`,
+    `bundled HTTP client could not complete the request through the sandbox proxy.`,
+    `Do NOT:`,
+    `  - install undici, node-fetch, or any other npm package (the CLI is bundled)`,
+    `  - modify HTTP_PROXY / HTTPS_PROXY / NO_PROXY environment variables`,
+    `  - retry with a smaller payload (the request never reached the API)`,
+    `  - background this command with & or wrap it in a polling loop`,
+    ``,
+    `If this persists, share this error verbatim with the user and stop. They may`,
+    `need to contact DeepCitation support or check that *.deepcitation.com is on`,
+    `the sandbox's allowed-domain list.`,
+    ``,
+    `__DC_ERROR__ ${JSON.stringify({
+      type: "timeout",
+      phase: err.phase,
+      elapsedMs: err.elapsedMs,
+      target: err.target,
+      isCowork: IS_COWORK,
+      retryable: false,
+      recoverable: false,
+    })}`,
+  );
+  return lines.join("\n");
 }
 
 // ── validateApiKeyFormat ──────────────────────────────────────────

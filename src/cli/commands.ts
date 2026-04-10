@@ -46,6 +46,7 @@ import { cleanDeepTextPage } from "../utils/textCleanup.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import {
+  autoFixDisplayLabels,
   escapeJsForScript,
   escapeJsonForScript,
   injectCdnRuntime,
@@ -266,17 +267,27 @@ export async function requireAuth(): Promise<ResolvedAuth> {
   const isInteractive = !process.env.DC_NON_INTERACTIVE && (process.stdin.isTTY || !!process.env.MSYSTEM);
   if (!isInteractive) {
     // Non-interactive (CI, piped stdin, AI agent) — browser OAuth won't work.
-    // Print actionable instructions and exit so commands fail fast with clear guidance.
-    console.error("DeepCitation — action needed: no credentials found.\n");
+    // Print actionable, recoverable instructions and exit non-zero so the caller
+    // can surface the recovery flow to the user instead of treating this as a
+    // hard blocker. See plans/verify-qa.md §2.0 and verify/SKILL.md Step 1.
+    console.error("DeepCitation — action needed: no credentials found.");
+    console.error("This is recoverable. Follow one of the options below, then re-run the command.\n");
     if (IS_COWORK) {
-      console.error("1. Add *.deepcitation.com to allowed domains: https://claude.ai/settings/capabilities");
-      console.error(`2. Get an API key: ${baseUrl}/cli-auth?manual=true`);
-      console.error("3. Set DEEPCITATION_API_KEY in your Cowork environment settings.");
+      console.error("Cowork environment detected:");
+      console.error("  1. Add *.deepcitation.com to allowed domains: https://claude.ai/settings/capabilities");
+      console.error(`  2. Get an API key: ${baseUrl}/cli-auth?manual=true`);
+      console.error("  3. Set DEEPCITATION_API_KEY in your Cowork environment settings.");
     } else {
-      console.error(`Set DEEPCITATION_API_KEY to authenticate.`);
-      console.error(`  Get a key: ${baseUrl}/cli-auth?manual=true`);
-      console.error("  Or run: npx deepcitation auth --key '<your-key>'");
+      console.error("To authenticate (choose one):");
+      console.error(`  A) Force PTY:     script -q -c "npx -y deepcitation@latest auth" /dev/null`);
+      console.error(`     Works in all Claude Code / AI agent contexts. Allocates a pseudo-TTY`);
+      console.error(`     so browser OAuth runs. No pipes. Timeout ≥180s. Self-sufficient.`);
+      console.error(`  B) Paste a key:   npx deepcitation auth --key '<your-key>'`);
+      console.error(`     Get one at:    ${baseUrl}/cli-auth?manual=true`);
+      console.error(`  C) Env var:       export DEEPCITATION_API_KEY='<your-key>'`);
     }
+    console.error("\nAI agents: option A is self-sufficient — run it yourself, do not stop and ask the user.");
+    console.error("Then retry the exact command that printed this.");
     process.exit(1);
   }
 
@@ -302,11 +313,13 @@ export async function createClient(apiKey: string): Promise<DeepCitation> {
     const safeProxy = sanitizeForLog(proxyUrl.replace(/\/\/[^@]+@/, "//***@"));
     console.error(`Using proxy: ${safeProxy}`);
 
-    // In Cowork, globalThis.fetch does NOT transparently proxy — use undici's
-    // EnvHttpProxyAgent which reads HTTP_PROXY/HTTPS_PROXY from env vars.
+    // In Cowork, route through the same hand-rolled CONNECT tunnel used in
+    // non-Cowork environments. EnvHttpProxyAgent has been observed to hang
+    // indefinitely on JSON POSTs through the Cowork proxy at localhost:3128;
+    // the manual tunnel is deterministic and has explicit per-phase timeouts.
     if (IS_COWORK) {
-      console.error("Cowork session — using undici EnvHttpProxyAgent.");
-      const coworkFetch = await createCoworkFetch();
+      console.error("Cowork session — using manual CONNECT tunnel with timeouts.");
+      const coworkFetch = await createCoworkFetch(proxyUrl);
       return new DeepCitation({ apiKey, fetch: coworkFetch });
     }
 
@@ -625,52 +638,19 @@ export function inject(argv: string[]) {
     console.error("Warning: stripped existing DeepCitation injection before re-injecting.");
   }
 
-  // ── Auto-fix display-label mismatches ────────────────────────────
-  // When an annotated element's visible text differs from its anchorText
-  // and no data-dc-display-label is set, automatically add the attribute.
-  // The CDN reads data-dc-display-label at click time so the popover
-  // trigger shows the visible text rather than the full anchorText.
-  const autoFixLog: string[] = [];
-  const elementRe = /<([a-zA-Z][a-zA-Z0-9]*)[^>]*\sdata-citation-key="([^"]+)"([^>]*)>([\s\S]*?)<\/\1>/g;
-  const fixedHtml = stripped.html.replace(elementRe, (fullMatch, _tag, hashedKey, rest, content) => {
-    // Skip if data-dc-display-label is already set
-    if (/data-dc-display-label=/.test(rest) || /data-dc-display-label=/.test(fullMatch)) return fullMatch;
-    const anchorText: string | undefined = (
-      verifications[hashedKey] as { citation?: { anchorText?: string } } | undefined
-    )?.citation?.anchorText;
-    if (!anchorText) return fullMatch;
-    // Strip inner HTML tags to get approximate visible text.
-    // Loop until stable to handle nested fragments like <scr<script>ipt>.
-    let visibleText = content as string;
-    let prev: string;
-    do {
-      prev = visibleText;
-      visibleText = visibleText.replace(/<[^>]+>/g, "");
-    } while (visibleText !== prev);
-    visibleText = visibleText.trim();
-    if (!visibleText || visibleText.length > 80) return fullMatch;
-    // Auto-fix if visible text does not appear inside anchorText (case-insensitive)
-    if (!anchorText.toLowerCase().includes(visibleText.toLowerCase())) {
-      const escaped = visibleText.replace(/"/g, "&quot;");
-      autoFixLog.push(
-        `  [${hashedKey.slice(0, 8)}…] displayLabel="${visibleText}" anchorText="${anchorText.slice(0, 60)}${anchorText.length > 60 ? "…" : ""}"`,
-      );
-      // Insert data-dc-display-label right after the opening tag name
-      return fullMatch.replace(
-        `data-citation-key="${hashedKey}"`,
-        `data-citation-key="${hashedKey}" data-dc-display-label="${escaped}"`,
-      );
-    }
-    return fullMatch;
-  });
-  if (autoFixLog.length > 0) {
+  // Stamp data-dc-display-label on paraphrase inlines so the popover's
+  // "displayed as" annotation fires for visible text that differs from the
+  // citation's anchorText. Shared with injectCdnRuntime so the verify
+  // --markdown path produces identical HTML.
+  const autoFixed = autoFixDisplayLabels(stripped.html, verifications);
+  if (autoFixed.log.length > 0) {
     console.error(
-      `Auto-set display label on ${autoFixLog.length} element(s) where visible text differs from anchorText:\n` +
-        autoFixLog.join("\n"),
+      `Auto-set display label on ${autoFixed.log.length} element(s) where visible text differs from anchorText:\n` +
+        autoFixed.log.join("\n"),
     );
   }
 
-  let output = fixedHtml;
+  let output = autoFixed.html;
 
   if (output.includes("</body>")) {
     output = output.replace("</body>", () => `${snippet}\n</body>`);
@@ -1008,10 +988,15 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     }
     forwardArgs.push(argv[i]);
   }
-  // Default output: CWD with a clean name (not alongside the draft in .deepcitation/)
+  // Default output: place next to the source file, except when the source is
+  // a temp draft inside `.deepcitation/` — those land in CWD so users don't
+  // have to dig through the cache directory.
   if (!args.out) {
     const stem = basename(resolved, extname(resolved));
-    forwardArgs.push("--out", resolve(process.cwd(), `${stem}-verified.html`));
+    const sourceDir = dirname(resolved);
+    const isDraftDir = /[\\/]\.deepcitation([\\/]|$)/.test(sourceDir);
+    const outDir = isDraftDir ? process.cwd() : sourceDir;
+    forwardArgs.push("--out", resolve(outDir, `${stem}-verified.html`));
   }
 
   return verifyHtml(forwardArgs, fmtNetErr, htmlWithCitations);
@@ -1033,6 +1018,48 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   if (!parsed.success || parsed.citations.length === 0) {
     const src = preloadedContent ? "markdown" : "HTML";
     die(`No valid <<<CITATION_DATA>>> block found in the ${src} file.`, VERIFY_HELP);
+  }
+
+  // 1b. Auto-promote display label to anchor when the model picked two
+  //     different short substrings of the same evidence sentence (one as the
+  //     bold visible text, another as `k`). The bold text is what the reader
+  //     clicks; if it's a valid short anchor, it should drive the highlight.
+  //     Runs BEFORE the API call so the verify search uses the corrected
+  //     anchor.
+  {
+    const spanRe = /<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*data-cite="(\d+)"[^>]*>([\s\S]*?)<\/\1>/g;
+    let m: RegExpExecArray | null;
+    let promoted = 0;
+    while ((m = safeExec(spanRe, parsed.visibleText)) !== null) {
+      const id = parseInt(m[2], 10);
+      // Strip nested HTML tags to get the approximate visible text.
+      let visible = m[3];
+      let prev: string;
+      do {
+        prev = visible;
+        visible = visible.replace(/<[^>]+>/g, "");
+      } while (visible !== prev);
+      visible = visible.replace(/\s+/g, " ").trim();
+      if (!visible) continue;
+
+      const wordCount = visible.split(/\s+/).length;
+      if (wordCount > 4 || visible.length > 40) continue;
+
+      const cd = parsed.citations.find(c => c.id === id);
+      if (!cd) continue;
+      const currentAnchor = (cd.anchor_text ?? "").trim();
+      // Already aligned (case-insensitive)? Nothing to do.
+      if (currentAnchor && currentAnchor.toLowerCase() === visible.toLowerCase()) continue;
+
+      console.error(
+        `  [${id}] auto-promoted display label to anchor: "${visible}" (was "${currentAnchor.slice(0, 40)}${currentAnchor.length > 40 ? "…" : ""}")`,
+      );
+      cd.anchor_text = visible;
+      promoted++;
+    }
+    if (promoted > 0) {
+      console.error(`Auto-promoted ${promoted} citation anchor(s) to match the bolded display text.`);
+    }
   }
 
   const allowedFormats = ["avif", "png", "jpeg", "webp"] as const;
@@ -1198,13 +1225,79 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   const verifications = verifyOutput.verifications;
   reattachPageImages(verifications, mergedAttachments);
 
+  // 4b. Detect unfollowed local-file links in the source HTML. When the user
+  //     verifies an HTML report that links to local evidence files (e.g.
+  //     index.html → communications/email.pdf), those links are NOT
+  //     auto-followed by verify. Surface a banner so the user knows the
+  //     citations are anchored to the report's own text, not the linked
+  //     evidence — preventing silent cyclical-evidence failures.
+  const unfollowedLocalLinks: string[] = [];
+  if (htmlPath) {
+    const sourceDirAbs = dirname(resolve(htmlPath));
+    // Match href="...", href='...', and unquoted href=value (up to whitespace or >).
+    const hrefRe = /<a\s+[^>]*href\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi;
+    const seen = new Set<string>();
+    let am: RegExpExecArray | null;
+    while ((am = safeExec(hrefRe, raw)) !== null) {
+      const href = am[1] ?? am[2] ?? am[3] ?? "";
+      // Skip absolute URLs, anchors, mailto/tel/javascript, data URIs
+      if (/^[a-z][a-z0-9+.-]*:/i.test(href)) continue;
+      if (href.startsWith("#") || href.startsWith("?") || href.trim() === "") continue;
+      // Strip fragment and query
+      const cleanHref = href.split("#")[0].split("?")[0];
+      if (!cleanHref) continue;
+      const candidatePath = resolve(sourceDirAbs, cleanHref);
+      if (seen.has(candidatePath)) continue;
+      seen.add(candidatePath);
+      if (existsSync(candidatePath)) {
+        unfollowedLocalLinks.push(cleanHref);
+      }
+    }
+  }
+
   const injected = injectCdnRuntime(html, verifications, keyMap, { theme, indicatorVariant: indicator });
   if (injected.hadExisting) {
     console.error("Warning: stripped existing DeepCitation injection before re-injecting.");
   }
-  const output = injected.html;
+  let output = injected.html;
 
-  const outPath = resolve(args.out ?? `verified-${ts}.html`);
+  // Inject the unfollowed-links banner just inside <body> so it's the first
+  // thing the reader sees. The banner is plain HTML with inline styles to
+  // avoid relying on stylesheet load order.
+  if (unfollowedLocalLinks.length > 0) {
+    const count = unfollowedLocalLinks.length;
+    const preview = unfollowedLocalLinks
+      .slice(0, 5)
+      .map(
+        p =>
+          `<code style="background:#FEF3C7;padding:1px 4px;border-radius:3px;">${p.replace(/[<>&"']/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" })[c] ?? c)}</code>`,
+      )
+      .join(", ");
+    const more = count > 5 ? ` <em>(and ${count - 5} more)</em>` : "";
+    const banner = `<div role="alert" style="margin:0 0 1rem;padding:0.85rem 1rem;background:#FEF3C7;border:1px solid #F59E0B;border-left:4px solid #F59E0B;border-radius:6px;font-size:13px;line-height:1.5;color:#78350F;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"><strong>⚠ Unfollowed evidence links.</strong> This report cites against the source HTML's own text, but the source links to <strong>${count}</strong> local file${count === 1 ? "" : "s"} that were <strong>not</strong> ingested as evidence: ${preview}${more}. To verify against those files, run <code style="background:#FEF3C7;padding:1px 4px;border-radius:3px;">npx deepcitation prepare</code> on each one and re-run verify with all attachmentIds. Otherwise, citations are anchored to the report itself — not to the underlying evidence.</div>`;
+    if (output.includes("<body")) {
+      // Inject just after the opening <body ...> tag
+      output = output.replace(/(<body[^>]*>)/i, `$1\n${banner}`);
+    } else {
+      output = `${banner}\n${output}`;
+    }
+    console.error(`Warning: source HTML links to ${count} unfollowed local file(s). Banner added to output.`);
+  }
+
+  // Default output: place next to the source HTML file. Falls back to a
+  // timestamped CWD name if no source path is known (preloadedContent path)
+  // or if the source lives inside a temp `.deepcitation/` draft directory.
+  let defaultOut: string;
+  if (htmlPath) {
+    const sourcePath = resolve(htmlPath);
+    const stem = basename(sourcePath, extname(sourcePath));
+    const sourceDir = dirname(sourcePath);
+    const isDraftDir = /[\\/]\.deepcitation([\\/]|$)/.test(sourceDir);
+    defaultOut = resolve(isDraftDir ? process.cwd() : sourceDir, `${stem}-verified.html`);
+  } else {
+    defaultOut = resolve(`verified-${ts}.html`);
+  }
+  const outPath = resolve(args.out ?? defaultOut);
   writeVerifiedOutput(outPath, output);
 
   // Write run-metadata for iteration tracking (duration, counts, output path).
@@ -1319,11 +1412,13 @@ export async function login(argv: string[], baseUrl: string) {
       console.error("   Or for this session only: npx deepcitation auth --key <your-key>");
     } else {
       console.error("Non-interactive environment detected (no TTY).\n");
-      console.error(`1. Get your API key: ${manualUrl}`);
-      console.error("2. Run: npx deepcitation auth --key '<your-key>'");
-      console.error("   (This saves the key so all future commands just work.)");
-      console.error('   Or: export DEEPCITATION_API_KEY="<your-key>"  (env var for this session)');
-      console.error("   Or: npx deepcitation auth  (opens browser for OAuth)");
+      console.error("AI agents / Claude Code — self-recover with:");
+      console.error('  script -q -c "npx -y deepcitation@latest auth" /dev/null');
+      console.error("  `script` allocates a pseudo-TTY so browser OAuth works. Run directly,");
+      console.error("  no pipes, timeout ≥180s. Credentials save automatically. Then retry.\n");
+      console.error("Manual fallback:");
+      console.error(`  1. Get your API key: ${manualUrl}`);
+      console.error("  2. Run: npx deepcitation auth --key '<your-key>'");
     }
     process.exit(1);
   }

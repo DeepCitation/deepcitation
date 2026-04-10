@@ -84,10 +84,12 @@ export function HighlightedPhrase({
     return <span className="text-dc-muted-foreground">{displayPhrase}</span>;
   }
 
-  // No surrounding context to anchor the highlight — rendering it would be misleading.
-  if (start === 0 && end === displayPhrase.length) {
-    return <span className="text-dc-muted-foreground">{displayPhrase}</span>;
-  }
+  // When the anchor IS the entire (possibly trimmed) phrase, fall through to
+  // the highlight branch below. slice(0,0) and slice(end) become empty strings
+  // so the highlight span wraps the whole phrase — the reader still gets a
+  // visible signal that this snippet is the cited text. This matters most in
+  // the no-image fallback popover, where normalizeSnippetText often collapses
+  // the snippet to exactly the anchor for short citations.
 
   return (
     <span className="text-dc-muted-foreground">

@@ -57,6 +57,10 @@ export interface MergeResult {
   bDeduped: number;
   bFinal: number;
   mode: "json" | "body-only";
+  /** Parse error from section A's <<<CITATION_DATA>>> block, if any. */
+  parseErrorA?: string;
+  /** Parse error from section B's <<<CITATION_DATA>>> block, if any. */
+  parseErrorB?: string;
 }
 
 /**
@@ -182,6 +186,9 @@ export function mergeSections({ sectionAContent, sectionBContent }: MergeOptions
   const parsedA = parseCitationData(sectionAContent);
   const parsedB = parseCitationData(sectionBContent);
 
+  const parseErrorA = parsedA.success ? undefined : parsedA.error;
+  const parseErrorB = parsedB.success ? undefined : parsedB.error;
+
   const citesA = parsedA.citations;
   const citesB = parsedB.citations;
 
@@ -270,6 +277,8 @@ export function mergeSections({ sectionAContent, sectionBContent }: MergeOptions
     bDeduped,
     bFinal: bFinal.length,
     mode: "json",
+    parseErrorA,
+    parseErrorB,
   };
 }
 
@@ -298,7 +307,34 @@ export function merge(argv: string[]): void {
   const sectionBContent = readFileSync(resolvedB, "utf-8");
 
   const result = mergeSections({ sectionAContent, sectionBContent });
-  const { aCount, bOrigCount, bDeduped, bFinal, mode } = result;
+  const { aCount, bOrigCount, bDeduped, bFinal, mode, parseErrorA, parseErrorB } = result;
+
+  // In json mode, refuse to write output if either section's citation block failed
+  // to parse or produced zero citations. Without this gate, a silent parser failure
+  // would still produce a "successful" merged body (with an empty CITATION_DATA map)
+  // and the caller would only notice downstream when verify ships a citation-less HTML.
+  // See plans/noble-skipping-wolf.md for the failure history.
+  if (mode === "json") {
+    // Only fail on an actual parse error, not on zero citations: a section may
+    // legitimately contain no cited claims (parseable `[]`). The whitespace-only
+    // check in parseCitationData ensures that truly empty blocks set parseError.
+    if (parseErrorA !== undefined || parseErrorB !== undefined) {
+      const lines: string[] = ["Error: merge refusing to write output — citation parsing failed."];
+      if (parseErrorA !== undefined) {
+        lines.push(`  A (${sanitizeForLog(aPath)}): ${parseErrorA}`);
+      }
+      if (parseErrorB !== undefined) {
+        lines.push(`  B (${sanitizeForLog(bPath)}): ${parseErrorB}`);
+      }
+      lines.push("");
+      lines.push("Check the section files for:");
+      lines.push("  • empty or whitespace-only content between <<<CITATION_DATA>>> and <<<END_CITATION_DATA>>>");
+      lines.push("  • markdown code fences (```json) wrapping the JSON with trailing text");
+      lines.push("  • missing `n` field on citation objects");
+      console.error(lines.join("\n"));
+      process.exit(1);
+    }
+  }
 
   writeFileSync(resolvedOut, result.mergedContent, "utf-8");
 

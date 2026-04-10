@@ -507,7 +507,11 @@ export function SourceContextHeader({
   // URL-specific data
   const url = isUrl ? citation.url || "" : "";
 
-  const shouldShowSourceDownloadButton = !!download;
+  // Hide the download button when there's no valid http(s) URL to download from.
+  // Local HTML sources have no remote attachment, so `download` may be undefined or
+  // carry a URL that fails sanitizeUrl — in either case, rendering the button leads
+  // to a "Not found" page on click.
+  const shouldShowSourceDownloadButton = !!(download && sanitizeUrl(download.url));
 
   // Display name for document citations (never show attachmentId to users)
   const displayName = isUrl ? undefined : sourceLabel || verification?.label || t("drawer.document");

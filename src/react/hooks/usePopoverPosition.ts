@@ -13,7 +13,7 @@
 
 import type { MutableRefObject, RefObject } from "react";
 import { useMemo } from "react";
-import { KEYHOLE_STRIP_HEIGHT_DEFAULT } from "../constants.js";
+import { projectKeyholeDisplayedWidth } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 import { getExpandedPopoverWidthPx, getSummaryPopoverWidthPx } from "../expandedWidthPolicy.js";
 import { useExpandedPageSideOffset } from "./useExpandedPageSideOffset.js";
@@ -128,12 +128,15 @@ export function usePopoverPosition(config: UsePopoverPositionConfig): PopoverPos
   const sideOffset = useExpandedPageSideOffset(viewStateHandle.current, triggerRef, side);
 
   // 4. Width projection (absorbed from Citation.tsx inline useMemo)
-  const projectedSummaryKeyholeWidth = useMemo(() => {
-    if (!evidenceDimensions) return null;
-    const { width, height } = evidenceDimensions;
-    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
-    return width * (KEYHOLE_STRIP_HEIGHT_DEFAULT / height);
-  }, [evidenceDimensions]);
+  //
+  // Delegates to `projectKeyholeDisplayedWidth`, which clamps zoom to
+  // `Math.min(1, …)` so short images (naturalHeight < stripHeight) don't
+  // get phantom-upscaled widths — see the helper's docstring for the full
+  // invariant rationale.
+  const projectedSummaryKeyholeWidth = useMemo(
+    () => projectKeyholeDisplayedWidth(evidenceDimensions),
+    [evidenceDimensions],
+  );
 
   const projectedPopoverWidthPx = useMemo(() => {
     if (!isOpen || typeof document === "undefined") return null;
