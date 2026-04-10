@@ -83,6 +83,8 @@ export {
 } from "./CitationOverlayContext.js";
 // Citation Primitives Namespace (composable building blocks)
 export { Citation } from "./CitationPrimitives.js";
+// Citation Status — derive status from a Verification object
+export { getStatusFromVerification, getStatusLabel } from "./citationStatus.js";
 // Constants - Shared styling and configuration
 export {
   COPY_FEEDBACK_DURATION_MS,
@@ -130,6 +132,12 @@ export {
   type DeepCitationThemeColors,
   type DeepCitationThemeProps,
 } from "./DeepCitationTheme.js";
+// Popover Content — standalone popover body for custom popover wrappers or Remotion stills
+export {
+  DefaultPopoverContent,
+  type PopoverContentProps,
+  type PopoverViewState,
+} from "./DefaultPopoverContent.js";
 export { type ExpandedImageSource, resolveExpandedImage } from "./EvidenceTray.js";
 // Accessibility Hooks
 export { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
