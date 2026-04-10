@@ -19,16 +19,16 @@ const MARKED_HTML = `<!DOCTYPE html>
     {
       "id": 1,
       "reasoning": "Revenue figure from Q4 report",
-      "full_phrase": "Revenue grew 45% year-over-year to $2.3B",
-      "anchor_text": "$2.3B",
+      "source_context": "Revenue grew 45% year-over-year to $2.3B",
+      "source_match": "$2.3B",
       "page_id": "page_number_2_index_1",
       "line_ids": [20]
     },
     {
       "id": 2,
       "reasoning": "Margin figure from Q4 report",
-      "full_phrase": "Operating margin improved to 28.5%",
-      "anchor_text": "28.5%",
+      "source_context": "Operating margin improved to 28.5%",
+      "source_match": "28.5%",
       "page_id": "page_number_3_index_2",
       "line_ids": [35]
     }
@@ -51,8 +51,8 @@ describe("verify --html: parse stage", () => {
     const parsed = parseCitationData(MARKED_HTML);
     const c1 = parsed.citations[0];
     expect(c1.id).toBe(1);
-    expect(c1.full_phrase).toBe("Revenue grew 45% year-over-year to $2.3B");
-    expect(c1.anchor_text).toBe("$2.3B");
+    expect(c1.source_context).toBe("Revenue grew 45% year-over-year to $2.3B");
+    expect(c1.source_match).toBe("$2.3B");
     expect(c1.page_id).toBe("page_number_2_index_1");
     expect(c1.line_ids).toEqual([20]);
   });
@@ -118,7 +118,7 @@ describe("verify --html: annotate stage", () => {
     }
   });
 
-  it("injects data-dc-display-label when display_label is present", () => {
+  it("injects data-dc-display-label when claim_text is present", () => {
     const htmlWithLabel = `<!DOCTYPE html>
 <html><body>
   <p data-cite="1">Revenue grew [1]</p>
@@ -130,9 +130,9 @@ describe("verify --html: annotate stage", () => {
     {
       "id": 1,
       "reasoning": "Revenue",
-      "full_phrase": "Revenue grew 45%",
-      "anchor_text": "grew",
-      "display_label": "99%",
+      "source_context": "Revenue grew 45%",
+      "source_match": "grew",
+      "claim_text": "99%",
       "page_id": "page_number_1_index_0",
       "line_ids": [1]
     }
@@ -146,7 +146,7 @@ describe("verify --html: annotate stage", () => {
     for (const cd of parsed.citations) {
       const citation = citationDataToCitation(cd, cd.id);
       const hash = getCitationKey(citation);
-      const label = cd.display_label;
+      const label = cd.claim_text;
       const replacement = label
         ? `data-citation-key="${hash}" data-dc-display-label="${label.replace(/"/g, "&quot;")}"`
         : `data-citation-key="${hash}"`;
@@ -338,8 +338,8 @@ describe("verify --html: edge cases", () => {
   "att-1": [
     {
       "id": 1,
-      "full_phrase": "test phrase",
-      "anchor_text": "test",
+      "source_context": "test phrase",
+      "source_match": "test",
       "page_id": "page_number_1_index_0",
       "line_ids": [1]
     }

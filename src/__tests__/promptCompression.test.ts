@@ -11,7 +11,7 @@ describe("promptCompression compress/decompress cycles", () => {
     },
     {
       name: "numeric citation with escaped double quotes nearby",
-      template: `text[1]\n\n<<<CITATION_DATA>>>\n{"__ID__":[{"id":1,"full_phrase":"He said \\"hi\\""}]}\n<<<END_CITATION_DATA>>>`,
+      template: `text[1]\n\n<<<CITATION_DATA>>>\n{"__ID__":[{"id":1,"source_context":"He said \\"hi\\""}]}\n<<<END_CITATION_DATA>>>`,
     },
     {
       name: "numeric citation with multiple markers",
@@ -23,7 +23,7 @@ describe("promptCompression compress/decompress cycles", () => {
     },
     {
       name: "numeric citation with special characters in phrase",
-      template: `text[1]\n\n<<<CITATION_DATA>>>\n{"__ID__":[{"id":1,"full_phrase":"It's $500"}]}\n<<<END_CITATION_DATA>>>`,
+      template: `text[1]\n\n<<<CITATION_DATA>>>\n{"__ID__":[{"id":1,"source_context":"It's $500"}]}\n<<<END_CITATION_DATA>>>`,
     },
   ];
 

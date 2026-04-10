@@ -4,8 +4,8 @@ import { detectExtractionArtifacts, validateCitationData } from "../utils/valida
 
 const good: CitationData = {
   id: 1,
-  full_phrase: "Revenue grew 45% year-over-year to $2.3B",
-  anchor_text: "$2.3B",
+  source_context: "Revenue grew 45% year-over-year to $2.3B",
+  source_match: "$2.3B",
   page_id: "page_number_2_index_0",
   line_ids: [20],
   attachment_id: "att-123",
@@ -25,51 +25,53 @@ describe("validateCitationData", () => {
     expect(r.errors.some(e => e.field === "page_id")).toBe(true);
   });
 
-  it("errors on empty full_phrase", () => {
-    const r = validateCitationData([{ ...good, full_phrase: "" }]);
+  it("errors on empty source_context", () => {
+    const r = validateCitationData([{ ...good, source_context: "" }]);
     expect(r.valid).toBe(false);
-    expect(r.errors.some(e => e.field === "full_phrase")).toBe(true);
+    expect(r.errors.some(e => e.field === "source_context")).toBe(true);
   });
 
-  it("warns on long anchor_text (chars)", () => {
-    const r = validateCitationData([{ ...good, full_phrase: "A".repeat(70), anchor_text: "A".repeat(70) }]);
+  it("warns on long source_match (chars)", () => {
+    const r = validateCitationData([{ ...good, source_context: "A".repeat(70), source_match: "A".repeat(70) }]);
     expect(r.valid).toBe(true);
-    expect(r.warnings.some(w => w.field === "anchor_text" && w.message.includes("chars"))).toBe(true);
+    expect(r.warnings.some(w => w.field === "source_match" && w.message.includes("chars"))).toBe(true);
   });
 
-  it("warns on long anchor_text (words)", () => {
+  it("warns on long source_match (words)", () => {
     const longAnchor = "one two three four five six seven";
-    const r = validateCitationData([{ ...good, full_phrase: `prefix ${longAnchor} suffix`, anchor_text: longAnchor }]);
-    expect(r.warnings.some(w => w.field === "anchor_text" && w.message.includes("words"))).toBe(true);
+    const r = validateCitationData([
+      { ...good, source_context: `prefix ${longAnchor} suffix`, source_match: longAnchor },
+    ]);
+    expect(r.warnings.some(w => w.field === "source_match" && w.message.includes("words"))).toBe(true);
   });
 
-  it("warns when anchor_text is not substring of full_phrase", () => {
-    const r = validateCitationData([{ ...good, anchor_text: "paraphrased version" }]);
+  it("warns when source_match is not substring of source_context", () => {
+    const r = validateCitationData([{ ...good, source_match: "paraphrased version" }]);
     expect(r.warnings.some(w => w.message.includes("not a substring"))).toBe(true);
   });
 
-  it("warns on empty anchor_text", () => {
-    const r = validateCitationData([{ ...good, anchor_text: "" }]);
-    expect(r.warnings.some(w => w.field === "anchor_text" && w.message.includes("empty"))).toBe(true);
+  it("warns on empty source_match", () => {
+    const r = validateCitationData([{ ...good, source_match: "" }]);
+    expect(r.warnings.some(w => w.field === "source_match" && w.message.includes("empty"))).toBe(true);
   });
 
   it("validates multiple citations", () => {
     const r = validateCitationData([
       good,
       { ...good, id: 2, page_id: undefined },
-      { ...good, id: 3, anchor_text: "A".repeat(70), full_phrase: "A".repeat(70) },
+      { ...good, id: 3, source_match: "A".repeat(70), source_context: "A".repeat(70) },
     ]);
     expect(r.valid).toBe(false); // citation 2 missing page_id
     expect(r.errors).toHaveLength(1);
     expect(r.warnings.length).toBeGreaterThan(0);
   });
 
-  it("warns on extraction artifacts in full_phrase", () => {
+  it("warns on extraction artifacts in source_context", () => {
     const r = validateCitationData([
-      { ...good, full_phrase: "only informationmaterialto an understanding of the general development" },
+      { ...good, source_context: "only informationmaterialto an understanding of the general development" },
     ]);
     expect(r.valid).toBe(true);
-    expect(r.warnings.some(w => w.field === "full_phrase" && w.message.includes("extraction artifact"))).toBe(true);
+    expect(r.warnings.some(w => w.field === "source_context" && w.message.includes("extraction artifact"))).toBe(true);
   });
 });
 
@@ -264,7 +266,7 @@ describe("detectExtractionArtifacts", () => {
     });
 
     it("detects display artifacts in a real 'found' snippet from Citizens United", () => {
-      // Real verifiedMatchSnippet from a "found" citation that displays garbled text
+      // Real sourceSnippet from a "found" citation that displays garbled text
       const snippet =
         "tolimitcorporateindependentexpendi overruled.We return to the principle established inBuckleyandBellottithat";
       const artifacts = detectExtractionArtifacts(snippet);

@@ -2,7 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import { normalizeSnippetText } from "../react/utils.js";
 
 describe("normalizeSnippetText", () => {
-  describe("with reference text (fullPhrase-guided)", () => {
+  describe("with reference text (sourceContext-guided)", () => {
     it("fixes the full garbled Brown v. Board snippet", () => {
       const garbled = 'doctrineof"separatebutequal" hasnoplace.Separateeducationalfacilitiesareinherentlyunequal.';
       const ref =

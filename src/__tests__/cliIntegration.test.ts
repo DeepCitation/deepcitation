@@ -500,7 +500,7 @@ describe("inject edge cases", () => {
     expect(r.stderr).toContain("not valid JSON");
   });
 
-  it("inject auto-fixes display-label when visible text differs from anchorText", () => {
+  it("inject auto-fixes display-label when visible text differs from sourceMatch", () => {
     const htmlFile = join(TEST_DIR, "inject-dl.html");
     const verifyFile = join(TEST_DIR, "inject-dl-verify.json");
     const outFile = join(TEST_DIR, "inject-dl-out.html");
@@ -509,7 +509,7 @@ describe("inject edge cases", () => {
       verifyFile,
       JSON.stringify({
         verifications: {
-          abc123: { status: "found", citation: { anchorText: "completely different anchor text" } },
+          abc123: { status: "found", citation: { sourceMatch: "completely different anchor text" } },
         },
       }),
     );
@@ -521,7 +521,7 @@ describe("inject edge cases", () => {
     expect(r.stderr).toContain("Auto-set display label");
   });
 
-  it("inject does NOT auto-fix display-label when visible text matches anchorText", () => {
+  it("inject does NOT auto-fix display-label when visible text matches sourceMatch", () => {
     const htmlFile = join(TEST_DIR, "inject-dl-match.html");
     const verifyFile = join(TEST_DIR, "inject-dl-match-verify.json");
     const outFile = join(TEST_DIR, "inject-dl-match-out.html");
@@ -530,14 +530,14 @@ describe("inject edge cases", () => {
       verifyFile,
       JSON.stringify({
         verifications: {
-          abc123: { status: "found", citation: { anchorText: "Revenue grew to $2.3B" } },
+          abc123: { status: "found", citation: { sourceMatch: "Revenue grew to $2.3B" } },
         },
       }),
     );
 
     const r = run(["inject", "--html", htmlFile, "--verify-response", verifyFile, "--out", outFile]);
     expect(r.exitCode).toBe(0);
-    // No auto-fix log should appear (visible text "$2.3B" is a substring of anchorText)
+    // No auto-fix log should appear (visible text "$2.3B" is a substring of sourceMatch)
     expect(r.stderr).not.toContain("Auto-set display label");
   });
 
@@ -565,7 +565,7 @@ describe("verify edge cases", () => {
     writeFileSync(
       citFile,
       JSON.stringify({
-        c1: { fullPhrase: "test", anchorText: "test", pageNumber: 1, lineIds: [1], attachmentId: "att-1" },
+        c1: { sourceContext: "test", sourceMatch: "test", pageNumber: 1, lineIds: [1], attachmentId: "att-1" },
       }),
     );
     const r = run(["verify", "--citations", citFile, "--image-format", "gif"], {
@@ -579,7 +579,7 @@ describe("verify edge cases", () => {
     const citFile = join(TEST_DIR, "verify-no-aid.json");
     writeFileSync(
       citFile,
-      JSON.stringify({ c1: { fullPhrase: "test", anchorText: "test", pageNumber: 1, lineIds: [1] } }),
+      JSON.stringify({ c1: { sourceContext: "test", sourceMatch: "test", pageNumber: 1, lineIds: [1] } }),
     );
     const r = run(["verify", "--citations", citFile], {
       env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" },
@@ -651,8 +651,8 @@ describe("keygen command", () => {
       citFile,
       JSON.stringify({
         "cite-1": {
-          fullPhrase: "Revenue grew 45% year-over-year to $2.3B",
-          anchorText: "$2.3B",
+          sourceContext: "Revenue grew 45% year-over-year to $2.3B",
+          sourceMatch: "$2.3B",
           pageNumber: 2,
           lineIds: [20],
           attachmentId: "att-123",
@@ -671,8 +671,8 @@ describe("keygen command", () => {
       citFile,
       JSON.stringify({
         "my-cite": {
-          fullPhrase: "Test phrase",
-          anchorText: "Test",
+          sourceContext: "Test phrase",
+          sourceMatch: "Test",
           pageNumber: 1,
           lineIds: [1],
           attachmentId: "att-456",
@@ -691,8 +691,8 @@ describe("keygen command", () => {
       citFile,
       JSON.stringify({
         "label-a": {
-          fullPhrase: "Some phrase here",
-          anchorText: "phrase",
+          sourceContext: "Some phrase here",
+          sourceMatch: "phrase",
           pageNumber: 1,
           lineIds: [5],
           attachmentId: "att-789",

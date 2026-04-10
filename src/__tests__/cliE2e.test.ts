@@ -134,8 +134,8 @@ describe("E2E: verify citations", () => {
       // example.com contains "Example Domain" — cite that
       const citations = {
         "test-citation-1": {
-          fullPhrase: "Example Domain",
-          anchorText: "Example",
+          sourceContext: "Example Domain",
+          sourceMatch: "Example",
           pageNumber: 1,
           lineIds: [1],
           attachmentId: prepare.attachmentId,
@@ -160,7 +160,7 @@ describe("E2E: verify citations", () => {
     // At least one citation should have a status
     const firstVerification = result.verifications[keys[0]];
     expect(firstVerification.status).toBeTruthy();
-    expect(["found", "partial_text_found", "found_anchor_text_only", "not_found", "found_on_other_page"]).toContain(
+    expect(["found", "partial_text_found", "found_source_match_only", "not_found", "found_on_other_page"]).toContain(
       firstVerification.status,
     );
   });

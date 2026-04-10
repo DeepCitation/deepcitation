@@ -94,8 +94,8 @@ describe("EvidenceTray interaction styles", () => {
     const missVerification: Verification = {
       status: "not_found",
       citation: {
-        fullPhrase: "Revenue increased by 15% in Q4 2024.",
-        anchorText: "increased by 15%",
+        sourceContext: "Revenue increased by 15% in Q4 2024.",
+        sourceMatch: "increased by 15%",
         pageNumber: 5,
         lineIds: [12],
       },
@@ -126,8 +126,8 @@ describe("EvidenceTray interaction styles", () => {
     const missVerification: Verification = {
       status: "not_found",
       citation: {
-        fullPhrase: "alpha",
-        anchorText: "alpha",
+        sourceContext: "alpha",
+        sourceMatch: "alpha",
         pageNumber: 2,
         lineIds: [4],
       },
@@ -184,8 +184,8 @@ describe("EvidenceTray interaction styles", () => {
     const missVerification: Verification = {
       status: "not_found",
       citation: {
-        fullPhrase: "beta phrase",
-        anchorText: "beta",
+        sourceContext: "beta phrase",
+        sourceMatch: "beta",
         pageNumber: 1,
         lineIds: [2],
       },

@@ -4,8 +4,8 @@ import { getCitationKey } from "../utils/citationKey.js";
 
 const baseCitation: DocumentCitation = {
   type: "document",
-  fullPhrase: "Revenue grew 45% year-over-year to $2.3B",
-  anchorText: "$2.3B",
+  sourceContext: "Revenue grew 45% year-over-year to $2.3B",
+  sourceMatch: "$2.3B",
   pageNumber: 2,
   lineIds: [20],
 };
@@ -26,13 +26,13 @@ describe("getCitationKey determinism", () => {
 });
 
 describe("getCitationKey sensitivity", () => {
-  it("changing fullPhrase produces different key", () => {
-    const altered = { ...baseCitation, fullPhrase: "Revenue grew 50% to $3.0B" };
+  it("changing sourceContext produces different key", () => {
+    const altered = { ...baseCitation, sourceContext: "Revenue grew 50% to $3.0B" };
     expect(getCitationKey(altered)).not.toBe(getCitationKey(baseCitation));
   });
 
-  it("changing anchorText produces different key", () => {
-    const altered = { ...baseCitation, anchorText: "45%" };
+  it("changing sourceMatch produces different key", () => {
+    const altered = { ...baseCitation, sourceMatch: "45%" };
     expect(getCitationKey(altered)).not.toBe(getCitationKey(baseCitation));
   });
 
@@ -64,8 +64,8 @@ describe("getCitationKey sensitivity", () => {
 describe("getCitationKey URL citations", () => {
   const urlCitation: UrlCitation = {
     type: "url",
-    fullPhrase: "The company reported $2.3B in revenue",
-    anchorText: "$2.3B",
+    sourceContext: "The company reported $2.3B in revenue",
+    sourceMatch: "$2.3B",
     url: "https://example.com/report",
     domain: "example.com",
     title: "Annual Report",
@@ -82,8 +82,8 @@ describe("getCitationKey URL citations", () => {
   it("URL citation key differs from document citation with same text", () => {
     const docVersion: DocumentCitation = {
       type: "document",
-      fullPhrase: urlCitation.fullPhrase,
-      anchorText: urlCitation.anchorText,
+      sourceContext: urlCitation.sourceContext,
+      sourceMatch: urlCitation.sourceMatch,
       pageNumber: urlCitation.pageNumber,
       lineIds: urlCitation.lineIds,
     };
@@ -106,8 +106,8 @@ describe("getCitationKey regression fixtures", () => {
       name: "URL citation",
       citation: {
         type: "url",
-        fullPhrase: "The company reported $2.3B in revenue",
-        anchorText: "$2.3B",
+        sourceContext: "The company reported $2.3B in revenue",
+        sourceMatch: "$2.3B",
         url: "https://example.com/report",
         domain: "example.com",
         title: "Annual Report",

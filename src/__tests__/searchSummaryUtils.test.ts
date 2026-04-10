@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from "@jest/globals";
-import { buildIntentSummary, buildSearchSummary, deriveContextWindow } from "../react/searchSummaryUtils";
+import { buildIntentSummary, buildSearchSummary, deriveContextWindow } from "../analysis/intent";
 import type { DeepTextItem } from "../types/boxes";
 import type { SearchAttempt } from "../types/search";
 import type { Verification } from "../types/verification";
@@ -57,10 +57,10 @@ describe("buildSearchSummary", () => {
   });
 
   describe("closestMatch", () => {
-    it("uses verifiedMatchSnippet from verification when present", () => {
+    it("uses sourceSnippet from verification when present", () => {
       const verification: Verification = {
         status: "not_found",
-        verifiedMatchSnippet: "the quick brown fox",
+        sourceSnippet: "the quick brown fox",
         document: { verifiedPageNumber: 5 },
       };
       const summary = buildSearchSummary([], verification);
@@ -84,10 +84,10 @@ describe("buildSearchSummary", () => {
       expect(summary.closestMatch?.page).toBe(1);
     });
 
-    it("prefers verifiedMatchSnippet over attempt matchedText", () => {
+    it("prefers sourceSnippet over attempt matchedText", () => {
       const verification: Verification = {
         status: "not_found",
-        verifiedMatchSnippet: "from verification",
+        sourceSnippet: "from verification",
       };
       const attempts = [attempt({ success: false, matchedText: "from attempt" })];
       const summary = buildSearchSummary(attempts, verification);
@@ -121,7 +121,11 @@ describe("buildSearchSummary", () => {
     it("creates separate groups for different phrases", () => {
       const attempts = [
         attempt({ searchPhrase: "Revenue increased by 15% in Q4 2024.", pageSearched: 4 }),
-        attempt({ searchPhrase: "increased by 15%", method: "anchor_text_fallback", searchPhraseType: "anchor_text" }),
+        attempt({
+          searchPhrase: "increased by 15%",
+          method: "source_match_fallback",
+          searchPhraseType: "source_match",
+        }),
       ];
       const summary = buildSearchSummary(attempts);
       expect(summary.queryGroups).toHaveLength(2);
@@ -143,17 +147,17 @@ describe("buildSearchSummary", () => {
   });
 
   describe("queryGroups — phraseType and phraseLabel", () => {
-    it("derives full_phrase from searchPhraseType field", () => {
-      const attempts = [attempt({ searchPhrase: "test", searchPhraseType: "full_phrase" })];
+    it("derives source_context from searchPhraseType field", () => {
+      const attempts = [attempt({ searchPhrase: "test", searchPhraseType: "source_context" })];
       const group = buildSearchSummary(attempts).queryGroups[0];
-      expect(group.phraseType).toBe("full_phrase");
+      expect(group.phraseType).toBe("source_context");
       expect(group.phraseLabel).toBe("Full phrase");
     });
 
-    it("derives anchor_text from searchPhraseType field", () => {
-      const attempts = [attempt({ searchPhrase: "test", searchPhraseType: "anchor_text" })];
+    it("derives source_match from searchPhraseType field", () => {
+      const attempts = [attempt({ searchPhrase: "test", searchPhraseType: "source_match" })];
       const group = buildSearchSummary(attempts).queryGroups[0];
-      expect(group.phraseType).toBe("anchor_text");
+      expect(group.phraseType).toBe("source_match");
       expect(group.phraseLabel).toBe("Anchor text");
     });
 
@@ -164,24 +168,24 @@ describe("buildSearchSummary", () => {
       expect(group.phraseLabel).toBe("First half");
     });
 
-    it("infers anchor_text from anchor_text_fallback method", () => {
-      const attempts = [attempt({ searchPhrase: "15%", method: "anchor_text_fallback" })];
+    it("infers source_match from source_match_fallback method", () => {
+      const attempts = [attempt({ searchPhrase: "15%", method: "source_match_fallback" })];
       const group = buildSearchSummary(attempts).queryGroups[0];
-      expect(group.phraseType).toBe("anchor_text");
+      expect(group.phraseType).toBe("source_match");
       expect(group.phraseLabel).toBe("Anchor text");
     });
 
-    it("defaults to full_phrase when no hint is available", () => {
+    it("defaults to source_context when no hint is available", () => {
       const attempts = [attempt({ searchPhrase: "test" })];
       const group = buildSearchSummary(attempts).queryGroups[0];
-      expect(group.phraseType).toBe("full_phrase");
+      expect(group.phraseType).toBe("source_context");
       expect(group.phraseLabel).toBe("Full phrase");
     });
 
-    it("infers anchor_text from keyspan_fallback method", () => {
+    it("infers source_match from keyspan_fallback method", () => {
       const attempts = [attempt({ searchPhrase: "span text", method: "keyspan_fallback" })];
       const group = buildSearchSummary(attempts).queryGroups[0];
-      expect(group.phraseType).toBe("anchor_text");
+      expect(group.phraseType).toBe("source_match");
       expect(group.phraseLabel).toBe("Anchor text");
     });
   });
@@ -368,7 +372,7 @@ describe("deriveContextWindow", () => {
 // =============================================================================
 
 describe("buildIntentSummary", () => {
-  it("returns null when verification has no citation fullPhrase", () => {
+  it("returns null when verification has no citation sourceContext", () => {
     const result = buildIntentSummary({ status: "not_found" }, []);
     expect(result).toBeNull();
   });
@@ -376,26 +380,26 @@ describe("buildIntentSummary", () => {
   it("returns not_found outcome for not_found status", () => {
     const verification: Verification = {
       status: "not_found",
-      citation: { type: "document", fullPhrase: "Revenue increased by 15%", pageNumber: 4 },
+      citation: { type: "document", sourceContext: "Revenue increased by 15%", pageNumber: 4 },
     };
     const result = buildIntentSummary(verification, [attempt({ searchPhrase: "Revenue increased by 15%" })]);
     expect(result).not.toBeNull();
     if (result == null) return;
     expect(result.outcome).toBe("not_found");
-    expect(result.fullPhrase).toBe("Revenue increased by 15%");
+    expect(result.sourceContext).toBe("Revenue increased by 15%");
     expect(result.snippets).toHaveLength(0);
   });
 
-  it("returns exact_match for exact_full_phrase matchedVariation", () => {
+  it("returns exact_match for exact_source_context matchedVariation", () => {
     const verification: Verification = {
       status: "found",
-      citation: { type: "document", fullPhrase: "Revenue increased by 15%", pageNumber: 4 },
+      citation: { type: "document", sourceContext: "Revenue increased by 15%", pageNumber: 4 },
     };
     const result = buildIntentSummary(verification, [
       attempt({
         searchPhrase: "Revenue increased by 15%",
         success: true,
-        matchedVariation: "exact_full_phrase",
+        matchedVariation: "exact_source_context",
         matchedText: "Revenue increased by 15%",
       }),
     ]);
@@ -408,7 +412,7 @@ describe("buildIntentSummary", () => {
   it("returns exact_match for found status without displacement", () => {
     const verification: Verification = {
       status: "found",
-      citation: { type: "document", fullPhrase: "Test phrase", pageNumber: 1 },
+      citation: { type: "document", sourceContext: "Test phrase", pageNumber: 1 },
     };
     const result = buildIntentSummary(verification, [
       attempt({ searchPhrase: "Test phrase", success: true, matchedText: "Test phrase" }),
@@ -421,7 +425,7 @@ describe("buildIntentSummary", () => {
   it("returns related_found for partial match statuses", () => {
     const verification: Verification = {
       status: "found_on_other_page",
-      citation: { type: "document", fullPhrase: "Revenue increased by 15%", pageNumber: 4 },
+      citation: { type: "document", sourceContext: "Revenue increased by 15%", pageNumber: 4 },
     };
     const result = buildIntentSummary(verification, [
       attempt({
@@ -444,7 +448,7 @@ describe("buildIntentSummary", () => {
   it("classifies proximate methods correctly", () => {
     const verification: Verification = {
       status: "found_on_other_line",
-      citation: { type: "document", fullPhrase: "Test", pageNumber: 4 },
+      citation: { type: "document", sourceContext: "Test", pageNumber: 4 },
     };
     const result = buildIntentSummary(verification, [
       attempt({
@@ -463,7 +467,7 @@ describe("buildIntentSummary", () => {
   it("classifies distal methods correctly", () => {
     const verification: Verification = {
       status: "partial_text_found",
-      citation: { type: "document", fullPhrase: "Test", pageNumber: 4 },
+      citation: { type: "document", sourceContext: "Test", pageNumber: 4 },
     };
     const result = buildIntentSummary(verification, [
       attempt({
@@ -480,11 +484,11 @@ describe("buildIntentSummary", () => {
     expect(result.snippets[0].isProximate).toBe(false);
   });
 
-  it("falls back to verifiedMatchSnippet when no successful attempts", () => {
+  it("falls back to sourceSnippet when no successful attempts", () => {
     const verification: Verification = {
-      status: "found_anchor_text_only",
-      citation: { type: "document", fullPhrase: "Test phrase here", pageNumber: 4 },
-      verifiedMatchSnippet: "snippet from verification",
+      status: "found_source_match_only",
+      citation: { type: "document", sourceContext: "Test phrase here", pageNumber: 4 },
+      sourceSnippet: "snippet from verification",
       document: { verifiedPageNumber: 4 },
     };
     const result = buildIntentSummary(verification, []);
@@ -499,7 +503,7 @@ describe("buildIntentSummary", () => {
   it("uses matchedText as context fallback when textItems unavailable", () => {
     const verification: Verification = {
       status: "partial_text_found",
-      citation: { type: "document", fullPhrase: "Revenue increased by 15%", pageNumber: 4 },
+      citation: { type: "document", sourceContext: "Revenue increased by 15%", pageNumber: 4 },
     };
     const result = buildIntentSummary(verification, [
       attempt({
@@ -519,7 +523,7 @@ describe("buildIntentSummary", () => {
   it("tracks totalAttempts correctly", () => {
     const verification: Verification = {
       status: "not_found",
-      citation: { type: "document", fullPhrase: "Test", pageNumber: 1 },
+      citation: { type: "document", sourceContext: "Test", pageNumber: 1 },
     };
     const attempts = [
       attempt({ searchPhrase: "Test" }),

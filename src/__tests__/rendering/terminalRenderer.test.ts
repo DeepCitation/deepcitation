@@ -13,8 +13,8 @@ const simpleInput = makeNumericResponse("Revenue grew 45% [1] according to repor
     id: 1,
     attachment_id: "abc123",
     page_id: "3_0",
-    full_phrase: "Revenue grew 45% in Q4.",
-    anchor_text: "grew 45%",
+    source_context: "Revenue grew 45% in Q4.",
+    source_match: "grew 45%",
     line_ids: [12, 13],
   },
 ]);
@@ -24,15 +24,15 @@ const multiCitationInput = makeNumericResponse("First claim [1].\nSecond claim [
     id: 1,
     attachment_id: "abc123",
     page_id: "1_0",
-    full_phrase: "First fact.",
-    anchor_text: "First",
+    source_context: "First fact.",
+    source_match: "First",
   },
   {
     id: 2,
     attachment_id: "abc123",
     page_id: "2_0",
-    full_phrase: "Second fact.",
-    anchor_text: "Second",
+    source_context: "Second fact.",
+    source_match: "Second",
   },
 ]);
 
@@ -114,8 +114,8 @@ describe("renderCitationsForTerminal", () => {
     const citation = {
       attachmentId: "abc123",
       pageNumber: 3,
-      fullPhrase: "Revenue grew 45% in Q4.",
-      anchorText: "grew 45%",
+      sourceContext: "Revenue grew 45% in Q4.",
+      sourceMatch: "grew 45%",
       lineIds: [12, 13],
     };
     const key = getCitationKey(citation);
@@ -131,8 +131,8 @@ describe("renderCitationsForTerminal", () => {
     const citation = {
       attachmentId: "abc123",
       pageNumber: 3,
-      fullPhrase: "Revenue grew 45% in Q4.",
-      anchorText: "grew 45%",
+      sourceContext: "Revenue grew 45% in Q4.",
+      sourceMatch: "grew 45%",
       lineIds: [12, 13],
     };
     const key = getCitationKey(citation);
@@ -160,8 +160,8 @@ describe("renderCitationsForTerminal", () => {
         id: 1,
         attachment_id: "abc123",
         page_id: "1_0",
-        full_phrase: "a".repeat(200),
-        anchor_text: "test",
+        source_context: "a".repeat(200),
+        source_match: "test",
       },
     ]);
     const output = renderCitationsForTerminal(longPhraseInput, {

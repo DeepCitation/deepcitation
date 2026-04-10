@@ -207,7 +207,7 @@ describe("SourcesListComponent utilities", () => {
     it("returns true for citations with URL", () => {
       const urlCitation: Citation = {
         type: "url",
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
         url: "https://example.com",
         title: "Example",
       };
@@ -216,7 +216,7 @@ describe("SourcesListComponent utilities", () => {
 
     it("returns false for citations without URL", () => {
       const citation: Citation = {
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
         pageNumber: 1,
       };
       expect(isUrlCitation(citation)).toBe(false);
@@ -224,7 +224,7 @@ describe("SourcesListComponent utilities", () => {
 
     it("returns false if URL is undefined", () => {
       const citation = {
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
         url: undefined,
       } as Citation;
       expect(isUrlCitation(citation)).toBe(false);
@@ -235,8 +235,8 @@ describe("SourcesListComponent utilities", () => {
     it("generates deterministic keys for URL citation", () => {
       const urlCitation: Citation = {
         type: "url",
-        fullPhrase: "Revenue grew by 15%", // context/excerpt from source
-        anchorText: "revenue growth", // specific cited text
+        sourceContext: "Revenue grew by 15%", // context/excerpt from source
+        sourceMatch: "revenue growth", // specific cited text
         url: "https://example.com/report",
         title: "Q4 Report",
         domain: "example.com",
@@ -253,12 +253,12 @@ describe("SourcesListComponent utilities", () => {
     it("produces different keys for different URLs", () => {
       const citation1: Citation = {
         type: "url",
-        fullPhrase: "Test",
+        sourceContext: "Test",
         url: "https://example.com/page1",
       };
       const citation2: Citation = {
         type: "url",
-        fullPhrase: "Test",
+        sourceContext: "Test",
         url: "https://example.com/page2",
       };
 
@@ -268,13 +268,13 @@ describe("SourcesListComponent utilities", () => {
     it("produces different keys for different titles", () => {
       const citation1: Citation = {
         type: "url",
-        fullPhrase: "Test",
+        sourceContext: "Test",
         url: "https://example.com/page",
         title: "Title 1",
       };
       const citation2: Citation = {
         type: "url",
-        fullPhrase: "Test",
+        sourceContext: "Test",
         url: "https://example.com/page",
         title: "Title 2",
       };
@@ -286,8 +286,8 @@ describe("SourcesListComponent utilities", () => {
       const citation: Citation = {
         attachmentId: "file-1",
         pageNumber: 4,
-        fullPhrase: "Hello",
-        anchorText: "$10",
+        sourceContext: "Hello",
+        sourceMatch: "$10",
       };
 
       const key = getCitationKey(citation);
@@ -299,12 +299,12 @@ describe("SourcesListComponent utilities", () => {
       const baseCitation: Citation = {
         attachmentId: "file-1",
         pageNumber: 4,
-        fullPhrase: "Hello",
+        sourceContext: "Hello",
       };
       const urlCitationNoUrl: Citation = {
         attachmentId: "file-1",
         pageNumber: 4,
-        fullPhrase: "Hello",
+        sourceContext: "Hello",
         // No URL - isUrlCitation will return false
       };
 

@@ -30,8 +30,8 @@ describe("CitationComponent source variant", () => {
   const baseCitation: Citation = {
     type: "url",
     citationNumber: 1,
-    anchorText: "test citation",
-    fullPhrase: "This is a test citation phrase",
+    sourceMatch: "test citation",
+    sourceContext: "This is a test citation phrase",
     siteName: "Delaware Corporations",
     domain: "delaware.gov",
     faviconUrl: "https://delaware.gov/favicon.ico",
@@ -41,7 +41,7 @@ describe("CitationComponent source variant", () => {
 
   const verification: Verification = {
     status: "found",
-    verifiedMatchSnippet: "test citation phrase",
+    sourceSnippet: "test citation phrase",
   };
 
   describe("source variant rendering", () => {
@@ -107,10 +107,10 @@ describe("CitationComponent source variant", () => {
       expect(getByText("delaware.gov")).toBeInTheDocument();
     });
 
-    it("falls back to anchorText when no source fields are provided", () => {
+    it("falls back to sourceMatch when no source fields are provided", () => {
       const citationNoSource: Citation = {
         citationNumber: 1,
-        anchorText: "Fallback Text",
+        sourceMatch: "Fallback Text",
       };
 
       const { getByText } = render(
@@ -163,16 +163,16 @@ describe("CitationComponent source variant", () => {
         <CitationComponent citation={baseCitation} verification={verification} variant="badge" />,
       );
 
-      // Should show siteName, not anchorText or number
+      // Should show siteName, not sourceMatch or number
       expect(getByText("Delaware Corporations")).toBeInTheDocument();
     });
 
     it("can override content type for source variant", () => {
       const { getByText } = render(
-        <CitationComponent citation={baseCitation} verification={verification} variant="badge" content="anchorText" />,
+        <CitationComponent citation={baseCitation} verification={verification} variant="badge" content="sourceMatch" />,
       );
 
-      // Should show anchorText when explicitly set
+      // Should show sourceMatch when explicitly set
       expect(getByText("test citation")).toBeInTheDocument();
     });
   });
@@ -186,7 +186,7 @@ describe("groupCitationsBySource", () => {
       citationNumber: parseInt(key, 10),
       siteName,
       domain,
-      anchorText: `Citation ${key}`,
+      sourceMatch: `Citation ${key}`,
     },
     verification: null,
   });
@@ -261,8 +261,8 @@ describe("groupCitationsBySource", () => {
           type: "document",
           attachmentId: "yc-safe-verified.html",
           pageNumber: 1,
-          anchorText: "Safe verified citation",
-          fullPhrase: "Safe verified citation",
+          sourceMatch: "Safe verified citation",
+          sourceContext: "Safe verified citation",
         },
         verification: { status: "found", label: "yc-safe-verified.html" },
       },
@@ -272,8 +272,8 @@ describe("groupCitationsBySource", () => {
           type: "document",
           attachmentId: "yc-safe-verified.html",
           pageNumber: 1,
-          anchorText: "Safe verified citation",
-          fullPhrase: "Safe verified citation",
+          sourceMatch: "Safe verified citation",
+          sourceContext: "Safe verified citation",
         },
         verification: { status: "found", label: "yc-safe-verified.html" },
       },
@@ -301,27 +301,27 @@ describe("CitationDrawerItemComponent", () => {
       faviconUrl: "https://delaware.gov/favicon.ico",
       title: "How to Calculate Franchise Taxes",
       description: "The minimum tax is $175.00 for corporations...",
-      anchorText: "minimum tax is $175.00",
-      fullPhrase: "The minimum tax is $175.00 for corporations using the Authorized Shares method.",
+      sourceMatch: "minimum tax is $175.00",
+      sourceContext: "The minimum tax is $175.00 for corporations using the Authorized Shares method.",
     },
     verification: { status: "found" },
     ...overrides,
   });
 
-  it("renders fullPhrase with anchorText highlighted", () => {
+  it("renders sourceContext with sourceMatch highlighted", () => {
     const { container } = render(<CitationDrawerItemComponent item={createItem()} />);
 
-    // HighlightedPhrase renders the fullPhrase; anchorText is highlighted via <mark>
+    // HighlightedSourceContext renders the sourceContext; sourceMatch is highlighted via <mark>
     expect(container.textContent).toContain(
       "The minimum tax is $175.00 for corporations using the Authorized Shares method.",
     );
   });
 
-  it("renders anchorText as highlighted portion", () => {
+  it("renders sourceMatch as highlighted portion", () => {
     const { container } = render(<CitationDrawerItemComponent item={createItem()} />);
 
-    // HighlightedPhrase highlights anchorText via a nested <span> with inline style.
-    // Find the span whose text content is exactly the anchorText within the phrase.
+    // HighlightedSourceContext highlights sourceMatch via a nested <span> with inline style.
+    // Find the span whose text content is exactly the sourceMatch within the phrase.
     const allSpans = container.querySelectorAll("span");
     const highlighted = Array.from(allSpans).find(
       el => el.textContent === "minimum tax is $175.00" && el.getAttribute("style"),
@@ -329,12 +329,12 @@ describe("CitationDrawerItemComponent", () => {
     expect(highlighted).toBeTruthy();
   });
 
-  it("falls back to anchorText when fullPhrase is missing", () => {
+  it("falls back to sourceMatch when sourceContext is missing", () => {
     const item = createItem({
       citation: {
         type: "url",
         siteName: "Test",
-        anchorText: "fallback anchor text",
+        sourceMatch: "fallback anchor text",
       },
     });
     const { container } = render(<CitationDrawerItemComponent item={item} />);
@@ -459,7 +459,7 @@ describe("CitationDrawer", () => {
         type: "url" as const,
         siteName: name,
         title: `Article ${i + 1}`,
-        anchorText: `Article ${i + 1}`,
+        sourceMatch: `Article ${i + 1}`,
         description: `Snippet for article ${i + 1}`,
       },
       verification: { status: "found" as const },
@@ -571,12 +571,12 @@ describe("CitationDrawer", () => {
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />,
     );
 
-    // Multi-citation group: each item renders anchorText via HighlightedPhrase.
+    // Multi-citation group: each item renders sourceMatch via HighlightedSourceContext.
     // Text appears in both summary row and collapsed expanded detail (CSS grid 0fr).
     expect(getAllByText("Article 1").length).toBeGreaterThanOrEqual(1);
     expect(getAllByText("Article 2").length).toBeGreaterThanOrEqual(1);
 
-    // Single-citation group: CompactSingleCitationRow shows source name + anchorText.
+    // Single-citation group: CompactSingleCitationRow shows source name + sourceMatch.
     expect(getByText("Source B")).toBeInTheDocument();
   });
 
@@ -587,8 +587,8 @@ describe("CitationDrawer", () => {
         type: "document" as const,
         attachmentId: "yc-safe-verified.html",
         pageNumber: 1,
-        anchorText: "Safe verified citation",
-        fullPhrase: "Safe verified citation",
+        sourceMatch: "Safe verified citation",
+        sourceContext: "Safe verified citation",
       },
       verification: { status: "found" as const },
     };
@@ -610,7 +610,7 @@ describe("CitationDrawer", () => {
 
     const { getByText } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
 
-    // All items should be visible (anchorText rendered via HighlightedPhrase)
+    // All items should be visible (sourceMatch rendered via HighlightedSourceContext)
     expect(getByText("Article 1")).toBeInTheDocument();
     expect(getByText("Article 4")).toBeInTheDocument();
     expect(getByText("Article 5")).toBeInTheDocument();
@@ -630,7 +630,7 @@ describe("CitationDrawer", () => {
               siteName: "Test",
               title: "Article 1",
               description: "Snippet for article 1",
-              anchorText: "Article 1",
+              sourceMatch: "Article 1",
             },
             verification: { status: "found" as const },
           },
@@ -871,7 +871,7 @@ describe("useCitationDrawer", () => {
 describe("getStatusPriority", () => {
   it("returns 1 for verified statuses", () => {
     expect(getStatusPriority({ status: "found" })).toBe(1);
-    expect(getStatusPriority({ status: "found_phrase_missed_anchor_text" })).toBe(1);
+    expect(getStatusPriority({ status: "found_context_missed_source_match" })).toBe(1);
   });
 
   it("returns 2 for pending/null statuses", () => {
@@ -885,7 +885,7 @@ describe("getStatusPriority", () => {
     expect(getStatusPriority({ status: "found_on_other_page" })).toBe(3);
     expect(getStatusPriority({ status: "found_on_other_line" })).toBe(3);
     expect(getStatusPriority({ status: "first_word_found" })).toBe(3);
-    expect(getStatusPriority({ status: "found_anchor_text_only" })).toBe(3);
+    expect(getStatusPriority({ status: "found_source_match_only" })).toBe(3);
   });
 
   it("returns 4 for not_found status", () => {
@@ -1245,7 +1245,7 @@ describe("groupCitationsBySource with sourceLabelMap", () => {
         citation: {
           type: "document" as const,
           attachmentId: "att-123",
-          anchorText: "test text",
+          sourceMatch: "test text",
         },
         verification: { status: "found", label: "raw-filename.pdf" },
       },
@@ -1263,7 +1263,7 @@ describe("groupCitationsBySource with sourceLabelMap", () => {
           type: "url" as const,
           siteName: "Wikipedia",
           domain: "wikipedia.org",
-          anchorText: "test",
+          sourceMatch: "test",
         },
         verification: null,
       },
@@ -1305,8 +1305,8 @@ describe("CitationDrawer accordion", () => {
         type: "url" as const,
         siteName: "TestSource",
         title: `Article ${i + 1}`,
-        anchorText: `Article ${i + 1}`,
-        fullPhrase: `Full phrase for article ${i + 1}`,
+        sourceMatch: `Article ${i + 1}`,
+        sourceContext: `Full phrase for article ${i + 1}`,
       },
       verification: { status: "found" as const },
     })),
@@ -1388,8 +1388,8 @@ describe("CitationDrawer page badges", () => {
             citation: {
               type: "document" as const,
               pageNumber: 3,
-              anchorText: "test text",
-              fullPhrase: "This is test text on page 3",
+              sourceMatch: "test text",
+              sourceContext: "This is test text on page 3",
             },
             verification: { status: "found" as const },
           },
@@ -1416,8 +1416,8 @@ describe("CitationDrawer page badges", () => {
             citation: {
               type: "document" as const,
               pageNumber: 1,
-              anchorText: "first text",
-              fullPhrase: "First text on page 1",
+              sourceMatch: "first text",
+              sourceContext: "First text on page 1",
             },
             verification: { status: "found" as const },
           },
@@ -1426,8 +1426,8 @@ describe("CitationDrawer page badges", () => {
             citation: {
               type: "document" as const,
               pageNumber: 5,
-              anchorText: "second text",
-              fullPhrase: "Second text on page 5",
+              sourceMatch: "second text",
+              sourceContext: "Second text on page 5",
             },
             verification: { status: "found" as const },
           },
@@ -1472,8 +1472,8 @@ describe("CitationDrawer page badges", () => {
               type: "document" as const,
               attachmentId,
               pageNumber: 2,
-              anchorText: "first text",
-              fullPhrase: "First text on page 2",
+              sourceMatch: "first text",
+              sourceContext: "First text on page 2",
             },
             verification: {
               status: "found" as const,
@@ -1486,8 +1486,8 @@ describe("CitationDrawer page badges", () => {
               type: "document" as const,
               attachmentId,
               pageNumber: 5,
-              anchorText: "second text",
-              fullPhrase: "Second text on page 5",
+              sourceMatch: "second text",
+              sourceContext: "Second text on page 5",
             },
             verification: {
               status: "found" as const,
@@ -1539,8 +1539,8 @@ describe("CitationDrawer page badges", () => {
               type: "document" as const,
               attachmentId,
               pageNumber: 2,
-              anchorText: "test text",
-              fullPhrase: "This is test text on page 2",
+              sourceMatch: "test text",
+              sourceContext: "This is test text on page 2",
             },
             verification: {
               status: "found" as const,
@@ -1592,8 +1592,8 @@ describe("CitationDrawer page badges", () => {
             citation: {
               type: "document" as const,
               pageNumber: 3,
-              anchorText: "inline text",
-              fullPhrase: "Inline text on page 3",
+              sourceMatch: "inline text",
+              sourceContext: "Inline text on page 3",
             },
             verification: {
               status: "found" as const,
@@ -1650,8 +1650,8 @@ describe("CitationDrawer evidence tray interactions", () => {
               type: "document" as const,
               attachmentId,
               pageNumber: 4,
-              anchorText: "test text",
-              fullPhrase: "This is test text on page 4",
+              sourceMatch: "test text",
+              sourceContext: "This is test text on page 4",
             },
             verification: {
               status: "found" as const,
@@ -1705,8 +1705,8 @@ describe("CitationDrawer evidence tray interactions", () => {
               type: "document" as const,
               attachmentId,
               pageNumber: 4,
-              anchorText: "test text",
-              fullPhrase: "This is test text on page 4",
+              sourceMatch: "test text",
+              sourceContext: "This is test text on page 4",
             },
             verification: {
               status: "found" as const,

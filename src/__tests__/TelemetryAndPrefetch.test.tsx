@@ -13,13 +13,13 @@ import type { Citation } from "../types/citation";
 
 const baseCitation: Citation = {
   citationNumber: 1,
-  anchorText: "test citation",
-  fullPhrase: "This is a test citation phrase",
+  sourceMatch: "test citation",
+  sourceContext: "This is a test citation phrase",
 };
 
 const foundVerification = {
   evidence: { src: "https://example.com/image.png" },
-  verifiedMatchSnippet: "test citation phrase",
+  sourceSnippet: "test citation phrase",
   status: "found" as const,
 };
 

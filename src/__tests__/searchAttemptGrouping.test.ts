@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { groupSearchAttempts } from "../react/searchAttemptGrouping";
+import { groupSearchAttempts } from "../analysis/grouping";
 import type { SearchAttempt } from "../types/search";
 
 function attempt(overrides: Partial<SearchAttempt>): SearchAttempt {
@@ -58,13 +58,13 @@ describe("searchAttemptGrouping", () => {
   it("prefers a successful duplicate as the representative row", () => {
     const attempts: SearchAttempt[] = [
       attempt({ searchPhrase: "alpha", pageSearched: 2, success: false }),
-      attempt({ searchPhrase: "alpha", pageSearched: 2, success: true, method: "anchor_text_fallback" }),
+      attempt({ searchPhrase: "alpha", pageSearched: 2, success: true, method: "source_match_fallback" }),
     ];
 
     const grouped = groupSearchAttempts(attempts);
     expect(grouped).toHaveLength(1);
     expect(grouped[0]?.duplicateCount).toBe(2);
     expect(grouped[0]?.attempt.success).toBe(true);
-    expect(grouped[0]?.attempt.method).toBe("anchor_text_fallback");
+    expect(grouped[0]?.attempt.method).toBe("source_match_fallback");
   });
 });

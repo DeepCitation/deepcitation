@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
-import { buildSearchNarrative } from "../react/searchNarrative";
+import { buildSearchNarrative } from "../analysis/narrative";
+import { getVariationLabel } from "../analysis/variationLabels";
 import {
   type AmbiguityInfo,
   AmbiguityWarning,
@@ -9,7 +10,6 @@ import {
   SourceContextHeader,
   VerificationLogTimeline,
 } from "../react/VerificationLog";
-import { getVariationLabel } from "../react/variationLabels";
 import type { Citation } from "../types/citation";
 import type { Verification } from "../types/verification";
 
@@ -227,21 +227,21 @@ describe("LookingForSection", () => {
   // ==========================================================================
 
   describe("rendering", () => {
-    it("renders with anchorText only", () => {
-      const { container } = render(<LookingForSection anchorText="test anchor" />);
+    it("renders with sourceMatch only", () => {
+      const { container } = render(<LookingForSection sourceMatch="test anchor" />);
       expect(container.textContent).toContain("Looking for");
       expect(container.textContent).toContain("test anchor");
     });
 
-    it("renders with fullPhrase only", () => {
-      const { container } = render(<LookingForSection fullPhrase="test full phrase" />);
+    it("renders with sourceContext only", () => {
+      const { container } = render(<LookingForSection sourceContext="test full phrase" />);
       expect(container.textContent).toContain("Looking for");
       expect(container.textContent).toContain("test full phrase");
     });
 
-    it("renders with both anchorText and fullPhrase", () => {
+    it("renders with both sourceMatch and sourceContext", () => {
       const { container } = render(
-        <LookingForSection anchorText="anchor text" fullPhrase="The anchor text is important." />,
+        <LookingForSection sourceMatch="anchor text" sourceContext="The anchor text is important." />,
       );
       expect(container.textContent).toContain("Looking for");
       expect(container.textContent).toContain("anchor text");
@@ -253,18 +253,18 @@ describe("LookingForSection", () => {
       expect(container.textContent).toBe("");
     });
 
-    it("does not render when anchorText is empty string", () => {
-      const { container } = render(<LookingForSection anchorText="" />);
+    it("does not render when sourceMatch is empty string", () => {
+      const { container } = render(<LookingForSection sourceMatch="" />);
       expect(container.textContent).toBe("");
     });
 
-    it("does not render when anchorText is only whitespace", () => {
-      const { container } = render(<LookingForSection anchorText="   " />);
+    it("does not render when sourceMatch is only whitespace", () => {
+      const { container } = render(<LookingForSection sourceMatch="   " />);
       expect(container.textContent).toBe("");
     });
 
-    it("handles anchorText === fullPhrase (shows only once)", () => {
-      const { container } = render(<LookingForSection anchorText="same text" fullPhrase="same text" />);
+    it("handles sourceMatch === sourceContext (shows only once)", () => {
+      const { container } = render(<LookingForSection sourceMatch="same text" sourceContext="same text" />);
       expect(container.textContent).toContain("Looking for");
       expect(container.textContent).toContain("same text");
       // Should only appear once in the rendered output (in quotes)
@@ -288,7 +288,7 @@ describe("VerificationLogTimeline attempts table", () => {
         pageSearched: 5,
       },
       {
-        method: "anchor_text_fallback" as const,
+        method: "source_match_fallback" as const,
         success: true,
         searchPhrase: "increased by 15%",
         pageSearched: 7,
@@ -297,7 +297,7 @@ describe("VerificationLogTimeline attempts table", () => {
 
     const narrative = buildSearchNarrative(searchAttempts, "found_on_other_page", 5, 12);
     const { getByText } = render(
-      <VerificationLogTimeline narrative={narrative} fullPhrase="Revenue increased by 15% in Q4 2024." />,
+      <VerificationLogTimeline narrative={narrative} sourceContext="Revenue increased by 15% in Q4 2024." />,
     );
 
     expect(getByText("Revenue increased by 15% in Q4 2024.")).toBeInTheDocument();
@@ -322,7 +322,7 @@ describe("VerificationLogTimeline attempts table", () => {
 
     const narrative = buildSearchNarrative(searchAttempts, "found_on_other_line", 5, 12);
     const { getByText } = render(
-      <VerificationLogTimeline narrative={narrative} fullPhrase="Revenue increased by 15% in Q4 2024." />,
+      <VerificationLogTimeline narrative={narrative} sourceContext="Revenue increased by 15% in Q4 2024." />,
     );
 
     const unexpectedLocation = getByText(/^p[.\s\u202f]+7\s*\u00b7\s*l[.\s\u202f]+22$/);
@@ -391,7 +391,7 @@ describe("SourceContextHeader", () => {
         type: "url",
         url: "https://example.com/article",
         domain: "example.com",
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
 
       const { container } = render(<SourceContextHeader citation={citation} />);
@@ -409,7 +409,7 @@ describe("SourceContextHeader", () => {
         url: "https://example.com/article",
         domain: "example.com",
         siteName: "Example Site",
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
 
       const { container } = render(<SourceContextHeader citation={citation} />);
@@ -424,7 +424,7 @@ describe("SourceContextHeader", () => {
         url: "https://example.com/article",
         domain: "example.com",
         title: "Article Title",
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
 
       const { container } = render(<SourceContextHeader citation={citation} />);
@@ -439,7 +439,7 @@ describe("SourceContextHeader", () => {
         url: "https://example.com/article",
         domain: "example.com",
         siteName: "Original Site",
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
       const verification: Verification = {
         url: {
@@ -459,7 +459,7 @@ describe("SourceContextHeader", () => {
         type: "url",
         url: "https://example.com/very/long/path/to/article",
         domain: "example.com",
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
 
       const { container } = render(<SourceContextHeader citation={citation} />);
@@ -479,7 +479,7 @@ describe("SourceContextHeader", () => {
         type: "document",
         attachmentId: "abc123def456",
         pageNumber: 5,
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
       const verification: Verification = {
         label: "Invoice.pdf",
@@ -503,7 +503,7 @@ describe("SourceContextHeader", () => {
         type: "document",
         attachmentId: "abc123def456ghij7890",
         pageNumber: 1,
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
 
       const { container } = render(<SourceContextHeader citation={citation} />);
@@ -516,7 +516,7 @@ describe("SourceContextHeader", () => {
     it("shows 'Document' fallback when no label available", () => {
       const citation: Citation = {
         type: "document",
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
 
       const { container } = render(<SourceContextHeader citation={citation} />);
@@ -529,7 +529,7 @@ describe("SourceContextHeader", () => {
       const citation: Citation = {
         type: "document",
         pageNumber: 10,
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
 
       const { container } = render(<SourceContextHeader citation={citation} />);
@@ -548,7 +548,7 @@ describe("SourceContextHeader", () => {
       const citation: Citation = {
         type: "document",
         pageNumber: 5,
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
       const verification: Verification = {
         label: "Document.pdf",
@@ -569,7 +569,7 @@ describe("SourceContextHeader", () => {
       const citation: Citation = {
         type: "document",
         pageNumber: 5,
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
       const verification: Verification = {
         label: "Document.pdf",
@@ -597,7 +597,7 @@ describe("SourceContextHeader", () => {
         type: "document",
         attachmentId: "abc123",
         pageNumber: 1,
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
 
       const { queryByRole } = render(<SourceContextHeader citation={citation} />);
@@ -609,7 +609,7 @@ describe("SourceContextHeader", () => {
         type: "document",
         attachmentId: "abc123",
         pageNumber: 1,
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
 
       const { getByRole } = render(
@@ -623,7 +623,7 @@ describe("SourceContextHeader", () => {
         type: "document",
         attachmentId: "abc123",
         pageNumber: 1,
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
 
       const { getByRole } = render(
@@ -641,7 +641,7 @@ describe("SourceContextHeader", () => {
         type: "url",
         url: "https://example.com/article",
         domain: "example.com",
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
 
       const { queryByRole } = render(<SourceContextHeader citation={citation} />);
@@ -653,7 +653,7 @@ describe("SourceContextHeader", () => {
         type: "url",
         url: "https://example.com/article",
         domain: "example.com",
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
       const verification: Verification = {
         attachmentId: "att-url-123",
@@ -675,7 +675,7 @@ describe("SourceContextHeader", () => {
         type: "document",
         attachmentId: "abc123",
         pageNumber: 1,
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
       const verification: Verification = {
         evidence: {
@@ -701,7 +701,7 @@ describe("SourceContextHeader", () => {
         type: "document",
         attachmentId: "abc123",
         pageNumber: 3,
-        fullPhrase: "Revenue grew 15%",
+        sourceContext: "Revenue grew 15%",
       };
       const appendChildSpy = jest.spyOn(document.body, "appendChild");
 
@@ -723,7 +723,7 @@ describe("SourceContextHeader", () => {
         type: "document",
         attachmentId: "abc123",
         pageNumber: 1,
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
       const parentClick = jest.fn();
 
@@ -751,7 +751,7 @@ describe("SourceContextHeader", () => {
         type: "document",
         attachmentId: "abc123",
         pageNumber: 1,
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
       const verification: Verification = {
         evidence: {
@@ -770,7 +770,7 @@ describe("SourceContextHeader", () => {
         type: "url",
         url: "https://example.com/article",
         domain: "example.com",
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
       const verification: Verification = {
         attachmentId: "att-url-123",
@@ -798,7 +798,7 @@ describe("SourceContextHeader", () => {
         type: "document",
         attachmentId: "abc123",
         pageNumber: 1,
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
       };
 
       const { queryByRole } = render(<SourceContextHeader citation={citation} />);
@@ -810,7 +810,7 @@ describe("SourceContextHeader", () => {
         type: "url",
         url: "https://example.com/article",
         domain: "example.com",
-        fullPhrase: "Test phrase from article",
+        sourceContext: "Test phrase from article",
       };
       const verification: Verification = {
         status: "found",
@@ -970,7 +970,7 @@ describe("download domain-trust gate", () => {
       type: "document",
       attachmentId: "abc123",
       pageNumber: 1,
-      fullPhrase: "Test phrase",
+      sourceContext: "Test phrase",
     };
 
     const { getByRole } = render(
@@ -994,13 +994,13 @@ describe("download domain-trust gate", () => {
       type: "document",
       attachmentId: "abc123",
       pageNumber: 1,
-      fullPhrase: "Test phrase",
+      sourceContext: "Test phrase",
     };
 
     const { getByRole } = render(
       <SourceContextHeader
         citation={citation}
-        sourceLabel="My Report"
+        sourceTitle="My Report"
         download={{ url: "https://api.deepcitation.com/report" }}
       />,
     );
@@ -1010,7 +1010,7 @@ describe("download domain-trust gate", () => {
       const anchor = appendChildSpy.mock.calls.find(([el]) => el instanceof HTMLAnchorElement)?.[0] as
         | HTMLAnchorElement
         | undefined;
-      // sourceLabel becomes the filename (with .pdf suffix added for non-pdf URL citations)
+      // sourceTitle becomes the filename (with .pdf suffix added for non-pdf URL citations)
       expect(anchor?.download).toBeTruthy();
     });
   });

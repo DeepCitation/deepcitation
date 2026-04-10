@@ -9,7 +9,7 @@ jest.mock("react-dom", () => {
 });
 
 import { CitationComponent } from "../react/Citation";
-import { HighlightedPhrase } from "../react/HighlightedPhrase";
+import { HighlightedSourceContext } from "../react/HighlightedSourceContext";
 import type { CitationBehaviorActions, CitationBehaviorContext } from "../react/types";
 import type { Citation } from "../types/citation";
 
@@ -41,25 +41,25 @@ describe("CitationComponent behaviorConfig", () => {
   // Test fixtures
   const baseCitation: Citation = {
     citationNumber: 1,
-    anchorText: "test citation",
-    fullPhrase: "This is a test citation phrase",
+    sourceMatch: "test citation",
+    sourceContext: "This is a test citation phrase",
   };
 
   const verificationWithImage: Verification = {
     evidence: {
       src: "data:image/png;base64,iVBORw0KGgo=",
     },
-    verifiedMatchSnippet: "test citation phrase",
+    sourceSnippet: "test citation phrase",
     status: "found",
   };
 
   const verificationWithoutImage: Verification = {
-    verifiedMatchSnippet: "test citation phrase",
+    sourceSnippet: "test citation phrase",
     status: "found",
   };
 
   const missVerification: Verification = {
-    verifiedMatchSnippet: "",
+    sourceSnippet: "",
     status: "not_found",
   };
 
@@ -148,7 +148,7 @@ describe("CitationComponent behaviorConfig", () => {
 
     it("shows amber check for partial match status", () => {
       const partialVerification: Verification = {
-        verifiedMatchSnippet: "partial text",
+        sourceSnippet: "partial text",
         status: "found_on_other_page",
       };
 
@@ -1196,7 +1196,7 @@ describe("CitationComponent behaviorConfig", () => {
   // Tests for the isMiss prop added to prevent misleading highlighting
   // ==========================================================================
 
-  describe("HighlightedPhrase - isMiss behavior", () => {
+  describe("HighlightedSourceContext - isMiss behavior", () => {
     it("should not highlight anchor text when citation is not found", async () => {
       const { container } = render(<CitationComponent citation={baseCitation} verification={missVerification} />);
 
@@ -1264,7 +1264,7 @@ describe("CitationComponent behaviorConfig", () => {
       // The reader saw the broader phrase but never saw the anchor highlighted
       // inside it — breaking the display→popover→evidence threading the
       // expanded view (ClaimQuote) already provided. The fallback now uses
-      // HighlightedPhrase too, mirroring the main path.
+      // HighlightedSourceContext too, mirroring the main path.
       const { container } = render(
         <CitationComponent citation={baseCitation} verification={verificationWithoutImage} />,
       );
@@ -1287,10 +1287,10 @@ describe("CitationComponent behaviorConfig", () => {
       expect(actualHighlights.length).toBeGreaterThan(0);
     });
 
-    it("should not highlight when anchorText is missing", async () => {
+    it("should not highlight when sourceMatch is missing", async () => {
       const citationWithoutAnchor: Citation = {
         ...baseCitation,
-        anchorText: undefined,
+        sourceMatch: undefined,
       };
 
       const { container } = render(
@@ -1320,13 +1320,13 @@ describe("CitationComponent behaviorConfig", () => {
 
 // =============================================================================
 // HIGHLIGHTED PHRASE - DIRECT UNIT TESTS
-// Render HighlightedPhrase in isolation to exercise edge cases that are awkward
-// to reach through CitationComponent (e.g. anchorText === fullPhrase, where the
+// Render HighlightedSourceContext in isolation to exercise edge cases that are awkward
+// to reach through CitationComponent (e.g. sourceMatch === sourceContext, where the
 // snippet IS the anchor — common in the no-image fallback popover for short
 // citations after normalizeSnippetText cleans OCR spacing).
 // =============================================================================
 
-describe("HighlightedPhrase - direct rendering", () => {
+describe("HighlightedSourceContext - direct rendering", () => {
   afterEach(() => {
     cleanup();
   });
@@ -1342,12 +1342,14 @@ describe("HighlightedPhrase - direct rendering", () => {
     }).length;
   };
 
-  it("highlights the entire phrase when anchorText === fullPhrase", () => {
+  it("highlights the entire phrase when sourceMatch === sourceContext", () => {
     // When normalizeSnippetText collapses the snippet to exactly the anchor
     // (short citations, single-clause phrases), we still want a visible
     // highlight so the reader sees that the popover snippet IS the matched
     // anchor — not flat text indistinguishable from non-cited copy.
-    const { container } = render(<HighlightedPhrase fullPhrase="motor vehicle" anchorText="motor vehicle" />);
+    const { container } = render(
+      <HighlightedSourceContext sourceContext="motor vehicle" sourceMatch="motor vehicle" />,
+    );
     expect(countHighlightSpans(container)).toBe(1);
     expect(container.textContent).toBe("motor vehicle");
   });
@@ -1355,7 +1357,7 @@ describe("HighlightedPhrase - direct rendering", () => {
   it("still highlights an anchor that has surrounding context", () => {
     // Sanity check: the partial-match path keeps working unchanged.
     const { container } = render(
-      <HighlightedPhrase fullPhrase="The driver of the motor vehicle yielded." anchorText="motor vehicle" />,
+      <HighlightedSourceContext sourceContext="The driver of the motor vehicle yielded." sourceMatch="motor vehicle" />,
     );
     expect(countHighlightSpans(container)).toBe(1);
     expect(container.textContent).toBe("The driver of the motor vehicle yielded.");
@@ -1365,7 +1367,7 @@ describe("HighlightedPhrase - direct rendering", () => {
     // Miss citations must never render the highlight — the anchor was not
     // found, so highlighting it would be misleading regardless of length.
     const { container } = render(
-      <HighlightedPhrase fullPhrase="motor vehicle" anchorText="motor vehicle" isMiss={true} />,
+      <HighlightedSourceContext sourceContext="motor vehicle" sourceMatch="motor vehicle" isMiss={true} />,
     );
     expect(countHighlightSpans(container)).toBe(0);
     expect(container.textContent).toBe("motor vehicle");
@@ -1393,15 +1395,15 @@ describe("CitationComponent mobile/touch detection", () => {
 
   const baseCitation: Citation = {
     citationNumber: 1,
-    anchorText: "test citation",
-    fullPhrase: "This is a test citation phrase",
+    sourceMatch: "test citation",
+    sourceContext: "This is a test citation phrase",
   };
 
   const verificationWithImage: Verification = {
     evidence: {
       src: "data:image/png;base64,iVBORw0KGgo=",
     },
-    verifiedMatchSnippet: "test citation phrase",
+    sourceSnippet: "test citation phrase",
     status: "found",
   };
 
@@ -1579,7 +1581,7 @@ describe("CitationComponent mobile/touch detection", () => {
 
       const verificationNoImage: Verification = {
         status: "found",
-        verifiedMatchSnippet: "Test match snippet",
+        sourceSnippet: "Test match snippet",
       };
 
       const { container } = render(<CitationComponent citation={baseCitation} verification={verificationNoImage} />);
@@ -1608,14 +1610,14 @@ describe("CitationComponent mobile/touch detection", () => {
 
       const citation1: Citation = {
         citationNumber: 1,
-        anchorText: "first citation",
-        fullPhrase: "This is the first citation",
+        sourceMatch: "first citation",
+        sourceContext: "This is the first citation",
       };
 
       const citation2: Citation = {
         citationNumber: 2,
-        anchorText: "second citation",
-        fullPhrase: "This is the second citation",
+        sourceMatch: "second citation",
+        sourceContext: "This is the second citation",
       };
 
       const { container } = render(
@@ -1661,8 +1663,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       const missCitation: Citation = {
         citationNumber: 1,
-        anchorText: "unfound citation",
-        fullPhrase: "This citation was not found in the document",
+        sourceMatch: "unfound citation",
+        sourceContext: "This citation was not found in the document",
       };
 
       const missVerification: Verification = {
@@ -1670,7 +1672,7 @@ describe("CitationComponent mobile/touch detection", () => {
         searchAttempts: [
           {
             phrase: "unfound citation",
-            phraseType: "anchor_text",
+            phraseType: "source_match",
             pageNumber: 1,
             lineIds: [1],
             method: "exact",
@@ -2027,20 +2029,20 @@ describe("CitationComponent interactionMode", () => {
 
   const baseCitation: Citation = {
     citationNumber: 1,
-    anchorText: "test citation",
-    fullPhrase: "This is a test citation phrase",
+    sourceMatch: "test citation",
+    sourceContext: "This is a test citation phrase",
   };
 
   const verificationWithImage: Verification = {
     evidence: {
       src: "data:image/png;base64,iVBORw0KGgo=",
     },
-    verifiedMatchSnippet: "test citation phrase",
+    sourceSnippet: "test citation phrase",
     status: "found",
   };
 
   const verificationWithoutImage: Verification = {
-    verifiedMatchSnippet: "test citation phrase",
+    sourceSnippet: "test citation phrase",
     status: "found",
   };
 
@@ -2572,15 +2574,15 @@ describe("CitationComponent proof URL links", () => {
     attachmentId: "abc123",
     citationNumber: 1,
     pageNumber: 5,
-    anchorText: "test citation",
-    fullPhrase: "This is a test citation phrase",
+    sourceMatch: "test citation",
+    sourceContext: "This is a test citation phrase",
   };
 
   it("renders static text when proof URL is not available", async () => {
     const verification: Verification = {
       status: "found",
       label: "Document.pdf",
-      verifiedMatchSnippet: "test citation phrase",
+      sourceSnippet: "test citation phrase",
       document: { verifiedPageNumber: 5 },
     };
 
@@ -2611,15 +2613,15 @@ describe("security: evidence src validation", () => {
     attachmentId: "abc123",
     citationNumber: 1,
     pageNumber: 5,
-    anchorText: "test citation",
-    fullPhrase: "This is a test citation phrase",
+    sourceMatch: "test citation",
+    sourceContext: "This is a test citation phrase",
   };
 
   it("does not render javascript: URI from evidence.src as <img src>", async () => {
     const verification: Verification = {
       status: "found",
       label: "Document.pdf",
-      verifiedMatchSnippet: "test citation phrase",
+      sourceSnippet: "test citation phrase",
       document: { verifiedPageNumber: 5 },
       evidence: { src: "javascript:alert('XSS')" },
     };
@@ -2642,7 +2644,7 @@ describe("security: evidence src validation", () => {
     const verification: Verification = {
       status: "found",
       label: "Document.pdf",
-      verifiedMatchSnippet: "test citation phrase",
+      sourceSnippet: "test citation phrase",
       document: { verifiedPageNumber: 5 },
       evidence: { src: "data:text/html,<script>alert('XSS')</script>" },
     };
@@ -2666,7 +2668,7 @@ describe("security: evidence src validation", () => {
     const verification: Verification = {
       status: "found",
       label: "Document.pdf",
-      verifiedMatchSnippet: "test citation phrase",
+      sourceSnippet: "test citation phrase",
       document: { verifiedPageNumber: 5 },
       evidence: { src: svgSrc },
     };

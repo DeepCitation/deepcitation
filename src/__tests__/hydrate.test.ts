@@ -95,12 +95,12 @@ const WRONG_PAGE_SUMMARY_JSON = JSON.stringify({
   ],
 });
 
-describe("hydrateCitations — fullPhrase context", () => {
-  it("fills full_phrase from multiple line IDs, not just anchor text", () => {
+describe("hydrateCitations — sourceContext context", () => {
+  it("fills source_context from multiple line IDs, not just anchor text", () => {
     const citations: CitationData[] = [
       {
         id: 1,
-        anchor_text: "initial closing",
+        source_match: "initial closing",
         page_id: "1_0",
         // Lines 9 and 10 both exist in the fixture (9 is synthetic, 10 is tagged).
         // Line 9: "(a) Equity Financing ... initial closing"
@@ -118,24 +118,24 @@ describe("hydrateCitations — fullPhrase context", () => {
     expect(result.hydrated).toBe(1);
     expect(result.misses).toEqual([]);
 
-    // full_phrase must be longer than anchor_text — it should contain text from both lines
-    const fp = citations[0].full_phrase;
+    // source_context must be longer than source_match — it should contain text from both lines
+    const fp = citations[0].source_context;
     expect(fp).toBeDefined();
     expect(fp?.length).toBeGreaterThan("initial closing".length);
-    // anchor_text must be a substring of full_phrase
+    // source_match must be a substring of source_context
     expect(fp?.toLowerCase()).toContain("initial closing");
-    // full_phrase should also include text from the adjacent tagged line
+    // source_context should also include text from the adjacent tagged line
     expect(fp?.toLowerCase()).toContain("automatically convert");
   });
 
-  it("does NOT set full_phrase = anchor_text when line IDs resolve", () => {
+  it("does NOT set source_context = source_match when line IDs resolve", () => {
     // Regression: if hydration fell through to the fallback path,
-    // it set full_phrase = anchor_text, which causes HighlightedPhrase
+    // it set source_context = source_match, which causes HighlightedSourceContext
     // to render without a visible highlight (anchor fills the entire phrase).
     const citations: CitationData[] = [
       {
         id: 1,
-        anchor_text: "initial closing",
+        source_match: "initial closing",
         page_id: "1_0",
         line_ids: [9, 10],
       } as CitationData,
@@ -147,19 +147,19 @@ describe("hydrateCitations — fullPhrase context", () => {
       warnOnMiss: false,
     });
 
-    // full_phrase must NOT equal anchor_text
-    expect(citations[0].full_phrase).not.toBe(citations[0].anchor_text);
+    // source_context must NOT equal source_match
+    expect(citations[0].source_context).not.toBe(citations[0].source_match);
   });
 
-  it("expands full_phrase with neighbor lines when a single cited line matches the anchor verbatim", () => {
+  it("expands source_context with neighbor lines when a single cited line matches the anchor verbatim", () => {
     // Iter 23 motor.png root cause: agent cited l:[N] where the resolved line
-    // is an OCR-fragmented chunk that happens to equal anchor_text exactly.
-    // Without expansion, full_phrase === anchor_text, HighlightedPhrase has
+    // is an OCR-fragmented chunk that happens to equal source_match exactly.
+    // Without expansion, source_context === source_match, HighlightedSourceContext has
     // nothing to highlight inside the quote, and the display→popover→evidence
     // threading collapses (the <q> just shows the same 4 words as the inline).
     //
-    // Fix: the happy path must always pull ±1 neighbor lines so full_phrase is
-    // reliably wider than anchor_text — same behavior the wrong-lineId
+    // Fix: the happy path must always pull ±1 neighbor lines so source_context is
+    // reliably wider than source_match — same behavior the wrong-lineId
     // fallback already provides.
     const ocrFragmentedSummary = JSON.stringify({
       attachmentId: "test-id",
@@ -176,7 +176,7 @@ describe("hydrateCitations — fullPhrase context", () => {
     const citations: CitationData[] = [
       {
         id: 1,
-        anchor_text: "Each parking unit shall",
+        source_match: "Each parking unit shall",
         page_id: "1_0",
         line_ids: [2],
       } as CitationData,
@@ -184,7 +184,7 @@ describe("hydrateCitations — fullPhrase context", () => {
 
     hydrateCitations({ summaryContent: ocrFragmentedSummary, citations, warnOnMiss: false });
 
-    const fp = citations[0].full_phrase;
+    const fp = citations[0].source_context;
     expect(fp).toBeDefined();
     // Anchor still present
     expect(fp?.toLowerCase()).toContain("each parking unit shall");
@@ -199,18 +199,18 @@ describe("hydrateCitations — fullPhrase context", () => {
 
 // ── RC5 failure scenario (iter 19 Run 3) ────────────────────────────────────
 // Root cause: agent cites wrong page (e.g. page 17 certificate page instead of
-// page 25 Schedule C). Hydration assembles full_phrase from the wrong lines
+// page 25 Schedule C). Hydration assembles source_context from the wrong lines
 // (OCR garbage), detects anchor not present, falls through. Currently the
-// fallback path sets full_phrase = verbatimAnchor = anchorText (no context),
+// fallback path sets source_context = verbatimAnchor = sourceMatch (no context),
 // which causes the API to return partial_text_found (RC5) because there is no
 // surrounding phrase to narrow the highlight to. The fix: include adjacent lines.
 describe("hydrateCitations — wrong line IDs (RC5 regression)", () => {
-  it("when wrong line IDs are provided, full_phrase is broader than anchor_text", () => {
+  it("when wrong line IDs are provided, source_context is broader than source_match", () => {
     const citations: CitationData[] = [
       {
         id: 1,
         // Anchor appears on page 25, line 10 — but agent cited page 17, lines 4-6
-        anchor_text: "The Commercial Units",
+        source_match: "The Commercial Units",
         page_id: "17_0",
         line_ids: [4, 5, 6],
       } as CitationData,
@@ -218,13 +218,13 @@ describe("hydrateCitations — wrong line IDs (RC5 regression)", () => {
 
     hydrateCitations({ summaryContent: WRONG_PAGE_SUMMARY_JSON, citations, warnOnMiss: false });
 
-    const fp = citations[0].full_phrase;
+    const fp = citations[0].source_context;
     expect(fp).toBeDefined();
-    // full_phrase must contain the anchor
+    // source_context must contain the anchor
     expect(fp?.toLowerCase()).toContain("the commercial units");
-    // full_phrase must be BROADER than just the anchor — needs surrounding context
+    // source_context must be BROADER than just the anchor — needs surrounding context
     // so the API can compute the highlight position (anchor within phrase).
-    // This assertion fails before the fix: fallback sets full_phrase = verbatimAnchor.
+    // This assertion fails before the fix: fallback sets source_context = verbatimAnchor.
     expect(fp!.length).toBeGreaterThan("The Commercial Units".length);
     expect(fp).not.toBe("The Commercial Units");
   });
@@ -233,7 +233,7 @@ describe("hydrateCitations — wrong line IDs (RC5 regression)", () => {
     const citations: CitationData[] = [
       {
         id: 1,
-        anchor_text: "The Commercial Units",
+        source_match: "The Commercial Units",
         page_id: "17_0",
         line_ids: [4, 5, 6],
       } as CitationData,
@@ -251,7 +251,7 @@ describe("hydrateCitations — wrong line IDs (RC5 regression)", () => {
     const citations: CitationData[] = [
       {
         id: 1,
-        anchor_text: "The Commercial Units",
+        source_match: "The Commercial Units",
         page_id: "17_0",
         line_ids: [4, 5, 6],
       } as CitationData,

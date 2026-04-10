@@ -7,9 +7,9 @@ import {
   // URL utilities
   extractDomain,
   generateCitationInstanceId,
+  getCitationClaimText,
   // Utilities
-  getCitationAnchorText,
-  getCitationDisplayText,
+  getCitationSourceMatch,
   getPlatformName,
   isAccessibleStatus,
   isBlockedStatus,
@@ -29,8 +29,8 @@ describe("react index exports", () => {
   it("exports utility functions", () => {
     expect(typeof getCitationKey).toBe("function");
     expect(typeof generateCitationInstanceId).toBe("function");
-    expect(typeof getCitationDisplayText).toBe("function");
-    expect(typeof getCitationAnchorText).toBe("function");
+    expect(typeof getCitationClaimText).toBe("function");
+    expect(typeof getCitationSourceMatch).toBe("function");
     expect(typeof classNames).toBe("function");
   });
 

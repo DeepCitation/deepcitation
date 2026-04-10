@@ -17,8 +17,8 @@ describe("citation prompts", () => {
     expect(CITATION_PROMPT).toContain("[N]");
     // Grouped format uses attachment_id as object key, not field
     expect(CITATION_PROMPT).toContain("attachment_id");
-    expect(CITATION_PROMPT).toContain('"full_phrase"');
-    expect(CITATION_PROMPT).toContain('"anchor_text"');
+    expect(CITATION_PROMPT).toContain('"source_context"');
+    expect(CITATION_PROMPT).toContain('"source_match"');
     expect(CITATION_PROMPT).toContain('"page_id"');
     expect(CITATION_PROMPT).toContain('"line_ids"');
   });
@@ -34,8 +34,8 @@ describe("citation prompts", () => {
     expect(CITATION_JSON_OUTPUT_FORMAT.required).toEqual([
       "id",
       "attachment_id",
-      "full_phrase",
-      "anchor_text",
+      "source_context",
+      "source_match",
       "page_id",
       "line_ids",
     ]);

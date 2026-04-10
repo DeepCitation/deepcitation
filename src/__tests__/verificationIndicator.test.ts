@@ -27,7 +27,7 @@ describe("getVerificationTextIndicator", () => {
   });
 
   it("returns partial indicator for partial match status", () => {
-    const v = { status: "found_anchor_text_only" } as Verification;
+    const v = { status: "found_source_match_only" } as Verification;
     expect(getVerificationTextIndicator(v)).toBe("✅");
   });
 });

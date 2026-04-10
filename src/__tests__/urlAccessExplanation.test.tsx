@@ -29,8 +29,8 @@ function makeUrlCitation(overrides?: Partial<Citation>): Citation {
     url: "https://example.com/article",
     domain: "example.com",
     title: "Test Article",
-    anchorText: "test content",
-    fullPhrase: "This is some test content from the article.",
+    sourceMatch: "test content",
+    sourceContext: "This is some test content from the article.",
     citationNumber: 1,
     ...overrides,
   } as Citation;
@@ -257,7 +257,7 @@ describe("URL Access Explanation in CitationComponent", () => {
             {
               status: "found",
               url: { urlAccessStatus: "accessible" },
-              verifiedMatchSnippet: "test content",
+              sourceSnippet: "test content",
             } as Verification
           }
         />,
@@ -283,8 +283,8 @@ describe("URL Access Explanation in CitationComponent", () => {
         attachmentId: "abc123",
         pageNumber: 1,
         lineIds: [1],
-        anchorText: "test citation",
-        fullPhrase: "This is a test citation phrase",
+        sourceMatch: "test citation",
+        sourceContext: "This is a test citation phrase",
         citationNumber: 1,
       } as Citation;
 

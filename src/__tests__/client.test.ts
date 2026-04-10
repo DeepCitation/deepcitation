@@ -360,7 +360,7 @@ describe("DeepCitation Client", () => {
                 src: "base64data",
               },
               status: "found",
-              verifiedMatchSnippet: "Revenue grew 15%",
+              sourceSnippet: "Revenue grew 15%",
             },
           },
         }),
@@ -370,8 +370,8 @@ describe("DeepCitation Client", () => {
         {
           id: 1,
           attachment_id: "file_123",
-          full_phrase: "Revenue grew 15%",
-          anchor_text: "15%",
+          source_context: "Revenue grew 15%",
+          source_match: "15%",
           page_id: "1_0",
           line_ids: [1],
         },
@@ -397,7 +397,7 @@ describe("DeepCitation Client", () => {
                 verifiedPageNumber: 1,
               },
               status: "found",
-              verifiedMatchSnippet: "Test content",
+              sourceSnippet: "Test content",
             },
           },
         }),
@@ -405,7 +405,7 @@ describe("DeepCitation Client", () => {
 
       const result = await client.verify({
         llmOutput:
-          'Test content[1]\n\n<<<CITATION_DATA>>>\n{"file_123":[{"id":1,"full_phrase":"Test content","anchor_text":"Test","page_id":"page_number_1_index_0","line_ids":[1]}]}\n<<<END_CITATION_DATA>>>',
+          'Test content[1]\n\n<<<CITATION_DATA>>>\n{"file_123":[{"id":1,"source_context":"Test content","source_match":"Test","page_id":"page_number_1_index_0","line_ids":[1]}]}\n<<<END_CITATION_DATA>>>',
       });
 
       expect(result.verifications).toBeDefined();
@@ -439,7 +439,7 @@ describe("DeepCitation Client", () => {
       const result = await client.verifyAttachment("file_abc", {
         "1": {
           pageNumber: 1,
-          fullPhrase: "test phrase",
+          sourceContext: "test phrase",
           attachmentId: "file_abc",
         },
       });
@@ -458,7 +458,7 @@ describe("DeepCitation Client", () => {
 
       await expect(
         client.verifyAttachment("unknown_file", {
-          "1": { fullPhrase: "test" },
+          "1": { sourceContext: "test" },
         }),
       ).rejects.toThrow("File not found");
     });
@@ -487,7 +487,7 @@ describe("DeepCitation Client", () => {
       const citations = {
         "1": {
           pageNumber: 1,
-          fullPhrase: "test phrase",
+          sourceContext: "test phrase",
           attachmentId: "file_abc",
         },
       };
@@ -524,10 +524,10 @@ describe("DeepCitation Client", () => {
         } as Response);
 
       const citations1 = {
-        "1": { fullPhrase: "phrase 1", attachmentId: "file_abc" },
+        "1": { sourceContext: "phrase 1", attachmentId: "file_abc" },
       };
       const citations2 = {
-        "2": { fullPhrase: "phrase 2", attachmentId: "file_abc" },
+        "2": { sourceContext: "phrase 2", attachmentId: "file_abc" },
       };
 
       await Promise.all([
@@ -557,15 +557,15 @@ describe("DeepCitation Client", () => {
       const result = await client.verifyBatch({
         key1: {
           type: "document",
-          fullPhrase: "HbA1c 5.5%",
-          anchorText: "5.5",
+          sourceContext: "HbA1c 5.5%",
+          sourceMatch: "5.5",
           pageNumber: 2,
           attachmentId: "abc123",
         },
         key2: {
           type: "document",
-          fullPhrase: "disc protrusion",
-          anchorText: "disc protrusion",
+          sourceContext: "disc protrusion",
+          sourceMatch: "disc protrusion",
           pageNumber: 1,
           attachmentId: "def456",
         },
@@ -605,13 +605,13 @@ describe("DeepCitation Client", () => {
       const result = await client.verifyBatch({
         key1: {
           type: "document",
-          fullPhrase: "test phrase",
+          sourceContext: "test phrase",
           attachmentId: "abc123",
           pageNumber: 1,
         },
         key2: {
           type: "document",
-          fullPhrase: "no attachment",
+          sourceContext: "no attachment",
           pageNumber: 1,
         },
       });
@@ -630,7 +630,7 @@ describe("DeepCitation Client", () => {
       const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       const result = await client.verifyBatch({
-        key1: { type: "document", fullPhrase: "test", pageNumber: 1 },
+        key1: { type: "document", sourceContext: "test", pageNumber: 1 },
       });
 
       expect(result.verifications.key1.status).toBe("skipped");
@@ -641,9 +641,9 @@ describe("DeepCitation Client", () => {
     it("throws ValidationError when citations exceed 500", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
-      const citations: Record<string, { type: "document"; fullPhrase: string; attachmentId: string }> = {};
+      const citations: Record<string, { type: "document"; sourceContext: string; attachmentId: string }> = {};
       for (let i = 0; i < 501; i++) {
-        citations[`key${i}`] = { type: "document", fullPhrase: `phrase ${i}`, attachmentId: "abc" };
+        citations[`key${i}`] = { type: "document", sourceContext: `phrase ${i}`, attachmentId: "abc" };
       }
 
       await expect(client.verifyBatch(citations)).rejects.toThrow("max is 500");
@@ -652,9 +652,9 @@ describe("DeepCitation Client", () => {
     it("throws ValidationError when distinct attachments exceed 50", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
-      const citations: Record<string, { type: "document"; fullPhrase: string; attachmentId: string }> = {};
+      const citations: Record<string, { type: "document"; sourceContext: string; attachmentId: string }> = {};
       for (let i = 0; i < 51; i++) {
-        citations[`key${i}`] = { type: "document", fullPhrase: `phrase ${i}`, attachmentId: `att_${i}` };
+        citations[`key${i}`] = { type: "document", sourceContext: `phrase ${i}`, attachmentId: `att_${i}` };
       }
 
       await expect(client.verifyBatch(citations)).rejects.toThrow("max is 50");
@@ -671,7 +671,7 @@ describe("DeepCitation Client", () => {
 
       await expect(
         client.verifyBatch({
-          key1: { type: "document", fullPhrase: "test", attachmentId: "abc123", pageNumber: 1 },
+          key1: { type: "document", sourceContext: "test", attachmentId: "abc123", pageNumber: 1 },
         }),
       ).rejects.toThrow();
     });
@@ -685,7 +685,7 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       await client.verifyBatch(
-        { key1: { type: "document", fullPhrase: "test", attachmentId: "abc123", pageNumber: 1 } },
+        { key1: { type: "document", sourceContext: "test", attachmentId: "abc123", pageNumber: 1 } },
         { outputImageFormat: "png", endUserId: "user-batch-1" },
       );
 
@@ -712,8 +712,8 @@ describe("DeepCitation Client", () => {
         {
           id: 1,
           attachment_id: "file_123",
-          full_phrase: "Test content",
-          anchor_text: "Test",
+          source_context: "Test content",
+          source_match: "Test",
           page_id: "1_0",
           line_ids: [1],
         },
@@ -743,15 +743,15 @@ describe("DeepCitation Client", () => {
         {
           id: 1,
           attachment_id: "file_123",
-          full_phrase: "Test content",
-          anchor_text: "Test",
+          source_context: "Test content",
+          source_match: "Test",
           page_id: "1_0",
           line_ids: [1],
         },
         {
           id: 2,
-          full_phrase: "No attachment",
-          anchor_text: "Also",
+          source_context: "No attachment",
+          source_match: "Also",
           page_id: "1_0",
           line_ids: [2],
         },
@@ -936,8 +936,8 @@ describe("DeepCitation Client", () => {
       // Same text, different lineIds
       const citations1 = {
         "1": {
-          fullPhrase: "test phrase",
-          anchorText: "test",
+          sourceContext: "test phrase",
+          sourceMatch: "test",
           pageNumber: 1,
           lineIds: [1, 2, 3],
           attachmentId: "file_abc",
@@ -945,8 +945,8 @@ describe("DeepCitation Client", () => {
       };
       const citations2 = {
         "1": {
-          fullPhrase: "test phrase",
-          anchorText: "test",
+          sourceContext: "test phrase",
+          sourceMatch: "test",
           pageNumber: 1,
           lineIds: [4, 5, 6],
           attachmentId: "file_abc",
@@ -973,8 +973,8 @@ describe("DeepCitation Client", () => {
       // Same citation content, different map keys (numbering)
       const citations1 = {
         "1": {
-          fullPhrase: "test phrase",
-          anchorText: "test",
+          sourceContext: "test phrase",
+          sourceMatch: "test",
           pageNumber: 1,
           lineIds: [1, 2, 3],
           attachmentId: "file_abc",
@@ -982,8 +982,8 @@ describe("DeepCitation Client", () => {
       };
       const citations2 = {
         "42": {
-          fullPhrase: "test phrase",
-          anchorText: "test",
+          sourceContext: "test phrase",
+          sourceMatch: "test",
           pageNumber: 1,
           lineIds: [1, 2, 3],
           attachmentId: "file_abc",
@@ -1071,7 +1071,7 @@ describe("DeepCitation Client", () => {
 
       await client.verifyAttachment(
         "file_abc",
-        { "1": { fullPhrase: "test", attachmentId: "file_abc" } },
+        { "1": { sourceContext: "test", attachmentId: "file_abc" } },
         { endUserId: "user-verify" },
       );
 
@@ -1089,7 +1089,7 @@ describe("DeepCitation Client", () => {
         }),
       } as Response);
 
-      await client.verifyAttachment("file_abc", { "1": { fullPhrase: "test", attachmentId: "file_abc" } });
+      await client.verifyAttachment("file_abc", { "1": { sourceContext: "test", attachmentId: "file_abc" } });
 
       const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(requestBody.data.endUserId).toBe("user-instance");
@@ -1107,7 +1107,14 @@ describe("DeepCitation Client", () => {
 
       await client.verify({
         llmOutput: makeNumericResponse("Test [1].", [
-          { id: 1, attachment_id: "file_123", full_phrase: "Test", anchor_text: "Test", page_id: "1_0", line_ids: [1] },
+          {
+            id: 1,
+            attachment_id: "file_123",
+            source_context: "Test",
+            source_match: "Test",
+            page_id: "1_0",
+            line_ids: [1],
+          },
         ]),
         endUserId: "user-verify",
       });

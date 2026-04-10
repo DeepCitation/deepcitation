@@ -121,8 +121,8 @@ describe("Performance Fixes", () => {
         citationData.push({
           id: i,
           attachment_id: `att${i}`,
-          full_phrase: `Phrase ${i}`,
-          anchor_text: `Key ${i}`,
+          source_context: `Phrase ${i}`,
+          source_match: `Key ${i}`,
           page_id: `${i}_0`,
         });
       }
@@ -151,13 +151,13 @@ describe("Data Loss Fix - Citations Without AttachmentId", () => {
 
   it("should parse citations without attachmentId", () => {
     const text = makeNumericResponse("Test [1]", [
-      { id: 1, full_phrase: "Test phrase without attachment", anchor_text: "Test", page_id: "1_0" },
+      { id: 1, source_context: "Test phrase without attachment", source_match: "Test", page_id: "1_0" },
     ]);
     const result = getAllCitationsFromLlmOutput(text);
 
     expect(Object.keys(result).length).toBe(1);
     const citation = Object.values(result)[0];
-    expect(citation.fullPhrase).toBe("Test phrase without attachment");
+    expect(citation.sourceContext).toBe("Test phrase without attachment");
   });
 });
 
@@ -167,8 +167,8 @@ describe("Range Size Limits for Line ID Parsing (numeric format)", () => {
       {
         id: 1,
         attachment_id: "abc",
-        full_phrase: "Test",
-        anchor_text: "Test",
+        source_context: "Test",
+        source_match: "Test",
         page_id: "1_0",
         line_ids: [1, 2, 3, 4, 5],
       },
@@ -186,8 +186,8 @@ describe("Range Size Limits for Line ID Parsing (numeric format)", () => {
       {
         id: 1,
         attachment_id: "abc",
-        full_phrase: "Test",
-        anchor_text: "Test",
+        source_context: "Test",
+        source_match: "Test",
         page_id: "1_0",
         line_ids: [5, 3, 1, 4, 2],
       },
@@ -206,7 +206,7 @@ describe("Depth Limit for Recursive Traversal", () => {
     const input = {
       level1: {
         level2: {
-          citations: [{ fullPhrase: "Test phrase", anchorText: "Test" }],
+          citations: [{ sourceContext: "Test phrase", sourceMatch: "Test" }],
         },
       },
     };
@@ -217,12 +217,12 @@ describe("Depth Limit for Recursive Traversal", () => {
 
   it("should handle deeply nested objects without stack overflow", () => {
     type NestedObject = {
-      citations?: Array<{ fullPhrase: string; anchorText: string }>;
+      citations?: Array<{ sourceContext: string; sourceMatch: string }>;
       nested?: NestedObject;
     };
 
     let deepObj: NestedObject = {
-      citations: [{ fullPhrase: "Deep citation", anchorText: "Deep" }],
+      citations: [{ sourceContext: "Deep citation", sourceMatch: "Deep" }],
     };
     for (let i = 0; i < 100; i++) {
       deepObj = { nested: deepObj };
@@ -237,11 +237,11 @@ describe("Depth Limit for Recursive Traversal", () => {
       level1?: {
         nested?: DeeplyNestedObject;
         level?: number;
-        citations?: Array<{ fullPhrase: string; anchorText: string }>;
+        citations?: Array<{ sourceContext: string; sourceMatch: string }>;
       };
       nested?: DeeplyNestedObject;
       level?: number;
-      citations?: Array<{ fullPhrase: string; anchorText: string }>;
+      citations?: Array<{ sourceContext: string; sourceMatch: string }>;
     };
 
     const obj: DeeplyNestedObject = { level1: {} };
@@ -250,7 +250,7 @@ describe("Depth Limit for Recursive Traversal", () => {
       current.nested = { level: i };
       current = current.nested;
     }
-    current.citations = [{ fullPhrase: "Final citation", anchorText: "Final" }];
+    current.citations = [{ sourceContext: "Final citation", sourceMatch: "Final" }];
 
     const startTime = performance.now();
     const result = getAllCitationsFromLlmOutput(obj);
