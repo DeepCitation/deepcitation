@@ -11,7 +11,6 @@ import { isUrlCitation } from "../types/citation.js";
 import { safeReplace } from "../utils/regexSafety.js";
 import { defaultMessages } from "./i18n.js";
 import type { BaseCitationProps, CitationContent, CitationVariant } from "./types.js";
-import { cn } from "./utils.js";
 
 /** Variants that handle their own hover styling (don't need parent hover) */
 export const VARIANTS_WITH_OWN_HOVER = new Set<CitationVariant>([
@@ -48,10 +47,11 @@ export function getInteractionClasses(isOpen: boolean, variant: CitationVariant)
   }
 
   if (isOpen) {
-    // Active state — persistent, not hover-dependent
-    return isSolid
-      ? cn("bg-dc-muted", "ring-1 ring-black/[0.08] dark:ring-white/[0.08]")
-      : "bg-black/[0.10] dark:bg-white/[0.10]";
+    // Active state — solid variants get luminance-inverted bg/text at the
+    // call site (scan anchor reset rule, concepts.md). Inline variants get a
+    // stronger overlay (up from 10% to 20%) so the active citation is
+    // scannable on attention reset.
+    return isSolid ? "" : "bg-black/20 dark:bg-white/20 rounded-sm";
   }
 
   // Hover state — only when not active

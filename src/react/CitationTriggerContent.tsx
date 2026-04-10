@@ -97,7 +97,7 @@ export const CitationTriggerContent = ({
       <span
         className={cn(
           "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full text-[0.9em] font-normal transition-colors",
-          "bg-dc-muted text-dc-foreground",
+          isOpen ? "bg-dc-foreground text-dc-background" : "bg-dc-muted text-dc-foreground",
           getInteractionClasses(isOpen, variant),
         )}
       >
@@ -206,7 +206,7 @@ export const CitationTriggerContent = ({
       <span
         className={cn(
           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
-          "bg-dc-muted text-dc-foreground",
+          isOpen ? "bg-dc-foreground text-dc-background" : "bg-dc-muted text-dc-foreground",
           "transition-colors cursor-pointer",
           getInteractionClasses(isOpen, variant),
         )}
