@@ -36,7 +36,8 @@ import {
   XIcon,
 } from "./icons.js";
 import { useFaviconSrc } from "./imageUtils.js";
-import type { DownloadInfo, IndicatorVariant, UrlFetchStatus } from "./types.js";
+import type { DownloadInfo, IndicatorVariant } from "./types.js";
+import { mapSearchStatusToFetchStatus } from "./urlAccessExplanation.js";
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn, isImageSource } from "./utils.js";
 
@@ -98,38 +99,6 @@ export interface SourceContextHeaderProps {
    * Custom action buttons rendered in the header alongside the download button.
    */
   customActions?: import("./types.js").PopoverAction[];
-}
-
-/**
- * Maps document verification SearchStatus to UrlFetchStatus for display in UrlCitationComponent.
- */
-function mapSearchStatusToUrlFetchStatus(status: SearchStatus | null | undefined): UrlFetchStatus {
-  if (!status) return "pending";
-  switch (status) {
-    case "found":
-    case "found_source_match_only":
-    case "found_context_missed_source_match":
-      return "verified";
-    case "found_on_other_page":
-    case "found_on_other_line":
-    case "partial_text_found":
-    case "first_word_found":
-      return "partial";
-    case "not_found":
-      // SearchStatus.not_found = text not found on page, not HTTP 404.
-      return "unknown";
-    case "loading":
-    case "pending":
-    case "timestamp_wip":
-    case "skipped":
-      return "pending";
-    default: {
-      // Exhaustiveness check: TypeScript will error if a new SearchStatus value is added
-      // but not handled above. The 'never' type ensures all cases are covered.
-      const _exhaustiveCheck: never = status;
-      return _exhaustiveCheck;
-    }
-  }
 }
 
 const DOWNLOAD_IFRAME_DATA_ATTR = "data-deepcitation-download-frame";
@@ -578,7 +547,7 @@ export function SourceContextHeader({
               domain: verification?.url?.verifiedDomain || citation.domain,
               title: sourceTitle,
               faviconUrl: verification?.url?.verifiedFaviconUrl || citation.faviconUrl,
-              fetchStatus: mapSearchStatusToUrlFetchStatus(status),
+              fetchStatus: mapSearchStatusToFetchStatus(status),
             }}
             variant="chip"
             maxDisplayLength={45}
@@ -1093,16 +1062,16 @@ const MAX_PHRASE_DISPLAY_LENGTH = 60;
  */
 export function LookingForSection({ sourceMatch, sourceContext }: { sourceMatch?: string; sourceContext?: string }) {
   const t = useTranslation();
-  const hasAnchorText = sourceMatch && sourceMatch.trim().length > 0;
-  const hasFullPhrase = sourceContext && sourceContext.trim().length > 0 && sourceContext !== sourceMatch;
+  const hasSourceMatch = sourceMatch && sourceMatch.trim().length > 0;
+  const hasSourceContext = sourceContext && sourceContext.trim().length > 0 && sourceContext !== sourceMatch;
 
-  if (!hasAnchorText && !hasFullPhrase) return null;
+  if (!hasSourceMatch && !hasSourceContext) return null;
 
   const {
     text: phraseText,
     prefixTrimmed: phrasePre,
     suffixTrimmed: phraseSuf,
-  } = hasFullPhrase
+  } = hasSourceContext
     ? trimPhraseToAnchorWindow(sourceContext ?? "", sourceMatch)
     : { text: "", prefixTrimmed: false, suffixTrimmed: false };
 
@@ -1111,10 +1080,10 @@ export function LookingForSection({ sourceMatch, sourceContext }: { sourceMatch?
       <div className="text-[11px] text-dc-subtle-foreground uppercase tracking-wide mb-1.5">
         {t("verification.lookingFor")}
       </div>
-      {hasAnchorText && (
+      {hasSourceMatch && (
         <div className="text-sm font-medium text-dc-foreground mb-1 border-l border-dc-border pl-2">{sourceMatch}</div>
       )}
-      {hasFullPhrase && (
+      {hasSourceContext && (
         <div className="text-xs text-dc-muted-foreground font-mono break-all bg-dc-muted p-2 rounded border-l border-dc-border">
           {phrasePre && "..."}
           {phraseText}
