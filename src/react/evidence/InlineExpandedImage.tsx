@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { type HighlightColor, isStrategyOverride, shouldHighlightAnchorText } from "../../drawing/citationDrawing.js";
+import { type HighlightColor, isStrategyOverride, shouldHighlightSourceMatch } from "../../drawing/citationDrawing.js";
 import type { DeepTextItem } from "../../types/boxes.js";
 import type { Verification } from "../../types/verification.js";
 import { CitationAnnotationOverlay } from "../CitationAnnotationOverlay.js";
@@ -78,7 +78,7 @@ export function InlineExpandedImage({
   onNaturalSize?: (width: number, height: number) => void;
   /** Scale factors for converting DeepTextItem PDF coords to image pixels. */
   renderScale?: { x: number; y: number } | null;
-  /** Override phraseMatchDeepItem from verification.document (for direct DeepTextItem injection). */
+  /** Override sourceContextDeepItem from verification.document (for direct DeepTextItem injection). */
   highlightItem?: DeepTextItem | null;
   /** Override: injects a single anchor item in place of the server-provided array. */
   anchorItem?: DeepTextItem | null;
@@ -195,8 +195,8 @@ export function InlineExpandedImage({
   const expandedWheelAnchorRef = useRef<WheelZoomAnchor | null>(null);
 
   // Effective annotation items: override props take precedence, then verification.document, then null.
-  const effectivePhraseItem = highlightItem ?? verification?.document?.phraseMatchDeepItem ?? null;
-  const effectiveAnchorItems = anchorItem ? [anchorItem] : (verification?.document?.anchorTextMatchDeepItems ?? null);
+  const effectivePhraseItem = highlightItem ?? verification?.document?.sourceContextDeepItem ?? null;
+  const effectiveAnchorItems = anchorItem ? [anchorItem] : (verification?.document?.sourceMatchDeepItems ?? null);
 
   // The server always provides coordinates in PDF convention (bottom-up Y) for both
   // PDFs and images. For images, renderScale is 1:1 (pixel coords) — the server sets
@@ -219,12 +219,12 @@ export function InlineExpandedImage({
 
   // Anchor-aware scroll/zoom target: when anchor text is highlighted, center on it
   // instead of the (potentially wider) full phrase box.
-  const vAnchor = verification?.verifiedAnchorText;
-  const vPhrase = verification?.verifiedFullPhrase;
+  const vAnchor = verification?.verifiedSourceMatch;
+  const vPhrase = verification?.verifiedSourceContext;
   const anchorHighlightActive =
     effectiveAnchorItems?.[0] &&
-    (shouldHighlightAnchorText(vAnchor, vPhrase) ||
-      (isStrategyOverride(vAnchor, vPhrase) && shouldHighlightAnchorText(vAnchor, effectivePhraseItem?.text)));
+    (shouldHighlightSourceMatch(vAnchor, vPhrase) ||
+      (isStrategyOverride(vAnchor, vPhrase) && shouldHighlightSourceMatch(vAnchor, effectivePhraseItem?.text)));
   const scrollTarget = anchorHighlightActive ? effectiveAnchorItems[0] : effectivePhraseItem;
   const sourceAnchorRatio = useMemo(
     () => (!fill ? resolveEvidenceSourceAnchorRatio(verification) : null),
@@ -990,14 +990,14 @@ export function InlineExpandedImage({
                 effectivePhraseItem &&
                 !effectiveOverlayHidden && (
                   <CitationAnnotationOverlay
-                    phraseMatchDeepItem={effectivePhraseItem}
+                    sourceContextDeepItem={effectivePhraseItem}
                     renderScale={effectiveRenderScale}
                     imageNaturalWidth={naturalWidth}
                     imageNaturalHeight={naturalHeight}
                     highlightColor={overlayHighlightColor}
-                    anchorTextDeepItems={verification?.status === "not_found" ? undefined : effectiveAnchorItems}
-                    anchorText={verification?.verifiedAnchorText}
-                    fullPhrase={verification?.verifiedFullPhrase}
+                    sourceMatchDeepItems={verification?.status === "not_found" ? undefined : effectiveAnchorItems}
+                    sourceMatch={verification?.verifiedSourceMatch}
+                    sourceContext={verification?.verifiedSourceContext}
                     onDismiss={fill ? handleOverlayDismiss : undefined}
                     isDark={isDarkContent}
                     viewBoxOriginY={viewBoxOriginY}

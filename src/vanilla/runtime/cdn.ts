@@ -9,6 +9,7 @@ import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
 import { usePopoverViewState } from "../../react/hooks/usePopoverViewState.js";
 import { usePrefersReducedMotion } from "../../react/hooks/usePrefersReducedMotion.js";
 import { sanitizeUrl } from "../../react/urlUtils.js";
+import { canChildScrollVertically, findPageScrollEl } from "../../shared/scroll.js";
 import type { Citation } from "../../types/citation.js";
 import type { PageImage, Verification } from "../../types/verification.js";
 import { resolveKeyMap } from "./cdn-keymap.js";
@@ -36,32 +37,7 @@ type CdnIndicatorVariant = "icon" | "dot" | "none";
 declare const __CDN_CSS__: string;
 const SIDE_OFFSET = 8;
 
-// ── Scroll passthrough helpers (mirrors Popover.tsx) ──────────────────────
-
-/** Walk up from `el` to find the page's actual scroll container. */
-function findPageScrollEl(el: HTMLElement | null): Element {
-  let n: Element | null = el?.parentElement ?? null;
-  while (n) {
-    const oy = getComputedStyle(n).overflowY;
-    if ((oy === "auto" || oy === "scroll") && n.scrollHeight > n.clientHeight) return n;
-    n = n.parentElement;
-  }
-  return document.scrollingElement ?? document.documentElement;
-}
-
-/** Check if any ancestor between `target` and `boundary` can scroll vertically. */
-function canChildScrollVertically(target: HTMLElement | null, boundary: HTMLElement | null, deltaY: number): boolean {
-  let node = target;
-  while (node && node !== boundary) {
-    const oy = getComputedStyle(node).overflowY;
-    if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) {
-      if (deltaY > 0 && Math.ceil(node.scrollTop) < node.scrollHeight - node.clientHeight) return true;
-      if (deltaY < 0 && node.scrollTop > 0) return true;
-    }
-    node = node.parentElement;
-  }
-  return false;
-}
+// ── Scroll passthrough helpers — imported from shared/scroll.ts ──────────
 
 // ── Blink animation constants ─────────────────────────────────────────────
 
@@ -197,7 +173,7 @@ function CdnPopoverWrapper(props: {
   status: ReturnType<typeof getStatusFromVerification>;
   sourceLabel: string | undefined;
   downloadUrl: string | undefined;
-  displayLabel?: string;
+  claimText?: string;
   onDismiss: () => void;
 }) {
   const popoverContentRef = useRef<HTMLElement | null>(null);
@@ -520,16 +496,16 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
   wrapper.style.display = "";
   wrapper.style.visibility = "hidden";
   wrapper.style.pointerEvents = "none";
-  const displayLabel = trigger.getAttribute("data-dc-display-label") ?? undefined;
+  const claimText = trigger.getAttribute("data-dc-display-label") ?? undefined;
   render(
     createElement(CdnPopoverWrapper, {
       citation,
       verification,
-      pageImages: data.pageImages as PageImage[] | undefined,
+      pageImages: data.pageImages,
       status,
       sourceLabel: data.label,
       downloadUrl: data.downloadUrl,
-      displayLabel,
+      claimText,
       onDismiss: hidePopoverInner,
     }),
     content,

@@ -10,7 +10,7 @@ import { getCitationPageNumber } from "./textCleanup.js";
  * Works with document, URL, and audio/video citation types.
  *
  * The key is a 16-character hex prefix of a SHA-1 hash built from
- * the citation's distinguishing fields (phrase, anchor, page, line IDs,
+ * the citation's distinguishing fields (sourceContext, sourceMatch, page, line IDs,
  * plus type-specific fields like URL or timestamps).
  *
  * @param citation - The citation to compute a key for
@@ -24,8 +24,8 @@ export function getCitationKey(citation: Citation): string {
   const pageNumber = citation.pageNumber || getCitationPageNumber(resolvedStartPageId);
   // Common key parts
   const keyParts = [
-    citation.fullPhrase || "",
-    citation.anchorText || "",
+    citation.sourceContext || "",
+    citation.sourceMatch || "",
     pageNumber?.toString() || "",
     citation.lineIds?.join(",") || "",
   ];
@@ -55,12 +55,12 @@ export function getVerificationKey(verification: Verification): string {
   const keyParts = [
     verification.attachmentId || "",
     verification.label || "",
-    verification.verifiedFullPhrase || "",
-    verification.verifiedAnchorText || "",
+    verification.verifiedSourceContext || "",
+    verification.verifiedSourceMatch || "",
     verification.document?.verifiedLineIds?.join(",") || "",
     verification.document?.verifiedPageNumber?.toString() || "",
 
-    verification.verifiedMatchSnippet || "",
+    verification.sourceSnippet || "",
     verification.document?.hitIndexWithinPage?.toString() || "",
   ];
 

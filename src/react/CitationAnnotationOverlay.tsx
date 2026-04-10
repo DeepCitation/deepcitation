@@ -140,28 +140,28 @@ function SecondaryBrackets({
  * Supports optional additional highlights for partial match locations.
  */
 export function CitationAnnotationOverlay({
-  phraseMatchDeepItem,
+  sourceContextDeepItem,
   renderScale,
   imageNaturalWidth,
   imageNaturalHeight,
   highlightColor,
-  anchorTextDeepItems,
-  anchorText,
-  fullPhrase,
+  sourceMatchDeepItems,
+  sourceMatch,
+  sourceContext,
   additionalHighlights,
   onDismiss,
   isDark,
   coordinateOrigin,
   viewBoxOriginY,
 }: {
-  phraseMatchDeepItem: DeepTextItem;
+  sourceContextDeepItem: DeepTextItem;
   renderScale: { x: number; y: number };
   imageNaturalWidth: number;
   imageNaturalHeight: number;
   highlightColor?: string | null;
-  anchorTextDeepItems?: DeepTextItem[] | null;
-  anchorText?: string | null;
-  fullPhrase?: string | null;
+  sourceMatchDeepItems?: DeepTextItem[] | null;
+  sourceMatch?: string | null;
+  sourceContext?: string | null;
   /** Additional bracket pairs for partial match locations (no spotlight). */
   additionalHighlights?: AdditionalHighlight[];
   /** When provided, renders a dismiss button at the spotlight top-right corner. */
@@ -176,7 +176,7 @@ export function CitationAnnotationOverlay({
   const t = useTranslation();
 
   const rect = toPercentRect(
-    phraseMatchDeepItem,
+    sourceContextDeepItem,
     renderScale,
     imageNaturalWidth,
     imageNaturalHeight,
@@ -196,15 +196,15 @@ export function CitationAnnotationOverlay({
         : VERIFIED_BRACKET_COLOR;
 
   // Compute pixel height for bracket width calculation
-  const heightPx = phraseMatchDeepItem.height * renderScale.y;
+  const heightPx = sourceContextDeepItem.height * renderScale.y;
   const bracketW = getBracketWidth(heightPx);
 
   // Determine if anchor text highlight should be shown (uses canonical logic from drawing module)
   const { showKeySpanHighlight } = computeKeySpanHighlight(
-    phraseMatchDeepItem,
-    anchorTextDeepItems ?? undefined,
-    anchorText,
-    fullPhrase,
+    sourceContextDeepItem,
+    sourceMatchDeepItems ?? undefined,
+    sourceMatch,
+    sourceContext,
   );
 
   // Two padding levels matching the backend rendering:
@@ -238,18 +238,18 @@ export function CitationAnnotationOverlay({
   };
 
   const anchorRects = (() => {
-    if (!showKeySpanHighlight || !anchorTextDeepItems?.length) return [];
+    if (!showKeySpanHighlight || !sourceMatchDeepItems?.length) return [];
     // Sort left-to-right so hull-merge always sees items in reading order.
     // (DeepTextItems from different extraction passes may not be in reading order.)
     const SAME_LINE_THRESHOLD_PCT = 0.5; // % top difference below which two rects share a line
-    const rects = anchorTextDeepItems
+    const rects = sourceMatchDeepItems
       .map(item =>
         toPercentRect(item, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin, viewBoxOriginY),
       )
       .filter((r): r is NonNullable<typeof r> => r != null)
       .sort((a, b) => parseFloat(a.left) - parseFloat(b.left));
     // Hull-merge all items on the same line into a single spanning rect.
-    // This handles OCR-fragmented anchorTextMatchDeepItems where the backend
+    // This handles OCR-fragmented sourceMatchDeepItems where the backend
     // returns character-level fragments (e.g. "ss", "sso", "ee" for "Business
     // Associate Agreement") rather than word-level bounding boxes. Gaps between
     // fragments — whether 1% or 20% of image width — are absorbed into the hull.

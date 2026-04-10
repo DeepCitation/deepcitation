@@ -28,8 +28,8 @@ export const CITATION_DATA_END_DELIMITER = "<<<END_CITATION_DATA>>>";
  * Citations are grouped by attachment_id to avoid repetition.
  *
  * Shorthand key mapping (optional):
- * - n: id, r: reasoning, f: full_phrase
- * - k: anchor_text, p: page_id, l: line_ids
+ * - n: id, r: reasoning, f: source_context
+ * - k: source_match, p: page_id, l: line_ids
  */
 export const CITATION_PROMPT = `
 <citation-instructions priority="critical">
@@ -48,22 +48,22 @@ At the END of your response, append a citation block. Group citations by attachm
 <<<CITATION_DATA>>>
 {
   "attachment_id_here": [
-    {"id": 1, "reasoning": "why", "full_phrase": "quote", "anchor_text": "key", "page_id": "page_number_2_index_1", "line_ids": [12]}
+    {"id": 1, "reasoning": "why", "source_context": "quote", "source_match": "key", "page_id": "page_number_2_index_1", "line_ids": [12]}
   ]
 }
 <<<END_CITATION_DATA>>>
 \`\`\`
 
 ### Shorthand Keys (Optional)
-To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, p=page_id, l=line_ids
+To save tokens: n=id, r=reasoning, f=source_context, k=source_match, p=page_id, l=line_ids
 
 ### JSON Field Rules
 
 1. **Group key**: The attachment_id (exact ID from source document)
 2. **id** (or n): Each citation MUST have a unique ID matching its [N] marker. Do NOT reuse the same ID for different citations.
 3. **reasoning** (or r): Brief explanation connecting the citation to your claim (think first!)
-4. **full_phrase** (or f): Copy text VERBATIM from source. Use proper JSON escaping for quotes.
-5. **anchor_text** (or k): 1–4 verbatim words from the evidence line (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
+4. **source_context** (or f): Copy text VERBATIM from source. Use proper JSON escaping for quotes.
+5. **source_match** (or k): 1–4 verbatim words from the evidence line (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
 6. **page_id** (or p): Format "page_number_N_index_I" where N=page number, I=index (copy exactly from \`<page_number_N_index_I>\` tags in the source)
 7. **line_ids** (or l): Array of line IDs from the source (copy from line ID markers in the text). Count from the nearest \`<line id="N">\` tag above your text — if the tag says \`<line id="10">\` and your text is 3 lines below, the line ID is 13. Do NOT default to \`[1]\`.
 
@@ -81,11 +81,11 @@ The company reported **strong growth** [1] in the quarter. Revenue reached **$2.
 <<<CITATION_DATA>>>
 {
   "abc123": [
-    {"id": 1, "reasoning": "directly states growth metrics", "full_phrase": "The company achieved 45% year-over-year growth", "anchor_text": "45% growth", "page_id": "page_number_2_index_1", "line_ids": [12, 13]},
-    {"id": 2, "reasoning": "states Q4 revenue figure", "full_phrase": "Q4 revenue reached $2.3 billion, up from $1.8 billion", "anchor_text": "$2.3 billion", "page_id": "page_number_3_index_2", "line_ids": [5, 6, 7]}
+    {"id": 1, "reasoning": "directly states growth metrics", "source_context": "The company achieved 45% year-over-year growth", "source_match": "45% growth", "page_id": "page_number_2_index_1", "line_ids": [12, 13]},
+    {"id": 2, "reasoning": "states Q4 revenue figure", "source_context": "Q4 revenue reached $2.3 billion, up from $1.8 billion", "source_match": "$2.3 billion", "page_id": "page_number_3_index_2", "line_ids": [5, 6, 7]}
   ],
   "def456": [
-    {"id": 3, "reasoning": "competitor data", "full_phrase": "Competitor X reported 20% growth", "anchor_text": "20% growth", "page_id": "page_number_1_index_0", "line_ids": [8]}
+    {"id": 3, "reasoning": "competitor data", "source_context": "Competitor X reported 20% growth", "source_match": "20% growth", "page_id": "page_number_1_index_0", "line_ids": [8]}
   ]
 }
 <<<END_CITATION_DATA>>>
@@ -99,8 +99,8 @@ The company reported **strong growth** [1] in the quarter. Revenue reached **$2.
  * Citations are grouped by attachment_id to avoid repetition.
  *
  * Shorthand key mapping (optional):
- * - n: id, r: reasoning, f: full_phrase
- * - k: anchor_text, t: timestamps (with s: start_time, e: end_time)
+ * - n: id, r: reasoning, f: source_context
+ * - k: source_match, t: timestamps (with s: start_time, e: end_time)
  */
 export const AV_CITATION_PROMPT = `
 <citation-instructions priority="critical">
@@ -117,22 +117,22 @@ At the END of your response, append a citation block. Group citations by attachm
 <<<CITATION_DATA>>>
 {
   "attachment_id_here": [
-    {"id": 1, "reasoning": "why", "full_phrase": "quote", "anchor_text": "key", "timestamps": {"start_time": "HH:MM:SS.SSS", "end_time": "HH:MM:SS.SSS"}}
+    {"id": 1, "reasoning": "why", "source_context": "quote", "source_match": "key", "timestamps": {"start_time": "HH:MM:SS.SSS", "end_time": "HH:MM:SS.SSS"}}
   ]
 }
 <<<END_CITATION_DATA>>>
 \`\`\`
 
 ### Shorthand (Optional)
-To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, t=timestamps (with s=start_time, e=end_time)
+To save tokens: n=id, r=reasoning, f=source_context, k=source_match, t=timestamps (with s=start_time, e=end_time)
 
 ### JSON Field Rules
 
 1. **Group key**: The attachment_id (exact ID from source media)
 2. **id** (or n): Must match the [N] marker in your text (integer)
 3. **reasoning** (or r): Brief explanation connecting the citation to your claim (think first!)
-4. **full_phrase** (or f): Copy transcript text VERBATIM. Use proper JSON escaping.
-5. **anchor_text** (or k): 1–4 verbatim words from the transcript (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
+4. **source_context** (or f): Copy transcript text VERBATIM. Use proper JSON escaping.
+5. **source_match** (or k): 1–4 verbatim words from the transcript (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
 6. **timestamps** (or t): Object with start_time/s and end_time/e in HH:MM:SS.SSS format
 
 ### Placement Rules
@@ -149,8 +149,8 @@ The speaker discussed **exercise benefits** [1]. They recommended **specific tec
 <<<CITATION_DATA>>>
 {
   "video123": [
-    {"id": 1, "reasoning": "speaker directly states health benefits", "full_phrase": "Regular exercise improves cardiovascular health by 30%", "anchor_text": "cardiovascular health", "timestamps": {"start_time": "00:05:23.000", "end_time": "00:05:45.500"}},
-    {"id": 2, "reasoning": "demonstrates proper form", "full_phrase": "Keep your back straight and engage your core", "anchor_text": "engage your core", "timestamps": {"start_time": "00:12:10.200", "end_time": "00:12:25.800"}}
+    {"id": 1, "reasoning": "speaker directly states health benefits", "source_context": "Regular exercise improves cardiovascular health by 30%", "source_match": "cardiovascular health", "timestamps": {"start_time": "00:05:23.000", "end_time": "00:05:45.500"}},
+    {"id": 2, "reasoning": "demonstrates proper form", "source_context": "Keep your back straight and engage your core", "source_match": "engage your core", "timestamps": {"start_time": "00:12:10.200", "end_time": "00:12:25.800"}}
   ]
 }
 <<<END_CITATION_DATA>>>
@@ -216,12 +216,12 @@ export interface WrapCitationPromptResult {
  *
  * ### 2. Chain-of-Thought (CoT) Attribute Ordering
  * The citation attributes are ordered to encourage the model to "think first":
- * `attachment_id` → `reasoning` → `full_phrase` → `anchor_text` → `page_id` → `line_ids`
+ * `attachment_id` → `reasoning` → `source_context` → `source_match` → `page_id` → `line_ids`
  *
  * By placing `reasoning` early, the model must articulate WHY it's citing before
- * specifying WHAT it's citing. Then `full_phrase` comes before `anchor_text` so the model
- * first produces the complete verbatim quote, then extracts the anchor text from it,
- * ensuring `anchor_text` is always a valid substring of `full_phrase`.
+ * specifying WHAT it's citing. Then `source_context` comes before `source_match` so the model
+ * first produces the complete verbatim quote, then extracts the source match from it,
+ * ensuring `source_match` is always a valid substring of `source_context`.
  *
  * ### Why Not Just Append?
  * In large system prompts, appended instructions can get "lost" in the middle of the
@@ -383,14 +383,14 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
       type: "string",
       description: "Brief explanation of why this supports the claim",
     },
-    full_phrase: {
+    source_context: {
       type: "string",
       description: "Verbatim quote from source document",
     },
-    anchor_text: {
+    source_match: {
       type: "string",
       description:
-        "1–4 verbatim words from full_phrase (never more than 4). Drop leading articles. Should match the anchor text used in [anchor](cite:N) inline markers",
+        "1–4 verbatim words from source_context (never more than 4). Drop leading articles. Should match the source match used in [anchor](cite:N) inline markers",
     },
     page_id: {
       type: "string",
@@ -402,13 +402,13 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
       description: "Array of line IDs for the citation",
     },
   },
-  required: ["id", "attachment_id", "full_phrase", "anchor_text", "page_id", "line_ids"],
+  required: ["id", "attachment_id", "source_context", "source_match", "page_id", "line_ids"],
 } as const;
 
 /**
- * Compact citation prompt — omits full_phrase and reasoning from LLM output.
+ * Compact citation prompt — omits source_context and reasoning from LLM output.
  *
- * Use this variant for latency-sensitive pipelines where fullPhrase is
+ * Use this variant for latency-sensitive pipelines where sourceContext is
  * reconstructed offline via `deepcitation hydrate` (or auto-hydrated by
  * `deepcitation verify --markdown` when a summary file is present).
  *
@@ -416,7 +416,7 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
  * (eliminates ~50-75 tokens of verbatim copying + ~30-60 tokens of reasoning).
  *
  * Compact key mapping:
- * - n: id, k: anchor_text, p: page_id (compact "N_I" form), l: line_ids
+ * - n: id, k: source_match, p: page_id (compact "N_I" form), l: line_ids
  */
 export const COMPACT_CITATION_PROMPT = `
 <citation-instructions priority="critical">
@@ -442,7 +442,7 @@ More examples:
 
 ### Citation Data Block
 At the END of your response, append a compact citation block grouped by attachment_id.
-Do NOT output fullPhrase or reasoning — these are reconstructed automatically from lineIds.
+Do NOT output sourceContext or reasoning — these are reconstructed automatically from lineIds.
 
 ### Format
 \`\`\`
@@ -458,11 +458,11 @@ Do NOT output fullPhrase or reasoning — these are reconstructed automatically 
 ### Field Rules
 
 1. **n**: Citation id (integer, matches [N] in text)
-2. **k** (anchorText): 1–4 verbatim words from the source (hard cap 4; exception only for legal/technical compound terms that lose meaning when split). This is the yellow highlight in the PDF — short highlights are precise, full sentences in yellow are unreadable. k = the bold text in your report. Must be copied character-for-character from the source — never paraphrase (e.g. source says "The cost of cooling" → k: "cost of cooling", NOT "Cooling costs").
+2. **k** (sourceMatch): 1–4 verbatim words from the source (hard cap 4; exception only for legal/technical compound terms that lose meaning when split). This is the yellow highlight in the PDF — short highlights are precise, full sentences in yellow are unreadable. k = the bold text in your report. Must be copied character-for-character from the source — never paraphrase (e.g. source says "The cost of cooling" → k: "cost of cooling", NOT "Cooling costs").
 3. **p** (page_id): Compact form "N_I" where N=page number and I=index (extract from \`<page_number_N_index_I>\` tag)
 4. **l** (line_ids): Array of line IDs from \`<line id="N">\` tags. Find the nearest \`<line id="N">\` tag ABOVE your text on the SAME page, then count lines down: if \`<line id="10">\` is 3 lines above, use \`[13]\`. Do NOT default to \`[1]\`. Double-check p and l are from the same page — if your text is on page 9, don't use a lineId from page 10.
 
-### anchorText Rules
+### sourceMatch Rules
 k = bold text = yellow highlight. All three must be the same phrase, copied verbatim from the source.
 
 **Hard cap: 4 words. Exception only for legal/technical compound terms that lose meaning when split. Never a full sentence.**
@@ -517,7 +517,7 @@ The **Discount Rate** [1] is applied to the conversion price. Revenue grew **45%
  * - Text is FROZEN — no rewriting, no bold markers
  * - Only [N] markers are inserted
  * - k must be verbatim from SOURCE, not from user's text (user may paraphrase)
- * - display_label ≠ k is expected (handled by hydrate's paraphrase-promotion)
+ * - claim_text ≠ k is expected (handled by hydrate's paraphrase-promotion)
  *
  * Tested on OCSCC 748 Declaration (46-page legal document):
  * - 135 citations, 0% long anchors, 75% exact verbatim, ~93% pipeline-findable
@@ -612,7 +612,7 @@ At the END of your response:
 
 /**
  * JSON schema for compact citation data (structured output LLMs, hydrate pipeline).
- * Omits full_phrase and reasoning — these are reconstructed by deepcitation hydrate.
+ * Omits source_context and reasoning — these are reconstructed by deepcitation hydrate.
  */
 export const COMPACT_CITATION_JSON_OUTPUT_FORMAT = {
   type: "object",
@@ -627,7 +627,7 @@ export const COMPACT_CITATION_JSON_OUTPUT_FORMAT = {
     },
     k: {
       type: "string",
-      description: "anchorText: 1–4 verbatim words from the evidence line (never more than 4). Drop leading articles.",
+      description: "sourceMatch: 1–4 verbatim words from the evidence line (never more than 4). Drop leading articles.",
     },
     p: {
       type: "string",
@@ -661,13 +661,13 @@ export const CITATION_AV_JSON_OUTPUT_FORMAT = {
       type: "string",
       description: "Brief explanation of why this supports the claim",
     },
-    full_phrase: {
+    source_context: {
       type: "string",
       description: "Verbatim transcript quote",
     },
-    anchor_text: {
+    source_match: {
       type: "string",
-      description: "1–4 verbatim words from full_phrase (never more than 4). Drop leading articles.",
+      description: "1–4 verbatim words from source_context (never more than 4). Drop leading articles.",
     },
     timestamps: {
       type: "object",
@@ -684,7 +684,7 @@ export const CITATION_AV_JSON_OUTPUT_FORMAT = {
       required: ["start_time", "end_time"],
     },
   },
-  required: ["id", "attachment_id", "full_phrase", "anchor_text", "timestamps"],
+  required: ["id", "attachment_id", "source_context", "source_match", "timestamps"],
 } as const;
 
 /**
@@ -700,7 +700,7 @@ export interface CompactCitationData {
   r?: string;
   /** Full phrase (f) - verbatim quote */
   f?: string;
-  /** Key phrase (k) - anchor text */
+  /** Key phrase (k) - source match */
   k?: string;
   /** Page ID (p) - format "page_number_N_index_I" */
   p?: string;
@@ -728,11 +728,11 @@ export interface CitationData {
   /** Reasoning for the citation. Compact key: r */
   reasoning?: string;
   /** Verbatim quote from source. Compact key: f */
-  full_phrase?: string;
+  source_context?: string;
   /** Anchor text (1-3 words). Compact key: k */
-  anchor_text?: string;
-  /** Display label override — shown as the clickable trigger instead of anchor_text. Compact key: d */
-  display_label?: string;
+  source_match?: string;
+  /** Display label override — shown as the clickable trigger instead of source_match. Compact key: d */
+  claim_text?: string;
   /** Page ID in format "page_number_N_index_I". Compact key: p */
   page_id?: string;
   /** Line IDs array. Compact key: l */

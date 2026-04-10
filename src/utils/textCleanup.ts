@@ -25,43 +25,43 @@ export const removeLineIdMetadata = (pageText: string): string => {
 export const cleanDeepTextPage = (pageText: string): string => removeLineIdMetadata(removePageNumberMetadata(pageText));
 
 /**
- * Trims a long fullPhrase to a window around the anchorText for display.
+ * Trims a long sourceContext to a window around the sourceMatch for display.
  *
- * When fullPhrase is significantly longer than anchorText (e.g. a full page dump),
+ * When sourceContext is significantly longer than sourceMatch (e.g. a full page dump),
  * this returns only the surrounding context — `contextChars` characters before
  * and after the anchor — with `...` sentinels where text was cut.
  *
  * Returns the original phrase unchanged when:
- * - anchorText is empty or not found in fullPhrase
- * - fullPhrase is already short enough relative to anchorText
+ * - sourceMatch is empty or not found in sourceContext
+ * - sourceContext is already short enough relative to sourceMatch
  *
- * @param fullPhrase  The complete phrase (possibly very long)
- * @param anchorText  The specific cited text to center the window on
+ * @param sourceContext  The complete phrase (possibly very long)
+ * @param sourceMatch  The specific cited text to center the window on
  * @param contextChars  Max chars of surrounding context on each side (default 150)
  */
 export const trimPhraseToAnchorWindow = (
-  fullPhrase: string,
-  anchorText: string | undefined | null,
+  sourceContext: string,
+  sourceMatch: string | undefined | null,
   contextChars = 150,
 ): { text: string; prefixTrimmed: boolean; suffixTrimmed: boolean } => {
-  const noTrim = { text: fullPhrase, prefixTrimmed: false, suffixTrimmed: false };
-  if (!anchorText) return noTrim;
+  const noTrim = { text: sourceContext, prefixTrimmed: false, suffixTrimmed: false };
+  if (!sourceMatch) return noTrim;
 
-  const idx = normalizeQuotes(fullPhrase.toLowerCase()).indexOf(normalizeQuotes(anchorText.toLowerCase()));
+  const idx = normalizeQuotes(sourceContext.toLowerCase()).indexOf(normalizeQuotes(sourceMatch.toLowerCase()));
   if (idx === -1) return noTrim;
 
-  const anchorEnd = idx + anchorText.length;
+  const anchorEnd = idx + sourceMatch.length;
   // Only trim when phrase is materially longer than the anchor + context window
-  const windowLength = anchorText.length + 2 * contextChars;
-  if (fullPhrase.length <= windowLength) return noTrim;
+  const windowLength = sourceMatch.length + 2 * contextChars;
+  if (sourceContext.length <= windowLength) return noTrim;
 
   const start = Math.max(0, idx - contextChars);
-  const end = Math.min(fullPhrase.length, anchorEnd + contextChars);
+  const end = Math.min(sourceContext.length, anchorEnd + contextChars);
 
   return {
-    text: fullPhrase.slice(start, end),
+    text: sourceContext.slice(start, end),
     prefixTrimmed: start > 0,
-    suffixTrimmed: end < fullPhrase.length,
+    suffixTrimmed: end < sourceContext.length,
   };
 };
 

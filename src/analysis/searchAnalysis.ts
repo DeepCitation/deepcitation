@@ -39,7 +39,7 @@ export interface VerificationAnalysis {
 
   /** Timeline narrative — computed lazily on first access */
   readonly narrative: SearchNarrative;
-  /** Intent summary with snippets — computed lazily, null when no fullPhrase */
+  /** Intent summary with snippets — computed lazily, null when no sourceContext */
   readonly intent: IntentSummary | null;
   /** Query-group analytics — computed lazily */
   readonly summary: SearchSummary;

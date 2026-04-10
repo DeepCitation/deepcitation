@@ -3,16 +3,16 @@ import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, use
 import type { CitationStatus } from "../types/citation.js";
 import type { FileDownload, PageImage, Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
-import { CitationContentDisplay } from "./CitationContentDisplay.js";
-import {
-  getDefaultContent,
-  getDisplayText,
-  getInteractionClasses,
-  VARIANTS_WITH_OWN_HOVER,
-} from "./CitationContentDisplay.utils.js";
 import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import type { CitationStatusIndicatorProps, SpinnerStage } from "./CitationStatusIndicator.js";
+import { CitationTriggerContent } from "./CitationTriggerContent.js";
+import {
+  getDefaultContent,
+  getInteractionClasses,
+  getTriggerText,
+  VARIANTS_WITH_OWN_HOVER,
+} from "./CitationTriggerContent.utils.js";
 import { getStatusFromVerification, getStatusLabel } from "./citationStatus.js";
 import {
   GUARD_MAX_WIDTH_VAR,
@@ -119,16 +119,16 @@ export interface CitationComponentProps extends BaseCitationProps {
   variant?: CitationVariant;
   /**
    * What content to display in the citation.
-   * - `anchorText`: Descriptive text (e.g., "Revenue Growth")
+   * - `sourceMatch`: Descriptive text (e.g., "Revenue Growth")
    * - `number`: Citation number (e.g., "1", "2", "3")
    * - `indicator`: Only the status icon, no text
    * - `source`: Source name (e.g., "Wikipedia")
    *
    * Defaults based on variant:
-   * - `text` → `anchorText`
-   * - `linter` → `anchorText`
-   * - `chip` → `anchorText`
-   * - `brackets` → `anchorText`
+   * - `text` → `sourceMatch`
+   * - `linter` → `sourceMatch`
+   * - `chip` → `sourceMatch`
+   * - `brackets` → `sourceMatch`
    * - `superscript` → `number`
    * - `footnote` → `number`
    * - `badge` → `source`
@@ -319,8 +319,8 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   status,
   isLoading,
   isVisible,
-  sourceLabel,
-  displayLabel,
+  sourceTitle,
+  claimText,
   indicatorVariant,
   viewState,
   onViewStateChange,
@@ -338,8 +338,8 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   status: CitationStatus;
   isLoading: boolean;
   isVisible: boolean;
-  sourceLabel?: string;
-  displayLabel?: string;
+  sourceTitle?: string;
+  claimText?: string;
   indicatorVariant: IndicatorVariant;
   viewState: PopoverViewState;
   onViewStateChange: (viewState: PopoverViewState) => void;
@@ -367,8 +367,8 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
         status={status}
         isLoading={isLoading}
         isVisible={isVisible}
-        sourceLabel={sourceLabel}
-        displayLabel={displayLabel}
+        sourceTitle={sourceTitle}
+        claimText={claimText}
         indicatorVariant={indicatorVariant}
         viewState={viewState}
         onViewStateChange={onViewStateChange}
@@ -410,8 +410,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       citation,
       children,
       className,
-      fallbackDisplay,
-      displayLabel,
+      fallbackText,
+      claimText,
       verification,
       isLoading = false,
       variant = "text",
@@ -426,7 +426,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       additionalCount,
       faviconUrl,
       indicatorVariant = "icon",
-      sourceLabel,
+      sourceTitle,
       onTimingEvent,
       originalDownload,
       convertedDownload,
@@ -658,8 +658,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const hasDefinitiveResult =
       resolvedImageSrc ||
       verification?.status === "found" ||
-      verification?.status === "found_anchor_text_only" ||
-      verification?.status === "found_phrase_missed_anchor_text" ||
+      verification?.status === "found_source_match_only" ||
+      verification?.status === "found_context_missed_source_match" ||
       verification?.status === "not_found" ||
       verification?.status === "partial_text_found" ||
       verification?.status === "found_on_other_page" ||
@@ -711,8 +711,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     }, [prefetchMode, prefetchEvidenceSrc, prefetchExpandedSrc]);
 
     const displayText = useMemo(() => {
-      return getDisplayText(citation, resolvedContent, fallbackDisplay, displayLabel);
-    }, [citation, resolvedContent, fallbackDisplay, displayLabel]);
+      return getTriggerText(citation, resolvedContent, fallbackText, claimText);
+    }, [citation, resolvedContent, fallbackText, claimText]);
 
     // Behavior context for custom handlers
     const getBehaviorContext = useCallback(
@@ -1167,11 +1167,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     const isInlineVariant = variant === "text" || variant === "linter";
 
-    // Early return for miss with fallback display (only when showing anchorText)
+    // Early return for miss with fallback display (only when showing sourceMatch)
     // Inline variants inherit color (dimmed via opacity), others use explicit gray.
-    if (fallbackDisplay !== null && fallbackDisplay !== undefined && resolvedContent === "anchorText" && isMiss) {
+    if (fallbackText !== null && fallbackText !== undefined && resolvedContent === "sourceMatch" && isMiss) {
       const fallbackClasses = isInlineVariant ? "opacity-50" : "text-dc-subtle-foreground";
-      return <span className={cn(fallbackClasses, className)}>{fallbackDisplay}</span>;
+      return <span className={cn(fallbackClasses, className)}>{fallbackText}</span>;
     }
 
     const statusClasses = cn(
@@ -1205,7 +1205,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     // Build the citation content element using the extracted module-level components
     const citationContentNode = (
-      <CitationContentDisplay
+      <CitationTriggerContent
         renderContent={renderContent}
         citation={citation}
         status={status}
@@ -1234,7 +1234,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const shouldShowPopover =
       !isPopoverHidden &&
       // Has verification with image or snippet
-      ((verification && (resolvedImageSrc || verification.verifiedMatchSnippet)) ||
+      ((verification && (resolvedImageSrc || verification.sourceSnippet)) ||
         // Loading/pending state
         shouldShowSpinner ||
         isPending ||
@@ -1298,8 +1298,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           status={status}
           isLoading={isLoading || shouldShowSpinner}
           isVisible={isHovering}
-          sourceLabel={sourceLabel}
-          displayLabel={displayLabel}
+          sourceTitle={sourceTitle}
+          claimText={claimText}
           indicatorVariant={indicatorVariant}
           viewState={viewState.current}
           onViewStateChange={viewState.transition}

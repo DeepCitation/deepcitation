@@ -42,10 +42,10 @@ export interface MatchSnippet {
 export interface IntentSummary {
   /** High-level outcome */
   outcome: SearchOutcome;
-  /** What the LLM claimed — the fullPhrase from the citation */
-  fullPhrase: string;
+  /** What the LLM claimed — the sourceContext from the citation */
+  sourceContext: string;
   /** The anchor text (key span) if available */
-  anchorText?: string;
+  sourceMatch?: string;
   /** Which page the citation claimed to be on */
   expectedPage?: number;
   /** Matched snippets with context — only populated for "related_found" outcome */
@@ -182,10 +182,10 @@ export function buildIntentSummary(
   verification: Verification | null | undefined,
   searchAttempts: SearchAttempt[],
 ): IntentSummary | null {
-  const fullPhrase = verification?.citation?.fullPhrase;
-  if (!fullPhrase) return null;
+  const sourceContext = verification?.citation?.sourceContext;
+  if (!sourceContext) return null;
 
-  const anchorText = verification?.citation?.anchorText?.toString();
+  const sourceMatch = verification?.citation?.sourceMatch?.toString();
   const expectedPage =
     verification?.citation && isDocumentCitation(verification.citation)
       ? (verification.citation.pageNumber ?? undefined)
@@ -197,8 +197,8 @@ export function buildIntentSummary(
   if (status === "not_found") {
     return {
       outcome: "not_found",
-      fullPhrase,
-      anchorText,
+      sourceContext,
+      sourceMatch,
       expectedPage,
       snippets: [],
       totalAttempts,
@@ -208,13 +208,13 @@ export function buildIntentSummary(
   // Check if we have an exact/normalized full phrase match → exact_match
   const successfulAttempt = searchAttempts.find(a => a.success);
   if (
-    successfulAttempt?.matchedVariation === "exact_full_phrase" ||
-    successfulAttempt?.matchedVariation === "normalized_full_phrase"
+    successfulAttempt?.matchedVariation === "exact_source_context" ||
+    successfulAttempt?.matchedVariation === "normalized_source_context"
   ) {
     return {
       outcome: "exact_match",
-      fullPhrase,
-      anchorText,
+      sourceContext,
+      sourceMatch,
       expectedPage,
       snippets: [],
       totalAttempts,
@@ -222,11 +222,11 @@ export function buildIntentSummary(
   }
 
   // For found status without displacement → exact_match
-  if (status === "found" || status === "found_phrase_missed_anchor_text") {
+  if (status === "found" || status === "found_context_missed_source_match") {
     return {
       outcome: "exact_match",
-      fullPhrase,
-      anchorText,
+      sourceContext,
+      sourceMatch,
       expectedPage,
       snippets: [],
       totalAttempts,
@@ -283,13 +283,13 @@ export function buildIntentSummary(
   }
 
   // Also pull from verification-level matched text if no successful attempts produced snippets
-  if (snippets.length === 0 && verification?.verifiedMatchSnippet) {
-    const context = findContextWindow(verification.verifiedMatchSnippet, preparedText);
+  if (snippets.length === 0 && verification?.sourceSnippet) {
+    const context = findContextWindow(verification.sourceSnippet, preparedText);
     snippets.push({
-      matchedText: verification.verifiedMatchSnippet,
-      contextText: context?.contextText ?? verification.verifiedMatchSnippet,
+      matchedText: verification.sourceSnippet,
+      contextText: context?.contextText ?? verification.sourceSnippet,
       matchStart: context?.matchStart ?? 0,
-      matchEnd: context?.matchEnd ?? verification.verifiedMatchSnippet.length,
+      matchEnd: context?.matchEnd ?? verification.sourceSnippet.length,
       page: matchPage && matchPage > 0 ? matchPage : undefined,
       isProximate: true, // verification-level match is presumed proximate
     });
@@ -297,8 +297,8 @@ export function buildIntentSummary(
 
   return {
     outcome: "related_found",
-    fullPhrase,
-    anchorText,
+    sourceContext,
+    sourceMatch,
     expectedPage,
     snippets,
     totalAttempts,
@@ -319,7 +319,7 @@ function findPageTextItems(
 
 export interface SearchQueryGroup {
   searchPhrase: string;
-  phraseType: "full_phrase" | "anchor_text" | "fragment";
+  phraseType: "source_context" | "source_match" | "fragment";
   phraseLabel: string;
   methodsTried: SearchMethod[];
   locations: {
@@ -342,8 +342,8 @@ export interface SearchSummary {
 
 /** Map searchPhraseType + method to a phrase type category. */
 function derivePhraseType(attempt: SearchAttempt): SearchQueryGroup["phraseType"] {
-  if (attempt.searchPhraseType === "anchor_text") return "anchor_text";
-  if (attempt.searchPhraseType === "full_phrase") return "full_phrase";
+  if (attempt.searchPhraseType === "source_match") return "source_match";
+  if (attempt.searchPhraseType === "source_context") return "source_context";
   // Infer from method name for fragment fallbacks
   const method = attempt.method;
   if (
@@ -358,14 +358,14 @@ function derivePhraseType(attempt: SearchAttempt): SearchQueryGroup["phraseType"
   ) {
     return "fragment";
   }
-  if (method === "anchor_text_fallback" || method === "keyspan_fallback") return "anchor_text";
-  return "full_phrase";
+  if (method === "source_match_fallback" || method === "keyspan_fallback") return "source_match";
+  return "source_context";
 }
 
 /** Human-readable label for the phrase type. */
 function derivePhraseLabel(attempt: SearchAttempt, t: TranslateFunction): string {
-  if (attempt.searchPhraseType === "anchor_text") return t("searchPhrase.anchorText");
-  if (attempt.searchPhraseType === "full_phrase") return t("searchPhrase.fullPhrase");
+  if (attempt.searchPhraseType === "source_match") return t("searchPhrase.sourceMatch");
+  if (attempt.searchPhraseType === "source_context") return t("searchPhrase.sourceContext");
   // Infer from method for fragments
   const keyMap: Partial<Record<SearchMethod, MessageKey>> = {
     first_half_fallback: "searchPhrase.firstHalf",
@@ -376,12 +376,12 @@ function derivePhraseLabel(attempt: SearchAttempt, t: TranslateFunction): string
     fourth_quarter_fallback: "searchPhrase.fourthQuarter",
     first_word_fallback: "searchPhrase.firstWord",
     longest_word_fallback: "searchPhrase.longestWord",
-    anchor_text_fallback: "searchPhrase.anchorText",
-    keyspan_fallback: "searchPhrase.anchorText",
+    source_match_fallback: "searchPhrase.sourceMatch",
+    keyspan_fallback: "searchPhrase.sourceMatch",
     custom_phrase_fallback: "searchPhrase.customPhrase",
   };
   const key = keyMap[attempt.method];
-  return key ? t(key) : t("searchPhrase.fullPhrase");
+  return key ? t(key) : t("searchPhrase.sourceContext");
 }
 
 /**
@@ -486,10 +486,10 @@ export function buildSearchSummary(
 
   // Closest match
   let closestMatch: SearchSummary["closestMatch"];
-  if (verification?.verifiedMatchSnippet) {
+  if (verification?.sourceSnippet) {
     const page = verification.document?.verifiedPageNumber ?? undefined;
     closestMatch = {
-      text: verification.verifiedMatchSnippet,
+      text: verification.sourceSnippet,
       page: page != null && page > 0 ? page : undefined,
     };
   }

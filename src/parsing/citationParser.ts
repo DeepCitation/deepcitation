@@ -34,26 +34,33 @@ const COMPACT_KEY_MAP: Record<string, keyof CitationData> = {
   n: "id",
   a: "attachment_id",
   r: "reasoning",
-  f: "full_phrase",
-  k: "anchor_text",
-  d: "display_label",
+  f: "source_context",
+  k: "source_match",
+  d: "claim_text",
   p: "page_id",
   l: "line_ids",
   t: "timestamps",
 } as const;
 
 /**
- * Map of camelCase aliases to canonical snake_case keys.
+ * Map of camelCase and legacy aliases to canonical snake_case keys.
  */
 const KEY_ALIAS_MAP: Record<string, keyof CitationData> = {
   attachmentId: "attachment_id",
-  fullPhrase: "full_phrase",
-  anchorText: "anchor_text",
-  displayLabel: "display_label",
+  // New camelCase names → canonical snake_case
+  sourceContext: "source_context",
+  sourceMatch: "source_match",
+  claimText: "claim_text",
+  // Legacy field names → new canonical names
+  fullPhrase: "source_context",
+  full_phrase: "source_context",
+  anchorText: "source_match",
+  anchor_text: "source_match",
+  displayLabel: "claim_text",
+  display_label: "claim_text",
   pageId: "page_id",
   lineIds: "line_ids",
   // "fileId" was an early API field name before "attachmentId" was standardized.
-  // Kept as an alias for backward compatibility with serialized citation payloads.
   fileId: "attachment_id",
 } as const;
 
@@ -458,8 +465,8 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
     return {
       type: "audio" as const,
       attachmentId: data.attachment_id,
-      fullPhrase: data.full_phrase,
-      anchorText: data.anchor_text,
+      sourceContext: data.source_context,
+      sourceMatch: data.source_match,
       citationNumber: citationNumber ?? data.id,
       reasoning: data.reasoning,
       timestamps: {
@@ -474,8 +481,8 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
     attachmentId: data.attachment_id,
     pageNumber,
     startPageId,
-    fullPhrase: data.full_phrase,
-    anchorText: data.anchor_text,
+    sourceContext: data.source_context,
+    sourceMatch: data.source_match,
     citationNumber: citationNumber ?? data.id,
     lineIds,
     reasoning: data.reasoning,
@@ -499,7 +506,7 @@ export function getAllCitationsFromNumericResponse(llmResponse: string): {
 
   for (const data of parsed.citations) {
     const citation = citationDataToCitation(data);
-    if (citation.fullPhrase) {
+    if (citation.sourceContext) {
       const citationKey = getCitationKey(citation);
       citations[citationKey] = citation;
     }
@@ -540,8 +547,8 @@ function getCitationKeyFromData(data: CitationData): string {
   const lineIds = data.line_ids?.length ? [...data.line_ids].sort((a, b) => a - b) : undefined;
 
   const keyParts = [
-    data.full_phrase || "",
-    data.anchor_text?.toString() || "",
+    data.source_context || "",
+    data.source_match?.toString() || "",
     pageNumber?.toString() || "",
     lineIds?.join(",") || "",
   ];
@@ -608,7 +615,7 @@ function buildVerificationIndex(
  * // Replace with anchor texts
  * replaceCitationMarkers(text, {
  *   citationMap: new Map([[1, { anchor_text: "45%" }], [2, { anchor_text: "Q4" }]]),
- *   showAnchorText: true,
+ *   showSourceMatch: true,
  * });
  * // Returns: "Revenue grew 45% 45% in Q4 Q4."
  *
@@ -626,7 +633,7 @@ export function replaceCitationMarkers(
     /** Map of citation IDs to their data */
     citationMap?: Map<number, CitationData>;
     /** Whether to show the anchor text after the marker */
-    showAnchorText?: boolean;
+    showSourceMatch?: boolean;
     /** Custom replacement function */
     replacer?: (id: number, data?: CitationData) => string;
     /** Verification results keyed by citation key */
@@ -635,13 +642,13 @@ export function replaceCitationMarkers(
     showVerificationStatus?: boolean;
   },
 ): string {
-  const { citationMap, showAnchorText, replacer, verifications, showVerificationStatus } = options || {};
+  const { citationMap, showSourceMatch, replacer, verifications, showVerificationStatus } = options || {};
 
   // Pre-build verification index once (avoids per-marker object construction + linear scans)
   const verificationIndex =
     showVerificationStatus && verifications ? buildVerificationIndex(citationMap, verifications) : undefined;
 
-  const replaceSingle = (_match: string, idStr: string, anchorText?: string) => {
+  const replaceSingle = (_match: string, idStr: string, linkText?: string) => {
     const id = parseInt(idStr, 10);
 
     // Custom replacer takes precedence
@@ -652,17 +659,17 @@ export function replaceCitationMarkers(
     // Show verification status indicator (preserve anchor text from cite-link format)
     if (verificationIndex) {
       const indicator = getVerificationTextIndicator(verificationIndex.get(id));
-      return anchorText ? `${anchorText} [${id}${indicator}]` : `[${id}${indicator}]`;
+      return linkText ? `${linkText} [${id}${indicator}]` : `[${id}${indicator}]`;
     }
 
     // Show anchor text if requested
-    if (showAnchorText) {
+    if (showSourceMatch) {
       const data = citationMap?.get(id);
-      if (data?.anchor_text) return data.anchor_text;
+      if (data?.source_match) return data.source_match;
     }
 
     // Default: remove marker, but keep anchor text from cite-link format
-    return anchorText ?? "";
+    return linkText ?? "";
   };
 
   // First pass: replace [anchor](cite:N) markers
@@ -821,9 +828,9 @@ export function extractCitationsFromMarkers(text: string): { [key: string]: Cita
 
     const citation: Citation = {
       type: "document" as const,
-      fullPhrase: sentence || anchor,
+      sourceContext: sentence || anchor,
       citationNumber: id,
-      anchorText: truncateAtWord(anchor, 50),
+      sourceMatch: truncateAtWord(anchor, 50),
     };
     citations[String(id)] = citation;
   }
@@ -843,9 +850,9 @@ export function extractCitationsFromMarkers(text: string): { [key: string]: Cita
 
       const citation: Citation = {
         type: "document" as const,
-        fullPhrase: sentence,
+        sourceContext: sentence,
         citationNumber: id,
-        anchorText: truncateAtWord(sentence, 50),
+        sourceMatch: truncateAtWord(sentence, 50),
       };
       // Use citationNumber as key to avoid collisions when multiple IDs share the same sentence
       citations[String(id)] = citation;
@@ -866,9 +873,9 @@ export function extractCitationsFromMarkers(text: string): { [key: string]: Cita
 
     const citation: Citation = {
       type: "document" as const,
-      fullPhrase: sentence,
+      sourceContext: sentence,
       citationNumber: id,
-      anchorText: truncateAtWord(sentence, 50),
+      sourceMatch: truncateAtWord(sentence, 50),
     };
     citations[String(id)] = citation;
   }

@@ -34,7 +34,7 @@ import { IDENTITY_RENDER_SCALE } from "./resolvers.js";
  *
  * Falls back to horizontal centering when no bounding box data is available.
  */
-export function AnchorTextFocusedImage({
+export function EvidenceKeyhole({
   src,
   verification,
   onImageClick,
@@ -56,20 +56,19 @@ export function AnchorTextFocusedImage({
 }) {
   const t = useTranslation();
   // Anchor item and renderScale for scroll positioning.
-  // Uses anchorTextMatchDeepItems[0] (specific cited word) with phraseMatchDeepItem fallback.
+  // Uses sourceMatchDeepItems[0] (specific cited word) with sourceContextDeepItem fallback.
   // renderScale converts item coords → image pixel coords, matching
   // the same transform used by computeAnnotationScrollTarget / toPercentRect in overlayGeometry.
   // For image sources (mimeType: "image/*"), coords are already in pixel space — default to identity.
   const anchorScrollData = useMemo(() => {
     if (!verification) return null;
-    const anchorItem =
-      verification.document?.anchorTextMatchDeepItems?.[0] ?? verification.document?.phraseMatchDeepItem;
+    const anchorItem = verification.document?.sourceMatchDeepItems?.[0] ?? verification.document?.sourceContextDeepItem;
     if (!anchorItem) return null;
     const renderScale =
       verification.document?.renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);
     if (!renderScale) return null;
     const viewBoxOriginY = verification.document?.viewBoxOriginY;
-    const phraseItem = verification.document?.phraseMatchDeepItem;
+    const phraseItem = verification.document?.sourceContextDeepItem;
     return { anchorItem, renderScale, viewBoxOriginY, phraseItem };
   }, [verification]);
   // Drag-to-pan hook for mouse interaction (xy enables vertical pan for width-fit tall images;

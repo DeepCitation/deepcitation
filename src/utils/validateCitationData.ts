@@ -165,7 +165,7 @@ export function detectExtractionArtifacts(text: string): ExtractionArtifact[] {
  * Validates an array of CitationData for common quality issues.
  *
  * Errors = likely to cause verification failure (e.g. missing pageNumber).
- * Warnings = may degrade quality (e.g. long anchor_text, extraction artifacts).
+ * Warnings = may degrade quality (e.g. long source_match, extraction artifacts).
  */
 export function validateCitationData(citations: CitationData[]): ValidationReport {
   const warnings: CitationWarning[] = [];
@@ -174,9 +174,9 @@ export function validateCitationData(citations: CitationData[]): ValidationRepor
   for (const cd of citations) {
     const id = cd.id;
 
-    // Error: missing full_phrase
-    if (!cd.full_phrase?.trim()) {
-      errors.push({ citationId: id, field: "full_phrase", message: "empty or missing — verification will fail" });
+    // Error: missing source_context
+    if (!cd.source_context?.trim()) {
+      errors.push({ citationId: id, field: "source_context", message: "empty or missing — verification will fail" });
     }
 
     // Error: missing pageNumber (page_id)
@@ -188,9 +188,9 @@ export function validateCitationData(citations: CitationData[]): ValidationRepor
       });
     }
 
-    // Warning: extraction artifacts in full_phrase (RC1 — #1 cause of partial_text_found)
-    if (cd.full_phrase) {
-      const artifacts = detectExtractionArtifacts(cd.full_phrase);
+    // Warning: extraction artifacts in source_context (RC1 — #1 cause of partial_text_found)
+    if (cd.source_context) {
+      const artifacts = detectExtractionArtifacts(cd.source_context);
       if (artifacts.length > 0) {
         const summary = artifacts
           .slice(0, 3)
@@ -198,22 +198,22 @@ export function validateCitationData(citations: CitationData[]): ValidationRepor
           .join(", ");
         warnings.push({
           citationId: id,
-          field: "full_phrase",
+          field: "source_context",
           message: `extraction artifact(s) detected [${summary}] — likely to cause partial_text_found`,
         });
       }
     }
 
-    // Warning: missing or garbage anchor_text
-    const anchor = cd.anchor_text ?? "";
+    // Warning: missing or garbage source_match
+    const anchor = cd.source_match ?? "";
     if (!anchor.trim()) {
-      warnings.push({ citationId: id, field: "anchor_text", message: "empty — degrades verification accuracy" });
+      warnings.push({ citationId: id, field: "source_match", message: "empty — degrades verification accuracy" });
       continue; // skip further anchor checks
     }
     if (!/[a-zA-Z0-9]/.test(anchor)) {
       warnings.push({
         citationId: id,
-        field: "anchor_text",
+        field: "source_match",
         message: `punctuation-only ("${anchor}") — must contain substantive words from the evidence`,
       });
       continue;
@@ -221,36 +221,36 @@ export function validateCitationData(citations: CitationData[]): ValidationRepor
     if (anchor.trim().length < 3) {
       warnings.push({
         citationId: id,
-        field: "anchor_text",
-        message: `too short ("${anchor}") — use 1–4 specific words from full_phrase`,
+        field: "source_match",
+        message: `too short ("${anchor}") — use 1–4 specific words from source_context`,
       });
     }
 
-    // Warning: anchor_text long — shorter anchors improve report readability
+    // Warning: source_match long — shorter anchors improve report readability
     if (anchor.length > ANCHOR_CHARS_THRESHOLD) {
       warnings.push({
         citationId: id,
-        field: "anchor_text",
+        field: "source_match",
         message: `${anchor.length} chars — shorter anchors (under ~40 chars) improve report readability`,
       });
     }
 
-    // Warning: anchor_text has many words — fewer words improve scannability
+    // Warning: source_match has many words — fewer words improve scannability
     const wordCount = anchor.split(/\s+/).length;
     if (wordCount > ANCHOR_WORDS_THRESHOLD) {
       warnings.push({
         citationId: id,
-        field: "anchor_text",
+        field: "source_match",
         message: `${wordCount} words — fewer words (under ~4) improve report scannability`,
       });
     }
 
-    // Warning: anchor_text not a substring of full_phrase
-    if (cd.full_phrase && !normalizeQuotes(cd.full_phrase).includes(normalizeQuotes(anchor))) {
+    // Warning: source_match not a substring of source_context
+    if (cd.source_context && !normalizeQuotes(cd.source_context).includes(normalizeQuotes(anchor))) {
       warnings.push({
         citationId: id,
-        field: "anchor_text",
-        message: "not a substring of full_phrase — likely paraphrased, will fail API match",
+        field: "source_match",
+        message: "not a substring of source_context — likely paraphrased, will fail API match",
       });
     }
   }

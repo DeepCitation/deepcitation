@@ -36,7 +36,7 @@ import {
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
 import { EvidenceTray, InlineExpandedImage, resolveEvidenceSrc, resolveExpandedImageForPage } from "./EvidenceTray.js";
-import { HighlightedPhrase } from "./HighlightedPhrase.js";
+import { HighlightedSourceContext } from "./HighlightedSourceContext.js";
 import { useBlinkMotionStage } from "./hooks/useBlinkMotionStage.js";
 import { useDrawerDragToClose } from "./hooks/useDrawerDragToClose.js";
 import { type TranslateFunction, tPlural, useTranslation } from "./i18n.js";
@@ -316,7 +316,7 @@ function SourceGroupHeader({
 /**
  * Individual citation item displayed in the drawer.
  *
- * Header (collapsed): fullPhrase with anchorText highlighted via HighlightedPhrase.
+ * Header (collapsed): sourceContext with sourceMatch highlighted via HighlightedSourceContext.
  * Expanded: EvidenceTray (keyhole image for found; page thumbnail + search analysis for miss),
  * matching the citation popover's evidence UX exactly. Keyhole click or tray click opens
  * InlineExpandedImage for drag-to-pan full-page view.
@@ -378,8 +378,8 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     prefersReducedMotion,
   } = useBlinkMotionStage(isExpanded, "row", "fast");
 
-  const anchorText = citation.anchorText?.toString();
-  const fullPhrase = citation.fullPhrase;
+  const sourceMatch = citation.sourceMatch?.toString();
+  const sourceContext = citation.sourceContext;
 
   const itemPageNumber = useMemo(
     () =>
@@ -522,12 +522,12 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
             </div>
           )}
 
-          {/* Header: fullPhrase with anchorText highlighted — always visible */}
+          {/* Header: sourceContext with sourceMatch highlighted — always visible */}
           <div className="flex-1 min-w-0">
-            <div className="text-sm text-dc-foreground line-clamp-2" title={fullPhrase || anchorText}>
-              <HighlightedPhrase
-                fullPhrase={fullPhrase || anchorText || ""}
-                anchorText={anchorText}
+            <div className="text-sm text-dc-foreground line-clamp-2" title={sourceContext || sourceMatch}>
+              <HighlightedSourceContext
+                sourceContext={sourceContext || sourceMatch || ""}
+                sourceMatch={sourceMatch}
                 isMiss={isNotFound}
               />
             </div>
@@ -785,7 +785,7 @@ function DrawerSourceHeading({
   const firstGroup = citationGroups[0];
   // Use the exact same label as CitationDrawerTrigger — generateDefaultLabel handles
   // truncation and "+N" overflow in one place, ensuring heading and trigger always match.
-  const displayLabel = label?.trim() || generateDefaultLabel(citationGroups, t);
+  const claimText = label?.trim() || generateDefaultLabel(citationGroups, t);
   const isUrlSource = !!firstGroup.sourceDomain;
 
   return (
@@ -796,7 +796,7 @@ function DrawerSourceHeading({
           <FaviconImage
             faviconUrl={firstGroup.sourceFavicon || null}
             domain={firstGroup.sourceDomain || null}
-            alt={displayLabel}
+            alt={claimText}
           />
         ) : (
           <span className="w-4 h-4 shrink-0 text-dc-pending">
@@ -806,7 +806,7 @@ function DrawerSourceHeading({
       </div>
 
       {/* Source label — identical text to CitationDrawerTrigger */}
-      <h2 className="text-base font-semibold text-dc-foreground">{displayLabel}</h2>
+      <h2 className="text-base font-semibold text-dc-foreground">{claimText}</h2>
     </div>
   );
 }
@@ -1065,11 +1065,11 @@ function OpenCitationDrawer({
   // Active page pill — prefer explicit page set by the interaction, then fall back to citation page.
   const activePage = headerInline ? (headerInline.pageNumber ?? keyToPage.get(headerInline.citationKey) ?? null) : null;
 
-  // Citations on the active page with phraseMatchDeepItem — used for the indicator row
+  // Citations on the active page with sourceContextDeepItem — used for the indicator row
   const citationsOnActivePage = useMemo(
     () =>
       (pageToItems.get(activePage ?? -1) ?? []).filter(
-        item => item.verification?.document?.phraseMatchDeepItem != null,
+        item => item.verification?.document?.sourceContextDeepItem != null,
       ),
     [pageToItems, activePage],
   );
@@ -1290,7 +1290,7 @@ function OpenCitationDrawer({
                     aria-pressed={activeIndicatorKey === item.citationKey}
                     onClick={() => setActiveIndicatorKey(prev => (prev === item.citationKey ? null : item.citationKey))}
                     className="p-1 rounded transition-colors hover:bg-dc-muted"
-                    aria-label={item.citation.anchorText ?? item.citationKey}
+                    aria-label={item.citation.sourceMatch ?? item.citationKey}
                   >
                     <span className="w-2 h-2 rounded-full block bg-current opacity-70" />
                   </button>
@@ -1357,7 +1357,7 @@ function OpenCitationDrawer({
                 highlightItem={
                   activeIndicatorKey
                     ? (citationsOnActivePage.find(c => c.citationKey === activeIndicatorKey)?.verification?.document
-                        ?.phraseMatchDeepItem ?? undefined)
+                        ?.sourceContextDeepItem ?? undefined)
                     : undefined
                 }
                 fill={isFullPage}

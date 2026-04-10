@@ -47,7 +47,7 @@ export function getAllLines(lineMap: LineMap): LineEntry[] {
 
 export interface BodyMarker {
   id: number;
-  displayLabel: string;
+  claimText: string;
   /** Verbatim anchor text from the evidence, if provided via title syntax. */
   anchorHint?: string;
 }
@@ -61,7 +61,7 @@ export interface BodyMarker {
  *
  * Markers provide the in-text references. Citation coordinates (page_id,
  * line_ids) come from a separate `<<<CITATION_DATA>>>` JSON block appended
- * after the body. The CLI hydrates `full_phrase` from the summary using
+ * after the body. The CLI hydrates `source_context` from the summary using
  * those coordinates.
  *
  * Deduplicates by id — first occurrence wins. Returns entries sorted by id.
@@ -89,7 +89,7 @@ export function extractMarkersFromBody(body: string): BodyMarker[] {
     }
     seen.set(id, label);
 
-    const marker: BodyMarker = { id, displayLabel: label };
+    const marker: BodyMarker = { id, claimText: label };
 
     // Parse optional anchor hint (single or double quoted)
     const anchorDQ = rest.match(/"((?:[^"\\]|\\.)*)"/);
@@ -118,7 +118,7 @@ export function extractMarkersFromBody(body: string): BodyMarker[] {
         continue;
       }
       seen.set(id, label);
-      results.push({ id, displayLabel: label });
+      results.push({ id, claimText: label });
     }
   }
 
@@ -204,10 +204,10 @@ const GENERIC_WORDS = new Set([
  * Returns null only if no word from the label appears in any evidence line.
  */
 export function findAnchorWithFallback(
-  displayLabel: string,
+  claimText: string,
   allLines: LineEntry[],
 ): { lineId: number; pageId: string; verbatimAnchor: string } | null {
-  const words = displayLabel.trim().split(/\s+/);
+  const words = claimText.trim().split(/\s+/);
   if (allLines.length === 0) return null;
 
   // Pre-compute whitespace-normalized, quote-normalized, lowercase text for each line.
@@ -274,7 +274,7 @@ export function findAnchorWithFallback(
     const needle = normalizeQuotes(word.toLowerCase());
     const idx = normalizedLines.findIndex(norm => norm.includes(needle));
     if (idx !== -1) {
-      console.error(`  Warning: single-word fallback "${sanitizeForLog(word)}" for "${sanitizeForLog(displayLabel)}"`);
+      console.error(`  Warning: single-word fallback "${sanitizeForLog(word)}" for "${sanitizeForLog(claimText)}"`);
       return { lineId: allLines[idx].lineId, pageId: allLines[idx].pageId, verbatimAnchor: word };
     }
   }

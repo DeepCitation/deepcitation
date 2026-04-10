@@ -37,6 +37,7 @@ import {
   type CitationData,
 } from "../prompts/citationPrompts.js";
 import type { AttachmentAssets } from "../types/index.js";
+import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { escapeHtml } from "../utils/htmlEscape.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
@@ -201,7 +202,7 @@ Options:
   --out <file>         Write re-keyed JSON (original labels → hashed keys). If omitted, prints mapping to stdout.
   -h, --help           Show this help message
 
-Input format: { "my-label": { "fullPhrase": "...", "anchorText": "...", "pageNumber": 1, "lineIds": [1] } }
+Input format: { "my-label": { "sourceContext": "...", "sourceMatch": "...", "pageNumber": 1, "lineIds": [1] } }
 Output: { "my-label": "a3f7b2c1d8e9f012", ... } (mapping) or re-keyed citations file (with --out)
 
 Examples:
@@ -242,7 +243,7 @@ const DEFAULT_API_URL = "https://api.deepcitation.com";
 function printAllNotFoundHint(): void {
   console.error(
     `\nAll citations returned not_found. Common causes:\n` +
-      `  1. anchor_text is not verbatim from the source (paraphrased or too long)\n` +
+      `  1. source_match is not verbatim from the source (paraphrased or too long)\n` +
       `  2. page_id format is wrong — must be page_number_N_index_I from the tag name\n` +
       `  3. The attachment was re-prepared — attachmentId has changed\n` +
       `\nFix the citation data and re-run "deepcitation verify --markdown <draft.md>".`,
@@ -641,12 +642,12 @@ export function inject(argv: string[]) {
 
   // Stamp data-dc-display-label on paraphrase inlines so the popover's
   // "displayed as" annotation fires for visible text that differs from the
-  // citation's anchorText. Shared with injectCdnRuntime so the verify
+  // citation's sourceMatch. Shared with injectCdnRuntime so the verify
   // --markdown path produces identical HTML.
   const autoFixed = autoFixDisplayLabels(stripped.html, verifications);
   if (autoFixed.log.length > 0) {
     console.error(
-      `Auto-set display label on ${autoFixed.log.length} element(s) where visible text differs from anchorText:\n` +
+      `Auto-set display label on ${autoFixed.log.length} element(s) where visible text differs from sourceMatch:\n` +
         autoFixed.log.join("\n"),
     );
   }
@@ -813,22 +814,22 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
         const allLines = getAllLines(lineMap);
         const citations: CitationData[] = [];
 
-        for (const { id, displayLabel, anchorHint } of markers) {
-          const searchTerm = anchorHint ?? displayLabel;
+        for (const { id, claimText, anchorHint } of markers) {
+          const searchTerm = anchorHint ?? claimText;
           const found = findAnchorWithFallback(searchTerm, allLines);
           if (!found) {
-            console.error(`  Citation ${id} ("${displayLabel}"): not found in evidence`);
+            console.error(`  Citation ${id} ("${claimText}"): not found in evidence`);
             continue;
           }
           const { lineId, pageId, verbatimAnchor } = found;
-          const anchorText = anchorHint?.trim() || verbatimAnchor;
+          const sourceMatch = anchorHint?.trim() || verbatimAnchor;
           citations.push({
             id,
-            anchor_text: anchorText,
+            source_match: sourceMatch,
             page_id: toCompactPageId(pageId),
             line_ids: [lineId],
             attachment_id: attachmentId,
-            display_label: displayLabel.toLowerCase() !== anchorText.toLowerCase() ? displayLabel : undefined,
+            claim_text: claimText.toLowerCase() !== sourceMatch.toLowerCase() ? claimText : undefined,
           });
         }
 
@@ -852,9 +853,9 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     );
   }
 
-  // Auto-hydrate: if compact citations are detected (missing full_phrase but have line_ids),
-  // fill in full_phrase from the summary file before proceeding.
-  const needsHydration = parsed.citations.some(c => !c.full_phrase && c.line_ids?.length);
+  // Auto-hydrate: if compact citations are detected (missing source_context but have line_ids),
+  // fill in source_context from the summary file before proceeding.
+  const needsHydration = parsed.citations.some(c => !c.source_context && c.line_ids?.length);
   if (needsHydration) {
     // Extract attachmentId from parsed citations to find the matching summary file.
     // This prevents wrong-source hydration when multiple prepare files exist.
@@ -884,7 +885,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
       // Only if hydration succeeded for at least one citation — this confirms the summary
       // matches the citations and prevents assigning the wrong attachment_id.
       const missingAttId = parsed.citations.some(c => !c.attachment_id);
-      const anyHydrated = parsed.citations.some(c => c.full_phrase && c.line_ids?.length);
+      const anyHydrated = parsed.citations.some(c => c.source_context && c.line_ids?.length);
       if (missingAttId && anyHydrated) {
         try {
           const summaryAttId = (JSON.parse(summaryContent) as { attachmentId?: string }).attachmentId;
@@ -903,7 +904,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
         }
       }
     } else if (needsHydration) {
-      console.error("Warning: citations missing full_phrase — pass --summary for auto-hydration");
+      console.error("Warning: citations missing source_context — pass --summary for auto-hydration");
     }
   }
 
@@ -942,10 +943,10 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     parsed.visibleText = parsed.visibleText.replace(/\[\d+-\d+\]/g, "");
   }
 
-  // Extract display labels from body: [label](cite:N) where label differs from anchorText.
-  // The compact JSON only carries k (anchorText); the body label is for readers and may
+  // Extract display labels from body: [label](cite:N) where label differs from sourceMatch.
+  // The compact JSON only carries k (sourceMatch); the body label is for readers and may
   // deliberately differ (e.g. "pro rata distribution" body, "pro rata" k). Populating
-  // display_label here causes verifyHtml to inject data-dc-display-label so the popover
+  // claim_text here causes verifyHtml to inject data-dc-display-label so the popover
   // can show the "Displayed as" disclaimer.
   {
     const bodyRe = /\[([^\]]+)\]\(cite:(\d+)\)/g;
@@ -954,18 +955,18 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
       const label = bm[1].trim();
       const id = parseInt(bm[2], 10);
       const cd = parsed.citations.find(c => c.id === id);
-      if (cd && !cd.display_label && label.toLowerCase() !== (cd.anchor_text ?? "").toLowerCase()) {
-        cd.display_label = label;
+      if (cd && !cd.claim_text && label.toLowerCase() !== (cd.source_match ?? "").toLowerCase()) {
+        cd.claim_text = label;
       }
     }
   }
 
-  // Build anchor map: citation ID → anchorText, so markdownToHtml can wrap
+  // Build anchor map: citation ID → sourceMatch, so markdownToHtml can wrap
   // just the anchor phrase instead of the whole preceding clause.
-  const anchorMap: Record<string, string> = {};
+  const sourceMatchMap: Record<string, string> = {};
   for (const cd of parsed.citations) {
-    const anchor = cd.anchor_text;
-    if (anchor && cd.id) anchorMap[String(cd.id)] = anchor;
+    const anchor = cd.source_match;
+    if (anchor && cd.id) sourceMatchMap[String(cd.id)] = anchor;
   }
 
   const title = args.title as string | undefined;
@@ -981,7 +982,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     style,
     audience,
     title,
-    anchorMap,
+    sourceMatchMap,
     citationCount: parsed.citations.length,
     cowork: IS_COWORK,
     sourceUrl,
@@ -1028,7 +1029,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   }
 
   // 1b. When the model picked a short bold display label that differs from
-  //     anchor_text, promote the bold text to anchor — it's what the reader
+  //     source_match, promote the bold text to anchor — it's what the reader
   //     clicks and should drive the highlight. Mutates `parsed.citations`
   //     before the verify API call.
   {
@@ -1051,13 +1052,13 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
       const cd = parsed.citations.find(c => c.id === id);
       if (!cd) continue;
-      const currentAnchor = (cd.anchor_text ?? "").trim();
+      const currentAnchor = (cd.source_match ?? "").trim();
       if (currentAnchor && currentAnchor.toLowerCase() === visible.toLowerCase()) continue;
 
       console.error(
         `  [${id}] auto-promoted display label to anchor: "${visible}" (was "${currentAnchor.slice(0, 40)}${currentAnchor.length > 40 ? "…" : ""}")`,
       );
-      cd.anchor_text = visible;
+      cd.source_match = visible;
       promoted++;
     }
     if (promoted > 0) {
@@ -1117,12 +1118,12 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   }
 
   // 3. Annotate HTML: map data-cite="N" → data-citation-key="hash", strip [N] markers
-  //    Also inject data-dc-display-label when display_label is provided in citation data.
+  //    Also inject data-dc-display-label when claim_text is provided in citation data.
   let html = parsed.visibleText;
   const keyMap: Record<string, string> = {};
   for (const [id, hash] of idToHash) {
     const cd = parsed.citations.find(c => c.id === id);
-    const label = cd?.display_label;
+    const label = cd?.claim_text;
     const replacement = label
       ? `data-citation-key="${hash}" data-dc-display-label="${label.replace(/"/g, "&quot;")}"`
       : `data-citation-key="${hash}"`;
@@ -1225,7 +1226,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
   // 5. Inject CDN runtime (same logic as inject command)
   // Re-attach pageImages in-memory only for CDN script injection below.
-  const verifications = verifyOutput.verifications;
+  const verifications = verifyOutput.verifications as Record<string, Verification>;
   reattachPageImages(verifications, mergedAttachments);
 
   // 4b. Detect unfollowed local-file links in the source HTML. When an HTML

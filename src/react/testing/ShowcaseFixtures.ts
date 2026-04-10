@@ -40,13 +40,13 @@ export const allVerificationStatuses: Array<{
     color: "green",
   },
   {
-    status: "found_anchor_text_only",
+    status: "found_source_match_only",
     label: "Anchor Text Only",
     description: "Anchor text matched",
     color: "green",
   },
   {
-    status: "found_phrase_missed_anchor_text",
+    status: "found_context_missed_source_match",
     label: "Phrase (Missed Anchor)",
     description: "Full phrase found but anchor text differed",
     color: "green",
@@ -109,8 +109,8 @@ function makeUrlCitation(url: string, domain: string, title: string): Citation {
     url,
     domain,
     title,
-    fullPhrase: `According to ${title}, the key finding was significant.`,
-    anchorText: "the key finding was significant",
+    sourceContext: `According to ${title}, the key finding was significant.`,
+    sourceMatch: "the key finding was significant",
     citationNumber: 1,
   };
 }

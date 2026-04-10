@@ -77,7 +77,7 @@ export const defaultMessages = {
   // ── Outcome labels ─────────────────────────────────────────────
   "outcome.exactMatch": "Exact match",
   "outcome.normalizedMatch": "Normalized match",
-  "outcome.anchorTextMatch": "Anchor text match",
+  "outcome.sourceMatchMatch": "Anchor text match",
   "outcome.partialMatch": "Partial match",
   "outcome.firstWordMatch": "First word match",
   "outcome.foundDifferentLocation": "Found at different location",
@@ -103,7 +103,7 @@ export const defaultMessages = {
 
   // ── Contextual status messages ─────────────────────────────────
   "message.exactMatch": "Exact match",
-  "message.anchorTextFound": "Anchor text found",
+  "message.sourceMatchFound": "Anchor text found",
   "message.phraseFound": "Full phrase found",
   "message.partialTextMatch": "Partial text match",
   "message.foundOnOtherPage": "Found on p.\u202f{actualPage} (expected p.\u202f{expectedPage})",
@@ -184,7 +184,7 @@ export const defaultMessages = {
   "aria.linkToDomainStatus": "Link to {domain}: {status}",
   "aria.viewProofForSource": "View proof for {sourceName}",
   "aria.citationVerificationStatus": "Citation verification status",
-  "aria.citationsSummary": "Citations: {displayLabel}",
+  "aria.citationsSummary": "Citations: {claimText}",
   "aria.citationIconTitle": "{sourceName} — {statusLabel}",
   "aria.citationIconTitleWithPreview": "{sourceName}: {preview} — {statusLabel}",
   "aria.sourceFromPlatform": "{title} from {platformName}",
@@ -231,7 +231,7 @@ export const defaultMessages = {
   "search.method.lineWithBuffer": "Nearby lines",
   "search.method.expandedLineBuffer": "Extended nearby lines",
   "search.method.currentPage": "Expected page",
-  "search.method.anchorTextFallback": "Anchor text",
+  "search.method.sourceMatchFallback": "Anchor text",
   "search.method.adjacentPages": "Nearby pages",
   "search.method.expandedWindow": "Wider area",
   "search.method.regexSearch": "Entire document",
@@ -249,8 +249,8 @@ export const defaultMessages = {
   "search.empty": "(empty)",
 
   // ── Search phrase type labels ──────────────────────────────────
-  "searchPhrase.anchorText": "Anchor text",
-  "searchPhrase.fullPhrase": "Full phrase",
+  "searchPhrase.sourceMatch": "Anchor text",
+  "searchPhrase.sourceContext": "Full phrase",
   "searchPhrase.firstHalf": "First half",
   "searchPhrase.lastHalf": "Last half",
   "searchPhrase.firstQuarter": "First quarter",

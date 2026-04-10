@@ -14,7 +14,7 @@ interface CitationContextValue {
   status: CitationStatus;
   verification: Verification | null;
   config: {
-    fallbackDisplay: string | null;
+    fallbackText: string | null;
     pendingContent: ReactNode;
   };
 }

@@ -15,7 +15,7 @@ import { type TranslateFunction, useTranslation } from "./i18n.js";
 import { XIcon } from "./icons.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
 import type { BaseCitationProps, CitationEventHandlers, CitationVariant as CitationVariantType } from "./types.js";
-import { classNames, generateCitationInstanceId, getCitationDisplayText, getCitationNumber } from "./utils.js";
+import { classNames, generateCitationInstanceId, getCitationClaimText, getCitationNumber } from "./utils.js";
 
 const TWO_DOTS_THINKING_CONTENT = "..";
 
@@ -271,7 +271,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
       citation,
       children,
       className,
-      fallbackDisplay,
+      fallbackText,
       verification,
       eventHandlers,
       preventTooltips = false,
@@ -289,11 +289,8 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
     const events = useCitationEvents(citation, citationKey, eventHandlers, preventTooltips);
     const chipClasses = getChipVisualClasses(status);
 
-    // ChipCitation shows anchorText by default
-    const displayText = useMemo(
-      () => getCitationDisplayText(citation, { fallbackDisplay }),
-      [citation, fallbackDisplay],
-    );
+    // ChipCitation shows sourceMatch by default
+    const displayText = useMemo(() => getCitationClaimText(citation, { fallbackText }), [citation, fallbackText]);
 
     const statusLabel = getAriaStatusLabel(status, t);
     const ariaLabel = displayText
@@ -636,7 +633,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
       citation,
       children,
       className,
-      fallbackDisplay,
+      fallbackText,
       verification,
       eventHandlers,
       preventTooltips = false,
@@ -652,11 +649,8 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
     const t = useTranslation();
     const events = useCitationEvents(citation, citationKey, eventHandlers, preventTooltips);
 
-    // InlineCitation shows anchorText by default
-    const displayText = useMemo(
-      () => getCitationDisplayText(citation, { fallbackDisplay }),
-      [citation, fallbackDisplay],
-    );
+    // InlineCitation shows sourceMatch by default
+    const displayText = useMemo(() => getCitationClaimText(citation, { fallbackText }), [citation, fallbackText]);
 
     const statusClass = getStatusToneClass(status, "");
 

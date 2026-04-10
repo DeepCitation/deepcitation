@@ -103,7 +103,7 @@ const ANCHOR_MATCH_PREFIX = 40;
  * wrapCitationMarkers expects `anchor text [N]` — this function normalizes
  * all styles to that format before markdownToHtml processes them.
  */
-export function normalizeNumericMarkers(text: string, anchorMap: Record<string, string>): string {
+export function normalizeNumericMarkers(text: string, sourceMatchMap: Record<string, string>): string {
   // Expand grouped markers  [1, 5] → [1][5]
   let result = safeReplace(text, /\[(\d+(?:\s*,\s*\d+)+)\]/g, (_, group: string) =>
     group
@@ -115,7 +115,7 @@ export function normalizeNumericMarkers(text: string, anchorMap: Record<string, 
   // For each citation, ensure [N] follows its anchor text.
   // Process in descending order so index shifts from earlier edits
   // don't affect later ones.
-  const entries = Object.entries(anchorMap).sort(([a], [b]) => Number(b) - Number(a));
+  const entries = Object.entries(sourceMatchMap).sort(([a], [b]) => Number(b) - Number(a));
 
   for (const [num, anchor] of entries) {
     const markerRe = new RegExp(`\\[${num}\\]`);
@@ -147,23 +147,23 @@ export function normalizeNumericMarkers(text: string, anchorMap: Record<string, 
 // ── Shared report helpers ─────────────────────────────────────────────
 
 /**
- * Build anchorMap (citationNumber → anchorText) and keyMap ("cite-N" → hash)
+ * Build sourceMatchMap (citationNumber → sourceMatch) and keyMap ("cite-N" → hash)
  * from a CitationRecord. Used by markdownToHtml and CDN runtime respectively.
  */
 export function buildCitationMaps(citations: CitationRecord): {
-  anchorMap: Record<string, string>;
+  sourceMatchMap: Record<string, string>;
   keyMap: Record<string, string>;
 } {
-  const anchorMap: Record<string, string> = {};
+  const sourceMatchMap: Record<string, string> = {};
   const keyMap: Record<string, string> = {};
   for (const [hash, citation] of Object.entries(citations)) {
     const num = citation.citationNumber;
-    if (num != null && citation.anchorText) {
-      anchorMap[String(num)] = citation.anchorText;
+    if (num != null && citation.sourceMatch) {
+      sourceMatchMap[String(num)] = citation.sourceMatch;
       keyMap[`cite-${num}`] = hash;
     }
   }
-  return { anchorMap, keyMap };
+  return { sourceMatchMap, keyMap };
 }
 
 /**
@@ -206,14 +206,14 @@ export function reattachPageImages(
 
 /**
  * Walk every `data-citation-key` element and stamp `data-dc-display-label`
- * when the visible text is NOT a substring of the citation's `anchorText`.
+ * when the visible text is NOT a substring of the citation's `sourceMatch`.
  *
  * The CDN runtime reads `data-dc-display-label` at click time so the popover
  * shows the visible (paraphrase) text on the "displayed as" line — without
  * this attribute, paraphrase inlines render with no annotation, leaving
  * inattentive readers no signal that the bolded inline and the anchor differ.
  *
- * Returns the rewritten HTML and a log of `[hashPrefix] displayLabel/anchor`
+ * Returns the rewritten HTML and a log of `[hashPrefix] claimText/anchor`
  * lines for each element that was auto-fixed. Both the standalone `inject`
  * command and `injectCdnRuntime` (verify --markdown) use this helper so the
  * two paths produce identical HTML.
@@ -228,9 +228,9 @@ export function autoFixDisplayLabels(
     // Skip if data-dc-display-label is already set on this element
     if (/data-dc-display-label=/.test(rest) || /data-dc-display-label=/.test(fullMatch)) return fullMatch;
 
-    const anchorText = (verifications[hashedKey] as { citation?: { anchorText?: string } } | undefined)?.citation
-      ?.anchorText;
-    if (!anchorText) return fullMatch;
+    const sourceMatch = (verifications[hashedKey] as { citation?: { sourceMatch?: string } } | undefined)?.citation
+      ?.sourceMatch;
+    if (!sourceMatch) return fullMatch;
 
     // Strip inner HTML tags to get approximate visible text.
     // Loop until stable to handle nested fragments like <scr<script>ipt>.
@@ -243,11 +243,11 @@ export function autoFixDisplayLabels(
     visibleText = visibleText.replace(/\s+/g, " ").trim();
 
     if (!visibleText || visibleText.length > 80) return fullMatch;
-    if (anchorText.toLowerCase().includes(visibleText.toLowerCase())) return fullMatch;
+    if (sourceMatch.toLowerCase().includes(visibleText.toLowerCase())) return fullMatch;
 
     const escaped = visibleText.replace(/"/g, "&quot;");
     log.push(
-      `  [${hashedKey.slice(0, 8)}…] displayLabel="${visibleText}" anchorText="${anchorText.slice(0, 60)}${anchorText.length > 60 ? "…" : ""}"`,
+      `  [${hashedKey.slice(0, 8)}…] claimText="${visibleText}" sourceMatch="${sourceMatch.slice(0, 60)}${sourceMatch.length > 60 ? "…" : ""}"`,
     );
     return fullMatch.replace(
       `data-citation-key="${hashedKey}"`,
@@ -280,12 +280,12 @@ export function injectCdnRuntime(
 
   // Stamp data-dc-display-label on paraphrase inlines so the popover's
   // "displayed as" annotation fires for visible text that differs from the
-  // citation's anchorText. Mirrors the behavior of the standalone `inject`
+  // citation's sourceMatch. Mirrors the behavior of the standalone `inject`
   // command — extracted to a shared helper so verify --markdown gets parity.
   const autoFixed = autoFixDisplayLabels(stripped.html, verifications);
   if (autoFixed.log.length > 0) {
     console.error(
-      `Auto-set display label on ${autoFixed.log.length} element(s) where visible text differs from anchorText:\n` +
+      `Auto-set display label on ${autoFixed.log.length} element(s) where visible text differs from sourceMatch:\n` +
         autoFixed.log.join("\n"),
     );
   }

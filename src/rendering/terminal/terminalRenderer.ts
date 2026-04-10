@@ -8,7 +8,7 @@ import type { TerminalOutput, TerminalRenderOptions, TerminalVariant } from "./t
 
 function renderTerminalCitation(
   citationNumber: number,
-  anchorText: string | undefined,
+  sourceMatch: string | undefined,
   status: CitationStatus,
   indicatorStyle: IndicatorStyle,
   variant: TerminalVariant,
@@ -20,7 +20,7 @@ function renderTerminalCitation(
   let plainText: string;
   switch (variant) {
     case "inline":
-      plainText = `${anchorText || `Citation ${citationNumber}`}${indicator}`;
+      plainText = `${sourceMatch || `Citation ${citationNumber}`}${indicator}`;
       break;
     case "minimal":
       plainText = indicator;
@@ -83,7 +83,7 @@ export function renderCitationsForTerminal(
 
     const rendered = renderTerminalCitation(
       seg.citationNumber,
-      seg.citation.anchorText ?? undefined,
+      seg.citation.sourceMatch ?? undefined,
       seg.status,
       indicatorStyle,
       variant,
@@ -117,11 +117,11 @@ export function renderCitationsForTerminal(
       const loc = location ? ` — ${location}` : "";
       sourceLines.push(` ${marker} ${coloredIndicator} ${label}${loc}`);
 
-      if (cws.citation.fullPhrase) {
+      if (cws.citation.sourceContext) {
         const quote =
-          cws.citation.fullPhrase.length > maxWidth - 10
-            ? `${cws.citation.fullPhrase.slice(0, maxWidth - 13)}...`
-            : cws.citation.fullPhrase;
+          cws.citation.sourceContext.length > maxWidth - 10
+            ? `${cws.citation.sourceContext.slice(0, maxWidth - 13)}...`
+            : cws.citation.sourceContext;
         sourceLines.push(`     ${dim(`"${quote}"`, useColor)}`);
       }
     }

@@ -3,7 +3,7 @@ import type { LlmAmendment } from "../types/llmAttempt.js";
 
 type AmendmentField = LlmAmendment["field"];
 
-const TRACKED_FIELDS: AmendmentField[] = ["fullPhrase", "anchorText", "pageNumber", "lineIds", "reasoning"];
+const TRACKED_FIELDS: AmendmentField[] = ["sourceContext", "sourceMatch", "pageNumber", "lineIds", "reasoning"];
 
 /**
  * Shallow equality check — order-sensitive for arrays.

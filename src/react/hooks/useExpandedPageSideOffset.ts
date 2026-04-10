@@ -1,6 +1,6 @@
 import type React from "react";
 import { useLayoutEffect, useState } from "react";
-import { VIEWPORT_MARGIN_PX } from "../constants.js";
+import { expandedPageOffset } from "../../shared/popoverGeometry.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 
 /**
@@ -12,10 +12,6 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  * mutations but before paint**. React 18+ batches the synchronous re-render
  * triggered by `setState` inside `useLayoutEffect` within the same paint
  * frame, so the popover's `recomputePosition` sees the final offset.
- *
- * Offset math by side:
- * - bottom: sideOffset = 16 - triggerRect.bottom  → top edge at 1rem from viewport top
- * - top:    sideOffset = triggerRect.top - (viewportHeight - 16) → bottom edge at 1rem from viewport bottom
  */
 export function useExpandedPageSideOffset(
   popoverViewState: PopoverViewState,
@@ -35,9 +31,7 @@ export function useExpandedPageSideOffset(
       return;
     }
     setOffset(
-      lockedSide === "bottom"
-        ? VIEWPORT_MARGIN_PX - triggerRect.bottom
-        : triggerRect.top - (document.documentElement.clientHeight - VIEWPORT_MARGIN_PX),
+      expandedPageOffset(lockedSide, triggerRect.top, triggerRect.bottom, document.documentElement.clientHeight),
     );
   }, [popoverViewState, lockedSide, triggerRef]);
 

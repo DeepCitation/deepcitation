@@ -141,7 +141,7 @@ const CITATION_VARIANTS = ["brackets", "chip", "text", "superscript", "footnote"
 const MOBILE_CITATION_VARIANTS = ["brackets", "chip", "text", "superscript", "footnote", "linter"] as const;
 
 /** Content type options */
-const CONTENT_TYPES = ["number", "anchorText", "indicator"] as const;
+const CONTENT_TYPES = ["number", "sourceMatch", "indicator"] as const;
 
 /** URL citation variant types */
 const URL_VARIANTS = ["badge", "chip", "inline", "bracket"] as const;
@@ -163,16 +163,16 @@ const BORDER_COLOR_MAP: Record<string, string> = {
 const baseCitation: Citation = {
   pageNumber: 5,
   lineIds: [12, 13],
-  fullPhrase: "Revenue increased by 15% in Q4 2024.",
-  anchorText: "increased by 15%",
+  sourceContext: "Revenue increased by 15% in Q4 2024.",
+  sourceMatch: "increased by 15%",
   citationNumber: 1,
 };
 
 const longCitation: Citation = {
   ...baseCitation,
-  fullPhrase:
+  sourceContext:
     "The quarterly financial report indicates that revenue increased by 15% compared to the same period last year, driven primarily by strong performance in the enterprise segment.",
-  anchorText: "revenue increased by 15% compared to the same period last year",
+  sourceMatch: "revenue increased by 15% compared to the same period last year",
   citationNumber: 2,
 };
 
@@ -182,7 +182,7 @@ const longCitation: Citation = {
 
 const verifiedVerification: Verification = {
   status: "found",
-  verifiedMatchSnippet: "Revenue increased by 15% in Q4 2024.",
+  sourceSnippet: "Revenue increased by 15% in Q4 2024.",
   document: {
     verifiedPageNumber: 5,
   },
@@ -194,7 +194,7 @@ const verifiedVerification: Verification = {
 const partialVerification: Verification = {
   status: "found_on_other_page",
   document: { verifiedPageNumber: 7 },
-  verifiedMatchSnippet: "increased by 15%",
+  sourceSnippet: "increased by 15%",
 };
 
 const notFoundVerification: Verification = {
@@ -243,7 +243,7 @@ const failedSearchAttempts: SearchAttempt[] = [
     pageSearched: 6,
   },
   {
-    method: "anchor_text_fallback",
+    method: "source_match_fallback",
     success: false,
     searchPhrase: "increased by 15%",
     searchPhraseType: "anchor_text",
@@ -269,12 +269,12 @@ const partialMatchSearchAttempts: SearchAttempt[] = [
     note: "exact phrase not found",
   },
   {
-    method: "anchor_text_fallback",
+    method: "source_match_fallback",
     success: true,
     searchPhrase: "increased by 15%",
     searchPhraseType: "anchor_text",
     pageSearched: 7,
-    matchedVariation: "exact_anchor_text",
+    matchedVariation: "exact_source_match",
     matchedText: "increased by 15%",
     note: "found on different page",
   },
@@ -327,14 +327,14 @@ const urlCitation: Citation = {
   url: "https://www.fitandwell.com/features/kettlebell-moves",
   domain: "fitandwell.com",
   title: "Build muscular arms with kettlebell moves",
-  fullPhrase: "The TGU transitions and Halos require control, not brute strength.",
-  anchorText: "require control, not brute strength",
+  sourceContext: "The TGU transitions and Halos require control, not brute strength.",
+  sourceMatch: "require control, not brute strength",
   citationNumber: 1,
 };
 
 const urlVerifiedVerification: Verification = {
   status: "found",
-  verifiedMatchSnippet: "The TGU transitions and Halos require control, not brute strength.",
+  sourceSnippet: "The TGU transitions and Halos require control, not brute strength.",
   document: {
     verifiedPageNumber: 1,
   },
@@ -385,7 +385,7 @@ const searchWithVariations: SearchAttempt[] = [
     pageSearched: 3,
   },
   {
-    method: "anchor_text_fallback",
+    method: "source_match_fallback",
     success: false,
     searchPhrase: "allergic to penicillin",
     searchPhraseType: "anchor_text",
@@ -441,7 +441,7 @@ const searchWithRejectedMatches: SearchAttempt[] = [
     note: "partial match rejected - context mismatch",
   },
   {
-    method: "anchor_text_fallback",
+    method: "source_match_fallback",
     success: false,
     searchPhrase: "$0.00",
     searchPhraseType: "anchor_text",
@@ -644,7 +644,7 @@ export function VisualShowcase() {
                 uxIntent={
                   content === "number"
                     ? "Show citation number (e.g., [1]) - compact, academic style"
-                    : content === "anchorText"
+                    : content === "sourceMatch"
                       ? "Show the cited text excerpt - descriptive, inline context"
                       : "Show only status indicator - minimal, non-intrusive"
                 }
@@ -773,7 +773,7 @@ export function VisualShowcase() {
             <ShowcaseLabel
               component="CitationComponent"
               variant="chip"
-              state="long anchorText"
+              state="long sourceMatch"
               uxIntent="Chip truncates long text to prevent layout breaking"
             />
             <div className="py-2">
@@ -781,7 +781,7 @@ export function VisualShowcase() {
                 citation={longCitation}
                 verification={verifiedVerification}
                 variant="chip"
-                content="anchorText"
+                content="sourceMatch"
               />
             </div>
           </ShowcaseCard>
@@ -862,8 +862,8 @@ export function VisualShowcase() {
               <CitationComponent
                 citation={{
                   ...baseCitation,
-                  fullPhrase: "Patient is allergic to penicillin",
-                  anchorText: "allergic to penicillin",
+                  sourceContext: "Patient is allergic to penicillin",
+                  sourceMatch: "allergic to penicillin",
                 }}
                 verification={notFoundWithVariations}
                 variant="brackets"
@@ -885,8 +885,8 @@ export function VisualShowcase() {
               <CitationComponent
                 citation={{
                   ...baseCitation,
-                  fullPhrase: "Total cost is $0.00",
-                  anchorText: "$0.00",
+                  sourceContext: "Total cost is $0.00",
+                  sourceMatch: "$0.00",
                 }}
                 verification={notFoundWithRejectedMatches}
                 variant="brackets"
@@ -908,8 +908,8 @@ export function VisualShowcase() {
               <CitationComponent
                 citation={{
                   ...baseCitation,
-                  fullPhrase: "Quarterly earnings report",
-                  anchorText: "earnings report",
+                  sourceContext: "Quarterly earnings report",
+                  sourceMatch: "earnings report",
                 }}
                 verification={notFoundManyPages}
                 variant="brackets"
@@ -1265,7 +1265,7 @@ export function PopoverShowcase() {
                     status={status}
                     foundPage={foundPage}
                     expectedPage={expectedPage}
-                    anchorText="revenue increased by 15%"
+                    sourceMatch="revenue increased by 15%"
                   />
                 </div>
               </ShowcaseCard>
@@ -1571,8 +1571,8 @@ export function PopoverShowcase() {
               <StatusHeader
                 status="not_found"
                 expectedPage={5}
-                anchorText="increased by 15%"
-                fullPhrase="Revenue increased by 15% in Q4 2024."
+                sourceMatch="increased by 15%"
+                sourceContext="Revenue increased by 15% in Q4 2024."
               />
               <VerificationLog
                 searchAttempts={failedSearchAttempts}
@@ -1846,11 +1846,11 @@ const drawerAllVerified: CitationDrawerItem[] = [
       domain: "stripe.com",
       siteName: "Stripe",
       title: "Stripe API Documentation",
-      fullPhrase: "Payment intents confirm the payment.",
-      anchorText: "confirm the payment",
+      sourceContext: "Payment intents confirm the payment.",
+      sourceMatch: "confirm the payment",
       citationNumber: 1,
     },
-    verification: { status: "found", verifiedMatchSnippet: "Payment intents confirm the payment." },
+    verification: { status: "found", sourceSnippet: "Payment intents confirm the payment." },
   },
   {
     citationKey: "dv-2",
@@ -1860,11 +1860,11 @@ const drawerAllVerified: CitationDrawerItem[] = [
       domain: "github.com",
       siteName: "GitHub",
       title: "GitHub REST API",
-      fullPhrase: "Authentication is required for most endpoints.",
-      anchorText: "Authentication is required",
+      sourceContext: "Authentication is required for most endpoints.",
+      sourceMatch: "Authentication is required",
       citationNumber: 2,
     },
-    verification: { status: "found", verifiedMatchSnippet: "Authentication is required for most endpoints." },
+    verification: { status: "found", sourceSnippet: "Authentication is required for most endpoints." },
   },
   {
     citationKey: "dv-3",
@@ -1874,13 +1874,13 @@ const drawerAllVerified: CitationDrawerItem[] = [
       domain: "developer.mozilla.org",
       siteName: "MDN",
       title: "Web APIs",
-      fullPhrase: "The Fetch API provides a modern interface for making HTTP requests.",
-      anchorText: "modern interface for making HTTP requests",
+      sourceContext: "The Fetch API provides a modern interface for making HTTP requests.",
+      sourceMatch: "modern interface for making HTTP requests",
       citationNumber: 3,
     },
     verification: {
       status: "found",
-      verifiedMatchSnippet: "The Fetch API provides a modern interface for making HTTP requests.",
+      sourceSnippet: "The Fetch API provides a modern interface for making HTTP requests.",
     },
   },
 ];
@@ -1894,11 +1894,11 @@ const drawerMixed: CitationDrawerItem[] = [
       domain: "react.dev",
       siteName: "React",
       title: "React Learn",
-      fullPhrase: "Components let you split the UI into independent pieces.",
-      anchorText: "split the UI into independent pieces",
+      sourceContext: "Components let you split the UI into independent pieces.",
+      sourceMatch: "split the UI into independent pieces",
       citationNumber: 1,
     },
-    verification: { status: "found", verifiedMatchSnippet: "Components let you split the UI into independent pieces." },
+    verification: { status: "found", sourceSnippet: "Components let you split the UI into independent pieces." },
   },
   {
     citationKey: "dm-2",
@@ -1908,14 +1908,14 @@ const drawerMixed: CitationDrawerItem[] = [
       domain: "tailwindcss.com",
       siteName: "Tailwind CSS",
       title: "Tailwind Documentation",
-      fullPhrase: "Utility-first CSS framework for rapid UI development.",
-      anchorText: "Utility-first CSS framework",
+      sourceContext: "Utility-first CSS framework for rapid UI development.",
+      sourceMatch: "Utility-first CSS framework",
       citationNumber: 2,
     },
     verification: {
       status: "found_on_other_page",
       document: { verifiedPageNumber: 3 },
-      verifiedMatchSnippet: "Utility-first CSS framework",
+      sourceSnippet: "Utility-first CSS framework",
     },
   },
   {
@@ -1926,8 +1926,8 @@ const drawerMixed: CitationDrawerItem[] = [
       domain: "nextjs.org",
       siteName: "Next.js",
       title: "Next.js Documentation",
-      fullPhrase: "Server components render on the server.",
-      anchorText: "Server components",
+      sourceContext: "Server components render on the server.",
+      sourceMatch: "Server components",
       citationNumber: 3,
     },
     verification: { status: "not_found", document: { verifiedPageNumber: -1 } },
@@ -1940,8 +1940,8 @@ const drawerMixed: CitationDrawerItem[] = [
       domain: "typescriptlang.org",
       siteName: "TypeScript",
       title: "TypeScript Handbook",
-      fullPhrase: "TypeScript adds optional static typing to JavaScript.",
-      anchorText: "optional static typing",
+      sourceContext: "TypeScript adds optional static typing to JavaScript.",
+      sourceMatch: "optional static typing",
       citationNumber: 4,
     },
     verification: { status: "pending" },
@@ -1954,11 +1954,11 @@ const drawerMixed: CitationDrawerItem[] = [
       domain: "vitejs.dev",
       siteName: "Vite",
       title: "Vite Guide",
-      fullPhrase: "Vite provides a faster dev experience.",
-      anchorText: "faster dev experience",
+      sourceContext: "Vite provides a faster dev experience.",
+      sourceMatch: "faster dev experience",
       citationNumber: 5,
     },
-    verification: { status: "found_anchor_text_only", verifiedMatchSnippet: "faster dev experience" },
+    verification: { status: "found_source_match_only", sourceSnippet: "faster dev experience" },
   },
 ];
 
@@ -1971,8 +1971,8 @@ const drawerAllPending: CitationDrawerItem[] = [
       domain: "openai.com",
       siteName: "OpenAI",
       title: "API Reference",
-      fullPhrase: "GPT models generate human-like text.",
-      anchorText: "human-like text",
+      sourceContext: "GPT models generate human-like text.",
+      sourceMatch: "human-like text",
       citationNumber: 1,
     },
     verification: { status: "pending" },
@@ -1985,8 +1985,8 @@ const drawerAllPending: CitationDrawerItem[] = [
       domain: "anthropic.com",
       siteName: "Anthropic",
       title: "Claude",
-      fullPhrase: "Claude is designed to be helpful and harmless.",
-      anchorText: "helpful and harmless",
+      sourceContext: "Claude is designed to be helpful and harmless.",
+      sourceMatch: "helpful and harmless",
       citationNumber: 2,
     },
     verification: { status: "loading" },
@@ -1999,8 +1999,8 @@ const drawerAllPending: CitationDrawerItem[] = [
       domain: "huggingface.co",
       siteName: "Hugging Face",
       title: "Documentation",
-      fullPhrase: "Transformers library supports thousands of models.",
-      anchorText: "thousands of models",
+      sourceContext: "Transformers library supports thousands of models.",
+      sourceMatch: "thousands of models",
       citationNumber: 3,
     },
     verification: { status: "pending" },
@@ -2013,8 +2013,8 @@ const drawerAllPending: CitationDrawerItem[] = [
       domain: "cohere.com",
       siteName: "Cohere",
       title: "API Docs",
-      fullPhrase: "Embed models convert text to vectors.",
-      anchorText: "text to vectors",
+      sourceContext: "Embed models convert text to vectors.",
+      sourceMatch: "text to vectors",
       citationNumber: 4,
     },
     verification: null,
@@ -2030,13 +2030,13 @@ const drawerSingleSource: CitationDrawerItem[] = [
       domain: "en.wikipedia.org",
       siteName: "Wikipedia",
       title: "TypeScript - Wikipedia",
-      fullPhrase: "TypeScript is a programming language developed by Microsoft.",
-      anchorText: "programming language developed by Microsoft",
+      sourceContext: "TypeScript is a programming language developed by Microsoft.",
+      sourceMatch: "programming language developed by Microsoft",
       citationNumber: 1,
     },
     verification: {
       status: "found",
-      verifiedMatchSnippet: "TypeScript is a programming language developed by Microsoft.",
+      sourceSnippet: "TypeScript is a programming language developed by Microsoft.",
     },
   },
 ];
@@ -2052,11 +2052,11 @@ const drawerManySources: CitationDrawerItem[] = [
       domain: "nodejs.org",
       siteName: "Node.js",
       title: "Node.js Docs",
-      fullPhrase: "Node.js runs JavaScript outside the browser.",
-      anchorText: "outside the browser",
+      sourceContext: "Node.js runs JavaScript outside the browser.",
+      sourceMatch: "outside the browser",
       citationNumber: 9,
     },
-    verification: { status: "found", verifiedMatchSnippet: "Node.js runs JavaScript outside the browser." },
+    verification: { status: "found", sourceSnippet: "Node.js runs JavaScript outside the browser." },
   },
   {
     citationKey: "dms-2",
@@ -2066,11 +2066,11 @@ const drawerManySources: CitationDrawerItem[] = [
       domain: "rust-lang.org",
       siteName: "Rust",
       title: "Learn Rust",
-      fullPhrase: "Rust guarantees memory safety without garbage collection.",
-      anchorText: "memory safety without garbage collection",
+      sourceContext: "Rust guarantees memory safety without garbage collection.",
+      sourceMatch: "memory safety without garbage collection",
       citationNumber: 10,
     },
-    verification: { status: "partial_text_found", verifiedMatchSnippet: "memory safety" },
+    verification: { status: "partial_text_found", sourceSnippet: "memory safety" },
   },
 ];
 
@@ -2084,8 +2084,8 @@ const drawerOverflow: CitationDrawerItem[] = [
       domain: "react.dev",
       siteName: "React",
       title: "React",
-      fullPhrase: "React makes it painless to create interactive UIs.",
-      anchorText: "interactive UIs",
+      sourceContext: "React makes it painless to create interactive UIs.",
+      sourceMatch: "interactive UIs",
       citationNumber: 1,
     },
     verification: { status: "not_found" },
@@ -2098,11 +2098,11 @@ const drawerOverflow: CitationDrawerItem[] = [
       domain: "docs.python.org",
       siteName: "Python",
       title: "Python Docs",
-      fullPhrase: "Python is a high-level programming language.",
-      anchorText: "high-level programming language",
+      sourceContext: "Python is a high-level programming language.",
+      sourceMatch: "high-level programming language",
       citationNumber: 2,
     },
-    verification: { status: "found", verifiedMatchSnippet: "Python is a high-level programming language." },
+    verification: { status: "found", sourceSnippet: "Python is a high-level programming language." },
   },
   {
     citationKey: "do-3",
@@ -2112,11 +2112,11 @@ const drawerOverflow: CitationDrawerItem[] = [
       domain: "developer.mozilla.org",
       siteName: "MDN",
       title: "Web APIs",
-      fullPhrase: "CSS is used to style HTML elements.",
-      anchorText: "style HTML elements",
+      sourceContext: "CSS is used to style HTML elements.",
+      sourceMatch: "style HTML elements",
       citationNumber: 3,
     },
-    verification: { status: "partial_text_found", verifiedMatchSnippet: "style HTML" },
+    verification: { status: "partial_text_found", sourceSnippet: "style HTML" },
   },
   {
     citationKey: "do-4",
@@ -2126,11 +2126,11 @@ const drawerOverflow: CitationDrawerItem[] = [
       domain: "nodejs.org",
       siteName: "Node.js",
       title: "Node.js",
-      fullPhrase: "Node.js is a JavaScript runtime.",
-      anchorText: "JavaScript runtime",
+      sourceContext: "Node.js is a JavaScript runtime.",
+      sourceMatch: "JavaScript runtime",
       citationNumber: 4,
     },
-    verification: { status: "found", verifiedMatchSnippet: "Node.js is a JavaScript runtime." },
+    verification: { status: "found", sourceSnippet: "Node.js is a JavaScript runtime." },
   },
   {
     citationKey: "do-5",
@@ -2140,11 +2140,11 @@ const drawerOverflow: CitationDrawerItem[] = [
       domain: "tailwindcss.com",
       siteName: "Tailwind CSS",
       title: "Tailwind CSS",
-      fullPhrase: "Tailwind uses utility classes for styling.",
-      anchorText: "utility classes",
+      sourceContext: "Tailwind uses utility classes for styling.",
+      sourceMatch: "utility classes",
       citationNumber: 5,
     },
-    verification: { status: "found", verifiedMatchSnippet: "utility classes for styling" },
+    verification: { status: "found", sourceSnippet: "utility classes for styling" },
   },
   {
     citationKey: "do-6",
@@ -2154,8 +2154,8 @@ const drawerOverflow: CitationDrawerItem[] = [
       domain: "typescriptlang.org",
       siteName: "TypeScript",
       title: "TypeScript",
-      fullPhrase: "TypeScript adds optional static types to JavaScript.",
-      anchorText: "optional static types",
+      sourceContext: "TypeScript adds optional static types to JavaScript.",
+      sourceMatch: "optional static types",
       citationNumber: 6,
     },
     verification: { status: "pending" },
@@ -2168,11 +2168,11 @@ const drawerOverflow: CitationDrawerItem[] = [
       domain: "nextjs.org",
       siteName: "Next.js",
       title: "Next.js",
-      fullPhrase: "Next.js enables server-side rendering for React apps.",
-      anchorText: "server-side rendering",
+      sourceContext: "Next.js enables server-side rendering for React apps.",
+      sourceMatch: "server-side rendering",
       citationNumber: 7,
     },
-    verification: { status: "found", verifiedMatchSnippet: "server-side rendering for React apps" },
+    verification: { status: "found", sourceSnippet: "server-side rendering for React apps" },
   },
   {
     citationKey: "do-8",
@@ -2182,11 +2182,11 @@ const drawerOverflow: CitationDrawerItem[] = [
       domain: "vitejs.dev",
       siteName: "Vite",
       title: "Vite",
-      fullPhrase: "Vite offers fast cold starts and instant HMR.",
-      anchorText: "fast cold starts",
+      sourceContext: "Vite offers fast cold starts and instant HMR.",
+      sourceMatch: "fast cold starts",
       citationNumber: 8,
     },
-    verification: { status: "found", verifiedMatchSnippet: "fast cold starts and instant HMR" },
+    verification: { status: "found", sourceSnippet: "fast cold starts and instant HMR" },
   },
 ];
 

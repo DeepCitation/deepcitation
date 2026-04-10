@@ -54,7 +54,7 @@ function parseNumericFormat(llmOutput: string): ParsedCitationResult {
   if (parsed.success) {
     for (const data of parsed.citations) {
       const citation: Citation = citationDataToCitation(data);
-      if (citation.fullPhrase) {
+      if (citation.sourceContext) {
         const key = getCitationKey(citation);
         citations[key] = citation;
         if (typeof data.id === "number") {

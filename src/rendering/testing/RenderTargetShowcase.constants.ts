@@ -10,8 +10,8 @@ export const DOC_CITATION_1: Citation = {
   attachmentId: "abc123",
   pageNumber: 5,
   lineIds: [12, 13],
-  fullPhrase: "Revenue increased by 15% in Q4 2024.",
-  anchorText: "increased by 15%",
+  sourceContext: "Revenue increased by 15% in Q4 2024.",
+  sourceMatch: "increased by 15%",
   citationNumber: 1,
 };
 
@@ -20,8 +20,8 @@ export const DOC_CITATION_2: Citation = {
   attachmentId: "abc123",
   pageNumber: 7,
   lineIds: [25],
-  fullPhrase: "Operating costs decreased by 8%.",
-  anchorText: "costs decreased",
+  sourceContext: "Operating costs decreased by 8%.",
+  sourceMatch: "costs decreased",
   citationNumber: 2,
 };
 
@@ -30,8 +30,8 @@ export const DOC_CITATION_3: Citation = {
   attachmentId: "abc123",
   pageNumber: 12,
   lineIds: [5],
-  fullPhrase: "Market share expected to grow.",
-  anchorText: "Market share",
+  sourceContext: "Market share expected to grow.",
+  sourceMatch: "Market share",
   citationNumber: 3,
 };
 
@@ -40,8 +40,8 @@ export const URL_CITATION: Citation = {
   url: "https://docs.example.com/api",
   domain: "docs.example.com",
   title: "API Reference",
-  fullPhrase: "The API supports REST endpoints.",
-  anchorText: "REST endpoints",
+  sourceContext: "The API supports REST endpoints.",
+  sourceMatch: "REST endpoints",
   citationNumber: 4,
 };
 
@@ -55,7 +55,7 @@ export const VERIFIED_VERIFICATION: Verification = {
     verifiedPageNumber: 5,
     verifiedLineIds: [12, 13],
   },
-  verifiedMatchSnippet: "Revenue increased by 15% in Q4 2024.",
+  sourceSnippet: "Revenue increased by 15% in Q4 2024.",
   label: "Q4 Financial Report",
 };
 

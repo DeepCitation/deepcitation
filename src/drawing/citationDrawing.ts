@@ -14,7 +14,7 @@
 /**
  * Highlight color category for citation annotations.
  * - 'green': exact / full-phrase match (VERIFIED)
- * - 'amber': partial match (anchorText-only or value-only)
+ * - 'amber': partial match (sourceMatch-only or value-only)
  * - 'red': not-found (AI claimed location overlay)
  * - 'blue': legacy alias for 'green' — kept for backward compatibility
  */
@@ -53,7 +53,7 @@ export const OVERLAY_COLOR_LIGHT = "rgba(255, 255, 255, 0.25)";
 /** Hex equivalent of OVERLAY_COLOR_LIGHT for contexts that need hex. */
 export const OVERLAY_COLOR_LIGHT_HEX = "#ffffff40";
 
-/** Special amber accent behind anchorText when it differs from fullPhrase. */
+/** Special amber accent behind sourceMatch when it differs from sourceContext. */
 export const ANCHOR_HIGHLIGHT_COLOR = "rgba(251, 191, 36, 0.2)";
 /** Slightly more visible special-accent variant for dark-mode contexts. */
 export const ANCHOR_HIGHLIGHT_COLOR_DARK = "rgba(251, 191, 36, 0.25)";
@@ -112,47 +112,47 @@ export function getBracketColor(highlightColor: HighlightColor = "green"): strin
 // =============================================================================
 
 /**
- * True when the API returned verifiedFullPhrase identical to verifiedAnchorText —
+ * True when the API returned verifiedSourceContext identical to verifiedSourceMatch —
  * a "strategy override" where the model collapsed the full phrase to just the anchor.
  */
 export function isStrategyOverride(
-  verifiedAnchorText: string | null | undefined,
-  verifiedFullPhrase: string | null | undefined,
+  verifiedSourceMatch: string | null | undefined,
+  verifiedSourceContext: string | null | undefined,
 ): boolean {
   return (
-    verifiedAnchorText != null &&
-    verifiedFullPhrase != null &&
-    verifiedAnchorText.toLowerCase() === verifiedFullPhrase.toLowerCase()
+    verifiedSourceMatch != null &&
+    verifiedSourceContext != null &&
+    verifiedSourceMatch.toLowerCase() === verifiedSourceContext.toLowerCase()
   );
 }
 
 /**
- * Returns true when both anchorText and fullPhrase are non-null, non-undefined,
+ * Returns true when both sourceMatch and sourceContext are non-null, non-undefined,
  * and non-empty. The rendering layer decides whether to visually show the highlight
  * by checking that the anchor and phrase boxes are actually distinct (hasDistinctKeySpanBox
  * in computeKeySpanHighlight).
  */
-export function shouldHighlightAnchorText(
-  anchorText: string | null | undefined,
-  fullPhrase: string | null | undefined,
+export function shouldHighlightSourceMatch(
+  sourceMatch: string | null | undefined,
+  sourceContext: string | null | undefined,
 ): boolean {
-  return Boolean(anchorText?.trim()) && Boolean(fullPhrase?.trim());
+  return Boolean(sourceMatch?.trim()) && Boolean(sourceContext?.trim());
 }
 
 /**
  * Computes the bounding box to use for bracket marks and spotlight overlay.
  *
- * When `anchorTextMatchDeepItems` are available, returns a tight bounding hull
+ * When `sourceMatchDeepItems` are available, returns a tight bounding hull
  * around just the anchor words — so the highlight frames the specific text that
- * was cited, not the entire OCR line. Falls back to `phraseMatchDeepItem` when
+ * was cited, not the entire OCR line. Falls back to `sourceContextDeepItem` when
  * anchor items are missing or empty.
  */
 export function computeBracketTarget<T extends { x: number; y: number; width: number; height: number }>(
-  phraseMatchDeepItem: T,
-  anchorTextMatchDeepItems: T[] | undefined,
+  sourceContextDeepItem: T,
+  sourceMatchDeepItems: T[] | undefined,
 ): T {
-  if (!anchorTextMatchDeepItems || anchorTextMatchDeepItems.length === 0) {
-    return phraseMatchDeepItem;
+  if (!sourceMatchDeepItems || sourceMatchDeepItems.length === 0) {
+    return sourceContextDeepItem;
   }
 
   let minX = Infinity;
@@ -160,7 +160,7 @@ export function computeBracketTarget<T extends { x: number; y: number; width: nu
   let maxRight = -Infinity;
   let maxBottom = -Infinity;
 
-  for (const item of anchorTextMatchDeepItems) {
+  for (const item of sourceMatchDeepItems) {
     minX = Math.min(minX, item.x);
     minY = Math.min(minY, item.y);
     maxRight = Math.max(maxRight, item.x + item.width);
@@ -168,7 +168,7 @@ export function computeBracketTarget<T extends { x: number; y: number; width: nu
   }
 
   return {
-    ...anchorTextMatchDeepItems[0],
+    ...sourceMatchDeepItems[0],
     x: minX,
     y: minY,
     width: maxRight - minX,
@@ -177,22 +177,22 @@ export function computeBracketTarget<T extends { x: number; y: number; width: nu
 }
 
 /**
- * Computes whether the anchorText keyspan should be highlighted and extracts
- * the anchorText bounding box item to use for drawing.
+ * Computes whether the sourceMatch keyspan should be highlighted and extracts
+ * the sourceMatch bounding box item to use for drawing.
  *
- * Highlights whenever anchorText and fullPhrase are both non-empty — the UX
+ * Highlights whenever sourceMatch and sourceContext are both non-empty — the UX
  * always shows the teal anchor-text accent regardless of box geometry or word count.
  */
 export function computeKeySpanHighlight<T extends { text?: string }>(
-  _phraseMatchDeepItem: T | undefined,
-  anchorTextMatchDeepItems: T[] | undefined,
-  verifiedAnchorText: string | null | undefined,
-  verifiedFullPhrase: string | null | undefined,
-): { showKeySpanHighlight: boolean; anchorTextItem: T | undefined; anchorTextItems: T[] } {
-  const anchorTextItem = anchorTextMatchDeepItems?.[0];
+  _sourceContextDeepItem: T | undefined,
+  sourceMatchDeepItems: T[] | undefined,
+  verifiedSourceMatch: string | null | undefined,
+  verifiedSourceContext: string | null | undefined,
+): { showKeySpanHighlight: boolean; sourceMatchItem: T | undefined; sourceMatchItems: T[] } {
+  const sourceMatchItem = sourceMatchDeepItems?.[0];
 
-  const showKeySpanHighlight = shouldHighlightAnchorText(verifiedAnchorText, verifiedFullPhrase);
+  const showKeySpanHighlight = shouldHighlightSourceMatch(verifiedSourceMatch, verifiedSourceContext);
 
-  // anchorTextItems: full array for downstream consumers (e.g., multi-item highlight rendering).
-  return { showKeySpanHighlight, anchorTextItem, anchorTextItems: anchorTextMatchDeepItems ?? [] };
+  // sourceMatchItems: full array for downstream consumers (e.g., multi-item highlight rendering).
+  return { showKeySpanHighlight, sourceMatchItem, sourceMatchItems: sourceMatchDeepItems ?? [] };
 }

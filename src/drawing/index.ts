@@ -28,6 +28,6 @@ export {
   SIGNAL_RED,
   SPOTLIGHT_BORDER_RADIUS,
   SPOTLIGHT_PADDING,
-  shouldHighlightAnchorText,
+  shouldHighlightSourceMatch,
   VERIFICATION_IMAGE_PADDING,
 } from "./citationDrawing.js";

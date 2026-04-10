@@ -1,35 +1,35 @@
 import { useMemo } from "react";
-import { shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
+import { shouldHighlightSourceMatch } from "../drawing/citationDrawing.js";
 import { fuzzyAnchorRange } from "../utils/fuzzyAnchor.js";
 import { normalizeQuotes } from "../utils/normalizeQuotes.js";
 import { trimPhraseToAnchorWindow } from "../utils/textCleanup.js";
 import { ANCHOR_HIGHLIGHT_STYLE } from "./constants.js";
 
 /**
- * Renders fullPhrase with optional anchorText highlighted using the same
+ * Renders sourceContext with optional sourceMatch highlighted using the same
  * amber highlight style used in the API-side proof images.
- * Only highlights when fullPhrase has enough additional context beyond anchorText.
+ * Only highlights when sourceContext has enough additional context beyond sourceMatch.
  * When isMiss is true, renders the phrase without highlighting (since the text wasn't found).
  *
  * Falls back to word-span fuzzy matching when the PDF text has extra inline
  * elements (e.g. section references) that break exact substring matching.
  */
-export function HighlightedPhrase({
-  fullPhrase,
-  anchorText,
+export function HighlightedSourceContext({
+  sourceContext,
+  sourceMatch,
   isMiss,
 }: {
-  fullPhrase: string;
-  anchorText?: string;
+  sourceContext: string;
+  sourceMatch?: string;
   isMiss?: boolean;
 }) {
-  // Compute once per (fullPhrase, anchorText) pair — trimming does two toLowerCase scans on
+  // Compute once per (sourceContext, sourceMatch) pair — trimming does two toLowerCase scans on
   // potentially large strings (full page dumps), so avoid repeating it on every render.
   const {
     text: displayPhrase,
     prefixTrimmed,
     suffixTrimmed,
-  } = useMemo(() => trimPhraseToAnchorWindow(fullPhrase, anchorText), [fullPhrase, anchorText]);
+  } = useMemo(() => trimPhraseToAnchorWindow(sourceContext, sourceMatch), [sourceContext, sourceMatch]);
 
   // Don't highlight when citation is "not found" - misleading to highlight text that wasn't found
   if (isMiss) {
@@ -42,7 +42,7 @@ export function HighlightedPhrase({
     );
   }
 
-  if (!anchorText || !shouldHighlightAnchorText(anchorText, fullPhrase)) {
+  if (!sourceMatch || !shouldHighlightSourceMatch(sourceMatch, sourceContext)) {
     return (
       <span className="text-dc-muted-foreground">
         {prefixTrimmed && "..."}
@@ -54,12 +54,12 @@ export function HighlightedPhrase({
 
   // Prefer exact match; fall back to case-insensitive; then quote-normalized; then fuzzy.
   // normalizeQuotes is length-preserving so indices are valid on the original string.
-  let start = displayPhrase.indexOf(anchorText);
-  let end = start !== -1 ? start + anchorText.length : -1;
+  let start = displayPhrase.indexOf(sourceMatch);
+  let end = start !== -1 ? start + sourceMatch.length : -1;
 
   if (start === -1) {
     const phraseLower = displayPhrase.toLowerCase();
-    const anchorLower = anchorText.toLowerCase();
+    const anchorLower = sourceMatch.toLowerCase();
     start = phraseLower.indexOf(anchorLower);
     end = start !== -1 ? start + anchorLower.length : -1;
 
@@ -73,7 +73,7 @@ export function HighlightedPhrase({
   if (start === -1) {
     // Fuzzy: find the word-span within the phrase that covers the anchor text.
     // This handles PDF text with inserted citations like "(§6.1)" breaking exact match.
-    const range = fuzzyAnchorRange(displayPhrase, anchorText);
+    const range = fuzzyAnchorRange(displayPhrase, sourceMatch);
     if (range) {
       start = range.start;
       end = range.end;

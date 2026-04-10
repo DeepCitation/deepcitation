@@ -2,7 +2,7 @@
  * Centralized field-name alias map for LLM citation output normalization.
  *
  * LLMs are non-deterministic in their naming: the same model might emit
- * `anchor_text`, `anchorText`, `anchor-text`, or just `anchor` across
+ * `source_match`, `sourceMatch`, `anchor-text`, or just `anchor` across
  * different responses. This module provides a single source of truth
  * for mapping all known variants back to our canonical camelCase names.
  *
@@ -44,8 +44,26 @@ const FIELD_ALIAS_MAP: Record<string, readonly string[]> = {
     "start_page",
     "start-page",
   ],
-  fullPhrase: ["full_phrase", "full-phrase", "phrase", "full"],
-  anchorText: ["anchor_text", "anchor-text", "anchor", "keySpan", "key_span", "key-span"],
+  sourceContext: [
+    "source_context",
+    "source-context",
+    "fullPhrase",
+    "full_phrase",
+    "full-phrase",
+    "phrase",
+    "full",
+  ],
+  sourceMatch: [
+    "source_match",
+    "source-match",
+    "anchorText",
+    "anchor_text",
+    "anchor-text",
+    "anchor",
+    "keySpan",
+    "key_span",
+    "key-span",
+  ],
   citationNumber: ["citation_number", "citation-number", "number"],
   reasoning: [],
   value: [],
@@ -84,10 +102,10 @@ for (const [canonical, aliases] of Object.entries(FIELD_ALIAS_MAP)) {
  * Case-insensitive. Returns the input unchanged if no alias is found.
  *
  * @example
- * resolveFieldName("anchor_text")  // "anchorText"
- * resolveFieldName("anchor-text")  // "anchorText"
- * resolveFieldName("anchor")       // "anchorText"
- * resolveFieldName("anchorText")   // "anchorText"
+ * resolveFieldName("source_match")  // "sourceMatch"
+ * resolveFieldName("anchor-text")  // "sourceMatch"
+ * resolveFieldName("anchor")       // "sourceMatch"
+ * resolveFieldName("sourceMatch")   // "sourceMatch"
  * resolveFieldName("unknown_field") // "unknown_field"
  */
 export function resolveFieldName(name: string): string {
@@ -102,8 +120,8 @@ export function resolveFieldName(name: string): string {
  * which is correct because JS object keys are case-sensitive.
  *
  * @example
- * resolveField({ anchor_text: "hello" }, "anchorText") // "hello"
- * resolveField({ anchor: "world" }, "anchorText")      // "world"
+ * resolveField({ source_match: "hello" }, "sourceMatch") // "hello"
+ * resolveField({ anchor: "world" }, "sourceMatch")      // "world"
  * resolveField({ startPageKey: "p1" }, "startPageId")  // "p1"
  */
 export function resolveField(obj: Record<string, unknown>, canonicalName: string): unknown {
@@ -124,8 +142,8 @@ export function resolveField(obj: Record<string, unknown>, canonicalName: string
  * canonical name itself. Useful for building XML attribute extraction lists.
  *
  * @example
- * getFieldAliases("anchorText")
- * // ["anchorText", "anchor_text", "anchor-text", "anchor", "key_span", "keySpan", "key-span"]
+ * getFieldAliases("sourceMatch")
+ * // ["sourceMatch", "source_match", "anchor-text", "anchor", "key_span", "keySpan", "key-span"]
  */
 export function getFieldAliases(canonicalName: string): string[] {
   const aliases = FIELD_ALIAS_MAP[canonicalName];
@@ -140,14 +158,14 @@ export function getFieldAliases(canonicalName: string): string[] {
  * Unknown fields are passed through unchanged.
  *
  * @example
- * normalizeCitationFields({ "anchor-text": "hello", full_phrase: "world" })
- * // { anchorText: "hello", fullPhrase: "world" }
+ * normalizeCitationFields({ "anchor-text": "hello", source_context: "world" })
+ * // { sourceMatch: "hello", sourceContext: "world" }
  */
 export function normalizeCitationFields(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     const canonical = resolveFieldName(key);
-    // First writer wins — if both "anchor_text" and "anchorText" exist,
+    // First writer wins — if both "source_match" and "sourceMatch" exist,
     // whichever appears first in Object.entries() takes precedence.
     if (!(canonical in result)) {
       result[canonical] = value;

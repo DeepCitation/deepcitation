@@ -1,8 +1,8 @@
 /**
  * Citation content display utilities.
  *
- * Rendering helpers shared by CitationContentDisplay and CitationComponent.
- * Extracted here so CitationContentDisplay.tsx only exports the component.
+ * Rendering helpers shared by CitationTriggerContent and CitationComponent.
+ * Extracted here so CitationTriggerContent.tsx only exports the component.
  *
  * @packageDocumentation
  */
@@ -67,7 +67,7 @@ export function getDefaultContent(variant: CitationVariant): CitationContent {
     case "text":
     case "brackets":
     case "linter":
-      return "anchorText";
+      return "sourceMatch";
     case "badge":
       return "source";
     default:
@@ -77,7 +77,7 @@ export function getDefaultContent(variant: CitationVariant): CitationContent {
 
 /**
  * Strip leading/trailing brackets from text.
- * Handles cases where LLM output includes brackets in anchorText.
+ * Handles cases where LLM output includes brackets in sourceMatch.
  */
 function stripBrackets(text: string): string {
   return safeReplace(safeReplace(text, /^\[[\s[]*/, ""), /[\s\]]*\]$/, "");
@@ -87,21 +87,21 @@ function stripBrackets(text: string): string {
  * Get display text based on content type and citation data.
  * Returns "1" as fallback if no citation number is available.
  */
-export function getDisplayText(
+export function getTriggerText(
   citation: BaseCitationProps["citation"],
   content: CitationContent,
-  fallbackDisplay?: string | null,
-  displayLabel?: string,
+  fallbackText?: string | null,
+  claimText?: string,
 ): string {
   if (content === "indicator") {
     return "";
   }
 
-  if (content === "anchorText") {
-    if (displayLabel) {
-      return displayLabel;
+  if (content === "sourceMatch") {
+    if (claimText) {
+      return claimText;
     }
-    const raw = citation.anchorText?.toString() || citation.citationNumber?.toString() || fallbackDisplay || "1";
+    const raw = citation.sourceMatch?.toString() || citation.citationNumber?.toString() || fallbackText || "1";
     return stripBrackets(raw);
   }
 
@@ -109,10 +109,10 @@ export function getDisplayText(
     // Source content: show siteName or domain (URL citations only)
     if (isUrlCitation(citation)) {
       return (
-        citation.siteName || citation.domain || citation.anchorText?.toString() || defaultMessages["drawer.source"]
+        citation.siteName || citation.domain || citation.sourceMatch?.toString() || defaultMessages["drawer.source"]
       );
     }
-    return citation.anchorText?.toString() || defaultMessages["drawer.source"];
+    return citation.sourceMatch?.toString() || defaultMessages["drawer.source"];
   }
 
   // content === "number"

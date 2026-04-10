@@ -6,6 +6,7 @@
  */
 
 import * as React from "react";
+import { canChildScrollVertically, findPageScrollEl } from "../shared/scroll.js";
 import {
   EXPANDED_POPOVER_HEIGHT,
   GUARD_MAX_WIDTH_VAR,
@@ -23,21 +24,6 @@ import { assignRef } from "./refUtils.js";
 import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "./scrollLock.js";
 import { cn } from "./utils.js";
 import { isViewTransitioning } from "./viewTransition.js";
-
-/**
- * Walk from `triggerEl` up the DOM to find the page's actual scroll container.
- * Handles SPAs where html/body have overflow:hidden and scroll lives on a wrapper div.
- * Falls back to the viewport scrolling element.
- */
-function findPageScrollEl(triggerEl: HTMLElement | null): Element {
-  let n: Element | null = triggerEl?.parentElement ?? null;
-  while (n) {
-    const oy = getComputedStyle(n).overflowY;
-    if ((oy === "auto" || oy === "scroll") && n.scrollHeight > n.clientHeight) return n;
-    n = n.parentElement;
-  }
-  return document.scrollingElement ?? document.documentElement;
-}
 
 type PopoverSide = "top" | "right" | "bottom" | "left";
 type PopoverAlign = "start" | "center" | "end";
@@ -299,24 +285,6 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       };
     }, [open, isMounted]);
 
-    // Shared scroll-detection helper: walk from target up to boundary, checking
-    // if any ancestor can scroll vertically in the given direction.
-    const canChildScrollVertically = React.useCallback(
-      (target: HTMLElement | null, boundary: HTMLElement | null, deltaY: number): boolean => {
-        let node = target;
-        while (node && node !== boundary) {
-          const oy = getComputedStyle(node).overflowY;
-          if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) {
-            if (deltaY > 0 && Math.ceil(node.scrollTop) < node.scrollHeight - node.clientHeight) return true;
-            if (deltaY < 0 && node.scrollTop > 0) return true;
-          }
-          node = node.parentElement;
-        }
-        return false;
-      },
-      [],
-    );
-
     // Wheel passthrough: the popover's position:fixed wrapper + child scroll
     // containers (e.g. keyhole strip with overflow-x:auto) cause Chrome's scroll
     // latching to trap vertical wheel events even when nothing inside can scroll
@@ -342,7 +310,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       // passive: false is required — onWheel calls e.preventDefault() to forward scroll to the page.
       el.addEventListener("wheel", onWheel, { passive: false });
       return () => el.removeEventListener("wheel", onWheel);
-    }, [isMounted, getPageScrollEl, canChildScrollVertically]);
+    }, [isMounted, getPageScrollEl]);
 
     // Touch scroll passthrough: mirrors the wheel handler above for mobile.
     // Touches on the popover's position:fixed surface dead-end at the viewport
@@ -481,7 +449,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         el.removeEventListener("touchend", onTouchEnd);
         el.removeEventListener("touchcancel", onTouchEnd);
       };
-    }, [isMounted, getPageScrollEl, canChildScrollVertically]);
+    }, [isMounted, getPageScrollEl]);
 
     if (!isMounted) return null;
 

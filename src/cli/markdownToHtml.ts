@@ -39,9 +39,9 @@ export interface MarkdownToHtmlOptions {
   citationCount?: number;
   /** Number of pages in the source document — shown in the header meta strip */
   pageCount?: number;
-  /** Citation anchor map: citation ID → anchorText. When provided, [N] markers
-   *  wrap only the anchorText phrase instead of the entire preceding clause. */
-  anchorMap?: CitationAnchorMap;
+  /** Citation anchor map: citation ID → sourceMatch. When provided, [N] markers
+   *  wrap only the sourceMatch phrase instead of the entire preceding clause. */
+  sourceMatchMap?: CitationSourceMatchMap;
   /** When true, adds an info banner noting that interactive features require
    *  opening the file in a local browser (CDN blocked in Cowork sandbox). */
   cowork?: boolean;
@@ -104,11 +104,11 @@ function inlineFormat(text: string): string {
 
 /**
  * Citation data lookup passed to wrapCitationMarkers so it can use the
- * anchorText as the clickable display label instead of guessing from
+ * sourceMatch as the clickable display label instead of guessing from
  * surrounding prose.
  */
-export interface CitationAnchorMap {
-  /** Map from citation number (as string) to the anchorText for that citation */
+export interface CitationSourceMatchMap {
+  /** Map from citation number (as string) to the sourceMatch for that citation */
   [citationId: string]: string;
 }
 
@@ -117,33 +117,33 @@ export interface CitationAnchorMap {
  * in a <span data-cite="N">. The CDN runtime needs data-cite on inline
  * elements for indicator placement.
  *
- * When `anchorMap` is provided, the anchorText for each citation is used as
+ * When `sourceMatchMap` is provided, the sourceMatch for each citation is used as
  * the clickable display label. The function searches backward in the text
- * before [N] for the anchorText (case-insensitive) and wraps only that
+ * before [N] for the sourceMatch (case-insensitive) and wraps only that
  * occurrence. This produces short, scannable inline citations that match
  * the evidence highlight.
  *
- * Without `anchorMap`, falls back to wrapping the last clause before [N].
+ * Without `sourceMatchMap`, falls back to wrapping the last clause before [N].
  */
-export function wrapCitationMarkers(html: string, anchorMap?: CitationAnchorMap): string {
+export function wrapCitationMarkers(html: string, sourceMatchMap?: CitationSourceMatchMap): string {
   // Match [N] markers anywhere in text nodes. Excluding `<` and `>` keeps us from
   // consuming HTML tag boundaries; excluding `"` keeps us out of quoted attribute values.
   return html.replace(/([^<>"]*?)\s*\[(\d+)\]/g, (_match, textBefore: string, num: string) => {
     const trimmed = textBefore.trimEnd();
     if (!trimmed) return `<span data-cite="${num}"></span>`;
 
-    // ── Strategy 1: Use anchorText from citation data ─────────────
-    // Find the anchorText within the preceding text and wrap only that phrase.
-    const anchorText = anchorMap?.[num];
-    if (anchorText) {
-      const idx = trimmed.toLowerCase().lastIndexOf(anchorText.toLowerCase());
+    // ── Strategy 1: Use sourceMatch from citation data ─────────────
+    // Find the sourceMatch within the preceding text and wrap only that phrase.
+    const sourceMatch = sourceMatchMap?.[num];
+    if (sourceMatch) {
+      const idx = trimmed.toLowerCase().lastIndexOf(sourceMatch.toLowerCase());
       if (idx >= 0) {
         const before = trimmed.slice(0, idx);
-        const matched = trimmed.slice(idx, idx + anchorText.length);
-        const after = trimmed.slice(idx + anchorText.length);
+        const matched = trimmed.slice(idx, idx + sourceMatch.length);
+        const after = trimmed.slice(idx + sourceMatch.length);
         return `${before}<span data-cite="${num}">${matched}</span>${after}`;
       }
-      // anchorText not found in text — fall through to heuristic
+      // sourceMatch not found in text — fall through to heuristic
     }
 
     // ── Strategy 2: Heuristic — last clause before [N] ───────────
@@ -656,9 +656,9 @@ export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions 
   let bodyHtml = bodyParts.join("\n");
 
   // Wrap [N] citation markers in <span data-cite="N">.
-  // When anchorMap is available, the anchorText becomes the clickable display
+  // When sourceMatchMap is available, the sourceMatch becomes the clickable display
   // label — producing short inline citations that match the evidence highlight.
-  bodyHtml = wrapCitationMarkers(bodyHtml, options.anchorMap);
+  bodyHtml = wrapCitationMarkers(bodyHtml, options.sourceMatchMap);
 
   if (style === "report") {
     return reportShell(title, bodyHtml, audience, options);
@@ -750,16 +750,16 @@ const CDN_SHOWCASE_IMAGE_URL = "/src/vanilla/testing/demo-page.png";
 
 const CDN_SHOWCASE_VERIFICATIONS: Record<string, VerificationData> = {
   "demo-citation-1": {
-    status: "verified",
+    status: "found",
     label: "Brown v. Board of Education, 347 U.S. 483 (1954)",
-    verifiedFullPhrase:
+    verifiedSourceContext:
       "the policy of separating the races is usually interpreted as denoting the inferiority of the negro group",
-    verifiedAnchorText: "inferiority of the negro group",
+    verifiedSourceMatch: "inferiority of the negro group",
     citation: {
       type: "document",
-      fullPhrase:
+      sourceContext:
         "the policy of separating the races is usually interpreted as denoting the inferiority of the negro group",
-      anchorText: "inferiority of the negro group",
+      sourceMatch: "inferiority of the negro group",
     },
     document: {
       verifiedPageNumber: 1,
@@ -775,16 +775,16 @@ const CDN_SHOWCASE_VERIFICATIONS: Record<string, VerificationData> = {
     ],
   },
   "demo-citation-2": {
-    status: "partial_match",
+    status: "partial_text_found",
     label: "Q4 Financial Report",
-    verifiedFullPhrase:
+    verifiedSourceContext:
       "Total revenue reached $2.3 billion for the fiscal year, representing a 45% increase year-over-year",
-    verifiedAnchorText: "$2.3 billion",
-    verifiedMatchSnippet: "Total revenue reached $2.3 billion for the fiscal year",
+    verifiedSourceMatch: "$2.3 billion",
+    sourceSnippet: "Total revenue reached $2.3 billion for the fiscal year",
     citation: {
       type: "document",
-      fullPhrase: "Total revenue reached $2.3 billion for the fiscal year",
-      anchorText: "$2.3 billion",
+      sourceContext: "Total revenue reached $2.3 billion for the fiscal year",
+      sourceMatch: "$2.3 billion",
     },
     document: {
       verifiedPageNumber: 1,
@@ -800,14 +800,14 @@ const CDN_SHOWCASE_VERIFICATIONS: Record<string, VerificationData> = {
     ],
   },
   "demo-citation-3": {
-    status: "verified",
+    status: "found",
     label: "FDA Clinical Trial Guidance 2024",
-    verifiedFullPhrase: "Phase III clinical trial completed enrollment with 2,400 participants across 15 sites",
-    verifiedAnchorText: "Phase III completion",
+    verifiedSourceContext: "Phase III clinical trial completed enrollment with 2,400 participants across 15 sites",
+    verifiedSourceMatch: "Phase III completion",
     citation: {
       type: "document",
-      fullPhrase: "Phase III clinical trial completed enrollment",
-      anchorText: "Phase III completion",
+      sourceContext: "Phase III clinical trial completed enrollment",
+      sourceMatch: "Phase III completion",
     },
     document: {
       verifiedPageNumber: 1,
@@ -830,7 +830,7 @@ const CDN_SHOWCASE_KEY_MAP: Record<string, string> = {
   "cite-3": "demo-citation-3",
 };
 
-const CDN_SHOWCASE_ANCHOR_MAP: CitationAnchorMap = {
+const CDN_SHOWCASE_ANCHOR_MAP: CitationSourceMatchMap = {
   1: "inferiority of the negro group",
   2: "$2.3 billion",
   3: "Phase III completion",
@@ -869,7 +869,7 @@ export function buildCdnComparisonShowcaseHtml(): string {
     sourceLabel: "DeepCitation mock fixture",
     citationCount: Object.keys(CDN_SHOWCASE_KEY_MAP).length,
     pageCount: 1,
-    anchorMap: CDN_SHOWCASE_ANCHOR_MAP,
+    sourceMatchMap: CDN_SHOWCASE_ANCHOR_MAP,
   });
   return injectCdnRuntime(html, CDN_SHOWCASE_VERIFICATIONS, CDN_SHOWCASE_KEY_MAP);
 }

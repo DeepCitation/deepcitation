@@ -3,7 +3,7 @@ import type { Verification } from "./verification.js";
 
 /** What changed in the citation between two verification passes */
 export interface LlmAmendment {
-  field: "fullPhrase" | "anchorText" | "pageNumber" | "lineIds" | "reasoning";
+  field: "sourceContext" | "sourceMatch" | "pageNumber" | "lineIds" | "reasoning";
   previousValue: string | number | number[] | undefined;
   newValue: string | number | number[] | undefined;
 }

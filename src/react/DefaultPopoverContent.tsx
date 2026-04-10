@@ -9,6 +9,7 @@
  */
 
 import { type ReactNode, type Ref, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { buildIntentSummary, type MatchSnippet } from "../analysis/intent.js";
 import type { CitationStatus } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
@@ -28,14 +29,13 @@ import {
 } from "./constants.js";
 import { EvidenceTray, InlineExpandedImage, resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { getExpandedPopoverWidth, getSummaryPopoverWidth } from "./expandedWidthPolicy.js";
-import { HighlightedPhrase } from "./HighlightedPhrase.js";
+import { HighlightedSourceContext } from "./HighlightedSourceContext.js";
 import { useAnimatedHeight } from "./hooks/useAnimatedHeight.js";
 import { useBlinkMotionStage } from "./hooks/useBlinkMotionStage.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { useTranslation } from "./i18n.js";
 import { SpinnerIcon } from "./icons.js";
 import { getBlinkContainerMotionStyle } from "./motion/blinkAnimation.js";
-import { buildIntentSummary, type MatchSnippet } from "./searchSummaryUtils.js";
 import type { BaseCitationProps, DownloadInfo, IndicatorVariant } from "./types.js";
 import {
   getUrlAccessExplanation,
@@ -75,14 +75,14 @@ export interface PopoverContentProps {
   isVisible?: boolean;
   /**
    * Override label for the source display in the popover header.
-   * See BaseCitationProps.sourceLabel for details.
+   * See BaseCitationProps.sourceTitle for details.
    */
-  sourceLabel?: string;
+  sourceTitle?: string;
   /**
    * Override label displayed on the trigger. When this differs from the
-   * verified claim (anchorText), an inline annotation is shown in the popover.
+   * verified claim (sourceMatch), an inline annotation is shown in the popover.
    */
-  displayLabel?: string;
+  claimText?: string;
   /**
    * Visual style for status indicators inside the popover.
    * @default "icon"
@@ -284,14 +284,14 @@ function PopoverLayoutShell({
  * Border color reflects verification status: green (success), amber (partial), red (miss).
  */
 function ClaimQuote({
-  fullPhrase,
-  anchorText,
+  sourceContext,
+  sourceMatch,
   isMiss,
   borderColor,
   maxWidth,
 }: {
-  fullPhrase: string;
-  anchorText?: string;
+  sourceContext: string;
+  sourceMatch?: string;
   isMiss: boolean;
   borderColor: string;
   maxWidth?: string;
@@ -304,7 +304,7 @@ function ClaimQuote({
       )}
       style={maxWidth ? { maxWidth } : undefined}
     >
-      <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
+      <HighlightedSourceContext sourceContext={sourceContext} sourceMatch={sourceMatch} isMiss={isMiss} />
     </div>
   );
 }
@@ -572,19 +572,19 @@ function EvidenceZone({
 function PopoverLoadingView({
   citation,
   verification,
-  sourceLabel,
+  sourceTitle,
   download,
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
-  sourceLabel?: string;
+  sourceTitle?: string;
   download?: DownloadInfo;
 }) {
   const t = useTranslation();
-  const anchorText = citation.anchorText?.toString();
-  const fullPhrase = citation.fullPhrase;
+  const sourceMatch = citation.sourceMatch?.toString();
+  const sourceContext = citation.sourceContext;
   const searchStatus = verification?.status;
-  const searchingPhrase = fullPhrase || anchorText;
+  const searchingPhrase = sourceContext || sourceMatch;
   return (
     <div
       className={cn(POPOVER_CONTAINER_BASE_CLASSES, "min-w-[200px] max-w-[480px]")}
@@ -594,7 +594,7 @@ function PopoverLoadingView({
         citation={citation}
         verification={verification}
         status={searchStatus}
-        sourceLabel={sourceLabel}
+        sourceTitle={sourceTitle}
         download={download}
       />
       <div className="p-3 flex flex-col gap-2.5">
@@ -638,8 +638,8 @@ function PopoverLoadingView({
 function PopoverFallbackView({
   citation,
   verification,
-  sourceLabel,
-  displayLabel,
+  sourceTitle,
+  claimText,
   status,
   urlAccessExplanation,
   indicatorVariant = "icon",
@@ -648,8 +648,8 @@ function PopoverFallbackView({
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
-  sourceLabel?: string;
-  displayLabel?: string;
+  sourceTitle?: string;
+  claimText?: string;
   status: CitationStatus;
   urlAccessExplanation: UrlAccessExplanation | null;
   indicatorVariant?: IndicatorVariant;
@@ -659,7 +659,7 @@ function PopoverFallbackView({
   const t = useTranslation();
   const searchStatus = verification?.status;
   const statusLabel = indicatorVariant !== "none" ? getStatusLabel(status, t) : null;
-  const hasSnippet = verification?.verifiedMatchSnippet;
+  const hasSnippet = verification?.sourceSnippet;
   const pageNumber = verification?.document?.verifiedPageNumber;
 
   if (!hasSnippet && !statusLabel && !urlAccessExplanation) return null;
@@ -673,7 +673,7 @@ function PopoverFallbackView({
         citation={citation}
         verification={verification}
         status={searchStatus}
-        sourceLabel={sourceLabel}
+        sourceTitle={sourceTitle}
         download={download}
         customActions={customActions}
       />
@@ -697,22 +697,25 @@ function PopoverFallbackView({
             {/*
               Iter 23 polish: highlight the anchor inside the snippet so the
               fallback popover threads display→popover→evidence the same way
-              the main path's ClaimQuote does. The snippet (verifiedMatchSnippet)
+              the main path's ClaimQuote does. The snippet (sourceSnippet)
               is what the API actually found in the PDF, so we use it as the
-              phrase and let HighlightedPhrase locate the anchor inside it.
+              phrase and let HighlightedSourceContext locate the anchor inside it.
               normalizeSnippetText still cleans OCR-collapsed spacing using
-              the agent's fullPhrase as a reference template.
+              the agent's sourceContext as a reference template.
             */}
-            <HighlightedPhrase
-              fullPhrase={normalizeSnippetText(hasSnippet, citation.fullPhrase ?? verification?.verifiedFullPhrase)}
-              anchorText={citation.anchorText}
+            <HighlightedSourceContext
+              sourceContext={normalizeSnippetText(
+                hasSnippet,
+                citation.sourceContext ?? verification?.verifiedSourceContext,
+              )}
+              sourceMatch={citation.sourceMatch}
               isMiss={status.isMiss}
             />
           </q>
         )}
-        {displayLabel && displayLabel !== citation.anchorText?.toString() && (
+        {claimText && claimText !== citation.sourceMatch?.toString() && (
           <span className="text-[11px] text-dc-subtle-foreground">
-            {t("popover.displayedAs", { label: displayLabel })}
+            {t("popover.displayedAs", { label: claimText })}
           </span>
         )}
         {pageNumber && pageNumber > 0 && (
@@ -736,8 +739,8 @@ export function DefaultPopoverContent({
   status,
   isLoading = false,
   isVisible = true,
-  sourceLabel,
-  displayLabel,
+  sourceTitle,
+  claimText,
   indicatorVariant = "icon",
   viewState = "summary",
   onViewStateChange,
@@ -984,9 +987,9 @@ export function DefaultPopoverContent({
   const foundPage = verification?.document?.verifiedPageNumber ?? undefined;
 
   // Get humanizing message for partial/not-found states (URL citations only)
-  const anchorText = citation.anchorText?.toString();
-  const showDisplayLabelAnnotation = displayLabel && displayLabel !== anchorText;
-  const fullPhrase = citation.fullPhrase;
+  const sourceMatch = citation.sourceMatch?.toString();
+  const showDisplayLabelAnnotation = claimText && claimText !== sourceMatch;
+  const sourceContext = citation.sourceContext;
 
   // Intent summary for document citations — snippet-based display for partial matches
   const intentSummary = useMemo(
@@ -1021,7 +1024,7 @@ export function DefaultPopoverContent({
         <PopoverLoadingView
           citation={citation}
           verification={verification}
-          sourceLabel={sourceLabel}
+          sourceTitle={sourceTitle}
           download={download}
         />
       </>
@@ -1085,7 +1088,7 @@ export function DefaultPopoverContent({
               citation={citation}
               verification={verification}
               status={searchStatus}
-              sourceLabel={sourceLabel}
+              sourceTitle={sourceTitle}
               onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
               onClose={isFullPage ? handleCollapseFromExpandedPage : undefined}
               download={download}
@@ -1097,7 +1100,7 @@ export function DefaultPopoverContent({
               foundPage={foundPage}
               expectedPage={expectedPage ?? undefined}
               hidePageBadge
-              anchorText={anchorText}
+              sourceMatch={sourceMatch}
               indicatorVariant={indicatorVariant}
             />
             {/* Partial/miss-specific sections (absent in success) */}
@@ -1112,18 +1115,18 @@ export function DefaultPopoverContent({
                 create a top-to-bottom evidence reveal. The hook sees the real
                 viewState change but bails out immediately at duration === 0. */}
             <AnimatedHeightWrapper viewState={viewState} expandDurationMs={0} collapseDurationMs={0}>
-              {fullPhrase && (
+              {sourceContext && (
                 <ClaimQuote
-                  fullPhrase={fullPhrase}
-                  anchorText={anchorText}
+                  sourceContext={sourceContext}
+                  sourceMatch={sourceMatch}
                   isMiss={isMiss}
                   borderColor={claimBorderColor}
                   maxWidth={viewState === "summary" ? summaryWidth : undefined}
                 />
               )}
-              {showDisplayLabelAnnotation && fullPhrase && (
+              {showDisplayLabelAnnotation && sourceContext && (
                 <div className="ml-[1.34375rem] mr-3 -mt-2 mb-3 text-[11px] text-dc-subtle-foreground">
-                  {t("popover.displayedAs", { label: displayLabel })}
+                  {t("popover.displayedAs", { label: claimText })}
                 </div>
               )}
             </AnimatedHeightWrapper>
@@ -1159,8 +1162,8 @@ export function DefaultPopoverContent({
       <PopoverFallbackView
         citation={citation}
         verification={verification}
-        sourceLabel={sourceLabel}
-        displayLabel={displayLabel}
+        sourceTitle={sourceTitle}
+        claimText={claimText}
         status={status}
         urlAccessExplanation={urlAccessExplanation}
         indicatorVariant={indicatorVariant}

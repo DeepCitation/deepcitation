@@ -113,8 +113,8 @@ export interface DocumentVerificationResult {
   mimeType?: string;
   totalLinesOnPage?: number;
   hitIndexWithinPage?: number;
-  phraseMatchDeepItem?: DeepTextItem;
-  anchorTextMatchDeepItems?: DeepTextItem[];
+  sourceContextDeepItem?: DeepTextItem;
+  sourceMatchDeepItems?: DeepTextItem[];
   /** OCR text items for the verified page */
   textItems?: DeepTextItem[];
   /** Highlighted region on the verified page (image pixel coordinates) */
@@ -244,11 +244,11 @@ export interface Verification {
   // ========== Shared verified text results ==========
   verifiedTimestamps?: { startTime?: string; endTime?: string };
 
-  verifiedFullPhrase?: string;
+  verifiedSourceContext?: string;
 
-  verifiedAnchorText?: string;
+  verifiedSourceMatch?: string;
 
-  verifiedMatchSnippet?: string;
+  sourceSnippet?: string;
 
   /** ISO 8601 timestamp when verification completed */
   verifiedAt?: string;

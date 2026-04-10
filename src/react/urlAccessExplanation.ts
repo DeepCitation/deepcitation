@@ -98,8 +98,8 @@ export function mapSearchStatusToFetchStatus(status: SearchStatus | null | undef
   if (!status) return "pending";
   switch (status) {
     case "found":
-    case "found_anchor_text_only":
-    case "found_phrase_missed_anchor_text":
+    case "found_source_match_only":
+    case "found_context_missed_source_match":
       return "verified";
     case "found_on_other_page":
     case "found_on_other_line":

@@ -1,30 +1,12 @@
 import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { POPOVER_WIDTH_DEFAULT_PX, VIEWPORT_MARGIN_PX } from "../constants.js";
+import { alignOffset as computeAlignOffset } from "../../shared/popoverGeometry.js";
+import { POPOVER_WIDTH_DEFAULT_PX } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "../scrollLock.js";
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
 function isValidProjectedWidth(px: number | null | undefined): px is number {
   return px !== null && px !== undefined && Number.isFinite(px) && px > 0;
-}
-
-function computeAlignOffset(
-  viewportWidth: number,
-  triggerLeft: number,
-  triggerWidth: number,
-  popoverWidth: number,
-): number {
-  const triggerCenter = triggerLeft + triggerWidth / 2;
-  const centeredLeft = triggerCenter - popoverWidth / 2;
-  const minLeft = VIEWPORT_MARGIN_PX;
-  const maxLeft = viewportWidth - VIEWPORT_MARGIN_PX - popoverWidth;
-  const desiredLeft = maxLeft < minLeft ? minLeft : clamp(centeredLeft, minLeft, maxLeft);
-  // With align="start", base X is triggerLeft. alignOffset shifts to desiredLeft.
-  return desiredLeft - triggerLeft;
 }
 
 /**
