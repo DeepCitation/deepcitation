@@ -204,6 +204,59 @@ export function reattachPageImages(
   }
 }
 
+/**
+ * Walk every `data-citation-key` element and stamp `data-dc-display-label`
+ * when the visible text is NOT a substring of the citation's `anchorText`.
+ *
+ * The CDN runtime reads `data-dc-display-label` at click time so the popover
+ * shows the visible (paraphrase) text on the "displayed as" line — without
+ * this attribute, paraphrase inlines render with no annotation, leaving
+ * inattentive readers no signal that the bolded inline and the anchor differ.
+ *
+ * Returns the rewritten HTML and a log of `[hashPrefix] displayLabel/anchor`
+ * lines for each element that was auto-fixed. Both the standalone `inject`
+ * command and `injectCdnRuntime` (verify --markdown) use this helper so the
+ * two paths produce identical HTML.
+ */
+export function autoFixDisplayLabels(
+  html: string,
+  verifications: Record<string, unknown>,
+): { html: string; log: string[] } {
+  const log: string[] = [];
+  const elementRe = /<([a-zA-Z][a-zA-Z0-9]*)[^>]*\sdata-citation-key="([^"]+)"([^>]*)>([\s\S]*?)<\/\1>/g;
+  const fixedHtml = html.replace(elementRe, (fullMatch, _tag, hashedKey, rest, content) => {
+    // Skip if data-dc-display-label is already set on this element
+    if (/data-dc-display-label=/.test(rest) || /data-dc-display-label=/.test(fullMatch)) return fullMatch;
+
+    const anchorText = (verifications[hashedKey] as { citation?: { anchorText?: string } } | undefined)?.citation
+      ?.anchorText;
+    if (!anchorText) return fullMatch;
+
+    // Strip inner HTML tags to get approximate visible text.
+    // Loop until stable to handle nested fragments like <scr<script>ipt>.
+    let visibleText = content as string;
+    let prev: string;
+    do {
+      prev = visibleText;
+      visibleText = visibleText.replace(/<[^>]+>/g, "");
+    } while (visibleText !== prev);
+    visibleText = visibleText.replace(/\s+/g, " ").trim();
+
+    if (!visibleText || visibleText.length > 80) return fullMatch;
+    if (anchorText.toLowerCase().includes(visibleText.toLowerCase())) return fullMatch;
+
+    const escaped = visibleText.replace(/"/g, "&quot;");
+    log.push(
+      `  [${hashedKey.slice(0, 8)}…] displayLabel="${visibleText}" anchorText="${anchorText.slice(0, 60)}${anchorText.length > 60 ? "…" : ""}"`,
+    );
+    return fullMatch.replace(
+      `data-citation-key="${hashedKey}"`,
+      `data-citation-key="${hashedKey}" data-dc-display-label="${escaped}"`,
+    );
+  });
+  return { html: fixedHtml, log };
+}
+
 /** Options for {@link injectCdnRuntime}. */
 export interface InjectCdnOptions {
   theme?: string;
@@ -225,6 +278,18 @@ export function injectCdnRuntime(
   const { theme = "auto", indicatorVariant } = opts;
   const stripped = stripExistingInjection(html);
 
+  // Stamp data-dc-display-label on paraphrase inlines so the popover's
+  // "displayed as" annotation fires for visible text that differs from the
+  // citation's anchorText. Mirrors the behavior of the standalone `inject`
+  // command — extracted to a shared helper so verify --markdown gets parity.
+  const autoFixed = autoFixDisplayLabels(stripped.html, verifications);
+  if (autoFixed.log.length > 0) {
+    console.error(
+      `Auto-set display label on ${autoFixed.log.length} element(s) where visible text differs from anchorText:\n` +
+        autoFixed.log.join("\n"),
+    );
+  }
+
   const initParts = [`theme:${JSON.stringify(theme)}`];
   if (indicatorVariant && indicatorVariant !== "icon") {
     initParts.push(`indicatorVariant:${JSON.stringify(indicatorVariant)}`);
@@ -237,7 +302,7 @@ export function injectCdnRuntime(
     `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({${initParts.join(",")}});</script>`,
   ].join("\n");
 
-  let result = stripped.html;
+  let result = autoFixed.html;
   if (result.includes("</body>")) {
     result = result.replace("</body>", () => `${snippet}\n</body>`);
   } else if (result.includes("</html>")) {

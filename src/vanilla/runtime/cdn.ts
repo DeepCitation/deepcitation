@@ -8,6 +8,7 @@ import { getStatusFromVerification } from "../../react/citationStatus.js";
 import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
 import { usePopoverViewState } from "../../react/hooks/usePopoverViewState.js";
 import { usePrefersReducedMotion } from "../../react/hooks/usePrefersReducedMotion.js";
+import { sanitizeUrl } from "../../react/urlUtils.js";
 import type { Citation } from "../../types/citation.js";
 import type { PageImage, Verification } from "../../types/verification.js";
 import { resolveKeyMap } from "./cdn-keymap.js";
@@ -211,9 +212,13 @@ function CdnPopoverWrapper(props: {
     onDismiss: props.onDismiss,
   });
 
-  // Convert downloadUrl string to DownloadInfo object expected by DefaultPopoverContent
+  // Convert downloadUrl string to DownloadInfo object expected by DefaultPopoverContent.
+  // Only construct `download` when the URL passes sanitizeUrl (http/https only) — otherwise
+  // the popover will render the download button against an invalid/missing URL and clicks
+  // route to a "Not found" page (e.g. local HTML sources with no remote attachment).
   const { downloadUrl, ...rest } = props;
-  const download = downloadUrl ? { url: downloadUrl } : undefined;
+  const safeDownloadUrl = downloadUrl ? sanitizeUrl(downloadUrl) : null;
+  const download = safeDownloadUrl ? { url: safeDownloadUrl } : undefined;
 
   return createElement(DefaultPopoverContent, {
     ...rest,

@@ -285,6 +285,27 @@ The keyhole→expanded-keyhole transition uses a CSS View Transition (`viewTrans
 
 **Critical**: In non-fill mode, both old and new VT elements must be height-constrained scroll containers. If the VT name is on an unconstrained inner `<div>`, the browser morphs to the full image height — overshooting the visible area.
 
+### Keyhole Strip Height Clamping (`stripHeightStyle`)
+
+The keyhole scroll container's height is **not** a constant `120px`. It is:
+
+```ts
+imageFitInfo
+  ? `min(${displayedHeight}px, var(--dc-keyhole-strip-height, 120px))`
+  : `var(--dc-keyhole-strip-height, 120px)`
+```
+
+Why: the keyhole image never upscales (`zoom = Math.min(1.0, …)`). For images whose natural height is less than the strip cap (e.g. a cropped status-page evidence snippet ~80px tall), rendering inside a fixed 120px container leaves dead `DOCUMENT_CANVAS_BG` space below the image — the "squish" bug where content looked compressed into the top of an oversized frame. Clamping to `displayedHeight` collapses the strip for short images while preserving the 120px cap (and external `--dc-keyhole-strip-height` override) for tall ones.
+
+**Invariant this relies on**: when `displayedHeight < stripHeight`, the scroll math inside the `useLayoutEffect` naturally resolves `scrollTop = 0` (vertical overflow is negative → clamped). So shrinking the container after measurement is safe — no scroll reposition is needed. If you ever change the scroll math to depend on the post-clamp container height, re-derive `stripHeight` from the clamped value.
+
+**Three sites encode the no-upscale invariant — they must move together**:
+1. `projectKeyholeDisplayedWidth()` in `react/constants.ts` — the shared projection helper.
+2. `usePopoverPosition.ts` width memo and `DefaultPopoverContent.tsx` initial-state seed — both delegate to the helper.
+3. `AnchorTextFocusedImage.stripHeightStyle` (above) — CSS `min()` on the container height.
+
+See the `projectKeyholeDisplayedWidth` docstring for why `Math.min(1, …)` is load-bearing. Regression covered by `src/__tests__/projectKeyholeDisplayedWidth.test.ts`.
+
 ### Easing & Timing
 
 | Direction | Duration | Easing | Constant |

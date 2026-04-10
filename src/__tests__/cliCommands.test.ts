@@ -963,19 +963,25 @@ Raw OCR line B`,
 });
 
 describe("hydrateCitations", () => {
-  it("fills full_phrase from a single lineId", () => {
+  // Hydration always widens the cited range by ±1 so full_phrase is reliably
+  // broader than anchor_text — otherwise HighlightedPhrase has nothing to
+  // highlight inside the popover quote when the cited line happens to equal
+  // the anchor verbatim (OCR-fragmented sources).
+  it("fills full_phrase from a single lineId and pulls ±1 neighbor lines", () => {
     const citations = [{ id: 1, anchor_text: "Discount Rate", page_id: "page_number_1_index_0", line_ids: [1] }];
     const { hydrated, misses } = hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
     expect(hydrated).toBe(1);
     expect(misses).toEqual([]);
-    expect(citations[0].full_phrase).toBe("The Discount Rate is 80% of the lowest price per share.");
+    expect(citations[0].full_phrase).toBe(
+      "The Discount Rate is 80% of the lowest price per share. The Purchase Amount is the amount invested.",
+    );
   });
 
-  it("concatenates text for multi-lineId citations", () => {
+  it("concatenates text for multi-lineId citations and pulls ±1 neighbor lines", () => {
     const citations = [{ id: 1, anchor_text: "Purchase Amount", page_id: "page_number_1_index_0", line_ids: [2, 3] }];
     hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
     expect(citations[0].full_phrase).toBe(
-      "The Purchase Amount is the amount invested. A Dissolution Event means a liquidation.",
+      "The Discount Rate is 80% of the lowest price per share. The Purchase Amount is the amount invested. A Dissolution Event means a liquidation.",
     );
   });
 
@@ -1008,13 +1014,17 @@ describe("hydrateCitations", () => {
     expect(misses).toEqual([3]);
   });
 
-  it("uses qualified map when page_id matches", () => {
+  // Guards cross-page bleed: neighbor expansion must not let page 2's line 2
+  // (absent on page 2) resolve via the page-agnostic byId map to page 1's
+  // "Page one line two." The qualified-only rule for non-cited neighbor IDs
+  // is what prevents that.
+  it("uses qualified map when page_id matches and pulls ±1 neighbor lines", () => {
     const citations = [
       { id: 1, anchor_text: "page one line one", page_id: "page_number_1_index_0", line_ids: [1] },
       { id: 2, anchor_text: "page two line one", page_id: "page_number_2_index_0", line_ids: [1] },
     ];
     hydrateCitations({ summaryContent: MULTI_PAGE_SUMMARY, citations });
-    expect(citations[0].full_phrase).toBe("Page one line one.");
+    expect(citations[0].full_phrase).toBe("Page one line one. Page one line two.");
     expect(citations[1].full_phrase).toBe("Page two line one.");
   });
 });
@@ -1041,7 +1051,10 @@ describe("hydrate CLI command", () => {
     const result = JSON.parse(
       readFileSync(mdPath, "utf-8").split("<<<CITATION_DATA>>>")[1].split("<<<END_CITATION_DATA>>>")[0].trim(),
     );
-    expect(result[0].full_phrase).toBe("The Discount Rate is 80% of the lowest price per share.");
+    // Cited [1], expanded to [1, 2] by the neighbor-line widening.
+    expect(result[0].full_phrase).toBe(
+      "The Discount Rate is 80% of the lowest price per share. The Purchase Amount is the amount invested.",
+    );
     expect(stderr).toContain("Hydrated 1 citation(s)");
   });
 

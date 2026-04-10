@@ -381,7 +381,11 @@ describe("non-TTY / agent environment login", () => {
     expect(r.exitCode).toBe(1);
     expect(r.stderr).toContain("Non-interactive");
     expect(r.stderr).toContain("Get your API key");
-    expect(r.stderr).toContain("export DEEPCITATION_API_KEY");
+    // New (post-d2f67c2) guidance recommends the persistent `auth --key` path
+    // over transient `export DEEPCITATION_API_KEY`. Both recover the same failure,
+    // but `auth --key` saves credentials to the home-dir file so the next session
+    // inherits them without re-exporting.
+    expect(r.stderr).toContain("deepcitation auth --key");
   });
 
   it("Cowork environment shows domain setup instructions", () => {

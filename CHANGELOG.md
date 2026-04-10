@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Cowork `verify` hang** — `createCoworkFetch` no longer routes through `undici.EnvHttpProxyAgent`, which was observed to hang indefinitely on JSON POSTs through `localhost:3128` in Claude Cowork while succeeding on multipart. It now delegates to the same hand-rolled CONNECT tunnel (`createProxyFetch`) used in non-Cowork environments, which is built only on Node built-ins and has deterministic per-phase timeouts.
+- **Per-phase transport timeouts** — `createProxyFetch` now enforces four timers (`proxy_connect`, `tls_handshake`, `response_headers`, `response_idle`) plus an outer `request_overall` ceiling. Defaults: 5 s / 10 s / 60 s / 30 s / 90 s, each overridable via `DC_PROXY_CONNECT_MS` / `DC_TLS_HANDSHAKE_MS` / `DC_HEADERS_TIMEOUT_MS` / `DC_IDLE_DATA_MS` / `DC_REQUEST_TIMEOUT_MS`. Prevents indefinite hangs when a proxy accepts the connection but then stalls.
+- **FormData multipart now rides the CONNECT tunnel** — `createProxyFetch` serializes `FormData` to an RFC 7578 multipart body inline (`encodeMultipart`) and writes it over the same hand-rolled TLS tunnel as JSON POSTs. The previous `sendViaUndiciProxy` fallback required `import("undici")` at runtime, which fails in the Claude Cowork sandbox and caused every file upload to hit `"FormData upload through proxy requires the 'undici' package"`. Prepare now has the same transport (and the same per-phase timeouts) as verify, with zero `undici` dependency on any path. `sendViaUndiciProxy` and `convertFormData` deleted as dead code.
+
+### Added
+
+- **`TimeoutError` class** — structured error with `phase` (one of `proxy_connect | tls_handshake | response_headers | response_idle | request_overall`), `elapsedMs`, `proxyUrl`, and `target` fields. Exported from `src/cli/proxy.ts`.
+- **Structured CLI error output** — `formatNetworkError` recognizes `TimeoutError` and emits a human-readable block (phase explanation, redacted proxy URL, explicit "Do NOT" guidance block for AI agents) followed by a final `__DC_ERROR__ {...}` JSON marker line. Agent-driven callers can parse the marker and short-circuit their recovery loop (`retryable: false` → don't retry, `recoverable: false` → don't try workarounds).
+- **Environment notes for cloud sandboxes in `verify` skill** — `packages/skills/skills/verify/SKILL.md` gains a new section covering bundled-binary expectations, proxy env-var constraints, expected command timings, the "no hand-built HTML fallback" rule, and `__DC_ERROR__` recognition. Four new invariants forbid the failure modes observed when the agent previously stumbled through Cowork setup (npm-installing `undici`, munging `HTTP_PROXY`, extending timeouts via shell wrappers, fabricating verified-looking reports).
+- **Refined evidence triage in `verify` skill** — the Step 1 triage table now explicitly handles user-supplied files (e.g. `index.html`, `draft.md`) that contain claims to verify, with a "use verbatim" instruction to prevent the agent from rewriting claims during the citation step.
+- **`CliAuthPage` agent-relay polish** — hides the "copy key / copy command" toggle in agent-relay mode (`isManual && !cliWasListening`), forcing the full command format so agents receive actionable context instead of a bare `sk-dc-…`.
+- **`cliProxyTimeouts.test.ts`** — mock TCP server tests that verify each `TimeoutError` phase fires within its budget and the outer ceiling bounds the total lifetime.
+- **`cliProxyMultipart.test.ts`** — unit tests for the RFC 7578 multipart serializer (string + Blob + mixed fields, header-param escaping, boundary uniqueness, filename and Content-Type defaults).
+
 ## [0.3.11] - 2026-04-06
 
 ### Added

@@ -427,11 +427,13 @@ For each fact you cite, first pick a **k value**: 1–4 distinctive words copied
 
 The k value gets highlighted in yellow in the PDF. The reader sees bold text in your report → clicks → sees the identical words highlighted. If you bold a full sentence, the entire sentence turns yellow — unreadable. Bold only the keyword.
 
-**Target: 1–4 words. Acceptable: up to 7 words for multi-part terms (e.g. "legal costs as between solicitor and client"). Never exceed 7. Never copy a full clause or sentence.**
+**Hard cap: 4 words. Only exception: a multi-word legal/technical compound term that loses meaning when split (e.g. "legal costs as between solicitor and client"). If you can't explain why splitting breaks the meaning, it's not a compound — shorten to ≤4.**
 
 Example — source says "seventy-seven (77) residential apartment units and six (6) ground floor commercial units in a nine (9) storey building":
 - GOOD: "The building has **77 residential** [1] apartment units and **6 commercial** [2] units." / k₁: "77 residential", k₂: "6 commercial"
 - BAD: "**seventy-seven (77) residential apartment units and six (6) ground floor commercial units** [1]" / k: entire clause (13 words!)
+- BAD: k: "six ground floor commercial units" (5 words — not a compound term) → GOOD: k: "ground floor commercial" (3w)
+- BAD: k: "fifty-nine interior underground parking units" (5w) → GOOD: k: "underground parking units" (3w)
 
 More examples:
 - Source: "Each parking unit shall be used and occupied only for motor vehicle parking purposes" → Bold: **motor vehicle parking** [3] / k: "motor vehicle parking"
@@ -456,14 +458,14 @@ Do NOT output fullPhrase or reasoning — these are reconstructed automatically 
 ### Field Rules
 
 1. **n**: Citation id (integer, matches [N] in text)
-2. **k** (anchorText): 1–4 verbatim words from the source (up to 7 for multi-part terms). This is the yellow highlight in the PDF — short highlights are precise, full sentences in yellow are unreadable. k = the bold text in your report. Must be copied character-for-character from the source — never paraphrase (e.g. source says "The cost of cooling" → k: "cost of cooling", NOT "Cooling costs").
+2. **k** (anchorText): 1–4 verbatim words from the source (hard cap 4; exception only for legal/technical compound terms that lose meaning when split). This is the yellow highlight in the PDF — short highlights are precise, full sentences in yellow are unreadable. k = the bold text in your report. Must be copied character-for-character from the source — never paraphrase (e.g. source says "The cost of cooling" → k: "cost of cooling", NOT "Cooling costs").
 3. **p** (page_id): Compact form "N_I" where N=page number and I=index (extract from \`<page_number_N_index_I>\` tag)
 4. **l** (line_ids): Array of line IDs from \`<line id="N">\` tags. Find the nearest \`<line id="N">\` tag ABOVE your text on the SAME page, then count lines down: if \`<line id="10">\` is 3 lines above, use \`[13]\`. Do NOT default to \`[1]\`. Double-check p and l are from the same page — if your text is on page 9, don't use a lineId from page 10.
 
 ### anchorText Rules
 k = bold text = yellow highlight. All three must be the same phrase, copied verbatim from the source.
 
-**Target 1–4 words. Up to 7 for compound terms. Never >7. Never a full sentence.**
+**Hard cap: 4 words. Exception only for legal/technical compound terms that lose meaning when split. Never a full sentence.**
 
 How to shorten a long source clause to a good k:
 | Source clause | k | What to bold |
@@ -481,6 +483,11 @@ Pick the most distinctive noun phrase — the thing a reader would ctrl+F for. N
 - **Bold** the key term and place [N] after it, e.g. **Discount Rate** [2]
 - Sequential IDs starting from 1 — each citation gets a unique number
 - JSON block MUST appear at the very end of your response
+
+### SELF-CHECK — run this for every k before writing it
+1. Count the words in k. Is it ≤4? If yes, proceed.
+2. If >4: is it a legal/technical compound term that loses meaning when split? If no, shorten it.
+3. Is k a contiguous verbatim substring of the source line? (If you can't ctrl+F it, it's wrong.)
 
 ### Example Response
 

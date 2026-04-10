@@ -316,41 +316,54 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
   // Extract the JSON block
   const jsonStartIndex = startIndex + CITATION_DATA_START_DELIMITER.length;
   const jsonEndIndex = endIndex !== -1 ? endIndex : llmResponse.length;
+  // .trim() here means !jsonString is also true for whitespace-only blocks.
   const jsonString = llmResponse.substring(jsonStartIndex, jsonEndIndex).trim();
 
   // Parse the JSON
   let citations: CitationData[] = [];
   const citationMap = new Map<number, CitationData>();
 
-  if (jsonString) {
-    try {
-      // First attempt: direct JSON.parse
-      const parsed = JSON.parse(jsonString);
-      citations = parseCitationsFromJson(parsed);
-    } catch (initialError) {
-      // Second attempt: repair and retry
-      try {
-        const { repaired, repairs } = repairJson(jsonString);
-        const parsed = JSON.parse(repaired);
-        citations = parseCitationsFromJson(parsed);
+  // Empty content between delimiters is a failure, not a success. Finding the
+  // start delimiter means the author intended to emit citations; whitespace-only
+  // content is an upstream mistake (e.g. unfilled template placeholder).
+  // The .trim() above ensures whitespace-only blocks ("\n\n" etc.) reach this guard.
+  if (!jsonString) {
+    return {
+      visibleText,
+      citations: [],
+      citationMap: new Map(),
+      success: false,
+      error: "Empty <<<CITATION_DATA>>> block: no JSON content between delimiters",
+    };
+  }
 
-        // Log warning when repair was necessary
-        if (repairs.length > 0) {
-          console.warn(
-            "[DeepCitation] JSON repair was triggered for citation data.",
-            `Repairs applied: ${repairs.join(", ")}.`,
-            `Initial parse error: ${initialError instanceof Error ? initialError.message : "Unknown error"}`,
-          );
-        }
-      } catch (repairError) {
-        return {
-          visibleText,
-          citations: [],
-          citationMap: new Map(),
-          success: false,
-          error: `Failed to parse citation JSON. Initial error: ${initialError instanceof Error ? initialError.message : "Unknown error"}. Repair error: ${repairError instanceof Error ? repairError.message : "Unknown error"}`,
-        };
+  try {
+    // First attempt: direct JSON.parse
+    const parsed = JSON.parse(jsonString);
+    citations = parseCitationsFromJson(parsed);
+  } catch (initialError) {
+    // Second attempt: repair and retry
+    try {
+      const { repaired, repairs } = repairJson(jsonString);
+      const parsed = JSON.parse(repaired);
+      citations = parseCitationsFromJson(parsed);
+
+      // Log warning when repair was necessary
+      if (repairs.length > 0) {
+        console.warn(
+          "[DeepCitation] JSON repair was triggered for citation data.",
+          `Repairs applied: ${repairs.join(", ")}.`,
+          `Initial parse error: ${initialError instanceof Error ? initialError.message : "Unknown error"}`,
+        );
       }
+    } catch (repairError) {
+      return {
+        visibleText,
+        citations: [],
+        citationMap: new Map(),
+        success: false,
+        error: `Failed to parse citation JSON. Initial error: ${initialError instanceof Error ? initialError.message : "Unknown error"}. Repair error: ${repairError instanceof Error ? repairError.message : "Unknown error"}`,
+      };
     }
   }
 

@@ -10,6 +10,7 @@ import {
   isValidApiKeyFormat,
   parseArgs,
 } from "../cli/cliUtils.js";
+import { TimeoutError } from "../cli/proxy.js";
 import { PaymentRequiredError } from "../client/errors.js";
 
 jest.mock("node:fs", () => ({
@@ -227,6 +228,72 @@ describe("formatNetworkError", () => {
       if (saved.HTTPS_PROXY !== undefined) process.env.HTTPS_PROXY = saved.HTTPS_PROXY;
       if (saved.HTTP_PROXY !== undefined) process.env.HTTP_PROXY = saved.HTTP_PROXY;
     }
+  });
+
+  // ── TimeoutError formatting ─────────────────────────────────────
+
+  it("formats TimeoutError with structured human + marker output", () => {
+    const err = new TimeoutError("response_headers", 60023, "http://localhost:3128", "api.deepcitation.com:443");
+    const result = formatNetworkError(err, BASE_URL);
+    // Human-readable preamble
+    expect(result).toContain("timed out after 60023ms");
+    expect(result).toContain("phase: response_headers");
+    expect(result).toContain("api.deepcitation.com:443");
+    expect(result).toContain("http://localhost:3128");
+    // Anti-stumbling guidance
+    expect(result).toContain("TRANSPORT failure");
+    expect(result).toContain("install undici");
+    expect(result).toContain("modify HTTP_PROXY");
+    expect(result).toContain("retry with a smaller payload");
+    expect(result).toContain("background this command");
+    // Machine-parseable marker line on its own
+    expect(result).toContain("__DC_ERROR__");
+    const markerLine = result.split("\n").find(l => l.startsWith("__DC_ERROR__"));
+    if (!markerLine) throw new Error("expected __DC_ERROR__ marker line in formatNetworkError output");
+    const json = JSON.parse(markerLine.slice("__DC_ERROR__ ".length));
+    expect(json.type).toBe("timeout");
+    expect(json.phase).toBe("response_headers");
+    expect(json.elapsedMs).toBe(60023);
+    expect(json.target).toBe("api.deepcitation.com:443");
+    expect(json.retryable).toBe(false);
+    expect(json.recoverable).toBe(false);
+  });
+
+  it("formats TimeoutError for proxy_connect phase", () => {
+    const err = new TimeoutError("proxy_connect", 5001, "http://localhost:3128", "api.deepcitation.com:443");
+    const result = formatNetworkError(err, BASE_URL);
+    expect(result).toContain("could not establish a TCP CONNECT");
+    expect(result).toContain("phase: proxy_connect");
+  });
+
+  it("formats TimeoutError for tls_handshake phase", () => {
+    const err = new TimeoutError("tls_handshake", 10005, "http://localhost:3128", "api.deepcitation.com:443");
+    const result = formatNetworkError(err, BASE_URL);
+    expect(result).toContain("TLS handshake stalled");
+  });
+
+  it("formats TimeoutError for response_idle phase", () => {
+    const err = new TimeoutError("response_idle", 30100, "http://localhost:3128", "api.deepcitation.com:443");
+    const result = formatNetworkError(err, BASE_URL);
+    expect(result).toContain("stalled mid-stream");
+  });
+
+  it("formats TimeoutError for request_overall phase", () => {
+    const err = new TimeoutError("request_overall", 90050, "http://localhost:3128", "api.deepcitation.com:443");
+    const result = formatNetworkError(err, BASE_URL);
+    expect(result).toContain("absolute 90-second ceiling");
+  });
+
+  it("redacts user:password@ from proxy URL in TimeoutError output", () => {
+    const err = new TimeoutError(
+      "response_headers",
+      60023,
+      "http://user:secret@proxy.example.com:3128",
+      "api.deepcitation.com:443",
+    );
+    const result = formatNetworkError(err, BASE_URL);
+    expect(result).not.toContain("secret");
+    expect(result).toContain("//***@proxy.example.com:3128");
   });
 });
 

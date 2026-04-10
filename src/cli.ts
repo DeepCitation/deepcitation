@@ -78,7 +78,7 @@ if (command === "-v" || command === "--version") {
 switch (command) {
   case "auth":
     auth(rest, BASE_URL).catch(err => {
-      console.error(`Error: ${err instanceof Error ? err.message : err}`);
+      console.error(`Error: ${fmtNetErr(err)}`);
       process.exit(1);
     });
     break;
@@ -124,7 +124,7 @@ switch (command) {
     break;
   case "login":
     login(rest, BASE_URL).catch(err => {
-      console.error(`Error: ${err instanceof Error ? err.message : err}`);
+      console.error(`Error: ${fmtNetErr(err)}`);
       process.exit(1);
     });
     break;
