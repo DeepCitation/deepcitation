@@ -16,7 +16,7 @@ import {
 import { useDragToPan } from "../hooks/useDragToPan.js";
 import { useTranslation } from "../i18n.js";
 import { handleImageError } from "../imageUtils.js";
-import { computeAnnotationScrollTarget, START_ALIGNMENT_INSET_PX } from "../overlayGeometry.js";
+import { computeAnnotationScrollTarget } from "../overlayGeometry.js";
 import { cn, isImageSource } from "../utils.js";
 import { DC_EVIDENCE_VT_NAME } from "../viewTransition.js";
 import { animateScrollLeft } from "./animateScrollLeft.js";
@@ -149,12 +149,16 @@ export function AnchorTextFocusedImage({
 
       if (isSnippet && anchorScrollData.phraseItem) {
         // Snippet mode: compute anchor position relative to the phraseMatch,
-        // which the snippet is roughly centered on. This avoids needing the
-        // full-page image dimensions.
+        // which the snippet is cropped around with constant padding (see
+        // shared-functions/src/verification/verificationImages.ts cropPageToBuffer).
+        // The crop CAN be clamped at page edges, so the "padding = (snippetW -
+        // phraseW) / 2" assumption is only correct in the un-clamped case. To
+        // tolerate clamping errors, we CENTER the anchor in the viewport
+        // (containerWidth / 2 of slack on each side) instead of start-aligning.
         const phrase = anchorScrollData.phraseItem;
         const phrasePixelH = phrase.height * renderScale.y;
-        // Approximate phrase center Y within the snippet (assumes centered crop).
-        // Clamp to 0: if the phrase is taller than the snippet, padding goes negative.
+        // Approximate phrase top padding within the snippet (assumes constant
+        // padding crop). Clamp to 0 in case of edge clamping.
         const phrasePadY = Math.max(0, (img.naturalHeight - phrasePixelH) / 2);
         // Anchor offset below phrase top (PDF Y-flip: higher y = higher on page)
         const anchorBelowPhraseTop = (phrase.y - anchorItem.y) * renderScale.y;
@@ -163,27 +167,36 @@ export function AnchorTextFocusedImage({
 
         // Horizontal: anchor X in snippet. The phrase X padding gives the crop offset.
         const phrasePixelW = phrase.width * renderScale.x;
-        // Clamp to 0: if the phrase is wider than the snippet, padding goes negative.
         const phrasePadX = Math.max(0, (img.naturalWidth - phrasePixelW) / 2);
         const anchorRightOfPhraseLeft = (anchorItem.x - phrase.x) * renderScale.x;
         const anchorPixelXInSnippet = Math.max(0, phrasePadX + anchorRightOfPhraseLeft);
+        const anchorPixelWInSnippet = anchorItem.width * renderScale.x;
 
-        // Scroll: same centering logic as computeAnnotationScrollTarget
-        const zoomedCenterY = (anchorPixelYInSnippet + anchorPixelHInSnippet / 2) * zoom;
+        // Scroll: CENTER the anchor in the viewport on both axes. The previous
+        // start-aligned X computation put the anchor near the left edge of the
+        // viewport, which combined with snippet-padding miscalculation could
+        // push the anchor off-screen. Centering gives the anchor half the
+        // viewport width of slack on each side, swallowing small computation
+        // errors.
+        const zoomedAnchorCenterY = (anchorPixelYInSnippet + anchorPixelHInSnippet / 2) * zoom;
         const scrollTop = Math.max(
           0,
-          Math.min(zoomedCenterY - stripHeight / 2, img.naturalHeight * zoom - stripHeight),
+          Math.min(zoomedAnchorCenterY - stripHeight / 2, img.naturalHeight * zoom - stripHeight),
         );
-        const zoomedStartX = anchorPixelXInSnippet * zoom;
+        const zoomedAnchorCenterX = (anchorPixelXInSnippet + anchorPixelWInSnippet / 2) * zoom;
         const scrollLeft = Math.max(
           0,
-          Math.min(zoomedStartX - START_ALIGNMENT_INSET_PX, img.naturalWidth * zoom - containerWidth),
+          Math.min(zoomedAnchorCenterX - containerWidth / 2, img.naturalWidth * zoom - containerWidth),
         );
 
         container.scrollLeft = scrollLeft;
         container.scrollTop = scrollTop;
       } else {
-        // Full-page image mode: use standard coordinate transform
+        // Full-page image mode: use standard coordinate transform with
+        // center-aligned X (the default). The previous "start" alignment
+        // pushed the anchor against the left viewport edge, which made
+        // start-of-line anchors visually crowded against the keyhole's left
+        // fade mask.
         const target = computeAnnotationScrollTarget(
           anchorItem,
           renderScale,
@@ -194,7 +207,7 @@ export function AnchorTextFocusedImage({
           stripHeight,
           undefined,
           anchorScrollData.viewBoxOriginY,
-          "start",
+          "center",
         );
         if (target) {
           container.scrollLeft = target.scrollLeft;
