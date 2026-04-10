@@ -10,6 +10,7 @@
  * - "report": Progressive-disclosure structure with DeepCitation design tokens
  */
 
+import { escapeHtml } from "../utils/htmlEscape.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
 import type { VerificationData } from "../vanilla/runtime/types.js";
@@ -52,15 +53,15 @@ function inlineFormat(text: string): string {
   // Strip NUL bytes — we use \x00 as placeholder delimiters below.
   // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — NUL is a collision-safe placeholder delimiter
   text = text.replace(/\x00/g, "");
-  // Extract cite links BEFORE escHtml — title strings contain quotes and parens
-  // that escHtml would encode, breaking the regex. We replace cite links with
-  // placeholder tokens, escHtml the rest, then restore them.
+  // Extract cite links BEFORE escapeHtml — title strings contain quotes and parens
+  // that escapeHtml would encode, breaking the regex. We replace cite links with
+  // placeholder tokens, escape the rest, then restore them.
   const citePlaceholders: string[] = [];
   let withPlaceholders = text.replace(
     /\[([^\][]+)\]\(cite:(\d+)(?:\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?\s*\)/g,
     (_m, label: string, id: string) => {
       const idx = citePlaceholders.length;
-      const labelHtml = escHtml(label)
+      const labelHtml = escapeHtml(label)
         .replace(/`([^`]+)`/g, "<code>$1</code>")
         .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
@@ -70,15 +71,15 @@ function inlineFormat(text: string): string {
     },
   );
 
-  // Strategy 2c: **bold text** [N] markers — extract before escHtml so the
+  // Strategy 2c: **bold text** [N] markers — extract before escapeHtml so the
   // <strong> tags don't break wrapCitationMarkers' [^<>"] regex.
   withPlaceholders = withPlaceholders.replace(/\*\*([^*]+)\*\*\s*\[(\d+)\]/g, (_m, label: string, id: string) => {
     const idx = citePlaceholders.length;
-    citePlaceholders.push(`<span data-cite="${id}"><strong>${escHtml(label)}</strong></span>`);
+    citePlaceholders.push(`<span data-cite="${id}"><strong>${escapeHtml(label)}</strong></span>`);
     return `\x00CITE${idx}\x00`;
   });
 
-  let result = escHtml(withPlaceholders)
+  let result = escapeHtml(withPlaceholders)
     // inline code (before bold/italic to avoid conflicts)
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     // bold+italic
@@ -349,7 +350,7 @@ function renderBlock(block: Block): string {
     case "table":
       return renderTable(block);
     case "code":
-      return `<pre><code${block.language ? ` class="language-${escHtml(block.language)}"` : ""}>${escHtml(block.content)}</code></pre>`;
+      return `<pre><code${block.language ? ` class="language-${escapeHtml(block.language)}"` : ""}>${escapeHtml(block.content)}</code></pre>`;
     case "list":
       return renderList(block);
     case "hr":
@@ -417,7 +418,7 @@ function plainShell(title: string, bodyHtml: string, options?: { cowork?: boolea
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="${FAVICON_DATA_URI}">
-<title>${escHtml(title)}</title>
+<title>${escapeHtml(title)}</title>
 <style>
 ${BASE_CSS}
   body { font-family: ${SANS_FONT}; max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; line-height: 1.6; color: #18181B; background: #fff; }
@@ -464,8 +465,8 @@ function buildMetaStrip(opts: {
   const sourceDisplay = url ? formatSourceUrl(url) : opts.sourceLabel;
   if (sourceDisplay) {
     const inner = url
-      ? `<a class="dc-meta-link" href="${escHtml(url)}" target="_blank" rel="noopener">${escHtml(sourceDisplay)}</a>`
-      : `<span class="dc-meta-val">${escHtml(sourceDisplay)}</span>`;
+      ? `<a class="dc-meta-link" href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(sourceDisplay)}</a>`
+      : `<span class="dc-meta-val">${escapeHtml(sourceDisplay)}</span>`;
     items.push(`<span class="dc-meta-item"><span class="dc-meta-key">SOURCE</span>${inner}</span>`);
   }
 
@@ -474,14 +475,14 @@ function buildMetaStrip(opts: {
     ? opts.reportDate
     : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   items.push(
-    `<span class="dc-meta-item"><span class="dc-meta-key">ANALYZED</span><span class="dc-meta-val">${escHtml(date)}</span></span>`,
+    `<span class="dc-meta-item"><span class="dc-meta-key">ANALYZED</span><span class="dc-meta-val">${escapeHtml(date)}</span></span>`,
   );
 
   // AUDIENCE — only shown when non-default
   if (opts.audience !== "general") {
     const label = opts.audience.charAt(0).toUpperCase() + opts.audience.slice(1);
     items.push(
-      `<span class="dc-meta-item"><span class="dc-meta-key">AUDIENCE</span><span class="dc-meta-val">${escHtml(label)}</span></span>`,
+      `<span class="dc-meta-item"><span class="dc-meta-key">AUDIENCE</span><span class="dc-meta-val">${escapeHtml(label)}</span></span>`,
     );
   }
 
@@ -518,7 +519,7 @@ function reportShell(
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="${FAVICON_DATA_URI}">
-<title>${escHtml(title)}</title>
+<title>${escapeHtml(title)}</title>
 <style>
 ${BASE_CSS}
   body {
@@ -606,7 +607,7 @@ ${BASE_CSS}
 </head>
 <body>
 <header>
-  <h1>${escHtml(title)}</h1>
+  <h1>${escapeHtml(title)}</h1>
   ${metaStrip}
 </header>
 ${
@@ -626,12 +627,6 @@ ${bodyHtml}
 <div data-dc-drawer-trigger></div>
 </body>
 </html>`;
-}
-
-// ── Utilities ──────────────────────────────────────────────────────
-
-function escHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 // ── Main conversion ────────────────────────────────────────────────

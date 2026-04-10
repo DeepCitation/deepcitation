@@ -38,6 +38,7 @@ import {
 } from "../prompts/citationPrompts.js";
 import type { AttachmentAssets } from "../types/index.js";
 import { getCitationKey } from "../utils/citationKey.js";
+import { escapeHtml } from "../utils/htmlEscape.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
 import { detectProxyUrl } from "../utils/proxy.js";
@@ -748,6 +749,19 @@ function loadUrlSourceMap(): Map<string, UrlSource> {
   return map;
 }
 
+/**
+ * Default output path for `verify`: places `{stem}-verified.html` next to the
+ * source file, except when the source lives in a temp `.deepcitation/` draft —
+ * those go to CWD so users don't have to dig through the cache directory.
+ * Shared by verifyMarkdown (before forwarding) and verifyHtml (as fallback).
+ */
+function defaultVerifiedOutPath(sourceFilePath: string): string {
+  const sourceDir = dirname(sourceFilePath);
+  const isDraftDir = /[\\/]\.deepcitation([\\/]|$)/.test(sourceDir);
+  const stem = basename(sourceFilePath, extname(sourceFilePath));
+  return resolve(isDraftDir ? process.cwd() : sourceDir, `${stem}-verified.html`);
+}
+
 export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) => string) {
   const args = parseArgs(argv, VERIFY_HELP);
   const mdPath = args.markdown;
@@ -988,15 +1002,8 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     }
     forwardArgs.push(argv[i]);
   }
-  // Default output: place next to the source file, except when the source is
-  // a temp draft inside `.deepcitation/` — those land in CWD so users don't
-  // have to dig through the cache directory.
   if (!args.out) {
-    const stem = basename(resolved, extname(resolved));
-    const sourceDir = dirname(resolved);
-    const isDraftDir = /[\\/]\.deepcitation([\\/]|$)/.test(sourceDir);
-    const outDir = isDraftDir ? process.cwd() : sourceDir;
-    forwardArgs.push("--out", resolve(outDir, `${stem}-verified.html`));
+    forwardArgs.push("--out", defaultVerifiedOutPath(resolved));
   }
 
   return verifyHtml(forwardArgs, fmtNetErr, htmlWithCitations);
@@ -1033,7 +1040,10 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       // Strip nested tags in one pass. data-cite spans wrap at most a single
       // layer of presentational markup (e.g. <strong>); deeper nesting is rare
       // and would need a proper parser anyway.
-      const visible = m[3].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+      const visible = m[3]
+        .replace(/<[^>]+>/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
       if (!visible) continue;
 
       const wordCount = visible.split(/\s+/).length;
@@ -1259,10 +1269,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     const count = unfollowedLocalLinks.length;
     const preview = unfollowedLocalLinks
       .slice(0, 5)
-      .map(
-        p =>
-          `<code style="background:#FEF3C7;padding:1px 4px;border-radius:3px;">${p.replace(/[<>&"']/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" })[c] ?? c)}</code>`,
-      )
+      .map(p => `<code style="background:#FEF3C7;padding:1px 4px;border-radius:3px;">${escapeHtml(p)}</code>`)
       .join(", ");
     const more = count > 5 ? ` <em>(and ${count - 5} more)</em>` : "";
     const banner = `<div role="alert" style="margin:0 0 1rem;padding:0.85rem 1rem;background:#FEF3C7;border:1px solid #F59E0B;border-left:4px solid #F59E0B;border-radius:6px;font-size:13px;line-height:1.5;color:#78350F;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"><strong>⚠ Unfollowed evidence links.</strong> This report cites against the source HTML's own text, but the source links to <strong>${count}</strong> local file${count === 1 ? "" : "s"} that were <strong>not</strong> ingested as evidence: ${preview}${more}. To verify against those files, run <code style="background:#FEF3C7;padding:1px 4px;border-radius:3px;">npx deepcitation prepare</code> on each one and re-run verify with all attachmentIds. Otherwise, citations are anchored to the report itself — not to the underlying evidence.</div>`;
@@ -1275,19 +1282,9 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     console.error(`Warning: source HTML links to ${count} unfollowed local file(s). Banner added to output.`);
   }
 
-  // Default output: next to the source HTML, except when the source lives in
-  // a temp `.deepcitation/` draft (those go to CWD so users don't have to dig
-  // through the cache dir). Falls back to a timestamped CWD name when the
-  // source path isn't known (preloadedContent path).
-  let defaultOut: string;
-  if (resolvedHtmlPath) {
-    const sourceDir = dirname(resolvedHtmlPath);
-    const isDraftDir = /[\\/]\.deepcitation([\\/]|$)/.test(sourceDir);
-    const stem = basename(resolvedHtmlPath, extname(resolvedHtmlPath));
-    defaultOut = resolve(isDraftDir ? process.cwd() : sourceDir, `${stem}-verified.html`);
-  } else {
-    defaultOut = resolve(`verified-${ts}.html`);
-  }
+  // Falls back to a timestamped CWD name when the source path isn't known
+  // (preloadedContent path — verifyMarkdown already passes an explicit --out).
+  const defaultOut = resolvedHtmlPath ? defaultVerifiedOutPath(resolvedHtmlPath) : resolve(`verified-${ts}.html`);
   const outPath = resolve(args.out ?? defaultOut);
   writeVerifiedOutput(outPath, output);
 
