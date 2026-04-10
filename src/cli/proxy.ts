@@ -47,7 +47,12 @@ export class TimeoutError extends Error {
   readonly target: string;
 
   constructor(phase: TimeoutError["phase"], elapsedMs: number, proxyUrl: string, target: string) {
-    super(`Request to ${target} timed out after ${elapsedMs}ms in phase "${phase}" (proxy: ${proxyUrl})`);
+    // Redact `user:password@` from proxyUrl in the message so stack traces,
+    // unhandled-rejection reporters, and third-party monitors that capture
+    // `err.message` cannot leak credentials. The unredacted value is still
+    // available as `this.proxyUrl` for formatters that need it.
+    const safeProxyUrl = proxyUrl.replace(/\/\/[^@]+@/, "//***@");
+    super(`Request to ${target} timed out after ${elapsedMs}ms in phase "${phase}" (proxy: ${safeProxyUrl})`);
     this.name = "TimeoutError";
     this.phase = phase;
     this.elapsedMs = elapsedMs;
@@ -352,7 +357,11 @@ export async function encodeMultipart(fd: FormData): Promise<{ body: Buffer; con
     } else {
       // Blob or File (File extends Blob in Node's WHATWG implementation).
       const filename = escapeHeaderParam((value as File).name || "blob");
-      const contentType = value.type || "application/octet-stream";
+      // Node's WHATWG Blob constructor normalizes `type` to "" on any char
+      // outside 0x20–0x7E, so a real Blob cannot carry CR/LF — but strip
+      // explicitly here so header injection is impossible regardless of the
+      // runtime's conformance level.
+      const contentType = (value.type || "application/octet-stream").replace(/[\r\n]/g, "");
       const header =
         `--${boundary}${CRLF}` +
         `Content-Disposition: form-data; name="${escName}"; filename="${filename}"${CRLF}` +

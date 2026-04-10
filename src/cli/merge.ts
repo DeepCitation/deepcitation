@@ -321,10 +321,10 @@ export function merge(argv: string[]): void {
     if (parseErrorA !== undefined || parseErrorB !== undefined) {
       const lines: string[] = ["Error: merge refusing to write output — citation parsing failed."];
       if (parseErrorA !== undefined) {
-        lines.push(`  A (${aPath}): ${parseErrorA}`);
+        lines.push(`  A (${sanitizeForLog(aPath)}): ${parseErrorA}`);
       }
       if (parseErrorB !== undefined) {
-        lines.push(`  B (${bPath}): ${parseErrorB}`);
+        lines.push(`  B (${sanitizeForLog(bPath)}): ${parseErrorB}`);
       }
       lines.push("");
       lines.push("Check the section files for:");
