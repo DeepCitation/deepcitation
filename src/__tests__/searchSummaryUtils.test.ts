@@ -151,14 +151,14 @@ describe("buildSearchSummary", () => {
       const attempts = [attempt({ searchPhrase: "test", searchPhraseType: "source_context" })];
       const group = buildSearchSummary(attempts).queryGroups[0];
       expect(group.phraseType).toBe("source_context");
-      expect(group.phraseLabel).toBe("Full phrase");
+      expect(group.phraseLabel).toBe("Source context");
     });
 
     it("derives source_match from searchPhraseType field", () => {
       const attempts = [attempt({ searchPhrase: "test", searchPhraseType: "source_match" })];
       const group = buildSearchSummary(attempts).queryGroups[0];
       expect(group.phraseType).toBe("source_match");
-      expect(group.phraseLabel).toBe("Anchor text");
+      expect(group.phraseLabel).toBe("Source text");
     });
 
     it("infers fragment type from method name", () => {
@@ -172,21 +172,21 @@ describe("buildSearchSummary", () => {
       const attempts = [attempt({ searchPhrase: "15%", method: "source_match_fallback" })];
       const group = buildSearchSummary(attempts).queryGroups[0];
       expect(group.phraseType).toBe("source_match");
-      expect(group.phraseLabel).toBe("Anchor text");
+      expect(group.phraseLabel).toBe("Source text");
     });
 
     it("defaults to source_context when no hint is available", () => {
       const attempts = [attempt({ searchPhrase: "test" })];
       const group = buildSearchSummary(attempts).queryGroups[0];
       expect(group.phraseType).toBe("source_context");
-      expect(group.phraseLabel).toBe("Full phrase");
+      expect(group.phraseLabel).toBe("Source context");
     });
 
     it("infers source_match from keyspan_fallback method", () => {
       const attempts = [attempt({ searchPhrase: "span text", method: "keyspan_fallback" })];
       const group = buildSearchSummary(attempts).queryGroups[0];
       expect(group.phraseType).toBe("source_match");
-      expect(group.phraseLabel).toBe("Anchor text");
+      expect(group.phraseLabel).toBe("Source text");
     });
   });
 

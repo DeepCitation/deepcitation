@@ -1041,10 +1041,14 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       // Strip nested tags in one pass. data-cite spans wrap at most a single
       // layer of presentational markup (e.g. <strong>); deeper nesting is rare
       // and would need a proper parser anyway.
-      const visible = m[3]
-        .replace(/<[^>]+>/g, "")
-        .replace(/\s+/g, " ")
-        .trim();
+      let visible = m[3];
+      // Loop to handle nested/recursive tag fragments (e.g. <scr<script>ipt>)
+      let prev: string;
+      do {
+        prev = visible;
+        visible = visible.replace(/<[^>]+>/g, "");
+      } while (visible !== prev);
+      visible = visible.replace(/\s+/g, " ").trim();
       if (!visible) continue;
 
       const wordCount = visible.split(/\s+/).length;
