@@ -51,13 +51,13 @@ export function PageExpandGeometryCitation() {
     () => ({
       status: "found",
       attachmentId: "att-page-expand-geometry",
-      verifiedMatchSnippet: 'At YC we use the term "Collision installation" for the technique they invented.',
+      sourceSnippet: 'At YC we use the term "Collision installation" for the technique they invented.',
       verifiedSourceMatch: "Collision installation",
       verifiedSourceContext:
         'At YC we use the term "Collision installation" for the technique they invented. More diffident founders ask "Will you try our beta?"',
       document: {
         verifiedPageNumber: 5,
-        phraseMatchDeepItem: {
+        sourceContextDeepItem: {
           x: 140,
           y: 1280,
           width: 460,

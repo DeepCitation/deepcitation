@@ -22,7 +22,7 @@ const wideImageBase64 =
 
 const verificationWithWideImage: Verification = {
   status: "found",
-  verifiedMatchSnippet: "Functional status: He is at baseline",
+  sourceSnippet: "Functional status: He is at baseline",
   document: {
     verifiedPageNumber: 5,
   },
@@ -33,7 +33,7 @@ const verificationWithWideImage: Verification = {
 
 const verificationWithPartialMatch: Verification = {
   status: "partial_text_found",
-  verifiedMatchSnippet: "Functional status: at baseline",
+  sourceSnippet: "Functional status: at baseline",
   document: {
     verifiedPageNumber: 5,
   },

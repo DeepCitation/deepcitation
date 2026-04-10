@@ -58,7 +58,7 @@ test.describe("Annotation Overlay Drawing — elements", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -84,7 +84,7 @@ test.describe("Annotation Overlay Drawing — elements", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={{ x: 0, y: 0 }}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -106,7 +106,7 @@ test.describe("Annotation Overlay Drawing — bracket colors", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -127,7 +127,7 @@ test.describe("Annotation Overlay Drawing — bracket colors", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -149,7 +149,7 @@ test.describe("Annotation Overlay Drawing — bracket colors", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -177,7 +177,7 @@ test.describe("Annotation Overlay Drawing — bracket geometry", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -228,7 +228,7 @@ test.describe("Annotation Overlay Drawing — bracket geometry", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -251,7 +251,7 @@ test.describe("Annotation Overlay Drawing — bracket geometry", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={tallItem}
+          sourceContextDeepItem={tallItem}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -277,7 +277,7 @@ test.describe("Annotation Overlay Drawing — spotlight", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -297,7 +297,7 @@ test.describe("Annotation Overlay Drawing — spotlight", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -331,7 +331,7 @@ test.describe("Annotation Overlay Drawing — spotlight", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -371,7 +371,7 @@ test.describe("Annotation Overlay Drawing — spotlight", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -404,7 +404,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -429,7 +429,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -468,7 +468,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -492,7 +492,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
@@ -514,7 +514,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
-          phraseMatchDeepItem={PHRASE_ITEM}
+          sourceContextDeepItem={PHRASE_ITEM}
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}

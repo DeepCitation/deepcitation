@@ -30,8 +30,8 @@ function makeVerification(page: number): Verification {
     attachmentId,
     document: {
       verifiedPageNumber: page,
-      // phraseMatchDeepItem is required for citationsOnActivePage to include this item
-      phraseMatchDeepItem: { x: 100, y: 200, width: 300, height: 20, text: "test anchor" },
+      // sourceContextDeepItem is required for citationsOnActivePage to include this item
+      sourceContextDeepItem: { x: 100, y: 200, width: 300, height: 20, text: "test anchor" },
     },
     evidence: { src: testImage, dimensions: { width: 800, height: 400 } },
   };

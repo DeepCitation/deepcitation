@@ -51,16 +51,16 @@ const ANCHOR_ITEM: DeepTextItem = {
   text: "Functional status",
 };
 
-// Verification with phraseMatchDeepItem, sourceMatchDeepItems, and renderScale.
+// Verification with sourceContextDeepItem, sourceMatchDeepItems, and renderScale.
 const verificationWithAnnotation: Verification = {
   status: "found",
-  verifiedMatchSnippet: "Functional status: He is at baseline",
+  sourceSnippet: "Functional status: He is at baseline",
   verifiedSourceMatch: "Functional status",
   verifiedSourceContext: "Functional status: He is at baseline, no assistance needed, independent ADLs",
   attachmentId,
   document: {
     verifiedPageNumber: 5,
-    phraseMatchDeepItem: PHRASE_ITEM,
+    sourceContextDeepItem: PHRASE_ITEM,
     sourceMatchDeepItems: [ANCHOR_ITEM],
     renderScale: { x: 1, y: 1 },
   },
@@ -72,13 +72,13 @@ const verificationWithAnnotation: Verification = {
 // Same verification but without renderScale — annotation should not render.
 const verificationNoRenderScale: Verification = {
   status: "found",
-  verifiedMatchSnippet: "Functional status: He is at baseline",
+  sourceSnippet: "Functional status: He is at baseline",
   verifiedSourceMatch: "Functional status",
   verifiedSourceContext: "Functional status: He is at baseline, no assistance needed, independent ADLs",
   attachmentId,
   document: {
     verifiedPageNumber: 5,
-    phraseMatchDeepItem: PHRASE_ITEM,
+    sourceContextDeepItem: PHRASE_ITEM,
     sourceMatchDeepItems: [ANCHOR_ITEM],
   },
   evidence: {
@@ -86,10 +86,10 @@ const verificationNoRenderScale: Verification = {
   },
 };
 
-// Same verification but without phraseMatchDeepItem — annotation should not render.
+// Same verification but without sourceContextDeepItem — annotation should not render.
 const verificationNoPhraseItem: Verification = {
   status: "found",
-  verifiedMatchSnippet: "Functional status: He is at baseline",
+  sourceSnippet: "Functional status: He is at baseline",
   attachmentId,
   document: {
     verifiedPageNumber: 5,
@@ -330,7 +330,7 @@ test.describe("Annotation Overlay — scroll-to", () => {
     expect(scrollTopAfter).toBeGreaterThan(100);
   });
 
-  test("scroll-to-annotation button hidden when no phraseMatchDeepItem", async ({ mount, page }) => {
+  test("scroll-to-annotation button hidden when no sourceContextDeepItem", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
         <CitationComponent citation={baseCitation} verification={verificationNoPhraseItem} pageImagesByAttachmentId={{ [attachmentId]: pageImages }} />

@@ -24,7 +24,7 @@ const tallImageBase64 =
 const verifiedVerification: Verification = {
   status: "found",
   attachmentId: "att-edge-1",
-  verifiedMatchSnippet: "ministerial control over water approvals",
+  sourceSnippet: "ministerial control over water approvals",
   document: { verifiedPageNumber: 3 },
   evidence: {
     src: tallImageBase64,

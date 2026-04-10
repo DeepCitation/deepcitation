@@ -29,7 +29,7 @@ const verifiedVerification: Verification = {
 
 const partialVerification: Verification = {
   status: "partial_text_found",
-  verifiedMatchSnippet: "25% revenue increase",
+  sourceSnippet: "25% revenue increase",
   document: {
     verifiedPageNumber: 5,
   },

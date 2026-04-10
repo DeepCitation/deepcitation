@@ -27,7 +27,7 @@ const tallImageBase64 =
 const verificationWithTallImage: Verification = {
   status: "found",
   attachmentId: "att-1",
-  verifiedMatchSnippet: "Functional status: He is at baseline",
+  sourceSnippet: "Functional status: He is at baseline",
   document: {
     verifiedPageNumber: 5,
   },

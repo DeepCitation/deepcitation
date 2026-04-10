@@ -43,7 +43,7 @@ export function GeneratedImageCitation({
     () => ({
       status: "found",
       attachmentId: "att-generated-image",
-      verifiedMatchSnippet: "Functional status: He is at baseline",
+      sourceSnippet: "Functional status: He is at baseline",
       document: {
         verifiedPageNumber: 5,
       },

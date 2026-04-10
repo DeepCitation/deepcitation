@@ -72,7 +72,7 @@ test.describe("Page Pill Interactions", () => {
         verifiedPageNumber: 5,
       },
       // Snippet required for shouldShowPopover — but no page image means canExpand is false
-      verifiedMatchSnippet: "relevant text from the document",
+      sourceSnippet: "relevant text from the document",
     };
 
     await mount(
