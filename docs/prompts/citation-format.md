@@ -14,7 +14,7 @@ At the END of your response, append a citation block. Group citations by `attach
 <<<CITATION_DATA>>>
 {
   "ATTACHMENT_ID": [
-    {"id": 1, "reasoning": "why", "fullPhrase": "quote", "anchorText": "key", "pageId": "page_number_2_index_1", "lineIds": [12]}
+    {"id": 1, "reasoning": "why", "sourceContext": "quote", "sourceMatch": "key", "pageId": "page_number_2_index_1", "lineIds": [12]}
   ]
 }
 <<<END_CITATION_DATA>>>
@@ -25,14 +25,14 @@ At the END of your response, append a citation block. Group citations by `attach
 1. **Group key**: The `attachmentId` (exact ID from source document)
 2. **id**: Each citation MUST have a unique ID matching its [N] marker. Do NOT reuse the same ID for different citations.
 3. **reasoning**: Brief explanation connecting the citation to your claim (think first!)
-4. **fullPhrase**: Copy 1–2 sentences VERBATIM from source. Must be significantly longer than anchorText — it provides context. Use proper JSON escaping for quotes.
-5. **anchorText**: The short, distinctive phrase from `fullPhrase` that gets highlighted in the evidence and shown as a clickable label. Usually 1–3 words (proper nouns, defined terms, verb phrases). Its job is to anchor WHERE to look — the popover shows WHAT it says. Must be a contiguous verbatim substring of `fullPhrase`.
+4. **sourceContext**: Copy 1–2 sentences VERBATIM from source. Must be significantly longer than sourceMatch — it provides context. Use proper JSON escaping for quotes.
+5. **sourceMatch**: The short, distinctive phrase from `sourceContext` that gets highlighted in the evidence and shown as a clickable label. Usually 1–3 words (proper nouns, defined terms, verb phrases). Its job is to anchor WHERE to look — the popover shows WHAT it says. Must be a contiguous verbatim substring of `sourceContext`.
 6. **pageId**: Format `page_number_N_index_I` where N=page number, I=index. Copy exactly from `<page_number_N_index_I>` tags in the source.
 7. **lineIds**: Array of line IDs from the source. Copy from `<line id="N">` tags in the text. Include IDs for all relevant lines. These are **sparse** — not every line is tagged. Use the nearest tagged line.
 
 ### Shorthand Keys (Optional)
 
-To save tokens: `n`=id, `r`=reasoning, `f`=fullPhrase, `k`=anchorText, `p`=pageId, `l`=lineIds
+To save tokens: `n`=id, `r`=reasoning, `f`=sourceContext, `k`=sourceMatch, `p`=pageId, `l`=lineIds
 
 ## Placement Rules
 
@@ -52,11 +52,11 @@ The company reported [45% year-over-year growth] [1]. Revenue [increased to $2.3
 <<<CITATION_DATA>>>
 {
   "abc123": [
-    {"id": 1, "reasoning": "directly states growth metrics", "fullPhrase": "The company achieved 45% year-over-year growth", "anchorText": "45% year-over-year growth", "pageId": "page_number_2_index_1", "lineIds": [12, 13]},
-    {"id": 2, "reasoning": "states Q4 revenue figure", "fullPhrase": "Q4 revenue reached $2.3 billion, up from $1.8 billion", "anchorText": "$2.3 billion", "pageId": "page_number_3_index_2", "lineIds": [5, 6, 7]}
+    {"id": 1, "reasoning": "directly states growth metrics", "sourceContext": "The company achieved 45% year-over-year growth", "sourceMatch": "45% year-over-year growth", "pageId": "page_number_2_index_1", "lineIds": [12, 13]},
+    {"id": 2, "reasoning": "states Q4 revenue figure", "sourceContext": "Q4 revenue reached $2.3 billion, up from $1.8 billion", "sourceMatch": "$2.3 billion", "pageId": "page_number_3_index_2", "lineIds": [5, 6, 7]}
   ],
   "def456": [
-    {"id": 3, "reasoning": "competitor data", "fullPhrase": "Competitor X reported 20% growth", "anchorText": "20% growth", "pageId": "page_number_1_index_0", "lineIds": [8]}
+    {"id": 3, "reasoning": "competitor data", "sourceContext": "Competitor X reported 20% growth", "sourceMatch": "20% growth", "pageId": "page_number_1_index_0", "lineIds": [8]}
   ]
 }
 <<<END_CITATION_DATA>>>

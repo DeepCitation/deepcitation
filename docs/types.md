@@ -30,8 +30,8 @@ interface CitationBase {
   pageNumber?: number;
   lineIds?: number[];
   startPageId?: string;
-  fullPhrase?: string;
-  anchorText?: string;
+  sourceContext?: string;
+  sourceMatch?: string;
   citationNumber?: number;
   reasoning?: string;
 }
@@ -105,9 +105,9 @@ interface Verification {
   highlightColor?: string;
 
   // Verified text
-  verifiedFullPhrase?: string;
-  verifiedAnchorText?: string;
-  verifiedMatchSnippet?: string;
+  verifiedSourceContext?: string;
+  verifiedSourceMatch?: string;
+  sourceSnippet?: string;
   verifiedTimestamps?: { startTime?: string; endTime?: string };
   verifiedAt?: string;
 
@@ -136,8 +136,8 @@ type SearchStatus =
   | "not_found"
   | "partial_text_found"
   | "found"
-  | "found_anchor_text_only"
-  | "found_phrase_missed_anchor_text"
+  | "found_source_match_only"
+  | "found_phrase_missed_source_match"
   | "found_on_other_page"
   | "found_on_other_line"
   | "first_word_found"
@@ -149,7 +149,7 @@ type SearchMethod =
   | "line_with_buffer"
   | "expanded_line_buffer"
   | "current_page"
-  | "anchor_text_fallback"
+  | "source_match_fallback"
   | "adjacent_pages"
   | "expanded_window"
   | "regex_search"
@@ -168,7 +168,7 @@ interface SearchAttempt {
   method: SearchMethod;
   success: boolean;
   searchPhrase: string;
-  searchPhraseType?: "full_phrase" | "anchor_text";
+  searchPhraseType?: "source_context" | "source_match";
   regexPattern?: string;
   pageSearched?: number;
   lineSearched?: number | number[];
@@ -186,12 +186,12 @@ interface SearchAttempt {
 }
 
 type MatchedVariation =
-  | "exact_full_phrase"
-  | "normalized_full_phrase"
-  | "exact_anchor_text"
-  | "normalized_anchor_text"
-  | "partial_full_phrase"
-  | "partial_anchor_text"
+  | "exact_source_context"
+  | "normalized_source_context"
+  | "exact_source_match"
+  | "normalized_source_match"
+  | "partial_source_context"
+  | "partial_source_match"
   | "first_word_only";
 ```
 

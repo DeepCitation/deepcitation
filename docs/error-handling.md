@@ -197,7 +197,7 @@ If `verify()` returns `{ verifications: {} }`, the client found no citations to 
 You forgot to import the stylesheet. Add `@import "deepcitation/tailwind.css"` to your CSS (Tailwind v4) or `import "deepcitation/styles.css"` in JS. See [Styling]({{ site.baseurl }}/styling/).
 
 **"Verification says not_found but the text is there"**
-The LLM likely paraphrased the source. Check if you got a `partial_text_found` or `found_anchor_text_only` status instead. See [Verification Statuses]({{ site.baseurl }}/verification-statuses/) for the full list of partial match statuses.
+The LLM likely paraphrased the source. Check if you got a `partial_text_found` or `found_source_match_only` status instead. See [Verification Statuses]({{ site.baseurl }}/verification-statuses/) for the full list of partial match statuses.
 
 **"I exposed my API key in the browser"**
 Rotate it immediately at [deepcitation.com/keys](https://deepcitation.com/keys). Never prefix your key with `NEXT_PUBLIC_` or expose it in client-side code — all DeepCitation API calls should happen server-side.

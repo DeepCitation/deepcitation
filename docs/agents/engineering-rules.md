@@ -29,7 +29,7 @@ Run these before opening a PR:
 
 `CitationBase` intentionally carries `attachmentId`, `pageNumber`, `lineIds`, and `startPageId` on **all** citation types, including `UrlCitation`. This is because URL citations are fetched and converted to PDFs before verification — after that conversion, every citation type can carry a page location. A `UrlCitation` without these fields simply hasn't been verified yet.
 
-Do **not** flag these shared fields as "semantically document-only" in code reviews. The correct mental model is:
+Do **not** flag these shared fields as "semantically document-only" in code reviews. For field naming conventions and domain binding rules, see [concepts.md](./concepts.md). The correct mental model is:
 
 > All citations are potentially verifiable against a page-indexed document. The `type` discriminator indicates the *source* of the citation, not whether page/line fields will be populated.
 
@@ -103,10 +103,10 @@ When a type uses a discriminator field (e.g., `type: "url" | "document"`), **eve
 
 ```typescript
 // WRONG
-return { pageNumber, lineIds, fullPhrase }; // Missing type: "document"
+return { pageNumber, lineIds, sourceContext }; // Missing type: "document"
 
 // CORRECT
-return { type: "document", pageNumber, lineIds, fullPhrase };
+return { type: "document", pageNumber, lineIds, sourceContext };
 ```
 
 ### No Unsafe Casts

@@ -142,9 +142,9 @@ Choose from different display variants to match your UI design:
 ```tsx
 import { CitationComponent } from "deepcitation/react";
 
-// Brackets variant (default) - [anchorText] with square brackets
+// Brackets variant (default) - [sourceMatch] with square brackets
 <CitationComponent
-  citation={{ citationNumber: 1, anchorText: "25% growth" }}
+  citation={{ citationNumber: 1, sourceMatch: "25% growth" }}
   verification={verification}
   variant="brackets"
 />
@@ -152,7 +152,7 @@ import { CitationComponent } from "deepcitation/react";
 
 // Chip variant - pill/badge style with background color
 <CitationComponent
-  citation={{ citationNumber: 1, anchorText: "Revenue Growth" }}
+  citation={{ citationNumber: 1, sourceMatch: "Revenue Growth" }}
   verification={verification}
   variant="chip"
 />
@@ -160,7 +160,7 @@ import { CitationComponent } from "deepcitation/react";
 
 // Text variant - plain text, inherits parent styling
 <CitationComponent
-  citation={{ citationNumber: 1, anchorText: "25% growth" }}
+  citation={{ citationNumber: 1, sourceMatch: "25% growth" }}
   verification={verification}
   variant="text"
 />
@@ -176,7 +176,7 @@ import { CitationComponent } from "deepcitation/react";
 
 // Linter variant (default) - semantic underlines based on status
 <CitationComponent
-  citation={{ citationNumber: 1, anchorText: "Revenue Growth" }}
+  citation={{ citationNumber: 1, sourceMatch: "Revenue Growth" }}
   verification={verification}
   variant="linter"
 />
@@ -193,16 +193,16 @@ import { CitationComponent } from "deepcitation/react";
 
 // Controlling content separately from variant
 // Use content prop to override what text is displayed:
-// - "anchorText": Descriptive text (default for linter, chip, brackets, text)
+// - "sourceMatch": Descriptive text (default for linter, chip, brackets, text)
 // - "number": Citation number (default for superscript and footnote)
 // - "indicator": Only the status icon, no text
 // - "source": Source name (default for badge variant)
 
 <CitationComponent
-  citation={{ citationNumber: 1, anchorText: "Revenue Growth" }}
+  citation={{ citationNumber: 1, sourceMatch: "Revenue Growth" }}
   verification={verification}
   variant="brackets"
-  content="number"  // Override to show number instead of anchorText
+  content="number"  // Override to show number instead of sourceMatch
 />
 // Renders: [1] instead of [Revenue Growth]
 ```
