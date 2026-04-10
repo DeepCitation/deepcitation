@@ -1020,26 +1020,20 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     die(`No valid <<<CITATION_DATA>>> block found in the ${src} file.`, VERIFY_HELP);
   }
 
-  // 1b. Auto-promote display label to anchor when the model picked two
-  //     different short substrings of the same evidence sentence (one as the
-  //     bold visible text, another as `k`). The bold text is what the reader
-  //     clicks; if it's a valid short anchor, it should drive the highlight.
-  //     Runs BEFORE the API call so the verify search uses the corrected
-  //     anchor.
+  // 1b. When the model picked a short bold display label that differs from
+  //     anchor_text, promote the bold text to anchor — it's what the reader
+  //     clicks and should drive the highlight. Mutates `parsed.citations`
+  //     before the verify API call.
   {
     const spanRe = /<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*data-cite="(\d+)"[^>]*>([\s\S]*?)<\/\1>/g;
     let m: RegExpExecArray | null;
     let promoted = 0;
     while ((m = safeExec(spanRe, parsed.visibleText)) !== null) {
       const id = parseInt(m[2], 10);
-      // Strip nested HTML tags to get the approximate visible text.
-      let visible = m[3];
-      let prev: string;
-      do {
-        prev = visible;
-        visible = visible.replace(/<[^>]+>/g, "");
-      } while (visible !== prev);
-      visible = visible.replace(/\s+/g, " ").trim();
+      // Strip nested tags in one pass. data-cite spans wrap at most a single
+      // layer of presentational markup (e.g. <strong>); deeper nesting is rare
+      // and would need a proper parser anyway.
+      const visible = m[3].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
       if (!visible) continue;
 
       const wordCount = visible.split(/\s+/).length;
@@ -1048,7 +1042,6 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       const cd = parsed.citations.find(c => c.id === id);
       if (!cd) continue;
       const currentAnchor = (cd.anchor_text ?? "").trim();
-      // Already aligned (case-insensitive)? Nothing to do.
       if (currentAnchor && currentAnchor.toLowerCase() === visible.toLowerCase()) continue;
 
       console.error(
@@ -1225,15 +1218,15 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   const verifications = verifyOutput.verifications;
   reattachPageImages(verifications, mergedAttachments);
 
-  // 4b. Detect unfollowed local-file links in the source HTML. When the user
-  //     verifies an HTML report that links to local evidence files (e.g.
-  //     index.html → communications/email.pdf), those links are NOT
-  //     auto-followed by verify. Surface a banner so the user knows the
-  //     citations are anchored to the report's own text, not the linked
-  //     evidence — preventing silent cyclical-evidence failures.
+  // 4b. Detect unfollowed local-file links in the source HTML. When an HTML
+  //     report links to local evidence files, verify does NOT auto-follow
+  //     them, so the citations end up anchored to the report's own text. A
+  //     banner on the output surfaces this to prevent silent cyclical-evidence
+  //     failures.
+  const resolvedHtmlPath = htmlPath ? resolve(htmlPath) : undefined;
   const unfollowedLocalLinks: string[] = [];
-  if (htmlPath) {
-    const sourceDirAbs = dirname(resolve(htmlPath));
+  if (resolvedHtmlPath) {
+    const sourceDirAbs = dirname(resolvedHtmlPath);
     // Match href="...", href='...', and unquoted href=value (up to whitespace or >).
     const hrefRe = /<a\s+[^>]*href\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi;
     const seen = new Set<string>();
@@ -1243,7 +1236,6 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       // Skip absolute URLs, anchors, mailto/tel/javascript, data URIs
       if (/^[a-z][a-z0-9+.-]*:/i.test(href)) continue;
       if (href.startsWith("#") || href.startsWith("?") || href.trim() === "") continue;
-      // Strip fragment and query
       const cleanHref = href.split("#")[0].split("?")[0];
       if (!cleanHref) continue;
       const candidatePath = resolve(sourceDirAbs, cleanHref);
@@ -1261,9 +1253,8 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   }
   let output = injected.html;
 
-  // Inject the unfollowed-links banner just inside <body> so it's the first
-  // thing the reader sees. The banner is plain HTML with inline styles to
-  // avoid relying on stylesheet load order.
+  // Inject the unfollowed-links banner just inside <body> (falls back to
+  // prepending at the top if the document has no <body> tag).
   if (unfollowedLocalLinks.length > 0) {
     const count = unfollowedLocalLinks.length;
     const preview = unfollowedLocalLinks
@@ -1275,24 +1266,24 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       .join(", ");
     const more = count > 5 ? ` <em>(and ${count - 5} more)</em>` : "";
     const banner = `<div role="alert" style="margin:0 0 1rem;padding:0.85rem 1rem;background:#FEF3C7;border:1px solid #F59E0B;border-left:4px solid #F59E0B;border-radius:6px;font-size:13px;line-height:1.5;color:#78350F;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"><strong>⚠ Unfollowed evidence links.</strong> This report cites against the source HTML's own text, but the source links to <strong>${count}</strong> local file${count === 1 ? "" : "s"} that were <strong>not</strong> ingested as evidence: ${preview}${more}. To verify against those files, run <code style="background:#FEF3C7;padding:1px 4px;border-radius:3px;">npx deepcitation prepare</code> on each one and re-run verify with all attachmentIds. Otherwise, citations are anchored to the report itself — not to the underlying evidence.</div>`;
-    if (output.includes("<body")) {
-      // Inject just after the opening <body ...> tag
-      output = output.replace(/(<body[^>]*>)/i, `$1\n${banner}`);
-    } else {
-      output = `${banner}\n${output}`;
-    }
+    let bannerInjected = false;
+    output = output.replace(/(<body[^>]*>)/i, (_, tag) => {
+      bannerInjected = true;
+      return `${tag}\n${banner}`;
+    });
+    if (!bannerInjected) output = `${banner}\n${output}`;
     console.error(`Warning: source HTML links to ${count} unfollowed local file(s). Banner added to output.`);
   }
 
-  // Default output: place next to the source HTML file. Falls back to a
-  // timestamped CWD name if no source path is known (preloadedContent path)
-  // or if the source lives inside a temp `.deepcitation/` draft directory.
+  // Default output: next to the source HTML, except when the source lives in
+  // a temp `.deepcitation/` draft (those go to CWD so users don't have to dig
+  // through the cache dir). Falls back to a timestamped CWD name when the
+  // source path isn't known (preloadedContent path).
   let defaultOut: string;
-  if (htmlPath) {
-    const sourcePath = resolve(htmlPath);
-    const stem = basename(sourcePath, extname(sourcePath));
-    const sourceDir = dirname(sourcePath);
+  if (resolvedHtmlPath) {
+    const sourceDir = dirname(resolvedHtmlPath);
     const isDraftDir = /[\\/]\.deepcitation([\\/]|$)/.test(sourceDir);
+    const stem = basename(resolvedHtmlPath, extname(resolvedHtmlPath));
     defaultOut = resolve(isDraftDir ? process.cwd() : sourceDir, `${stem}-verified.html`);
   } else {
     defaultOut = resolve(`verified-${ts}.html`);
