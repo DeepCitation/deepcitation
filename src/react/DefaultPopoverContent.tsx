@@ -9,7 +9,7 @@
  */
 
 import { type ReactNode, type Ref, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { buildIntentSummary, type MatchSnippet } from "../analysis/intent.js";
+import { buildIntentSummary } from "../analysis/intent.js";
 import type { CitationStatus } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
@@ -36,12 +36,14 @@ import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { useTranslation } from "./i18n.js";
 import { SpinnerIcon } from "./icons.js";
 import { getBlinkContainerMotionStyle } from "./motion/blinkAnimation.js";
+import { SnippetZone } from "./SnippetZone.js";
 import type { BaseCitationProps, DownloadInfo, IndicatorVariant } from "./types.js";
 import {
   getUrlAccessExplanation,
   mapSearchStatusToFetchStatus,
   mapUrlAccessStatusToFetchStatus,
   type UrlAccessExplanation,
+  UrlAccessExplanationSection,
 } from "./urlAccessExplanation.js";
 import { cn, isImageSource, normalizeSnippetText } from "./utils.js";
 import { SourceContextHeader, StatusHeader } from "./VerificationLog.js";
@@ -117,86 +119,6 @@ export interface PopoverContentProps {
 // =============================================================================
 // PRIVATE HELPERS
 // =============================================================================
-
-/**
- * Renders a colored banner explaining why a URL could not be accessed.
- * Amber background for blocked states (potentially resolvable), red for errors.
- */
-function UrlAccessExplanationSection({ explanation }: { explanation: UrlAccessExplanation }) {
-  const t = useTranslation();
-  const isAmber = explanation.colorScheme === "amber";
-  return (
-    <div
-      className={cn(
-        "px-4 py-3 border-b",
-        isAmber ? "bg-dc-partial-bg border-dc-partial-border" : "bg-dc-destructive-bg border-dc-destructive-border",
-      )}
-      role="status"
-      aria-label={`${isAmber ? t("misc.warning") : t("misc.error")}: ${explanation.title}`}
-    >
-      <div
-        className={cn(
-          "text-sm font-medium mb-1 flex items-center gap-1.5",
-          isAmber ? "text-dc-partial" : "text-dc-destructive",
-        )}
-      >
-        <span className="shrink-0 text-xs" aria-hidden="true">
-          {isAmber ? "\u26A0" : "\u2718"}
-        </span>
-        {explanation.title}
-      </div>
-      <p className={cn("text-xs", isAmber ? "text-dc-partial" : "text-dc-destructive")}>{explanation.description}</p>
-      {explanation.suggestion && (
-        <p className={cn("text-xs mt-1.5 opacity-80", isAmber ? "text-dc-partial" : "text-dc-destructive")}>
-          {explanation.suggestion}
-        </p>
-      )}
-    </div>
-  );
-}
-
-/**
- * Display matched snippets inline within the popover for partial/displaced matches.
- * Shows 1-3 snippets with the matched portion highlighted.
- */
-function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
-  const t = useTranslation();
-  if (snippets.length === 0) return null;
-  return (
-    <div className="px-4 py-2 space-y-1.5 border-b border-dc-border">
-      {snippets.slice(0, 3).map((snippet, idx) => {
-        const before = normalizeSnippetText(snippet.contextText.slice(0, snippet.matchStart));
-        const match = normalizeSnippetText(snippet.contextText.slice(snippet.matchStart, snippet.matchEnd));
-        const after = normalizeSnippetText(snippet.contextText.slice(snippet.matchEnd));
-        return (
-          <div
-            key={`snippet-${snippet.matchStart}-${snippet.matchEnd}-${snippet.page ?? idx}`}
-            className="text-xs text-dc-muted-foreground font-mono leading-relaxed"
-          >
-            {before && <span className="text-dc-subtle-foreground">...{before}</span>}
-            <strong className="text-dc-foreground bg-dc-partial/15 px-0.5 rounded">{match}</strong>
-            {after && <span className="text-dc-subtle-foreground">{after}...</span>}
-            {snippet.page != null && (
-              <span className="text-[10px] text-dc-subtle-foreground ml-1">
-                ({t("location.page", { pageNumber: snippet.page })})
-              </span>
-            )}
-            {!snippet.isProximate && (
-              <span className="text-[10px] text-dc-subtle-foreground ml-1 italic">
-                {t("evidence.differentSection")}
-              </span>
-            )}
-          </div>
-        );
-      })}
-      {snippets.length > 3 && (
-        <div className="text-[10px] text-dc-subtle-foreground italic">
-          {t("evidence.andMore", { count: snippets.length - 3 })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Evidence source resolution uses resolveEvidenceSrc() from EvidenceTray.tsx —
 // the single canonical resolver for evidence snippet / web capture images.
@@ -1108,7 +1030,7 @@ export function DefaultPopoverContent({
               <UrlAccessExplanationSection explanation={urlAccessExplanation} />
             )}
             {(isMiss || isPartialMatch) && !urlAccessExplanation && intentSnippets.length > 0 && (
-              <PopoverSnippetZone snippets={intentSnippets} />
+              <SnippetZone snippets={intentSnippets} />
             )}
 
             {/* Snap claim-zone height (0ms) so full-page → summary does not
