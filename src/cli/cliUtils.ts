@@ -100,12 +100,13 @@ export function formatNetworkError(err: unknown, baseUrl: string): string {
  * NO_PROXY, smaller payloads, etc.) cannot help and will waste time.
  */
 function formatTimeoutError(err: TimeoutError): string {
+  const overallSec = Math.round(parseInt(process.env.DC_REQUEST_TIMEOUT_MS ?? "90000", 10) / 1000);
   const phaseExplanation: Record<TimeoutError["phase"], string> = {
     proxy_connect: "could not establish a TCP CONNECT to the proxy",
     tls_handshake: "completed CONNECT but the TLS handshake stalled",
     response_headers: "sent the request but the API never began responding",
     response_idle: "started receiving the response but the connection stalled mid-stream",
-    request_overall: "exceeded the absolute 90-second ceiling for the entire request",
+    request_overall: `exceeded the absolute ${overallSec}-second ceiling for the entire request`,
   };
 
   const lines: string[] = [

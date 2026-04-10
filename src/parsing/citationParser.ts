@@ -316,6 +316,7 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
   // Extract the JSON block
   const jsonStartIndex = startIndex + CITATION_DATA_START_DELIMITER.length;
   const jsonEndIndex = endIndex !== -1 ? endIndex : llmResponse.length;
+  // .trim() here means !jsonString is also true for whitespace-only blocks.
   const jsonString = llmResponse.substring(jsonStartIndex, jsonEndIndex).trim();
 
   // Parse the JSON
@@ -325,6 +326,7 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
   // Empty content between delimiters is a failure, not a success. Finding the
   // start delimiter means the author intended to emit citations; whitespace-only
   // content is an upstream mistake (e.g. unfilled template placeholder).
+  // The .trim() above ensures whitespace-only blocks ("\n\n" etc.) reach this guard.
   if (!jsonString) {
     return {
       visibleText,

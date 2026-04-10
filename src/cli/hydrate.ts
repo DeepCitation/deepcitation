@@ -320,7 +320,10 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
           const neighborTexts: string[] = [];
           const resolvedIds: number[] = [];
           for (const id of neighborIds) {
-            const text = lineMap.qualified.get(`${pageId}:${id}`) ?? lineMap.byId.get(id);
+            // Only use the qualified (page-scoped) key. byId is global across pages for
+            // deepTextPages sources, so falling back to it for neighbor IDs can silently
+            // pull in lines from an adjacent page if id crosses a page boundary.
+            const text = lineMap.qualified.get(`${pageId}:${id}`);
             if (text) {
               neighborTexts.push(text);
               resolvedIds.push(id);
@@ -354,7 +357,9 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
           const neighborTexts: string[] = [];
           const resolvedIds: number[] = [];
           for (const id of neighborIds) {
-            const text = lineMap.qualified.get(`${found.pageId}:${id}`) ?? lineMap.byId.get(id);
+            // Only use the qualified (page-scoped) key — same reason as the wrong-page
+            // path above: byId is global for deepTextPages and can bleed across pages.
+            const text = lineMap.qualified.get(`${found.pageId}:${id}`);
             if (text) {
               neighborTexts.push(text);
               resolvedIds.push(id);
