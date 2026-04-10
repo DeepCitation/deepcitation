@@ -137,7 +137,7 @@ type SearchStatus =
   | "partial_text_found"
   | "found"
   | "found_source_match_only"
-  | "found_phrase_missed_source_match"
+  | "found_context_missed_source_match"
   | "found_on_other_page"
   | "found_on_other_line"
   | "first_word_found"

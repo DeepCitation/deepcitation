@@ -108,14 +108,14 @@ Only the first word of the phrase was found. This may indicate a partial match o
 
 ---
 
-### found_phrase_missed_source_match
+### found_context_missed_source_match
 
-The full phrase was found in the document, but the anchor text (short value) was not a valid substring match within it. This typically means the LLM chose an anchor text that doesn't appear verbatim in the phrase.
+The source context was found in the document, but the source match (short value) was not a valid substring match within it. This typically means the LLM chose a source match that doesn't appear verbatim in the context.
 
 ```json
 {
   "searchState": {
-    "status": "found_phrase_missed_source_match"
+    "status": "found_context_missed_source_match"
   }
 }
 ```
@@ -201,7 +201,7 @@ When displaying citations, group statuses by user impact:
 
 | Group | Statuses | UI Treatment |
 |:------|:---------|:-------------|
-| **Verified** | `found`, `found_phrase_missed_source_match` | Green checkmark, blue text |
+| **Verified** | `found`, `found_context_missed_source_match` | Green checkmark, blue text |
 | **Partial** | `partial_text_found`, `found_source_match_only`, `found_on_other_page`, `found_on_other_line`, `first_word_found` | Orange indicator, blue text |
 | **Not Found** | `not_found`, `skipped` | Gray text, strikethrough optional |
 | **Loading** | `pending`, `loading`, `timestamp_wip` | Spinner or skeleton |
