@@ -4,18 +4,6 @@
 
 This document defines the rules that govern how citations are authored, what the verification pipeline must emit, how QA reviewers grade results, and what UX invariants the web surface must satisfy.
 
-It is referenced by:
-
-- `packages/skills/skills/verify/SKILL.md` — authoring rules (§1–§4)
-- `packages/skills/skills/review-verify/SKILL.md` — issue taxonomy and grading (§5–§7)
-- `plans/unified-verify-qa.md` and domain-specific QA plans — Playwright gates (§8)
-- DeepCitation web and animation code — UX contract (§9)
-- `packages/deepcitation/src/react/HighlightedPhrase.tsx` — popover quote highlighting (§10)
-- `packages/deepcitation/src/react/evidence/AnchorTextFocusedImage.tsx` — keyhole pan & zoom (§11)
-- Verification pipeline (sourceContext search + line IDs) — bounding box accuracy (§12)
-
-When any of these consumers disagree with this document, **this document wins** and the consumer must be updated to match.
-
 The canonical vocabulary — domain binding (`claim*` vs `source*` vs `evidence*`), view states (`preview`, `focusPopover`, `pageView`), and scan anchors — is defined in `packages/deepcitation/docs/agents/deep-citation-concepts.md`. Field names in this document follow that vocabulary: `sourceMatch` is Domain B text (the authoritative document), `claimText` is Domain A text (the asserting document), and `evidenceKeyhole` / `keyholeViewport` are the visual tier of Domain B.
 
 ---
@@ -55,9 +43,9 @@ More examples:
 
 ---
 
-## §3 Display Label Rules
+## §3 `claimText` Rules
 
-The display label is the `claimText` (Domain A) — the phrase in the asserting document that the user clicks to enter `focusPopover`. It is the scan target in `preview` and anchors the `verificationBadge`. Rules below govern how it relates to `sourceMatch` (Domain B).
+`claimText` is the Domain A text — the phrase in the asserting document that the user clicks to enter `focusPopover`. It is the scan target in `preview` and anchors the `verificationBadge`. Rules below govern how it relates to `sourceMatch` (Domain B).
 
 ### Format 1 — Anchor IS the label
 
@@ -69,7 +57,7 @@ The property includes **ground floor commercial** [3] units and **underground pa
 
 ### Format 2 — Anchor longer than the label
 
-`[short label](cite:N 'longer verbatim anchor')` — display label stays ≤4 words; the longer verbatim anchor goes in the quoted attribute.
+`[short label](cite:N 'longer verbatim anchor')` — `claimText` stays ≤4 words; the longer verbatim anchor goes in the quoted attribute.
 
 ```markdown
 The policy covers [Group hospitalization](cite:7 'Group hospitalization and medical insurance for employees').
@@ -107,7 +95,7 @@ Shorthand keys: `n`=id, `r`=reasoning, `f`=fullPhrase, `k`=anchorText, `p`=pageI
 - **`n`** — integer citation ID matching `[N]` in the body. Unique per distinct claim; never reused.
 - **`r`** — brief reasoning connecting the citation to the claim (e.g. "states the conversion price").
 - **`f`** — copy 1–2 verbatim sentences from the source that contain the anchor text. Must be significantly longer than `k`. Use proper JSON escaping for quotes (`\"`).
-- **`k`** — the `sourceMatch` (Domain B): the verbatim short anchor located in the authoritative document. ≤4 words, ≤40 chars. Same rules as §1. Must be a contiguous substring of `f`. In Format 1 (anchor IS the label), `k` equals the display `claimText` exactly. In Format 2, `k` is the verbatim `sourceMatch`; the display `claimText` can be a shorter prose phrase. Do not describe `k` as "the bold/display text" — it is Domain B data, not Domain A.
+- **`k`** — the `sourceMatch` (Domain B): the verbatim short anchor located in the authoritative document. ≤4 words, ≤40 chars. Same rules as §1. Must be a contiguous substring of `f`. In Format 1 (anchor IS the label), `k` equals `claimText` exactly. In Format 2, `k` is the verbatim `sourceMatch`; `claimText` can be a shorter prose phrase. Do not describe `k` as "the bold/display text" — it is Domain B data, not Domain A.
 - **`p`** — page ID. Format `"page_number_N_index_I"` where N = 1-indexed page number, I = 0-indexed array position. E.g. `"page_number_1_index_0"` (first page), `"page_number_18_index_17"` (18th page). The array index always equals N−1 for standard documents.
 - **`l`** — line ID array. **`lineIds` are sparse** — not every line is tagged; use the nearest `<line id="N">` tag visible in the prepare output. **Must include the anchor's line plus 1–2 adjacent tagged neighbors** so the evidence paragraph is longer than the anchor.
   - Example: if `<line id="20">` is the nearest tag above your anchor, use `l: [19, 20, 21]` (nearest tagged neighbors) or `l: [20, 21]` (minimum).
@@ -126,10 +114,10 @@ Each issue maps to a domain invariant from `deep-citation-concepts.md`: Domain B
 | `LONG_ANCHOR` | High | Domain B | `sourceMatch` exceeds 4 words — too large to serve as a precise scan anchor in the keyhole |
 | `NOT_SUBSTRING` | High | Domain B | `sourceMatch` is not a verbatim substring of `sourceContext` — breaks the containment invariant (`sourceMatch ⊂ sourceContext`) |
 | `PARTIAL` | Medium | Domain B | `sourceMatch` found but `keyholeViewport` highlight bounds are incomplete |
-| `LONG_LABEL` | Medium | Domain A | `claimText` display label exceeds 4 words — clutters the `preview` scan anchor |
-| `PLACEMENT` | Medium | Domain A | `claimText` label absent from prose before the citation marker — breaks `preview` scan anchor positioning |
+| `LONG_LABEL` | Medium | Domain A | `claimText` exceeds 4 words — clutters the `preview` scan anchor |
+| `PLACEMENT` | Medium | Domain A | `claimText` absent from prose before the citation marker — breaks `preview` scan anchor positioning |
 | `ELLIPSIS` | Low | Domain B | `sourceMatch` contains `...` — not a contiguous substring; keyhole may frame the wrong region |
-| `LABEL_ANCHOR_DISCONNECT` | Uncertain | Cross-domain | Display `claimText` shares no distinctive word with `sourceMatch` — the user cannot connect Domain A to Domain B at a glance |
+| `LABEL_ANCHOR_DISCONNECT` | Uncertain | Cross-domain | `claimText` shares no distinctive word with `sourceMatch` — the user cannot connect Domain A to Domain B at a glance |
 | `MULTI_VALUE_ANCHOR` | Uncertain | Domain B | Entire multi-value field cited instead of one value — `sourceMatch` is not the most distinctive contiguous substring |
 | `LAZY_LINEID` | Uncertain | Domain B | `l` defaults to page's first line — `sourceContextDeepItem` bounding box points to the wrong region, causing the keyhole to frame irrelevant content |
 
@@ -240,7 +228,7 @@ Each step must make the connection from the previous step **visually obvious** �
 
 ## §10 Popover Quote Highlighting (Hard)
 
-The citation popover displays the `sourceContext` as a quote with the `sourceMatch` highlighted inline. This is the first moment the user connects the display label to its source — it must be instant and unambiguous.
+The citation popover displays the `sourceContext` as a quote with the `sourceMatch` highlighted inline. This is the first moment the user connects `claimText` to its source — it must be instant and unambiguous.
 
 ### Invariants
 
