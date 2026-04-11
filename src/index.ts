@@ -46,6 +46,10 @@ export type {
   VerifyCitationsResponse,
   VerifyInput,
 } from "./client/index.js";
+export type {
+  ReviewUrlOptions,
+  ReviewUrlResponse,
+} from "./client/reviewUrl.types.js";
 
 // Formatting utilities
 export type {
