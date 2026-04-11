@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import { denseAnnotatePage } from "../cli/cite.js";
 import { hydrateCitations, parseSummaryToLineMap } from "../cli/hydrate.js";
 import type { CitationData } from "../prompts/citationPrompts.js";
 
@@ -271,6 +272,101 @@ describe("hydrateCitations — omitted line_ids", () => {
   });
 });
 
+// ── Edge cases: miss path, claim_text promotion, already-hydrated skip ───────
+describe("hydrateCitations — edge cases", () => {
+  it("counts a miss and does not crash when anchor text not found anywhere", () => {
+    // Regression guard: when line_ids is empty AND findAnchorWithFallback returns null,
+    // the citation must be in misses[], not silently counted as hydrated.
+    const citations: CitationData[] = [
+      {
+        id: 1,
+        source_match: "xyzzy_does_not_exist_in_any_line",
+        page_id: "page_number_1_index_0",
+        // no line_ids — falls through to anchor-text search which will also fail
+      } as CitationData,
+    ];
+
+    const result = hydrateCitations({ summaryContent: SUMMARY_JSON, citations, warnOnMiss: false });
+
+    expect(result.hydrated).toBe(0);
+    expect(result.misses).toEqual([1]);
+    // source_context must remain absent — don't set it to garbage on miss
+    expect(citations[0].source_context).toBeUndefined();
+  });
+
+  it("preserves original source_match as claim_text when fallback finds a different verbatim anchor", () => {
+    // When the LLM writes a paraphrase as source_match (e.g. "will automatically converts")
+    // the anchor-text search finds the best N-gram match ("will automatically")
+    // rather than the full paraphrase. hydrate must:
+    //   a) promote the original source_match → claim_text (the prose label)
+    //   b) set source_match to the verbatim evidence text (for the API highlight)
+    // This ensures the popover shows the claim in context, not just the raw anchor.
+    const citations: CitationData[] = [
+      {
+        id: 1,
+        // Paraphrase — "converts" (present tense) vs "convert" (infinitive in the doc).
+        // Strategy 1 sliding window: "will automatically converts" → no match (plural);
+        // falls to 2-gram "will automatically" which IS in the evidence text.
+        source_match: "will automatically converts",
+        page_id: "page_number_1_index_0",
+        line_ids: [], // empty → falls through to findAnchorWithFallback
+      } as unknown as CitationData,
+    ];
+
+    hydrateCitations({ summaryContent: SUMMARY_JSON, citations, warnOnMiss: false });
+
+    // claim_text should hold the original paraphrase (the display label for the popover)
+    expect(citations[0].claim_text).toBe("will automatically converts");
+    // source_match is now the verbatim N-gram found in the evidence
+    // (the API uses this to locate the highlight position)
+    expect(citations[0].source_match?.toLowerCase()).toContain("will automatically");
+    // source_match must NOT still be the original paraphrase — it was overwritten
+    expect(citations[0].source_match).not.toBe("will automatically converts");
+    // And source_context must be broader than just the anchor
+    expect(citations[0].source_context).toBeDefined();
+  });
+
+  it("falls back to global search when hinted page does not exist", () => {
+    // If the LLM provides a page_id that doesn't match any page in the summary,
+    // hydrateCitations must not return a miss — it should retry globally.
+    const citations: CitationData[] = [
+      {
+        id: 1,
+        source_match: "automatically convert",
+        page_id: "page_number_99_index_98", // page 99 doesn't exist in SUMMARY_JSON
+        line_ids: [],
+      } as unknown as CitationData,
+    ];
+
+    const result = hydrateCitations({ summaryContent: SUMMARY_JSON, citations, warnOnMiss: false });
+
+    // Must still hydrate — the anchor exists on page 1 even though the hint is wrong
+    expect(result.hydrated).toBe(1);
+    expect(result.misses).toEqual([]);
+    expect(citations[0].source_context?.toLowerCase()).toContain("automatically convert");
+  });
+
+  it("skips citations that already have source_context", () => {
+    // hydrateCitations must not overwrite existing source_context —
+    // idempotency guard so running hydrate twice doesn't corrupt existing data.
+    const citations: CitationData[] = [
+      {
+        id: 1,
+        source_match: "automatically convert",
+        source_context: "pre-existing context text",
+        page_id: "page_number_1_index_0",
+        line_ids: [10],
+      } as CitationData,
+    ];
+
+    const result = hydrateCitations({ summaryContent: SUMMARY_JSON, citations, warnOnMiss: false });
+
+    // hydrated=0: skipped, not hydrated again
+    expect(result.hydrated).toBe(0);
+    expect(citations[0].source_context).toBe("pre-existing context text");
+  });
+});
+
 // ── RC5 failure scenario (iter 19 Run 3) ────────────────────────────────────
 // Root cause: agent cites wrong page (e.g. page 17 certificate page instead of
 // page 25 Schedule C). Hydration assembles source_context from the wrong lines
@@ -336,5 +432,67 @@ describe("hydrateCitations — wrong line IDs (RC5 regression)", () => {
     // page_id must be updated to the page where the anchor was actually found (page 25)
     // Before fix: page_id stays as "17_0"
     expect(citations[0].page_id).not.toBe("17_0");
+  });
+});
+
+// ── denseAnnotatePage ─────────────────────────────────────────────────────────
+// Utility that wraps every non-blank line with <line id="N">...</line> so that
+// callers can produce a consistently-tagged format for pages that have no
+// existing OCR-derived <line id> tags.
+//
+// CONSTRAINT: Must NOT be applied to pages that already have sparse <line id>
+// tags — those IDs are OCR-pipeline anchors corresponding to real PDF line
+// positions. Re-annotating would shift IDs and break the verify API's highlight
+// indexing (lineIds are 0-based indices into pdfDataForSearch[page].lines[]).
+describe("denseAnnotatePage", () => {
+  it("wraps each non-blank line with a sequential <line id> tag starting at 1", () => {
+    const result = denseAnnotatePage("line one\nline two\nline three");
+    expect(result).toBe(
+      '<line id="1">line one</line>\n<line id="2">line two</line>\n<line id="3">line three</line>',
+    );
+  });
+
+  it("skips blank lines and does not advance the ID counter for them", () => {
+    // Blank lines (whitespace-only) must not consume an ID — the next non-blank
+    // line should continue the sequence without gaps.
+    const result = denseAnnotatePage("line one\n\nline two\n   \nline three");
+    expect(result).toBe(
+      '<line id="1">line one</line>\n<line id="2">line two</line>\n<line id="3">line three</line>',
+    );
+  });
+
+  it("returns empty string for blank-only input", () => {
+    expect(denseAnnotatePage("")).toBe("");
+    expect(denseAnnotatePage("   \n\n  ")).toBe("");
+  });
+
+  it("trims leading/trailing whitespace from each line's content", () => {
+    const result = denseAnnotatePage("  indented line  \nnormal");
+    expect(result).toContain('<line id="1">indented line</line>');
+    expect(result).toContain('<line id="2">normal</line>');
+  });
+
+  it("accepts a custom startId so per-page counters can continue across pages", () => {
+    // A caller processing page 2 can start IDs at 1 (default) for per-page reset,
+    // or at N for a global counter. Here we verify startId=5 makes IDs begin at 5.
+    const result = denseAnnotatePage("first\nsecond", 5);
+    expect(result).toBe('<line id="5">first</line>\n<line id="6">second</line>');
+  });
+
+  it("produces output that parseSummaryToLineMap can round-trip via extractLines", () => {
+    // End-to-end: annotate a page, embed it in a summary JSON, parse it back,
+    // and verify that the qualified map resolves the expected lines.
+    const rawPage = "Section 1. Definitions\nThis document sets forth the terms.\nAll capitalized terms are defined below.";
+    const annotated = denseAnnotatePage(rawPage);
+
+    const summaryJson = JSON.stringify({
+      attachmentId: "round-trip-test",
+      deepTextPages: [annotated],
+    });
+
+    const lineMap = parseSummaryToLineMap(summaryJson);
+    expect(lineMap.qualified.get("page_number_1_index_0:1")).toBe("Section 1. Definitions");
+    expect(lineMap.qualified.get("page_number_1_index_0:2")).toBe("This document sets forth the terms.");
+    expect(lineMap.qualified.get("page_number_1_index_0:3")).toBe("All capitalized terms are defined below.");
   });
 });
