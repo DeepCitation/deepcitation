@@ -8,7 +8,11 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 import { triggerHaptic } from "../haptics.js";
 import { acquireScrollLock, releaseScrollLock } from "../scrollLock.js";
-import { startEvidencePageExpandTransition, startEvidenceViewTransition } from "../viewTransition.js";
+import {
+  startEvidencePageCollapseTransition,
+  startEvidencePageExpandTransition,
+  startEvidenceViewTransition,
+} from "../viewTransition.js";
 
 export interface UsePopoverViewStateConfig {
   isOpen: boolean;
@@ -124,8 +128,16 @@ export function usePopoverViewState(config: UsePopoverViewStateConfig): PopoverV
         setViewState(newState);
       };
       const isPageExpand = !isCollapse && newState === "expanded-page";
+      const isPageCollapse = isCollapse && prev === "expanded-page";
       if (isPageExpand) {
         startEvidencePageExpandTransition(commitViewState, {
+          root: popoverContentRef.current,
+          skipAnimation: prefersReducedMotion,
+        });
+        return;
+      }
+      if (isPageCollapse) {
+        startEvidencePageCollapseTransition(commitViewState, {
           root: popoverContentRef.current,
           skipAnimation: prefersReducedMotion,
         });
