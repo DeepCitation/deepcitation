@@ -346,7 +346,7 @@ export function EvidenceKeyhole({
                 className={cn(DOCUMENT_IMAGE_EDGE_CLASSES, "block select-none")}
                 style={
                   imageFitInfo
-                    ? { width: imageFitInfo.displayedWidth, height: imageFitInfo.displayedHeight }
+                    ? { width: imageFitInfo.displayedWidth, height: imageFitInfo.displayedHeight, maxWidth: "none" }
                     : { maxWidth: "none" }
                 }
                 loading="eager"

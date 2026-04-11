@@ -134,3 +134,23 @@ When adding new public types or functions, verify they are exported from `src/in
 - Call out security-sensitive changes explicitly.
 - Flag breaking changes to API/types/component props.
 - Explain what changed and why.
+
+## Tailwind Preflight and Inline Image Sizing
+
+Tailwind's preflight resets include `img { max-width: 100%; height: auto; }`. When an `<img>` has explicit inline `width` and `height` (e.g. the keyhole strip in `EvidenceKeyhole.tsx`), preflight's `max-width: 100%` caps the rendered width to the container while the inline `height` holds — **breaking the aspect ratio and squishing the image**.
+
+**Rule**: Any `<img>` that sets explicit pixel `width` and `height` via inline style and is intended to overflow its container (e.g. inside an `overflow-x: auto` scroll container) **must** also set `maxWidth: "none"` in the same inline style object. This overrides preflight and lets the image render at its computed size.
+
+```tsx
+// WRONG — preflight caps width, height stays, image squishes
+style={{ width: displayedWidth, height: displayedHeight }}
+
+// CORRECT — maxWidth: "none" overrides preflight
+style={{ width: displayedWidth, height: displayedHeight, maxWidth: "none" }}
+```
+
+**Common mistake**: The pre-load branch may already have `maxWidth: "none"`, but it gets dropped when switching to the post-load branch with explicit dimensions. Ensure `maxWidth: "none"` is present in **both** branches.
+
+## Keyhole Image Sizing: Do Not Change Width
+
+When fixing keyhole image display issues, **do not alter the image width calculation or styling**. The keyhole's horizontal overflow is handled by the scroll/pan system (`overflow-x: auto` + `useDragToPan`). The image renders at its computed `displayedWidth` and overflows horizontally — that is correct behavior. If the image appears squished, the cause is almost certainly a CSS constraint (like Tailwind preflight) capping the rendered width, not a zoom or width calculation error.
