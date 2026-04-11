@@ -1,9 +1,9 @@
 ---
-generated_at: "2026-04-09T23:49:39Z"
-commit_sha: "daadc13"
+generated_at: "2026-04-11T12:39:29Z"
+commit_sha: "31553cd"
 page_count: 22
 tracked: 22
-stale: 5
+stale: 2
 ---
 
 # Public Docs Site Map
@@ -17,12 +17,12 @@ stale: 5
 ### Curl Guide
 - **File**: `docs/curl-guide.md`
 - **Description**: Direct API usage with curl examples
-- **Staleness**: STALE (18/15 commits since last update)
+- **Staleness**: FRESH (0/15 commits since last update)
 
 ### LangChain
 - **File**: `docs/frameworks/langchain.md`
 - **Description**: DeepCitation + LangChain: citation verification in your RAG pipeline
-- **Staleness**: FRESH (10/20 commits since last update)
+- **Staleness**: FRESH (11/20 commits since last update)
 
 ### Home
 - **File**: `docs/index.md`
@@ -32,92 +32,92 @@ stale: 5
 ### SDK Reference
 - **File**: `docs/sdk-reference.md`
 - **Description**: TypeScript SDK client methods and utility functions
-- **Staleness**: STALE (10/10 commits since last update)
+- **Staleness**: FRESH (0/10 commits since last update)
 
 ### Types
 - **File**: `docs/types.md`
 - **Description**: TypeScript interface definitions for DeepCitation
-- **Staleness**: STALE (12/10 commits since last update)
+- **Staleness**: FRESH (0/10 commits since last update)
 
 ### Next.js App Router
 - **File**: `docs/frameworks/nextjs.md`
 - **Description**: DeepCitation + Next.js App Router: server components, streaming, and use client boundaries
-- **Staleness**: FRESH (14/15 commits since last update)
+- **Staleness**: STALE (15/15 commits since last update)
 
 ### Getting Started
 - **File**: `docs/getting-started.md`
 - **Description**: Installation and quick start guide for DeepCitation
-- **Staleness**: FRESH (14/20 commits since last update)
+- **Staleness**: FRESH (15/20 commits since last update)
 
 ### Verification Statuses
 - **File**: `docs/verification-statuses.md`
 - **Description**: Understanding verification result statuses
-- **Staleness**: STALE (10/10 commits since last update)
+- **Staleness**: FRESH (0/10 commits since last update)
 
 ### API Reference
 - **File**: `docs/api-reference.md`
 - **Description**: REST API endpoints for file preparation and citation verification
-- **Staleness**: FRESH (8/10 commits since last update)
+- **Staleness**: FRESH (9/10 commits since last update)
 
 ### Express.js
 - **File**: `docs/frameworks/express.md`
 - **Description**: DeepCitation + Express.js: citation verification in your Node.js API
-- **Staleness**: FRESH (11/20 commits since last update)
+- **Staleness**: FRESH (12/20 commits since last update)
 
 ### Vercel AI SDK
 - **File**: `docs/frameworks/vercel-ai-sdk.md`
 - **Description**: DeepCitation + Vercel AI SDK: streamText, useChat, and citation verification
-- **Staleness**: FRESH (14/15 commits since last update)
+- **Staleness**: STALE (15/15 commits since last update)
 
 ### Prompts
 - **File**: `docs/prompts.md`
 - **Description**: How DeepCitation instructs LLMs to produce verifiable citations
-- **Staleness**: FRESH (9/20 commits since last update)
+- **Staleness**: FRESH (10/20 commits since last update)
 
 ### Code Examples
 - **File**: `docs/code-examples.md`
 - **Description**: SDK usage examples and integration patterns
-- **Staleness**: FRESH (10/20 commits since last update)
+- **Staleness**: FRESH (11/20 commits since last update)
 
 ### Python / FastAPI
 - **File**: `docs/frameworks/python.md`
 - **Description**: Using the DeepCitation REST API from Python
-- **Staleness**: FRESH (6/20 commits since last update)
+- **Staleness**: FRESH (7/20 commits since last update)
 
 ### Frameworks
 - **File**: `docs/frameworks/index.md`
 - **Description**: Framework-specific integration guides for DeepCitation
-- **Staleness**: FRESH (25/30 commits since last update)
+- **Staleness**: FRESH (26/30 commits since last update)
 
 ### Mastra
 - **File**: `docs/frameworks/mastra.md`
 - **Description**: Using DeepCitation with Mastra RAG pipelines
-- **Staleness**: FRESH (6/20 commits since last update)
+- **Staleness**: FRESH (7/20 commits since last update)
 
 ### Components
 - **File**: `docs/components.md`
 - **Description**: React CitationComponent documentation
-- **Staleness**: FRESH (13/15 commits since last update)
+- **Staleness**: FRESH (12/15 commits since last update)
 
 ### AG-UI
 - **File**: `docs/frameworks/agui.md`
 - **Description**: Using DeepCitation with the AG-UI protocol for SSE streaming
-- **Staleness**: FRESH (6/20 commits since last update)
+- **Staleness**: FRESH (7/20 commits since last update)
 
 ### Styling
 - **File**: `docs/styling.md`
 - **Description**: CSS customization options for CitationComponent
-- **Staleness**: FRESH (10/20 commits since last update)
+- **Staleness**: FRESH (14/20 commits since last update)
 
 ### Error Handling
 - **File**: `docs/error-handling.md`
 - **Description**: Error handling patterns for DeepCitation in production
-- **Staleness**: STALE (15/15 commits since last update)
+- **Staleness**: FRESH (0/15 commits since last update)
 
 ### 404
 - **File**: `docs/404.md`
-- **Staleness**: FRESH (18/50 commits since last update)
+- **Staleness**: FRESH (17/50 commits since last update)
 
 ### Contributing
 - **File**: `docs/CONTRIBUTING.md`
-- **Staleness**: FRESH (18/50 commits since last update)
+- **Staleness**: FRESH (17/50 commits since last update)

@@ -851,6 +851,32 @@ const t = createTranslator({ "status.verified": "Bestätigt" }); // German
 console.log(t("status.verified")); // "Bestätigt"
 ```
 
+### Hooks
+
+Two hooks are available for custom components that need to read locale values at render time:
+
+```typescript
+import { useTranslation, useLocale } from "deepcitation/react";
+
+function MyVerificationBadge({ status }) {
+  const t = useTranslation(); // returns the translate function
+  const locale = useLocale(); // returns the current locale string, e.g. "en"
+
+  return (
+    <span lang={locale}>
+      {status.isVerified ? t("status.verified") : t("status.notFound")}
+    </span>
+  );
+}
+```
+
+| Hook | Return type | Description |
+|:-----|:------------|:------------|
+| `useTranslation()` | `TranslateFunction` | Returns the current `t(key)` function from the nearest `DeepCitationI18nProvider`. Use this in custom components that render citation UI strings. |
+| `useLocale()` | `string` | Returns the current locale identifier (e.g. `"en"`, `"es"`). Useful for `lang` attributes and locale-aware third-party libraries. |
+
+Both hooks must be called inside a `DeepCitationI18nProvider`.
+
 ---
 
 ## Accessibility
@@ -876,6 +902,7 @@ The following components are exported from `deepcitation/react` for building cus
 | `SplitDiffDisplay` | `deepcitation/react` | Side-by-side diff comparing the cited phrase with the matched text |
 | `CollapsibleText` | `deepcitation/react` | Text block that collapses long content with "Show more" toggle |
 | `MatchQualityBar` | `deepcitation/react` | Visual bar showing match quality percentage |
+| `DefaultPopoverContent` | `deepcitation/react` | The standard popover body used inside `CitationComponent`. Export this when you want a custom trigger but the default popover internals (evidence image, verification tabs, search log). Pass it via `renderPopoverContent`. |
 | `CitationOverlayProvider` | `deepcitation/react` | Context provider that coordinates expanded image overlays across citations |
 | `DeepCitationTheme` | `deepcitation/react` | Centralized design token overrides via `--dc-*` CSS custom properties |
 | `extractDomain` | `deepcitation/react` | Extract display domain from a URL string |

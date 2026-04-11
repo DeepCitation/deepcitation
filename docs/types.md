@@ -4,7 +4,7 @@ title: Types
 parent: API Reference
 nav_order: 1
 description: "TypeScript interface definitions for DeepCitation"
-commit_sha: "80dfecd"
+commit_sha: "31553cd"
 stale_after_commits: 10
 watch_paths:
   - src/types/citation.ts
@@ -306,4 +306,382 @@ Override per request on:
 - `convertToPdf(input)`
 - `prepareConvertedFile(options)`
 - `prepareAttachments([{ ... }])`
+
+---
+
+## Client Configuration
+
+### `DeepCitationConfig`
+
+Full shape of the constructor options object.
+
+```typescript
+interface DeepCitationConfig {
+  apiKey: string;                          // Required. Must start with sk-dc-.
+  apiUrl?: string;                         // Override API base URL. Must use HTTPS.
+  maxRetries?: number;                     // Default: 3. Network retries only (not HTTP errors).
+  maxUploadConcurrency?: number;           // Max concurrent file uploads. Default: 5.
+  requestSource?: string;                  // Sent as X-Request-Source header.
+  endUserId?: string;                      // Instance-level end-user ID for usage attribution.
+  endFileId?: string;                      // Instance-level file ID for billing attribution.
+  convertedPdfDownloadPolicy?: ConvertedPdfDownloadPolicy;  // Default: "url_only".
+  logger?: DeepCitationLogger;             // Custom log sink. See below.
+  onLatestVersion?: (latestVersion: string) => void;        // SDK version notification.
+  onUsageUpdate?: (remaining: number, limit: number) => void; // Spend budget warnings.
+  fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>; // Custom fetch.
+}
+```
+
+### `DeepCitationLogger`
+
+Logger interface for client observability. All methods are optional.
+
+```typescript
+interface DeepCitationLogger {
+  debug?: (message: string, meta?: Record<string, unknown>) => void;
+  info?: (message: string, meta?: Record<string, unknown>) => void;
+  warn?: (message: string, meta?: Record<string, unknown>) => void;
+  error?: (message: string, meta?: Record<string, unknown>) => void;
+}
+```
+
+Pass `console` to log to stdout, or implement a custom sink for structured logging:
+
+```typescript
+const dc = new DeepCitation({
+  apiKey: "...",
+  logger: {
+    info: (msg, meta) => myLogger.info(msg, meta),
+    error: (msg, meta) => myLogger.error(msg, meta),
+  },
+});
+```
+
+---
+
+## Prompt Wrapping
+
+### `WrapCitationPromptOptions`
+
+Input to `wrapCitationPrompt()`.
+
+```typescript
+interface WrapCitationPromptOptions {
+  systemPrompt: string;
+  userPrompt: string;
+  deepTextPages?: string | string[];                    // Pages for a single attachment.
+  deepTextPagesByAttachmentId?: Record<string, string[]>; // Pages keyed by attachmentId.
+  isAudioVideo?: boolean;                              // Use AV timestamp format. Default: false.
+}
+```
+
+### `WrapCitationPromptResult`
+
+Return type of `wrapCitationPrompt()`.
+
+```typescript
+interface WrapCitationPromptResult {
+  enhancedSystemPrompt: string;  // System prompt with citation instructions prepended and reminder appended.
+  enhancedUserPrompt: string;    // User prompt with deepTextPages rendered and reminder prepended (when provided).
+}
+```
+
+### `WrapSystemPromptOptions`
+
+Input to `wrapSystemCitationPrompt()`.
+
+```typescript
+interface WrapSystemPromptOptions {
+  systemPrompt: string;
+  isAudioVideo?: boolean;  // Use AV timestamp format. Default: false.
+}
+```
+
+---
+
+## Citation Parsing
+
+### `ParsedCitationResult`
+
+Return type of `parseCitationResponse()`.
+
+```typescript
+interface ParsedCitationResult {
+  visibleText: string;                    // Text for display — <<<CITATION_DATA>>> block stripped; [N] markers remain.
+  citations: CitationRecord;              // Citations keyed by citationKey (16-char hash).
+  markerMap: Record<number, string>;      // Maps [N] number → citationKey.
+  format: "numeric" | "none";            // Detected citation format.
+  splitPattern: RegExp;                   // RegExp for splitting visibleText on [N] markers.
+}
+```
+
+### `VerifyBatchOptions`
+
+Options for `verifyBatch()`. Alias for `VerifyCitationsOptions`.
+
+```typescript
+interface VerifyBatchOptions {
+  outputImageFormat?: "avif" | "jpeg" | "png";  // Proof image format. Default: "avif".
+  endUserId?: string;                            // End-user identifier for usage attribution.
+}
+```
+
+---
+
+## Rendering
+
+### `PrepareCitationsOptions`
+
+Options for `prepareCitations()`.
+
+```typescript
+interface PrepareCitationsOptions {
+  verifications?: VerificationRecord;      // Verification results keyed by citationKey.
+  sourceLabels?: Record<string, string>;   // Display labels keyed by attachmentId ("" for URL citations).
+}
+```
+
+### `CitationIR`
+
+Normalized intermediate representation consumed by rendering adapters. Produce this once with `prepareCitations()`, then pass it to any number of adapters.
+
+```typescript
+interface CitationIR {
+  readonly segments: ReadonlyArray<TextSegment | CitationSegment>;  // Text and citation segments interleaved.
+  readonly citations: ReadonlyArray<ResolvedCitation>;              // All citations with status and resolved labels.
+}
+```
+
+### `ResolvedCitation`
+
+A citation with verification status and a pre-resolved `sourceLabel`.
+
+```typescript
+interface ResolvedCitation extends CitationWithStatus {
+  sourceLabel: string;  // Pre-resolved display label from the attachmentId → sourceLabels fallback chain.
+}
+```
+
+### `CitationAdapter`
+
+A pure function from `CitationIR` + options to any output format. Implement this to render citations in email, PDF, Notion, or any other target.
+
+```typescript
+type CitationAdapter<TOptions, TOutput> = (ir: CitationIR, options?: TOptions) => TOutput;
+```
+
+---
+
+## Display Types
+
+### `CitationWithStatus`
+
+A citation bundled with its resolved verification status and display text. Used as the base for `ResolvedCitation`.
+
+```typescript
+interface CitationWithStatus {
+  citation: Citation;
+  citationKey: string;
+  verification: Verification | null;
+  status: CitationStatus;     // { isVerified, isPartialMatch, isMiss, isPending }
+  displayText: string;
+  citationNumber: number;
+}
+```
+
+### `IndicatorSet`
+
+Four-character set mapping verification states to display symbols.
+
+```typescript
+interface IndicatorSet {
+  verified: string;
+  partial: string;
+  notFound: string;
+  pending: string;
+}
+```
+
+### `IndicatorStyle`
+
+Controls which predefined `IndicatorSet` from `INDICATOR_SETS` is used.
+
+```typescript
+type IndicatorStyle =
+  | "check"      // ✓ ⚠ ✗ ◌  (default)
+  | "semantic"   // ✓ ~ ✗ …
+  | "circle"     // ● ◐ ○ ◌
+  | "square"     // ■ ▪ □ ▫
+  | "letter"     // V P X ?
+  | "word"       // ✓verified ⚠partial ✗missed ◌pending
+  | "none";      // No indicator
+```
+
+### `LinePosition`
+
+Humanized position of a citation within a page. Returned by `humanizeLinePosition()`.
+
+```typescript
+type LinePosition = "start" | "early" | "middle" | "late" | "end";
+```
+
+---
+
+## Verification Sub-types
+
+### `ContentMatchStatus`
+
+Result of comparing web page content against a cited claim.
+
+```typescript
+type ContentMatchStatus =
+  | "exact"
+  | "partial"
+  | "mismatch"
+  | "not_found"
+  | "not_checked"
+  | "inconclusive";
+```
+
+### `UrlAccessStatus`
+
+HTTP access outcome when fetching a URL citation for verification.
+
+```typescript
+type UrlAccessStatus =
+  | "accessible"
+  | "redirected"
+  | "redirected_same_domain"
+  | "not_found"
+  | "forbidden"
+  | "server_error"
+  | "timeout"
+  | "blocked"
+  | "network_error"
+  | "pending"
+  | "unknown";
+```
+
+### `PageImagesStatus`
+
+Status of page image generation for an attachment.
+
+```typescript
+type PageImagesStatus = "pending" | "generating" | "completed" | "failed";
+```
+
+---
+
+## Performance Timing
+
+### `TimingMetrics`
+
+Aggregate Time-to-Certainty (TtC) metrics across a set of citations. Computed client-side from individual `Verification.timeToCertaintyMs` values.
+
+```typescript
+interface TimingMetrics {
+  avgTtcMs: number;              // Average TtC across resolved citations.
+  minTtcMs: number;              // Fastest verification.
+  maxTtcMs: number;              // Slowest verification.
+  medianTtcMs: number;           // Median TtC.
+  resolvedCount: number;         // Citations that have reached terminal state.
+  totalCount: number;            // Total citations including pending.
+  totalSearchDurationMs: number; // Sum of all search attempt durations from the API.
+}
+```
+
+### `CitationTimingEvent`
+
+A single telemetry event in the citation review lifecycle. Receive these via the `onTimingEvent` callback.
+
+```typescript
+interface CitationTimingEvent {
+  event: "citation_seen" | "evidence_ready" | "popover_opened" | "popover_closed" | "citation_reviewed";
+  citationKey: string;
+  timestamp: number;               // Wall-clock ms epoch.
+  elapsedSinceSeenMs: number | null;
+  verificationStatus?: SearchStatus | null;
+  popoverDurationMs?: number;      // For popover_closed: how long the popover was open.
+  timeToCertaintyMs?: number;      // For evidence_ready: system TtC.
+  userTtcMs?: number;              // For citation_reviewed: full user TtC.
+}
+```
+
+---
+
+## Primitive Geometry
+
+### `ScreenBox`
+
+A rectangular region with position and dimensions. Used for bounding boxes, highlights, and selection regions in document space.
+
+```typescript
+interface ScreenBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+```
+
+### `DeepTextItem`
+
+A positioned text fragment with a bounding box. Used for OCR text items, phrase matches, and annotation overlays.
+
+```typescript
+interface DeepTextItem extends ScreenBox {
+  text?: string;
+}
+```
+
+---
+
+## Compression
+
+### `CompressedResult<T>`
+
+Return type of `compressPromptIds()`. Pass `prefixMap` to `decompressPromptIds()` to restore full IDs.
+
+```typescript
+interface CompressedResult<T> {
+  compressed: T;
+  prefixMap: Record<string, string>;  // Maps minimal prefix → full ID.
+}
+```
+
+---
+
+## Type Guards
+
+The following type guard functions narrow the `Citation` union to a specific subtype. Import from `deepcitation`.
+
+```typescript
+import { isDocumentCitation, isUrlCitation, isAudioVideoCitation } from "deepcitation";
+
+function describeCitation(c: Citation): string {
+  if (isDocumentCitation(c)) {
+    // c is DocumentCitation — has attachmentId, pageNumber, lineIds
+    return `Page ${c.pageNumber ?? "?"} of ${c.attachmentId}`;
+  }
+
+  if (isUrlCitation(c)) {
+    // c is UrlCitation — has url, domain, title, faviconUrl, etc.
+    return c.url ?? "Unknown URL";
+  }
+
+  if (isAudioVideoCitation(c)) {
+    // c is AudioVideoCitation — has timestamps.startTime / endTime
+    const { startTime, endTime } = c.timestamps ?? {};
+    return `${startTime ?? "?"} → ${endTime ?? "?"}`;
+  }
+
+  return "Unknown citation type";
+}
+```
+
+| Guard | Narrows to | Check |
+|:------|:-----------|:------|
+| `isDocumentCitation(c)` | `DocumentCitation` | `c.type === "document"` |
+| `isUrlCitation(c)` | `UrlCitation` | `c.type === "url"` |
+| `isAudioVideoCitation(c)` | `AudioVideoCitation` | `c.type === "audio" \| "video"` |
 

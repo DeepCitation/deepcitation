@@ -4,7 +4,7 @@ title: Curl Guide
 parent: Getting Started
 nav_order: 1
 description: "Direct API usage with curl examples"
-commit_sha: "cc9c7aa"
+commit_sha: "31553cd"
 stale_after_commits: 15
 watch_paths:
   - src/client/DeepCitation.ts
@@ -26,7 +26,7 @@ Upload a PDF or image file to extract text for your LLM prompt:
 ```bash
 # Upload a PDF file
 curl -X POST "https://api.deepcitation.com/prepareAttachments" \
-  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
+  -H "Authorization: Bearer sk-dc-YOUR_API_KEY" \
   -F "file=@document.pdf"
 ```
 
@@ -35,7 +35,7 @@ For images (auto-OCR):
 ```bash
 # Upload an image for OCR
 curl -X POST "https://api.deepcitation.com/prepareAttachments" \
-  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
+  -H "Authorization: Bearer sk-dc-YOUR_API_KEY" \
   -F "file=@scanned-invoice.jpg"
 ```
 
@@ -46,7 +46,7 @@ Prepare a URL for citation verification. The page is rendered to PDF server-side
 ```bash
 # Prepare a web page
 curl -X POST "https://api.deepcitation.com/prepareAttachments" \
-  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
+  -H "Authorization: Bearer sk-dc-YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{ "url": "https://example.com/article" }'
 ```
@@ -62,7 +62,7 @@ After your LLM generates a response, verify citations against the source:
 ```bash
 # Verify citations
 curl -X POST "https://api.deepcitation.com/verifyCitations" \
-  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
+  -H "Authorization: Bearer sk-dc-YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
@@ -95,7 +95,7 @@ Complete bash script for the entire DeepCitation workflow:
 #!/bin/bash
 # Full DeepCitation workflow with curl
 
-API_KEY="dc_live_YOUR_API_KEY"
+API_KEY="sk-dc-YOUR_API_KEY"
 BASE_URL="https://api.deepcitation.com"
 
 # Step 1: Upload file
@@ -163,7 +163,7 @@ curl -s ... | jq '.verifications | to_entries[] | {key: .key, page: .value.pageN
 | Item | Value |
 |:-----|:------|
 | **Base URL** | `https://api.deepcitation.com` |
-| **Auth Header** | `Authorization: Bearer dc_live_xxx` |
+| **Auth Header** | `Authorization: Bearer sk-dc-xxx` |
 | **Content-Type** | `application/json` (for verify) |
 | **Endpoints** | `POST /prepareAttachments`, `POST /verifyCitations`, `POST /getAttachment`, `POST /attachments/:id/extend`, `DELETE /attachments/:id` |
 | **File Types** | PDFs, images (auto-OCR), web pages, Office docs (via URL) |

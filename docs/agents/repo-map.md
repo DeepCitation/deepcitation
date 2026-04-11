@@ -1,7 +1,7 @@
 ---
-generated_at: "2026-04-09T23:49:17Z"
-commit_sha: "daadc13"
-commit_sha_full: "daadc139d9da00025358bf586c62df4fdfbc32a5"
+generated_at: "2026-04-11T12:39:12Z"
+commit_sha: "31553cd"
+commit_sha_full: "31553cd64df8c60aae6f0f673ae3dc98841ef3ab"
 stale_after_commits: 30
 ---
 
@@ -46,6 +46,7 @@ src/  # Source files
   rendering/  # Output renderers: Slack, GitHub, HTML, terminal, proofUrl
     terminal/  # Terminal/ANSI renderer
     testing/  # Renderer test helpers
+  shared/  # (no description)
   types/  # Core TypeScript types (citation, verification, boxes, search, timing, diff)
   utils/  # Security utilities: urlSafety, logSafety, objectSafety, regexSafety, sha, fileSafety
   vanilla/  # Framework-free popover bundle (CDN/vanilla JS runtime)

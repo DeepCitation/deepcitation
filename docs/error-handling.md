@@ -3,7 +3,7 @@ layout: default
 title: Error Handling
 nav_order: 9
 description: "Error handling patterns for DeepCitation in production"
-commit_sha: "cc9c7aa"
+commit_sha: "31553cd"
 stale_after_commits: 15
 watch_paths:
   - src/client/errors.ts
@@ -42,6 +42,7 @@ DeepCitation provides structured error classes for programmatic error handling:
 import {
   AuthenticationError,
   NetworkError,
+  PaymentRequiredError,
   RateLimitError,
   ValidationError,
   ServerError,
@@ -56,6 +57,11 @@ try {
     // Status code: 401 or 403
     // NOT retryable - fix the API key
     console.error("Check your DEEPCITATION_API_KEY:", err.message);
+  } else if (err instanceof PaymentRequiredError) {
+    // Free tier exhausted, spend cap hit, or payment failed
+    // Status code: 402
+    // NOT retryable - add or update a payment method
+    console.error("Payment required:", err.message, "billing code:", err.billingCode);
   } else if (err instanceof RateLimitError) {
     // Hit rate limit (429)
     // Retryable after delay
@@ -88,8 +94,9 @@ All errors extend `DeepCitationError` and include:
 | Code | Error Class | HTTP Status | Retryable | Recovery Action |
 |:-----|:------------|:------------|:----------|:----------------|
 | `DC_AUTH_INVALID` | `AuthenticationError` | 401, 403 | No | Check API key — rotate at [deepcitation.com/keys](https://deepcitation.com/keys) |
+| `DC_PAYMENT_REQUIRED` | `PaymentRequiredError` | 402 | No | Free tier exhausted, spend cap hit, or payment failed — add or update a payment method at [deepcitation.com/pricing](https://deepcitation.com/pricing). Error includes a `billingCode` field with the server-side reason. |
 | `DC_NETWORK_ERROR` | `NetworkError` | — | Yes | Retry with exponential backoff — check network connectivity |
-| `DC_RATE_LIMITED` | `RateLimitError` | 429 | Yes | Free tier or balance exhausted — add payment method at [deepcitation.com/pricing](https://deepcitation.com/pricing) |
+| `DC_RATE_LIMITED` | `RateLimitError` | 429 | Yes | Retry with exponential backoff — API rate limit hit |
 | `DC_VALIDATION_ERROR` | `ValidationError` | 400, 404, 413 | No | Fix the input — check file size (max 100 MB), format, or attachment ID |
 | `DC_SERVER_ERROR` | `ServerError` | 5xx | Yes | Retry with exponential backoff — if persistent, check [status.deepcitation.com](https://status.deepcitation.com) |
 
@@ -135,7 +142,7 @@ const { verifications } = await withRetry(() =>
 // Production guidance:
 // - 3 retries is sufficient for transient errors (network blips, 503s)
 // - Never retry auth errors (fix the key) or validation errors (fix the input)
-// - For 429 billing errors, retrying won't help — add a payment method
+// - For 402 billing errors (PaymentRequiredError), retrying won't help — add a payment method
 // - If you see persistent 5xx errors after 3 retries, check status.deepcitation.com
 ```
 
@@ -143,9 +150,10 @@ const { verifications } = await withRetry(() =>
 
 ## Rate limits
 
-DeepCitation uses **billing-based limits** — there are no per-minute or per-second request caps. You can make as many API calls as your account balance allows. When your free tier ($20/month) or balance is exhausted, the API returns `429 resource-exhausted`.
+DeepCitation has two distinct limit types:
 
-The retry pattern above handles `429` errors via exponential backoff, but for billing-related 429s you'll need to add a payment method at [deepcitation.com/pricing](https://deepcitation.com/pricing).
+- **Billing limits** (`402 Payment Required` → `PaymentRequiredError`): when your free tier is exhausted, a spend cap is reached, or payment fails. Not retryable — add or update a payment method at [deepcitation.com/pricing](https://deepcitation.com/pricing).
+- **API rate limits** (`429 Too Many Requests` → `RateLimitError`): when request throughput exceeds your plan's concurrency limits. Retryable with exponential backoff.
 
 If you're processing many documents in parallel, use the built-in concurrency limiter:
 
@@ -203,7 +211,7 @@ The LLM likely paraphrased the source. Check if you got a `partial_text_found` o
 Rotate it immediately at [deepcitation.com/keys](https://deepcitation.com/keys). Never prefix your key with `NEXT_PUBLIC_` or expose it in client-side code — all DeepCitation API calls should happen server-side.
 
 **"API key format"**
-Keys always start with `dc_live_` (production) or `dc_test_` (test mode). If you're getting authentication errors, check for trailing whitespace or newlines in your environment variable.
+Keys always start with `sk-dc-` and must be at least 20 characters. If you're getting authentication errors, check for trailing whitespace or newlines in your environment variable.
 
 ---
 
