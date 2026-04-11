@@ -330,11 +330,21 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
   let citations: CitationData[] = [];
   const citationMap = new Map<number, CitationData>();
 
-  // Empty content between delimiters is a failure, not a success. Finding the
-  // start delimiter means the author intended to emit citations; whitespace-only
-  // content is an upstream mistake (e.g. unfilled template placeholder).
-  // The .trim() above ensures whitespace-only blocks ("\n\n" etc.) reach this guard.
+  // Empty jsonString can mean two things:
+  //   1. No end delimiter and no content — the output was truncated right at the
+  //      start delimiter (common token-limit cutoff). Treat as success with 0 citations.
+  //   2. End delimiter is present but block is empty — upstream mistake (unfilled
+  //      template placeholder, etc.). Return failure.
   if (!jsonString) {
+    if (endIndex === -1) {
+      // Truncated immediately after start delimiter
+      return {
+        visibleText,
+        citations: [],
+        citationMap: new Map(),
+        success: true,
+      };
+    }
     return {
       visibleText,
       citations: [],
