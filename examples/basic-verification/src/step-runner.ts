@@ -35,7 +35,7 @@
  */
 
 import "dotenv/config";
-import { DeepCitation, type Verification } from "deepcitation";
+import { DeepCitation, type SearchStatus, type Verification } from "deepcitation";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { basename, extname, resolve } from "path";
 import { execFileSync } from "child_process";
@@ -395,12 +395,22 @@ const PROVIDER_MODELS: Record<string, string> = {
 };
 const toSeconds = (ms: number) => Math.round(ms / 100) / 10;
 
+const PARTIAL_STATUSES = new Set<SearchStatus>([
+  "partial_text_found",
+  "found_source_match_only",
+  "found_context_missed_source_match",
+  "found_on_other_page",
+  "found_on_other_line",
+  "first_word_found",
+  "first_word_fallback",
+]);
+
 timing.total_ms = Date.now() - runStart;
 if (s5?.verifications) {
-  const verifs = Object.values(s5.verifications) as Verification[];
+  const verifs: Verification[] = Object.values(s5.verifications);
   const total = verifs.length;
   const found = verifs.filter(v => v.status === "found").length;
-  const partial = verifs.filter(v => v.status && v.status !== "found" && v.status !== "not_found").length;
+  const partial = verifs.filter(v => v.status != null && PARTIAL_STATUSES.has(v.status)).length;
   const metrics = {
     provider,
     model: PROVIDER_MODELS[provider] ?? provider,
