@@ -1,7 +1,7 @@
 /**
- * Regression test: popover should stay at its document position when the page
- * scrolls — it scrolls with the content (position:absolute inside the scroll
- * container), NOT fixed to the viewport.
+ * Regression test: popover should stay fixed at its viewport position when the
+ * page scrolls — it does NOT scroll with the content (position:fixed in viewport
+ * space), so the viewport-relative Y coordinate is unchanged after scroll.
  *
  * Uses a fixed-height scrollable container (NOT window.scrollBy) so the test
  * is immune to parallel-test pollution from other specs that scroll the window.
@@ -43,7 +43,7 @@ const pageImagesByAttachmentId = {
   ],
 };
 
-test("popover scrolls with page content (position:absolute in scroll container)", async ({ mount, page }) => {
+test("popover stays fixed to viewport when scroll container scrolls (position:fixed)", async ({ mount, page }) => {
   // Mount inside a scrollable container with a fixed viewport height.
   // We scroll THIS container (not the window) so the test is isolated
   // from parallel workers that may scroll the window independently.
@@ -90,11 +90,10 @@ test("popover scrolls with page content (position:absolute in scroll container)"
   const afterBox = await popover.boundingBox();
   expect(afterBox).not.toBeNull();
 
-  // With position:absolute inside the scroll container, the popover scrolls
-  // with the page. Viewport Y should shift by approximately the scroll amount.
-  const yDelta = beforeBox!.y - afterBox!.y;
-  expect(yDelta).toBeGreaterThanOrEqual(scrollAmount - 5);
-  expect(yDelta).toBeLessThanOrEqual(scrollAmount + 5);
+  // With position:fixed, the popover stays at its rendered viewport position.
+  // Viewport Y should NOT shift when the scroll container scrolls.
+  const yDelta = Math.abs(afterBox!.y - beforeBox!.y);
+  expect(yDelta).toBeLessThanOrEqual(5);
 
   // Horizontal position should be unchanged
   expect(Math.abs(afterBox!.x - beforeBox!.x)).toBeLessThanOrEqual(2);
