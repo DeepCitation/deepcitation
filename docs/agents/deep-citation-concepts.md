@@ -1,4 +1,4 @@
-# deep-citation-deep-citation-concepts.md
+# deep-citation-concepts.md
 
 ## Purpose
 

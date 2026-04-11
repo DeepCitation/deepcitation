@@ -763,6 +763,12 @@ export function startEvidencePageExpandTransition(
   // task frame during React event batching), so the pre-dim + flushSync
   // + ghost creation all complete within the same visual frame.
   const commitAndAnimate = () => {
+    // Guard: if another transition is already in flight, apply the state change
+    // without animation to avoid dual-ghost / orphaned-scrim races.
+    if (_transitionDepth > 0) {
+      flushSync(update);
+      return;
+    }
     _transitionDepth++;
     const source = capturePageExpandSource(root);
 
@@ -1032,9 +1038,12 @@ function runPageCollapseGhostAnimation(
 ): void {
   const src = snapshot.viewportRect;
 
-  // Pure translate: anchor (center of spotlight) → center of keyhole.
-  const anchorInGhostX = src.width / 2;
-  const anchorInGhostY = src.height / 2;
+  // Pure translate: align the ghost's annotation anchor (image center in ghost
+  // coords, same formula as buildGhostTarget in the expand path) with the
+  // keyhole center. Using src.width/2 would only be correct when the image
+  // exactly fills the ghost container with no scroll offset.
+  const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.imageWidth / 2;
+  const anchorInGhostY = snapshot.imageOffsetTop + snapshot.imageHeight / 2;
   const targetCX = keyholeRect.left + keyholeRect.width / 2;
   const targetCY = keyholeRect.top + keyholeRect.height / 2;
   const translateX = targetCX - anchorInGhostX - src.left;
@@ -1141,6 +1150,12 @@ export function startEvidencePageCollapseTransition(
   const rootEl = root instanceof HTMLElement ? root : null;
 
   const commitAndAnimate = () => {
+    // Guard: if another transition is already in flight, apply the state change
+    // without animation to avoid dual-ghost / orphaned-scrim races.
+    if (_transitionDepth > 0) {
+      flushSync(update);
+      return;
+    }
     _transitionDepth++;
 
     // Phase 1 (pre-flushSync): capture spotlight center + keyhole image info.
