@@ -37,6 +37,8 @@ export type {
   GetAttachmentOptions,
   PrepareAttachmentsResult,
   PreparedAttachment,
+  ReviewUrlOptions,
+  ReviewUrlResponse,
   UploadFileOptions,
   UploadFileResponse,
   UrlCacheInfo,
@@ -45,8 +47,6 @@ export type {
   VerifyCitationsOptions,
   VerifyCitationsResponse,
   VerifyInput,
-  ReviewUrlOptions,
-  ReviewUrlResponse,
 } from "./client/index.js";
 
 // Formatting utilities

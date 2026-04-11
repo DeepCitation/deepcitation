@@ -220,7 +220,7 @@ describe("hydrateCitations — omitted line_ids", () => {
     expect(citations[0].source_context).toBeDefined();
     expect(citations[0].source_context?.toLowerCase()).toContain("automatically convert");
     // Must be broader than just the anchor
-    expect(citations[0].source_context!.length).toBeGreaterThan("automatically convert".length);
+    expect(citations[0].source_context?.length).toBeGreaterThan("automatically convert".length);
   });
 
   it("hydrates when line_ids is absent (undefined)", () => {
@@ -239,7 +239,7 @@ describe("hydrateCitations — omitted line_ids", () => {
     expect(result.hydrated).toBe(1);
     expect(result.misses).toEqual([]);
     expect(citations[0].source_context?.toLowerCase()).toContain("automatically convert");
-    expect(citations[0].source_context!.length).toBeGreaterThan("automatically convert".length);
+    expect(citations[0].source_context?.length).toBeGreaterThan("automatically convert".length);
   });
 
   it("uses page hint to prefer correct page when anchor appears on multiple pages", () => {
@@ -267,7 +267,7 @@ describe("hydrateCitations — omitted line_ids", () => {
     // Should resolve from page 2 (the hint) rather than page 1 (first occurrence)
     expect(citations[0].page_id).toContain("2_1");
     // source_context must be broader than just the anchor — neighbors pulled in
-    expect(citations[0].source_context!.length).toBeGreaterThan("Discount Price".length);
+    expect(citations[0].source_context?.length).toBeGreaterThan("Discount Price".length);
     expect(citations[0].source_context?.toLowerCase()).toContain("discount price");
   });
 });
@@ -395,7 +395,7 @@ describe("hydrateCitations — wrong line IDs (RC5 regression)", () => {
     // source_context must be BROADER than just the anchor — needs surrounding context
     // so the API can compute the highlight position (anchor within phrase).
     // This assertion fails before the fix: fallback sets source_context = verbatimAnchor.
-    expect(fp!.length).toBeGreaterThan("The Commercial Units".length);
+    expect(fp?.length).toBeGreaterThan("The Commercial Units".length);
     expect(fp).not.toBe("The Commercial Units");
   });
 
@@ -414,7 +414,7 @@ describe("hydrateCitations — wrong line IDs (RC5 regression)", () => {
     // line_ids must NOT still point to the wrong location (page 17, lines 4-6)
     expect(citations[0].line_ids).not.toEqual([4, 5, 6]);
     // Should include multiple lines (anchor line + neighbors for context)
-    expect(citations[0].line_ids!.length).toBeGreaterThan(1);
+    expect(citations[0].line_ids?.length).toBeGreaterThan(1);
   });
 
   it("when wrong line IDs are provided, page_id is updated to the actual page", () => {

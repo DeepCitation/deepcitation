@@ -7,6 +7,7 @@ export {
   ServerError,
   ValidationError,
 } from "./errors.js";
+export type { ReviewUrlOptions, ReviewUrlResponse } from "./reviewUrl.types.js";
 export type {
   AttachmentResponse,
   CitationInput,
@@ -34,4 +35,3 @@ export type {
   VerifyCitationsResponse,
   VerifyInput,
 } from "./types.js";
-export type { ReviewUrlOptions, ReviewUrlResponse } from "./reviewUrl.types.js";
