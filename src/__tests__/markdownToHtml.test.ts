@@ -478,3 +478,36 @@ describe("markdownToHtml — **bold** [N] format", () => {
     expect(result).toContain('<span data-cite="2"><strong>automatically convert</strong></span>');
   });
 });
+
+// ── §7 false-positive structure regression tests ──────────────────
+//
+// These are *structural* regression tests: they verify that markdownToHtml
+// produces the exact HTML shapes that review_extract.py's false-positive guards
+// are designed to handle.  If the HTML output ever changes (e.g. <li> wrapping
+// changes), review_extract.py must be updated to match — these tests will fail
+// and alert you to that drift.
+//
+// The *functional* correctness of the extraction logic (that the guards actually
+// suppress the false PLACEMENT flags) is covered by scripts/tests/test_review_extract.py.
+//
+// Pattern 3 (list-item): span is sole <li> content → pre_text strips to "".
+// Pattern 4 (bold-text): span inner is <strong>label</strong> → display has HTML tags.
+
+describe("markdownToHtml — §7 extraction-script structure regressions", () => {
+  it("[§7 pattern 3] list-item citation produces span as sole <li> content", () => {
+    // "- transferable [1]" → heuristic wraps "transferable" → <li><span>transferable</span></li>
+    // Extractor pre_text after tag-strip = "" → empty-pre guard must suppress PLACEMENT flag.
+    const result = markdownToHtml("- transferable [1]", { style: "plain" });
+    expect(result).toMatch(/<li><span data-cite="1">transferable<\/span><\/li>/);
+  });
+
+  it("[§7 pattern 4] bold citation span inner is <strong>label</strong>, not plain text", () => {
+    // "**interest rate** [1]" → Strategy 2c → <span data-cite="1"><strong>interest rate</strong></span>
+    // Extractor must strip HTML from inner before placement check, else "<strong>interest rate</strong>"
+    // is searched in plain-text prose and never matches.
+    const result = markdownToHtml("The **interest rate** [1] applies.", { style: "plain" });
+    expect(result).toContain('<span data-cite="1"><strong>interest rate</strong></span>');
+    // Confirm the <strong> is INSIDE the span (not a sibling) — that's what gives inner its HTML tags.
+    expect(result).not.toMatch(/<strong>interest rate<\/strong>\s*<span data-cite="1">/);
+  });
+});

@@ -37,6 +37,8 @@ export type {
   GetAttachmentOptions,
   PrepareAttachmentsResult,
   PreparedAttachment,
+  ReviewUrlOptions,
+  ReviewUrlResponse,
   UploadFileOptions,
   UploadFileResponse,
   UrlCacheInfo,

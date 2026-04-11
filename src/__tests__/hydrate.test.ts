@@ -220,7 +220,7 @@ describe("hydrateCitations — omitted line_ids", () => {
     expect(citations[0].source_context).toBeDefined();
     expect(citations[0].source_context?.toLowerCase()).toContain("automatically convert");
     // Must be broader than just the anchor
-    expect(citations[0].source_context!.length).toBeGreaterThan("automatically convert".length);
+    expect(citations[0].source_context?.length).toBeGreaterThan("automatically convert".length);
   });
 
   it("hydrates when line_ids is absent (undefined)", () => {
@@ -239,7 +239,7 @@ describe("hydrateCitations — omitted line_ids", () => {
     expect(result.hydrated).toBe(1);
     expect(result.misses).toEqual([]);
     expect(citations[0].source_context?.toLowerCase()).toContain("automatically convert");
-    expect(citations[0].source_context!.length).toBeGreaterThan("automatically convert".length);
+    expect(citations[0].source_context?.length).toBeGreaterThan("automatically convert".length);
   });
 
   it("uses page hint to prefer correct page when anchor appears on multiple pages", () => {
@@ -267,7 +267,7 @@ describe("hydrateCitations — omitted line_ids", () => {
     // Should resolve from page 2 (the hint) rather than page 1 (first occurrence)
     expect(citations[0].page_id).toContain("2_1");
     // source_context must be broader than just the anchor — neighbors pulled in
-    expect(citations[0].source_context!.length).toBeGreaterThan("Discount Price".length);
+    expect(citations[0].source_context?.length).toBeGreaterThan("Discount Price".length);
     expect(citations[0].source_context?.toLowerCase()).toContain("discount price");
   });
 });
@@ -395,7 +395,7 @@ describe("hydrateCitations — wrong line IDs (RC5 regression)", () => {
     // source_context must be BROADER than just the anchor — needs surrounding context
     // so the API can compute the highlight position (anchor within phrase).
     // This assertion fails before the fix: fallback sets source_context = verbatimAnchor.
-    expect(fp!.length).toBeGreaterThan("The Commercial Units".length);
+    expect(fp?.length).toBeGreaterThan("The Commercial Units".length);
     expect(fp).not.toBe("The Commercial Units");
   });
 
@@ -414,7 +414,7 @@ describe("hydrateCitations — wrong line IDs (RC5 regression)", () => {
     // line_ids must NOT still point to the wrong location (page 17, lines 4-6)
     expect(citations[0].line_ids).not.toEqual([4, 5, 6]);
     // Should include multiple lines (anchor line + neighbors for context)
-    expect(citations[0].line_ids!.length).toBeGreaterThan(1);
+    expect(citations[0].line_ids?.length).toBeGreaterThan(1);
   });
 
   it("when wrong line IDs are provided, page_id is updated to the actual page", () => {
@@ -447,18 +447,14 @@ describe("hydrateCitations — wrong line IDs (RC5 regression)", () => {
 describe("denseAnnotatePage", () => {
   it("wraps each non-blank line with a sequential <line id> tag starting at 1", () => {
     const result = denseAnnotatePage("line one\nline two\nline three");
-    expect(result).toBe(
-      '<line id="1">line one</line>\n<line id="2">line two</line>\n<line id="3">line three</line>',
-    );
+    expect(result).toBe('<line id="1">line one</line>\n<line id="2">line two</line>\n<line id="3">line three</line>');
   });
 
   it("skips blank lines and does not advance the ID counter for them", () => {
     // Blank lines (whitespace-only) must not consume an ID — the next non-blank
     // line should continue the sequence without gaps.
     const result = denseAnnotatePage("line one\n\nline two\n   \nline three");
-    expect(result).toBe(
-      '<line id="1">line one</line>\n<line id="2">line two</line>\n<line id="3">line three</line>',
-    );
+    expect(result).toBe('<line id="1">line one</line>\n<line id="2">line two</line>\n<line id="3">line three</line>');
   });
 
   it("returns empty string for blank-only input", () => {
@@ -482,7 +478,8 @@ describe("denseAnnotatePage", () => {
   it("produces output that parseSummaryToLineMap can round-trip via extractLines", () => {
     // End-to-end: annotate a page, embed it in a summary JSON, parse it back,
     // and verify that the qualified map resolves the expected lines.
-    const rawPage = "Section 1. Definitions\nThis document sets forth the terms.\nAll capitalized terms are defined below.";
+    const rawPage =
+      "Section 1. Definitions\nThis document sets forth the terms.\nAll capitalized terms are defined below.";
     const annotated = denseAnnotatePage(rawPage);
 
     const summaryJson = JSON.stringify({

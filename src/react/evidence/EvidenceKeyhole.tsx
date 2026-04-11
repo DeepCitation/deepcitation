@@ -144,8 +144,8 @@ export function EvidenceKeyhole({
 
       if (isSnippet && anchorScrollData.phraseItem) {
         // Snippet mode: compute anchor position relative to the phraseMatch,
-        // which the snippet is cropped around with constant padding (see
-        // shared-functions/src/verification/verificationImages.ts cropPageToBuffer).
+        // which the snippet is cropped around with constant padding (the crop
+        // utility pads by (snippetW - phraseW) / 2 on each side).
         // The crop CAN be clamped at page edges, so the "padding = (snippetW -
         // phraseW) / 2" assumption is only correct in the un-clamped case. To
         // tolerate clamping errors, we CENTER the anchor in the viewport

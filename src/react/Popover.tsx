@@ -117,8 +117,8 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
     // Find the scroll-root ancestor of the trigger so we can portal into it.
     // This lets the popover scroll with the page content instead of staying
     // fixed on the viewport.  We look for [data-radix-scroll-area-viewport]
-    // first (deepcitation-web uses Radix ScrollArea), then fall back to the
-    // nearest overflow:scroll/auto ancestor, then document.body.
+    // first (host apps using Radix ScrollArea expose this attribute), then fall
+    // back to the nearest overflow:scroll/auto ancestor, then document.body.
     //
     // Exception: if the consumer has placed a [data-dc-portal-root] element on
     // the page (a position:fixed overlay outside any scroll container), use it
