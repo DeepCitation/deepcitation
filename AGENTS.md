@@ -29,7 +29,7 @@ Use progressive disclosure: keep this file minimal and load focused guidance onl
 - Working on animations, transitions, gestures, easing, zoom, drag, haptics, or reduced motion:
   [docs/agents/animation-transition-rules.md](./docs/agents/animation-transition-rules.md)
 - Working on field naming, domain model, view states, or claim/source/evidence terminology:
-  [docs/agents/concepts.md](./docs/agents/concepts.md)
+  [docs/agents/deep-citation-concepts.md](./docs/agents/deep-citation-concepts.md)
 - Working on package API usage, capabilities, or service endpoints:
   [docs/agents/package-reference.md](./docs/agents/package-reference.md)
 - Working on accessibility, focus management, screen readers, or keyboard navigation:

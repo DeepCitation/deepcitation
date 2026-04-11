@@ -1,0 +1,116 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - button [ref=e5]:
+        - img [ref=e7]
+      - button "File" [ref=e9]
+      - button "View" [ref=e10]
+      - button "Tools" [ref=e11]
+      - button "Packages" [ref=e12]
+      - button "Help" [ref=e13]
+      - button "Update available" [ref=e14] [cursor=pointer]:
+        - img [ref=e15]
+    - generic "/mnt/c/Users/Ben/workspace/mono-repo/packages/deepcitation-motion" [ref=e17]:
+      - text: deepcitation-motion
+      - button "Open GitHub Repo" [ref=e18]:
+        - img [ref=e19]
+    - generic [ref=e21]:
+      - button [ref=e22]:
+        - generic "Toggle Left Sidebar (Ctrl+B)" [ref=e23]
+      - button [ref=e25]:
+        - generic "Toggle Right Sidebar (Ctrl+J)" [ref=e26]
+  - generic [ref=e30]:
+    - generic [ref=e42]:
+      - generic [ref=e43]: Citation Teardown — "Attention Is All You Need"
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - generic [ref=e47]: STATE 1 — PREVIEW
+            - generic [ref=e48]: Bold claimText with inline verificationBadge chips
+          - generic [ref=e49]:
+            - heading "Architecture" [level=3] [ref=e50]
+            - paragraph [ref=e51]:
+              - text: The paper introduced a new deep learning architecture known as the
+              - generic [ref=e52]: DeepCitation Verified
+              - 'button "Citation: transformer" [ref=e53] [cursor=pointer]':
+                - generic [ref=e54]:
+                  - generic [ref=e55]: transformer
+                  - img [ref=e58]
+              - text: ", based on the attention mechanism. The use of the scaled dot-product attention and"
+              - generic [ref=e60]: DeepCitation Verified
+              - 'button "Citation: self-attention" [ref=e61] [cursor=pointer]':
+                - generic [ref=e62]:
+                  - generic [ref=e63]: self-attention
+                  - img [ref=e66]
+              - text: mechanism instead of a recurrent neural network allows for better performance.
+        - generic [ref=e68]: ↓
+        - generic [ref=e69]:
+          - generic [ref=e70]:
+            - generic [ref=e71]: STATE 2 — FOCUS POPOVER
+            - generic [ref=e72]: sourceContext quote + evidenceKeyhole strip
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - generic [ref=e77]:
+                - 'button "Link to https://en.wikipedia.o…ention_Is_All_You_Need: Verified" [ref=e79] [cursor=pointer]':
+                  - generic [ref=e80]: 🌐
+                  - generic [ref=e81]: https://en.wikipedia.o…ention_Is_All_You_Need
+                  - button "Open in new tab" [ref=e82]:
+                    - img [ref=e83]
+                - button "Expand to full page 2" [ref=e88] [cursor=pointer]:
+                  - generic [ref=e89]: p. 2
+                  - img [ref=e91]
+              - generic [ref=e94]:
+                - img [ref=e96]
+                - generic [ref=e98]: DeepCitation Verified
+              - generic [ref=e102]: architecture. Scaled dot-product attention and self-attention [ edit ] The use of the scaled dot-product attention and self-attention mechanism instead of a recurrent neural network or long short-term memory (wh...
+            - button "View image" [ref=e105] [cursor=pointer]:
+              - button [ref=e109]:
+                - generic [ref=e110]: View page
+                - img [ref=e112]
+        - generic [ref=e114]: ↓
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - generic [ref=e117]: STATE 3 — PAGE VIEW
+            - generic [ref=e118]: Full page with spotlight + contextBrackets
+          - generic [ref=e121]:
+            - generic [ref=e122]:
+              - generic [ref=e123]:
+                - 'button "Link to https://en.wikipedia.o…ention_Is_All_You_Need: Verified" [ref=e125] [cursor=pointer]':
+                  - generic [ref=e126]: 🌐
+                  - generic [ref=e127]: https://en.wikipedia.o…ention_Is_All_You_Need
+                  - button "Open in new tab" [ref=e128]:
+                    - img [ref=e129]
+                - button "Close page 2 view" [ref=e134] [cursor=pointer]:
+                  - generic [ref=e135]: p. 2
+                  - img [ref=e137]
+              - generic [ref=e141]:
+                - img [ref=e143]
+                - generic [ref=e145]: DeepCitation Verified
+              - generic [ref=e149]: architecture. Scaled dot-product attention and self-attention [ edit ] The use of the scaled dot-product attention and self-attention mechanism instead of a recurrent neural network or long short-term memory (wh...
+            - generic [ref=e152]:
+              - button "Expanded verification image. Press Escape or Enter to collapse. Use arrow keys to pan." [ref=e153]:
+                - generic [ref=e155]:
+                  - img "Verification evidence" [ref=e156]
+                  - button "Hide overlay" [ref=e157] [cursor=pointer]:
+                    - img [ref=e159]
+              - generic [ref=e164]:
+                - button "Re-center on annotation" [ref=e165]:
+                  - img [ref=e167]
+                - toolbar "Zoom controls" [ref=e169]:
+                  - button "Zoom in" [ref=e170]: +
+                  - separator [ref=e171]
+                  - button "Zoom out" [ref=e172]: −
+    - generic [ref=e173]:
+      - generic "Preview Size" [ref=e175]:
+        - button "Fit" [ref=e176]:
+          - generic "Fit" [ref=e177]
+          - img [ref=e178]
+      - button "Show transparency as checkerboard (T)" [ref=e180]:
+        - img [ref=e181]
+      - button "Enter fullscreen preview (F)" [ref=e183]:
+        - img [ref=e184]
+      - generic "Export the current composition (R)" [ref=e187] [cursor=pointer]:
+        - button "Render" [ref=e188]:
+          - generic [ref=e189]:
+            - img [ref=e190]
+            - generic [ref=e192]: Render

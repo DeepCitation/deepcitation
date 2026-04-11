@@ -16,7 +16,7 @@ It is referenced by:
 
 When any of these consumers disagree with this document, **this document wins** and the consumer must be updated to match.
 
-The canonical vocabulary — domain binding (`claim*` vs `source*` vs `evidence*`), view states (`preview`, `focusPopover`, `pageView`), and scan anchors — is defined in `packages/deepcitation/docs/agents/concepts.md`. Field names in this document follow that vocabulary: `sourceMatch` is Domain B text (the authoritative document), `claimText` is Domain A text (the asserting document), and `evidenceKeyhole` / `keyholeViewport` are the visual tier of Domain B.
+The canonical vocabulary — domain binding (`claim*` vs `source*` vs `evidence*`), view states (`preview`, `focusPopover`, `pageView`), and scan anchors — is defined in `packages/deepcitation/docs/agents/deep-citation-concepts.md`. Field names in this document follow that vocabulary: `sourceMatch` is Domain B text (the authoritative document), `claimText` is Domain A text (the asserting document), and `evidenceKeyhole` / `keyholeViewport` are the visual tier of Domain B.
 
 ---
 
@@ -118,7 +118,7 @@ Shorthand keys: `n`=id, `r`=reasoning, `f`=fullPhrase, `k`=anchorText, `p`=pageI
 
 Every citation reviewer classifies failures using this vocabulary. Severity drives grading (§6).
 
-Each issue maps to a domain invariant from `concepts.md`: Domain B issues prevent the `sourceMatch` from being located or highlighted; Domain A issues degrade the `claimText` scan target in `preview`; cross-domain issues break the `isVerbatim` comparison or the `keyholeViewport` framing.
+Each issue maps to a domain invariant from `deep-citation-concepts.md`: Domain B issues prevent the `sourceMatch` from being located or highlighted; Domain A issues degrade the `claimText` scan target in `preview`; cross-domain issues break the `isVerbatim` comparison or the `keyholeViewport` framing.
 
 | Issue | Severity | Domain | Definition |
 |-------|----------|--------|------------|
@@ -147,7 +147,7 @@ Each issue maps to a domain invariant from `concepts.md`: Domain B issues preven
 
 ### Per-Citation Grade
 
-Sample at least 5 citations per report. Grade on 6 dimensions. Each dimension maps to a role in the scan UX defined in `concepts.md`:
+Sample at least 5 citations per report. Grade on 6 dimensions. Each dimension maps to a role in the scan UX defined in `deep-citation-concepts.md`:
 
 | Dimension | Concepts.md role | A | B | C | F |
 |-----------|-----------------|---|---|---|---|
@@ -184,7 +184,7 @@ These are known failure modes that reviewers should **not** keep filing as new i
 
 ## §8 Playwright Hard Gates
 
-These tests must pass before any verified report ships. They are hard assertions; a failure blocks the PR. Each test protects a specific scan anchor or domain invariant from `concepts.md`.
+These tests must pass before any verified report ships. They are hard assertions; a failure blocks the PR. Each test protects a specific scan anchor or domain invariant from `deep-citation-concepts.md`.
 
 | Test | Name | Protects | Assertion |
 |------|------|----------|-----------|

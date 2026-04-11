@@ -29,7 +29,7 @@ Run these before opening a PR:
 
 `CitationBase` intentionally carries `attachmentId`, `pageNumber`, `lineIds`, and `startPageId` on **all** citation types, including `UrlCitation`. This is because URL citations are fetched and converted to PDFs before verification — after that conversion, every citation type can carry a page location. A `UrlCitation` without these fields simply hasn't been verified yet.
 
-Do **not** flag these shared fields as "semantically document-only" in code reviews. For field naming conventions and domain binding rules, see [concepts.md](./concepts.md). The correct mental model is:
+Do **not** flag these shared fields as "semantically document-only" in code reviews. For field naming conventions and domain binding rules, see [deep-citation-concepts.md](./deep-citation-concepts.md). The correct mental model is:
 
 > All citations are potentially verifiable against a page-indexed document. The `type` discriminator indicates the *source* of the citation, not whether page/line fields will be populated.
 

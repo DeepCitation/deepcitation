@@ -848,58 +848,117 @@ export function startEvidencePageExpandTransition(
 // PAGE COLLAPSE (reverse of page-expand ghost)
 // =============================================================================
 
-/**
- * Captures the expanded-page's spotlight + evidence image as the source for
- * the collapse ghost animation. Called BEFORE flushSync (while expanded-page
- * is still in the DOM).
- */
-function capturePageCollapseSource(root: ParentNode): GhostSnapshot | null {
-  // All three view slots are always in the DOM (React 19 fiber stability).
-  // Inactive slots have display:none → zero rect. Iterate to find the visible one.
-  const containers = root.querySelectorAll<HTMLElement>("[data-dc-inline-expanded]");
-  let container: HTMLElement | null = null;
-  let containerRect: DOMRect | null = null;
-  for (const el of containers) {
-    const rect = el.getBoundingClientRect();
-    if (isVisibleRect(rect)) {
-      container = el;
-      containerRect = rect;
-      break;
-    }
-  }
-  if (!container || !containerRect) return null;
+type CollapsePreflushData = {
+  /** Spotlight center in viewport coords — the ghost's starting anchor. */
+  spotlightCX: number;
+  spotlightCY: number;
+  /** Evidence snippet image src (same image the keyhole strip shows). */
+  keyholeImageSrc: string;
+  keyholeNaturalWidth: number;
+  keyholeNaturalHeight: number;
+  /** Border-radius from the keyhole container's computed style. */
+  borderRadius: string;
+};
 
-  // Find the spotlight overlay — this is the visual "source" the user sees.
-  // The spotlight is a sibling/cousin of the container in the popover tree.
+/**
+ * Pre-flushSync capture for the collapse ghost.
+ *
+ * Reads the spotlight center (the visual anchor while the page view is still
+ * shown) and the keyhole snippet image source. The keyhole element is in the
+ * DOM (EvidenceZone triple-always-render) but `display:none`, so only src and
+ * natural dimensions are accessible — layout dims come post-flushSync.
+ *
+ * Returns null when no spotlight is visible (miss/not_found states — no ghost).
+ */
+function captureCollapsePreflushData(root: ParentNode): CollapsePreflushData | null {
   const spotlightEl = root.querySelector<HTMLElement>("[data-dc-spotlight]");
   const spotRect = spotlightEl?.getBoundingClientRect();
-  const isSpotVisible = !!spotRect && isVisibleRect(spotRect);
+  if (!spotRect || !isVisibleRect(spotRect)) return null;
 
-  // Find the page image inside the container.
-  const img = container.querySelector<HTMLImageElement>("img");
-  if (!img) return null;
-  const imgRect = img.getBoundingClientRect();
-  if (!isVisibleRect(imgRect)) return null;
-  const imageSrc = img.currentSrc || img.src;
-  if (!imageSrc) return null;
-
-  // The ghost viewport = spotlight rect (if available), else the visible container.
-  // Spotlight frames exactly what the user sees as "the cited region that moves."
-  const viewportRect = isSpotVisible ? spotRect : containerRect;
+  // [data-dc-keyhole] is always in the DOM (EvidenceZone triple-always-render),
+  // just display:none during expanded-page. Natural image dims are accessible.
+  const keyholeEl = root.querySelector<HTMLElement>("[data-dc-keyhole]");
+  if (!keyholeEl) return null;
+  const keyholeImg = keyholeEl.querySelector<HTMLImageElement>("img");
+  const keyholeImageSrc = keyholeImg?.currentSrc || keyholeImg?.src || "";
+  if (!keyholeImg || !keyholeImageSrc || !isValidProofImageSrc(keyholeImageSrc)) return null;
+  if (!keyholeImg.naturalWidth || !keyholeImg.naturalHeight) return null;
 
   return {
-    viewportRect,
-    imageSrc,
-    imageOffsetLeft: imgRect.left - viewportRect.left,
-    imageOffsetTop: imgRect.top - viewportRect.top,
-    imageWidth: imgRect.width,
-    imageHeight: imgRect.height,
-    imageNaturalWidth: img.naturalWidth,
-    imageNaturalHeight: img.naturalHeight,
+    spotlightCX: spotRect.left + spotRect.width / 2,
+    spotlightCY: spotRect.top + spotRect.height / 2,
+    keyholeImageSrc,
+    keyholeNaturalWidth: keyholeImg.naturalWidth,
+    keyholeNaturalHeight: keyholeImg.naturalHeight,
+    borderRadius: getComputedStyle(keyholeEl).borderRadius || "0px",
+  };
+}
+
+/**
+ * Post-flushSync: builds the collapse ghost snapshot using the now-visible
+ * destination element's layout. The ghost is destination-sized and centered
+ * on the pre-captured spotlight so its annotation anchor aligns with the
+ * spotlight center — exact reverse of the expand ghost's `buildGhostTarget`.
+ *
+ * Handles both collapse-to-summary ([data-dc-keyhole] visible) and
+ * collapse-to-expanded-keyhole ([data-dc-inline-expanded] visible).
+ */
+function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: ParentNode): GhostSnapshot | null {
+  // Find the visible destination — same priority as findPageCollapseTarget.
+  let destEl: HTMLElement | null = null;
+  let destRect: DOMRect | null = null;
+  const keyholeEl = root.querySelector<HTMLElement>("[data-dc-keyhole]");
+  if (keyholeEl) {
+    const r = keyholeEl.getBoundingClientRect();
+    if (isVisibleRect(r)) {
+      destEl = keyholeEl;
+      destRect = r;
+    }
+  }
+  if (!destEl) {
+    const expandedEl = root.querySelector<HTMLElement>("[data-dc-inline-expanded]");
+    if (expandedEl) {
+      const r = expandedEl.getBoundingClientRect();
+      if (isVisibleRect(r)) {
+        destEl = expandedEl;
+        destRect = r;
+      }
+    }
+  }
+  if (!destEl || !destRect) return null;
+
+  const destImg = destEl.querySelector<HTMLImageElement>("img");
+  const imgRect = destImg?.getBoundingClientRect();
+  const hasImgRect = !!imgRect && isVisibleRect(imgRect);
+  const imageOffsetLeft = hasImgRect ? imgRect.left - destRect.left : 0;
+  const imageOffsetTop = hasImgRect ? imgRect.top - destRect.top : 0;
+  const imageWidth = hasImgRect ? imgRect.width : destRect.width;
+  const imageHeight = hasImgRect ? imgRect.height : destRect.height;
+
+  // Ghost is destination-sized. Position it so the image center (annotation
+  // anchor within the ghost) aligns with the spotlight center — the exact
+  // reverse of buildGhostTarget in the expand path.
+  const anchorInGhostX = imageOffsetLeft + imageWidth / 2;
+  const anchorInGhostY = imageOffsetTop + imageHeight / 2;
+
+  return {
+    viewportRect: new DOMRect(
+      data.spotlightCX - anchorInGhostX,
+      data.spotlightCY - anchorInGhostY,
+      destRect.width,
+      destRect.height,
+    ),
+    imageSrc: data.keyholeImageSrc,
+    imageOffsetLeft,
+    imageOffsetTop,
+    imageWidth,
+    imageHeight,
+    imageNaturalWidth: data.keyholeNaturalWidth,
+    imageNaturalHeight: data.keyholeNaturalHeight,
     sourceKind: null,
     sourceAnchorX: 0.5,
     sourceAnchorY: 0.5,
-    borderRadius: isSpotVisible ? "0px" : getComputedStyle(container).borderRadius || "0px",
+    borderRadius: data.borderRadius,
   };
 }
 
@@ -986,20 +1045,23 @@ function runPageCollapseGhostAnimation(
 
   // Collapse: solid at start, blur mid-flight, fade out at keyhole.
   // Faster profile — fewer keyframes, sharper curve than expand.
+  // Ghost starts with the keyhole's border-radius (the snippet image frame)
+  // and maintains it throughout — no radius morph needed for this direction.
+  const startRadius = snapshot.borderRadius || "0px";
   const keyframes: Keyframe[] = [
-    { transform: tfAt(0), opacity: 1, filter: blurAt(GHOST_BLUR_START_PX), borderRadius: "0px" },
+    { transform: tfAt(0), opacity: 1, filter: blurAt(GHOST_BLUR_START_PX), borderRadius: startRadius },
     {
       transform: tfAt(GHOST_OFFSET_COLLAPSE_EARLY),
       opacity: 1,
       filter: blurAt(GHOST_BLUR_COLLAPSE_EARLY_PX),
-      borderRadius: "2px",
+      borderRadius: startRadius,
       offset: GHOST_OFFSET_COLLAPSE_EARLY,
     },
     {
       transform: tfAt(GHOST_OFFSET_COLLAPSE_MID),
       opacity: GHOST_OPACITY_COLLAPSE_MID,
       filter: blurAt(GHOST_BLUR_COLLAPSE_MID_PX),
-      borderRadius: "4px",
+      borderRadius: startRadius,
       offset: GHOST_OFFSET_COLLAPSE_MID,
     },
     {
