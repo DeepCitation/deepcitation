@@ -6,6 +6,7 @@ const mockAcquireScrollLock = jest.fn();
 const mockReleaseScrollLock = jest.fn();
 const mockStartEvidenceViewTransition = jest.fn((cb: () => void) => cb());
 const mockStartEvidencePageExpandTransition = jest.fn((cb: () => void) => cb());
+const mockStartEvidencePageCollapseTransition = jest.fn((cb: () => void) => cb());
 const mockTriggerHaptic = jest.fn();
 
 jest.mock("../react/scrollLock", () => ({
@@ -16,6 +17,7 @@ jest.mock("../react/scrollLock", () => ({
 jest.mock("../react/viewTransition", () => ({
   startEvidenceViewTransition: mockStartEvidenceViewTransition,
   startEvidencePageExpandTransition: mockStartEvidencePageExpandTransition,
+  startEvidencePageCollapseTransition: mockStartEvidencePageCollapseTransition,
 }));
 
 jest.mock("../react/haptics", () => ({
@@ -37,6 +39,7 @@ beforeEach(() => {
   mockReleaseScrollLock.mockClear();
   mockStartEvidenceViewTransition.mockClear();
   mockStartEvidencePageExpandTransition.mockClear();
+  mockStartEvidencePageCollapseTransition.mockClear();
   mockTriggerHaptic.mockClear();
   cleanup();
 });

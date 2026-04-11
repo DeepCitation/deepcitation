@@ -2,6 +2,7 @@ import { flushSync } from "react-dom";
 import {
   DEBUG_PAGE_EXPAND_SOURCE_COLOR,
   DEBUG_PAGE_EXPAND_TARGET_COLOR,
+  EASE_GHOST_COLLAPSE,
   EASE_GHOST_EXPAND,
   GHOST_BLUR_EARLY_PX,
   GHOST_BLUR_LATE_PX,
@@ -18,6 +19,7 @@ import {
   GHOST_OPACITY_PEAK,
   GHOST_OPACITY_START,
   isValidProofImageSrc,
+  KEYHOLE_STRIP_BORDER_RADIUS,
   PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
   VT_EVIDENCE_PAGE_EXPAND_MS,
 } from "./constants.js";
@@ -842,17 +844,27 @@ export function startEvidencePageExpandTransition(
  * is still in the DOM).
  */
 function capturePageCollapseSource(root: ParentNode): GhostSnapshot | null {
-  // Find the expanded page container (fill mode)
-  const container = root.querySelector<HTMLElement>("[data-dc-inline-expanded]");
-  if (!container) return null;
-  const containerRect = container.getBoundingClientRect();
-  if (!isVisibleRect(containerRect)) return null;
+  // All three view slots are always in the DOM (React 19 fiber stability).
+  // Inactive slots have display:none → zero rect. Iterate to find the visible one.
+  const containers = root.querySelectorAll<HTMLElement>("[data-dc-inline-expanded]");
+  let container: HTMLElement | null = null;
+  let containerRect: DOMRect | null = null;
+  for (const el of containers) {
+    const rect = el.getBoundingClientRect();
+    if (isVisibleRect(rect)) {
+      container = el;
+      containerRect = rect;
+      break;
+    }
+  }
+  if (!container || !containerRect) return null;
 
-  // Find the spotlight overlay — this is the visual "source" the user sees
-  const spotlightEl = container.parentElement?.querySelector<HTMLElement>("[data-dc-spotlight]");
+  // Find the spotlight overlay — this is the visual "source" the user sees.
+  // The spotlight is a sibling/cousin of the container in the popover tree.
+  const spotlightEl = root.querySelector<HTMLElement>("[data-dc-spotlight]");
   const spotRect = spotlightEl?.getBoundingClientRect();
 
-  // Find the page image inside the container
+  // Find the page image inside the container.
   const img = container.querySelector<HTMLImageElement>("img");
   if (!img) return null;
   const imgRect = img.getBoundingClientRect();
@@ -860,13 +872,13 @@ function capturePageCollapseSource(root: ParentNode): GhostSnapshot | null {
   const imageSrc = img.currentSrc || img.src;
   if (!imageSrc) return null;
 
-  // The ghost viewport = spotlight rect (if available), else the visible
-  // container area. This frames what the user sees as "the thing that moves."
+  // The ghost viewport = spotlight rect (if available), else the visible container.
+  // Spotlight frames exactly what the user sees as "the cited region that moves."
   const viewportRect = spotRect && isVisibleRect(spotRect) ? spotRect : containerRect;
 
   return {
     viewportRect,
-    imageSrc: imageSrc,
+    imageSrc,
     imageOffsetLeft: imgRect.left - viewportRect.left,
     imageOffsetTop: imgRect.top - viewportRect.top,
     imageWidth: imgRect.width,
@@ -967,7 +979,7 @@ function runPageCollapseGhostAnimation(
 
   // Reverse the expand: solid → blur mid-flight → fade out at keyhole.
   // Border-radius morphs from spotlight (0px) to keyhole's rounded corners.
-  const tgtRadius = "6px"; // keyhole strip default border-radius
+  const tgtRadius = KEYHOLE_STRIP_BORDER_RADIUS;
   const keyframes: Keyframe[] = [
     {
       transform: tfAt(0),
@@ -1014,7 +1026,7 @@ function runPageCollapseGhostAnimation(
   // Collapse easing: fast departure (lift off spotlight), decelerate into keyhole.
   const animation = ghost.animate(keyframes, {
     duration: VT_EVIDENCE_PAGE_EXPAND_MS,
-    easing: "cubic-bezier(0.4, 0, 0.2, 1)",
+    easing: EASE_GHOST_COLLAPSE,
     fill: "both",
   });
 
@@ -1086,12 +1098,6 @@ export function startEvidencePageCollapseTransition(
     flushSync(update);
 
     if (!source) {
-      cleanupPageExpandScrim(rootEl);
-      _transitionDepth = Math.max(0, _transitionDepth - 1);
-      return;
-    }
-    // Defensive re-validation before creating the ghost element.
-    if (!isValidProofImageSrc(source.imageSrc)) {
       cleanupPageExpandScrim(rootEl);
       _transitionDepth = Math.max(0, _transitionDepth - 1);
       return;
