@@ -3,16 +3,25 @@ import {
   DEBUG_PAGE_EXPAND_SOURCE_COLOR,
   DEBUG_PAGE_EXPAND_TARGET_COLOR,
   EASE_COLLAPSE,
+  EASE_CONTENT_REVEAL,
   EASE_GHOST_EXPAND,
+  GHOST_BLUR_COLLAPSE_EARLY_PX,
+  GHOST_BLUR_COLLAPSE_LATE_PX,
+  GHOST_BLUR_COLLAPSE_MID_PX,
   GHOST_BLUR_EARLY_PX,
   GHOST_BLUR_LATE_PX,
   GHOST_BLUR_MID_PX,
   GHOST_BLUR_PEAK_PX,
   GHOST_BLUR_START_PX,
+  GHOST_OFFSET_COLLAPSE_EARLY,
+  GHOST_OFFSET_COLLAPSE_MID,
+  GHOST_OFFSET_COLLAPSE_PEAK,
   GHOST_OFFSET_EARLY,
   GHOST_OFFSET_LATE,
   GHOST_OFFSET_MID,
   GHOST_OFFSET_PEAK,
+  GHOST_OPACITY_COLLAPSE_MID,
+  GHOST_OPACITY_COLLAPSE_PEAK,
   GHOST_OPACITY_EARLY,
   GHOST_OPACITY_LATE,
   GHOST_OPACITY_MID,
@@ -652,7 +661,7 @@ function runPageExpandGhostAnimation(
         { opacity: 1, offset: 0.85 },
         { opacity: 1 },
       ],
-      { duration: VT_EVIDENCE_PAGE_EXPAND_MS, easing: "ease-in", fill: "forwards" },
+      { duration: VT_EVIDENCE_PAGE_EXPAND_MS, easing: EASE_CONTENT_REVEAL, fill: "forwards" },
     );
     contentAnim.finished
       .catch(() => {})
@@ -864,6 +873,7 @@ function capturePageCollapseSource(root: ParentNode): GhostSnapshot | null {
   // The spotlight is a sibling/cousin of the container in the popover tree.
   const spotlightEl = root.querySelector<HTMLElement>("[data-dc-spotlight]");
   const spotRect = spotlightEl?.getBoundingClientRect();
+  const isSpotVisible = !!spotRect && isVisibleRect(spotRect);
 
   // Find the page image inside the container.
   const img = container.querySelector<HTMLImageElement>("img");
@@ -875,7 +885,7 @@ function capturePageCollapseSource(root: ParentNode): GhostSnapshot | null {
 
   // The ghost viewport = spotlight rect (if available), else the visible container.
   // Spotlight frames exactly what the user sees as "the cited region that moves."
-  const viewportRect = spotRect && isVisibleRect(spotRect) ? spotRect : containerRect;
+  const viewportRect = isSpotVisible ? spotRect : containerRect;
 
   return {
     viewportRect,
@@ -889,7 +899,7 @@ function capturePageCollapseSource(root: ParentNode): GhostSnapshot | null {
     sourceKind: null,
     sourceAnchorX: 0.5,
     sourceAnchorY: 0.5,
-    borderRadius: spotRect && isVisibleRect(spotRect) ? "0px" : getComputedStyle(container).borderRadius || "0px",
+    borderRadius: isSpotVisible ? "0px" : getComputedStyle(container).borderRadius || "0px",
   };
 }
 
@@ -975,31 +985,31 @@ function runPageCollapseGhostAnimation(
   const blurAt = (px: number) => (px > 0 ? `blur(${px}px)` : "none");
 
   // Collapse: solid at start, blur mid-flight, fade out at keyhole.
-  // Faster profile — fewer keyframes, sharper curve.
+  // Faster profile — fewer keyframes, sharper curve than expand.
   const keyframes: Keyframe[] = [
-    { transform: tfAt(0), opacity: 1, filter: blurAt(0), borderRadius: "0px" },
+    { transform: tfAt(0), opacity: 1, filter: blurAt(GHOST_BLUR_START_PX), borderRadius: "0px" },
     {
-      transform: tfAt(0.3),
+      transform: tfAt(GHOST_OFFSET_COLLAPSE_EARLY),
       opacity: 1,
-      filter: blurAt(5),
+      filter: blurAt(GHOST_BLUR_COLLAPSE_EARLY_PX),
       borderRadius: "2px",
-      offset: 0.3,
+      offset: GHOST_OFFSET_COLLAPSE_EARLY,
     },
     {
-      transform: tfAt(0.65),
-      opacity: 0.8,
-      filter: blurAt(6),
+      transform: tfAt(GHOST_OFFSET_COLLAPSE_MID),
+      opacity: GHOST_OPACITY_COLLAPSE_MID,
+      filter: blurAt(GHOST_BLUR_COLLAPSE_MID_PX),
       borderRadius: "4px",
-      offset: 0.65,
+      offset: GHOST_OFFSET_COLLAPSE_MID,
     },
     {
       transform: tfAt(1),
-      opacity: 0.3,
-      filter: blurAt(2),
+      opacity: GHOST_OPACITY_COLLAPSE_PEAK,
+      filter: blurAt(GHOST_BLUR_COLLAPSE_LATE_PX),
       borderRadius: KEYHOLE_STRIP_BORDER_RADIUS,
-      offset: 0.88,
+      offset: GHOST_OFFSET_COLLAPSE_PEAK,
     },
-    { transform: tfAt(1), opacity: 0, filter: blurAt(0), borderRadius: KEYHOLE_STRIP_BORDER_RADIUS },
+    { transform: tfAt(1), opacity: 0, filter: blurAt(GHOST_BLUR_PEAK_PX), borderRadius: KEYHOLE_STRIP_BORDER_RADIUS },
   ];
 
   // EASE_COLLAPSE: fast departure, decisive deceleration — appropriate for exits.
@@ -1020,7 +1030,7 @@ function runPageCollapseGhostAnimation(
         { opacity: 1, offset: 0.85 },
         { opacity: 1 },
       ],
-      { duration: PAGE_COLLAPSE_GHOST_MS, easing: "ease-in", fill: "forwards" },
+      { duration: PAGE_COLLAPSE_GHOST_MS, easing: EASE_CONTENT_REVEAL, fill: "forwards" },
     );
     contentAnim.finished
       .catch(() => {})

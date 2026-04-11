@@ -824,6 +824,27 @@ export const KEYHOLE_STRIP_BORDER_RADIUS = "6px";
 /** Page-collapse ghost duration (ms) — faster than expand for a decisive exit. */
 export const PAGE_COLLAPSE_GHOST_MS = 180;
 
+// Page-collapse ghost keyframe anchors — faster/tighter than expand (fewer keyframes).
+/** Collapse ghost offset at early blur peak. */
+export const GHOST_OFFSET_COLLAPSE_EARLY = 0.3;
+/** Collapse ghost offset at mid blur + fade. */
+export const GHOST_OFFSET_COLLAPSE_MID = 0.65;
+/** Collapse ghost offset at near-landing fade. */
+export const GHOST_OFFSET_COLLAPSE_PEAK = 0.88;
+/** Collapse ghost opacity at mid-flight — fading from full. */
+export const GHOST_OPACITY_COLLAPSE_MID = 0.8;
+/** Collapse ghost opacity at near-landing — almost gone. */
+export const GHOST_OPACITY_COLLAPSE_PEAK = 0.3;
+/** Collapse ghost blur (px) at early — motion building. */
+export const GHOST_BLUR_COLLAPSE_EARLY_PX = 5;
+/** Collapse ghost blur (px) at mid-flight — peak distortion. */
+export const GHOST_BLUR_COLLAPSE_MID_PX = 6;
+/** Collapse ghost blur (px) near landing — clearing for clean snap. */
+export const GHOST_BLUR_COLLAPSE_LATE_PX = 2;
+
+/** Easing for popover content reveal during page transitions (both expand and collapse). */
+export const EASE_CONTENT_REVEAL = "ease-in";
+
 /** Locate icon pulse grow duration (ms) after annotation overlay dismiss. */
 export const LOCATE_ICON_PULSE_GROW_MS = 70;
 /** Locate icon pulse settle duration (ms) after grow stage completes. */
