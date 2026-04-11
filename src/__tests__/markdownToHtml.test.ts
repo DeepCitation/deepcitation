@@ -481,10 +481,14 @@ describe("markdownToHtml — **bold** [N] format", () => {
 
 // ── §7 false-positive structure regression tests ──────────────────
 //
-// These tests document the exact HTML structures that trigger false PLACEMENT
-// flags in the review-verify extraction script (review_extract.py).  They are
-// structural regression tests: if markdownToHtml ever changes the HTML shape
-// for these patterns, review_extract.py must be updated to match.
+// These are *structural* regression tests: they verify that markdownToHtml
+// produces the exact HTML shapes that review_extract.py's false-positive guards
+// are designed to handle.  If the HTML output ever changes (e.g. <li> wrapping
+// changes), review_extract.py must be updated to match — these tests will fail
+// and alert you to that drift.
+//
+// The *functional* correctness of the extraction logic (that the guards actually
+// suppress the false PLACEMENT flags) is covered by scripts/tests/test_review_extract.py.
 //
 // Pattern 3 (list-item): span is sole <li> content → pre_text strips to "".
 // Pattern 4 (bold-text): span inner is <strong>label</strong> → display has HTML tags.

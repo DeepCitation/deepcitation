@@ -7,6 +7,15 @@ global.fetch = mockFetch;
 
 const TEST_API_KEY = "sk-dc-test-key-00000001";
 
+// Groups A & B test the *HTTP-layer* error path: response.ok is false, so
+// DeepCitation's existing handleHttpError() runs and extracts the message from
+// the nested `error.message` field in the response body.
+//
+// Group C tests the *application-layer* error path added by this fix:
+// response.ok is true (HTTP 200) but the JSON body carries `status: "error"`
+// with a flat `error` string.  These are two separate code paths with two
+// different body shapes — the difference is intentional, not an inconsistency.
+
 /** Backend returns HTTP 4xx/5xx with a URL-specific error message. */
 function makeUrlErrorResponse(message: string, status = 400) {
   return {
