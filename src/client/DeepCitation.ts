@@ -672,6 +672,11 @@ export class DeepCitation {
     }
 
     const result = (await response.json()) as UploadFileResponse;
+    if (result.status === "error") {
+      const message = result.error ?? "URL processing failed";
+      this.logger.error?.("Prepare URL returned error status", { url: options.url, error: message });
+      throw new ValidationError(message);
+    }
     this.logger.info?.("Prepare URL complete", {
       url: options.url,
       attachmentId: result.attachmentId,
