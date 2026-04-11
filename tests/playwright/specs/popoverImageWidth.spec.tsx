@@ -98,12 +98,12 @@ test.describe("Popover Image Keyhole Strip", () => {
     const strip = popover.locator("[data-dc-keyhole]");
     await expect(strip).toBeVisible();
 
-    // Strip clamps to min(displayedHeight, 120px). The test image is 800×100,
-    // so displayedHeight=100 → strip height 100px (not the 120px default).
+    // Strip always uses the default height (120px) — no longer clamped to
+    // displayedHeight. Cover-fill zoom ensures the image fills the strip.
     const stripHeight = await strip.evaluate(el =>
       parseFloat(window.getComputedStyle(el as HTMLElement).height)
     );
-    expect(stripHeight).toBe(100);
+    expect(stripHeight).toBe(120);
   });
 
   test("keyhole strip uses contrasted canvas background in light mode", async ({ mount, page }) => {

@@ -106,14 +106,14 @@ test.describe("Drawer - Title Not Truncated", () => {
     expect(isTruncated).toBe(false);
   });
 
-  test("title h2 has no truncate class", async ({ mount, page }) => {
+  test("title h2 truncates gracefully in flat header row", async ({ mount, page }) => {
     await mount(<DrawerInteractionHarness groups={makeLongTitleGroups()} />);
 
     const dialog = page.locator("[role='dialog']");
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
     const heading = dialog.locator("h2").first();
-    await expect(heading).not.toHaveClass(/truncate/);
+    await expect(heading).toHaveClass(/truncate/);
   });
 });
 

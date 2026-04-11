@@ -28,6 +28,9 @@ import { defaultMessages } from "../react/i18n";
 // Remove an entry here once you also remove the key from defaultMessages and
 // all locale files (src/react/locales/).
 const KNOWN_UNUSED = new Set([
+  // Close button — removed from drawer header, kept for external consumers.
+  "action.close",
+
   // Drawer labels — defined for future usage.
   "drawer.unknownSource",
   "drawer.close",

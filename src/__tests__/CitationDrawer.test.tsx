@@ -525,19 +525,6 @@ describe("CitationDrawer", () => {
     expect(getByRole("dialog", { name: "Citations" })).toBeInTheDocument();
   });
 
-  it("calls onClose when close button clicked", () => {
-    const onClose = jest.fn();
-
-    const { getByLabelText } = render(
-      <CitationDrawer isOpen={true} onClose={onClose} citationGroups={[createGroup("Test", 1)]} />,
-    );
-
-    const closeButton = getByLabelText("Close");
-    fireEvent.click(closeButton);
-
-    expect(onClose).toHaveBeenCalled();
-  });
-
   it("calls onClose when backdrop clicked", () => {
     const onClose = jest.fn();
 
