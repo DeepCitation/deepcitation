@@ -4,7 +4,7 @@
  * Both the fixture converter (fixture-to-html.ts) and the live verification
  * workflow (shared.ts) follow the same 5-step pipeline:
  *
- *   parsedCitations  ->  anchorMap/keyMap  ->  normalize markers
+ *   parsedCitations  ->  sourceMatchMap/keyMap  ->  normalize markers
  *                    ->  markdownToHtml   ->  replace data-cite
  *                    ->  inject CDN runtime
  *
@@ -47,15 +47,15 @@ export function generateHtmlReport(opts: GenerateHtmlReportOptions): string {
   const { visibleText, parsedCitations, verifications, title, attachments } = opts;
   const citationCount = Object.keys(parsedCitations).length;
 
-  const { anchorMap, keyMap } = buildCitationMaps(parsedCitations);
+  const { sourceMatchMap, keyMap } = buildCitationMaps(parsedCitations);
 
-  const normalizedText = normalizeNumericMarkers(visibleText, anchorMap);
+  const normalizedText = normalizeNumericMarkers(visibleText, sourceMatchMap);
 
   let html = markdownToHtml(normalizedText, {
     style: "report",
     title,
     citationCount,
-    anchorMap,
+    sourceMatchMap,
   });
 
   html = replaceCitationMarkers(html, parsedCitations);
