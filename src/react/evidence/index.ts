@@ -1,4 +1,4 @@
-export { AnchorTextFocusedImage } from "./AnchorTextFocusedImage.js";
+export { EvidenceKeyhole } from "./EvidenceKeyhole.js";
 export { EvidenceTray } from "./EvidenceTray.js";
 export { InlineExpandedImage } from "./InlineExpandedImage.js";
 export {

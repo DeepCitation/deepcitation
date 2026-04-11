@@ -212,7 +212,7 @@ export const KEYHOLE_FADE_WIDTH = 32;
  * dimensions, assuming it renders inside a strip of `stripHeight` tall.
  *
  * **Load-bearing invariant**: `zoom` is clamped to `Math.min(1, …)` because
- * the keyhole never upscales (see `AnchorTextFocusedImage` where the same
+ * the keyhole never upscales (see `EvidenceKeyhole` where the same
  * clamp is applied to the actual render). Without the clamp, a short image
  * (naturalHeight < stripHeight, e.g. 1200×80) projects to a phantom
  * upscaled width (1800), causing the popover to render too wide and then

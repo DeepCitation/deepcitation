@@ -200,8 +200,8 @@ Each `Verification` contains:
 | Field | Type | Description |
 |:------|:-----|:------------|
 | `status` | `SearchStatus` | Verification outcome (`"found"`, `"partial_text_found"`, `"not_found"`) |
-| `verifiedFullPhrase` | string | The full phrase that was matched |
-| `verifiedMatchSnippet` | string | Text context around the match |
+| `verifiedSourceContext` | string | The full phrase that was matched |
+| `sourceSnippet` | string | Text context around the match |
 | `evidence` | object | Visual proof screenshot (`{ src: "data:image/..." }`) |
 | `document` | object | Document-specific results (includes `pageNumber`, `lineId`, `boundingBoxes`) |
 | `url` | object | URL-specific results (when verifying against a web page) |
@@ -218,11 +218,11 @@ curl -X POST "https://api.deepcitation.com/verifyCitations" \
       "attachmentId": "abc123-def456-ghi789",
       "citations": {
         "citation-1": {
-          "fullPhrase": "Revenue increased by 25% in Q4",
+          "sourceContext": "Revenue increased by 25% in Q4",
           "pageNumber": 1
         },
         "citation-2": {
-          "fullPhrase": "Net profit margin improved",
+          "sourceContext": "Net profit margin improved",
           "value": "profit margin"
         }
       },

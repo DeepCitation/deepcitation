@@ -1,19 +1,19 @@
 import { describe, expect, it } from "@jest/globals";
 import { render } from "@testing-library/react";
-import { CitationContentDisplay, type CitationContentDisplayProps } from "../react/CitationContentDisplay";
 import type { CitationStatusIndicatorProps, SpinnerStage } from "../react/CitationStatusIndicator";
+import { CitationTriggerContent, type CitationTriggerContentProps } from "../react/CitationTriggerContent";
 import { MISS_WAVY_UNDERLINE_STYLE } from "../react/constants";
 import type { Citation, CitationStatus } from "../types/citation";
 
-/** Minimal props factory for CitationContentDisplay footnote tests. */
-function makeProps(overrides: Partial<CitationContentDisplayProps> = {}): CitationContentDisplayProps {
+/** Minimal props factory for CitationTriggerContent footnote tests. */
+function makeProps(overrides: Partial<CitationTriggerContentProps> = {}): CitationTriggerContentProps {
   const citation: Citation = {
     type: "document",
     attachmentId: "doc1",
     pageNumber: 1,
     citationNumber: 3,
-    anchorText: "",
-    fullPhrase: "Revenue grew 15%",
+    sourceMatch: "",
+    sourceContext: "Revenue grew 15%",
   };
 
   const status: CitationStatus = {
@@ -51,9 +51,9 @@ function makeProps(overrides: Partial<CitationContentDisplayProps> = {}): Citati
   };
 }
 
-describe("CitationContentDisplay — footnote variant", () => {
+describe("CitationTriggerContent — footnote variant", () => {
   it("renders neutral gray by default (no status flags)", () => {
-    const { container } = render(<CitationContentDisplay {...makeProps()} />);
+    const { container } = render(<CitationTriggerContent {...makeProps()} />);
     const sup = container.querySelector("sup");
     expect(sup).toBeInTheDocument();
     // Default neutral gray: text-dc-subtle-foreground
@@ -62,7 +62,7 @@ describe("CitationContentDisplay — footnote variant", () => {
 
   it("renders green for verified status", () => {
     const { container } = render(
-      <CitationContentDisplay
+      <CitationTriggerContent
         {...makeProps({
           isVerified: true,
           indicatorProps: {
@@ -78,7 +78,7 @@ describe("CitationContentDisplay — footnote variant", () => {
 
   it("renders amber for partial match status", () => {
     const { container } = render(
-      <CitationContentDisplay
+      <CitationTriggerContent
         {...makeProps({
           isPartialMatch: true,
           indicatorProps: {
@@ -94,7 +94,7 @@ describe("CitationContentDisplay — footnote variant", () => {
 
   it("renders red for miss status", () => {
     const { container } = render(
-      <CitationContentDisplay
+      <CitationTriggerContent
         {...makeProps({
           isMiss: true,
           indicatorProps: {
@@ -110,7 +110,7 @@ describe("CitationContentDisplay — footnote variant", () => {
 
   it("applies wavy underline style for miss state", () => {
     const { container } = render(
-      <CitationContentDisplay
+      <CitationTriggerContent
         {...makeProps({
           isMiss: true,
         })}
@@ -126,14 +126,14 @@ describe("CitationContentDisplay — footnote variant", () => {
   });
 
   it("renders citation number text", () => {
-    const { container } = render(<CitationContentDisplay {...makeProps()} />);
+    const { container } = render(<CitationTriggerContent {...makeProps()} />);
     const sup = container.querySelector("sup");
     expect(sup?.textContent).toContain("3");
   });
 
   it("does not apply wavy underline when spinner is showing", () => {
     const { container } = render(
-      <CitationContentDisplay
+      <CitationTriggerContent
         {...makeProps({
           isMiss: true,
           shouldShowSpinner: true,
@@ -157,10 +157,10 @@ describe("CitationContentDisplay — footnote variant", () => {
       attachmentId: "doc1",
       pageNumber: 1,
       citationNumber: 3,
-      anchorText: "revenue",
-      fullPhrase: "Revenue grew 15%",
+      sourceMatch: "revenue",
+      sourceContext: "Revenue grew 15%",
     };
-    const { container } = render(<CitationContentDisplay {...makeProps({ citation })} />);
+    const { container } = render(<CitationTriggerContent {...makeProps({ citation })} />);
     expect(container.textContent).toContain("revenue");
     expect(container.textContent).toContain("3");
   });

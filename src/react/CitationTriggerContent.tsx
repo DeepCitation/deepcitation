@@ -2,7 +2,7 @@
  * Citation content display — variant rendering logic.
  *
  * Renders variant-specific citation content (chip, superscript, text, badge,
- * linter, brackets). Shared rendering utilities live in CitationContentDisplay.utils.ts.
+ * linter, brackets). Shared rendering utilities live in CitationTriggerContent.utils.ts.
  *
  * @packageDocumentation
  */
@@ -10,8 +10,8 @@
 import type React from "react";
 import type { CitationStatus } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
-import { getInteractionClasses } from "./CitationContentDisplay.utils.js";
 import { CitationStatusIndicator, type CitationStatusIndicatorProps } from "./CitationStatusIndicator.js";
+import { getInteractionClasses } from "./CitationTriggerContent.utils.js";
 import {
   CARET_INDICATOR_SIZE_STYLE,
   DOT_COLORS,
@@ -32,7 +32,7 @@ import { cn, truncateMiddle } from "./utils.js";
 // CITATION CONTENT DISPLAY COMPONENT
 // =============================================================================
 
-export interface CitationContentDisplayProps {
+export interface CitationTriggerContentProps {
   renderContent?: (props: CitationRenderProps) => React.ReactNode;
   citation: CitationRenderProps["citation"];
   status: CitationStatus;
@@ -56,7 +56,7 @@ export interface CitationContentDisplayProps {
  * Renders the citation content based on the selected variant (chip, superscript, text, badge, linter, brackets).
  * Each variant has its own visual treatment and hover behavior.
  */
-export const CitationContentDisplay = ({
+export const CitationTriggerContent = ({
   renderContent,
   citation,
   status,
@@ -73,7 +73,7 @@ export const CitationContentDisplay = ({
   additionalCount,
   indicatorProps,
   isOpen,
-}: CitationContentDisplayProps): React.ReactNode => {
+}: CitationTriggerContentProps): React.ReactNode => {
   const indicator = <CitationStatusIndicator {...indicatorProps} />;
 
   if (renderContent) {
@@ -82,7 +82,7 @@ export const CitationContentDisplay = ({
       status,
       citationKey,
       displayText,
-      isMergedDisplay: resolvedContent === "anchorText",
+      isMergedDisplay: resolvedContent === "sourceMatch",
     });
   }
 
@@ -97,7 +97,7 @@ export const CitationContentDisplay = ({
       <span
         className={cn(
           "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full text-[0.9em] font-normal transition-colors",
-          "bg-dc-muted text-dc-foreground",
+          isOpen ? "bg-dc-foreground text-dc-background" : "bg-dc-muted text-dc-foreground",
           getInteractionClasses(isOpen, variant),
         )}
       >
@@ -118,7 +118,7 @@ export const CitationContentDisplay = ({
   }
 
   // Shared across superscript and footnote variants
-  const anchorTextDisplay = citation.anchorText?.toString() || "";
+  const sourceMatchDisplay = citation.sourceMatch?.toString() || "";
   const citationNumber = citation.citationNumber?.toString() || "1";
 
   // Variant: superscript (footnote style)
@@ -129,9 +129,9 @@ export const CitationContentDisplay = ({
     );
     return (
       <>
-        {anchorTextDisplay && <span className="font-normal">{anchorTextDisplay}</span>}
+        {sourceMatchDisplay && <span className="font-normal">{sourceMatchDisplay}</span>}
         {/* U+2060 word joiner: prevents line break between anchor text and superscript */}
-        {anchorTextDisplay && "\u2060"}
+        {sourceMatchDisplay && "\u2060"}
         <sup
           className={cn(
             "font-medium transition-colors px-0.5 rounded",
@@ -165,9 +165,9 @@ export const CitationContentDisplay = ({
 
     return (
       <>
-        {anchorTextDisplay && <span className="font-normal">{anchorTextDisplay}</span>}
+        {sourceMatchDisplay && <span className="font-normal">{sourceMatchDisplay}</span>}
         {/* U+2060 word joiner: prevents line break between anchor text and superscript */}
-        {anchorTextDisplay && "\u2060"}
+        {sourceMatchDisplay && "\u2060"}
         <sup
           className={cn(
             "text-xs font-normal transition-colors",
@@ -206,7 +206,7 @@ export const CitationContentDisplay = ({
       <span
         className={cn(
           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
-          "bg-dc-muted text-dc-foreground",
+          isOpen ? "bg-dc-foreground text-dc-background" : "bg-dc-muted text-dc-foreground",
           "transition-colors cursor-pointer",
           getInteractionClasses(isOpen, variant),
         )}
@@ -303,7 +303,7 @@ export const CitationContentDisplay = ({
 
     return (
       <>
-        {anchorTextDisplay && <span className="font-normal">{anchorTextDisplay}</span>}
+        {sourceMatchDisplay && <span className="font-normal">{sourceMatchDisplay}</span>}
         <span
           className={cn(
             "inline-flex items-center justify-center aspect-square size-[1.4em] mx-0.5",

@@ -16,8 +16,8 @@ import type { Verification } from "../../../src/types/verification";
 const citation: Citation = {
   attachmentId: "att-scroll-1",
   citationNumber: 1,
-  anchorText: "revenue growth",
-  fullPhrase: "The company reported strong revenue growth",
+  sourceMatch: "revenue growth",
+  sourceContext: "The company reported strong revenue growth",
   pageNumber: 2,
   lineIds: [5],
 };

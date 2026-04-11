@@ -1,5 +1,6 @@
 import type React from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
+import { guardClamp } from "../../shared/popoverGeometry.js";
 import { BLINK_ENTER_TOTAL_MS, GUARD_MAX_WIDTH_VAR, VIEWPORT_MARGIN_PX } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "../scrollLock.js";
@@ -156,24 +157,7 @@ function clamp(el: HTMLElement, skipVertical = false): void {
   el.style.translate = "";
   const rect = el.getBoundingClientRect();
 
-  let dx = 0;
-
-  if (rect.left < VIEWPORT_MARGIN_PX) {
-    dx = VIEWPORT_MARGIN_PX - rect.left;
-  } else if (rect.right > vw - VIEWPORT_MARGIN_PX) {
-    dx = vw - VIEWPORT_MARGIN_PX - rect.right;
-  }
-
-  let dy = 0;
-
-  if (!skipVertical) {
-    const vh = window.innerHeight;
-    if (rect.top < 0) {
-      dy = -rect.top;
-    } else if (rect.bottom > vh) {
-      dy = vh - rect.bottom;
-    }
-  }
+  const { dx, dy } = guardClamp(rect, vw, window.innerHeight, skipVertical, VIEWPORT_MARGIN_PX);
 
   if (dx !== 0 || dy !== 0) {
     el.style.translate = dy !== 0 ? `${dx}px ${dy}px` : `${dx}px`;

@@ -10,30 +10,30 @@ import {
 } from "../vanilla/reportUtils.js";
 
 describe("buildCitationMaps", () => {
-  it("builds anchorMap and keyMap from CitationRecord", () => {
+  it("builds sourceMatchMap and keyMap from CitationRecord", () => {
     const citations: Record<string, Citation> = {
-      hash1: { type: "document", citationNumber: 1, anchorText: "claim one" },
-      hash2: { type: "document", citationNumber: 2, anchorText: "claim two" },
+      hash1: { type: "document", citationNumber: 1, sourceMatch: "claim one" },
+      hash2: { type: "document", citationNumber: 2, sourceMatch: "claim two" },
     };
-    const { anchorMap, keyMap } = buildCitationMaps(citations);
-    expect(anchorMap).toEqual({ "1": "claim one", "2": "claim two" });
+    const { sourceMatchMap, keyMap } = buildCitationMaps(citations);
+    expect(sourceMatchMap).toEqual({ "1": "claim one", "2": "claim two" });
     expect(keyMap).toEqual({ "cite-1": "hash1", "cite-2": "hash2" });
   });
 
-  it("skips citations without citationNumber or anchorText", () => {
+  it("skips citations without citationNumber or sourceMatch", () => {
     const citations: Record<string, Citation> = {
       hash1: { type: "document", citationNumber: 1 },
-      hash2: { type: "document", anchorText: "no number" },
-      hash3: { type: "document", citationNumber: 3, anchorText: "valid" },
+      hash2: { type: "document", sourceMatch: "no number" },
+      hash3: { type: "document", citationNumber: 3, sourceMatch: "valid" },
     };
-    const { anchorMap, keyMap } = buildCitationMaps(citations);
-    expect(anchorMap).toEqual({ "3": "valid" });
+    const { sourceMatchMap, keyMap } = buildCitationMaps(citations);
+    expect(sourceMatchMap).toEqual({ "3": "valid" });
     expect(keyMap).toEqual({ "cite-3": "hash3" });
   });
 
   it("returns empty maps for empty input", () => {
-    const { anchorMap, keyMap } = buildCitationMaps({});
-    expect(anchorMap).toEqual({});
+    const { sourceMatchMap, keyMap } = buildCitationMaps({});
+    expect(sourceMatchMap).toEqual({});
     expect(keyMap).toEqual({});
   });
 });
@@ -42,7 +42,7 @@ describe("replaceCitationMarkers", () => {
   it("replaces data-cite with data-citation-key and strips [N] markers", () => {
     const html = '<span data-cite="1">claim</span> text [1] end';
     const citations: Record<string, Citation> = {
-      abc123: { type: "document", citationNumber: 1, anchorText: "claim" },
+      abc123: { type: "document", citationNumber: 1, sourceMatch: "claim" },
     };
     const result = replaceCitationMarkers(html, citations);
     expect(result).toBe('<span data-citation-key="abc123">claim</span> text end');
@@ -51,8 +51,8 @@ describe("replaceCitationMarkers", () => {
   it("handles multiple citations", () => {
     const html = '<span data-cite="1">a</span> [1] <span data-cite="2">b</span> [2]';
     const citations: Record<string, Citation> = {
-      h1: { type: "document", citationNumber: 1, anchorText: "a" },
-      h2: { type: "document", citationNumber: 2, anchorText: "b" },
+      h1: { type: "document", citationNumber: 1, sourceMatch: "a" },
+      h2: { type: "document", citationNumber: 2, sourceMatch: "b" },
     };
     const result = replaceCitationMarkers(html, citations);
     expect(result).toContain('data-citation-key="h1"');
@@ -140,7 +140,7 @@ describe("injectCdnRuntime", () => {
   it("auto-fixes display-label for paraphrase inlines (verify --markdown parity)", () => {
     const html = '<html><body><span data-citation-key="abc123">motor vehicle</span></body></html>';
     const verifications = {
-      abc123: { status: "found", citation: { anchorText: "Each parking unit shall" } },
+      abc123: { status: "found", citation: { sourceMatch: "Each parking unit shall" } },
     };
     const result = injectCdnRuntime(html, verifications, { "cite-1": "abc123" });
     expect(result.html).toContain('data-dc-display-label="motor vehicle"');
@@ -148,12 +148,12 @@ describe("injectCdnRuntime", () => {
     expect(result.html).toContain('data-citation-key="abc123"');
   });
 
-  it("does NOT auto-fix when visible text is a substring of anchorText", () => {
+  it("does NOT auto-fix when visible text is a substring of sourceMatch", () => {
     // "parking unit" appears inside "Each parking unit shall" → no annotation needed
     // because the trigger label is consistent with the anchor.
     const html = '<html><body><span data-citation-key="abc123">parking unit</span></body></html>';
     const verifications = {
-      abc123: { status: "found", citation: { anchorText: "Each parking unit shall" } },
+      abc123: { status: "found", citation: { sourceMatch: "Each parking unit shall" } },
     };
     const result = injectCdnRuntime(html, verifications, {});
     expect(result.html).not.toContain("data-dc-display-label=");
@@ -161,10 +161,10 @@ describe("injectCdnRuntime", () => {
 });
 
 describe("autoFixDisplayLabels", () => {
-  it("stamps data-dc-display-label when visible text is not in anchorText", () => {
+  it("stamps data-dc-display-label when visible text is not in sourceMatch", () => {
     const html = '<p data-citation-key="h1">motor vehicle</p>';
     const result = autoFixDisplayLabels(html, {
-      h1: { citation: { anchorText: "Each parking unit shall" } },
+      h1: { citation: { sourceMatch: "Each parking unit shall" } },
     });
     expect(result.html).toContain('data-dc-display-label="motor vehicle"');
     expect(result.log).toHaveLength(1);
@@ -173,7 +173,7 @@ describe("autoFixDisplayLabels", () => {
   it("skips elements that already have data-dc-display-label", () => {
     const html = '<p data-citation-key="h1" data-dc-display-label="custom">visible</p>';
     const result = autoFixDisplayLabels(html, {
-      h1: { citation: { anchorText: "completely different" } },
+      h1: { citation: { sourceMatch: "completely different" } },
     });
     // Should not add a second data-dc-display-label
     expect(result.html.match(/data-dc-display-label/g)).toHaveLength(1);
@@ -191,7 +191,7 @@ describe("autoFixDisplayLabels", () => {
   it("escapes quotes in the visible text", () => {
     const html = '<p data-citation-key="h1">say "hi"</p>';
     const result = autoFixDisplayLabels(html, {
-      h1: { citation: { anchorText: "completely different" } },
+      h1: { citation: { sourceMatch: "completely different" } },
     });
     expect(result.html).toContain('data-dc-display-label="say &quot;hi&quot;"');
   });
@@ -199,7 +199,7 @@ describe("autoFixDisplayLabels", () => {
   it("strips inner HTML to compute visible text", () => {
     const html = '<p data-citation-key="h1"><em>motor</em> <em>vehicle</em></p>';
     const result = autoFixDisplayLabels(html, {
-      h1: { citation: { anchorText: "Each parking unit shall" } },
+      h1: { citation: { sourceMatch: "Each parking unit shall" } },
     });
     expect(result.html).toContain('data-dc-display-label="motor vehicle"');
   });

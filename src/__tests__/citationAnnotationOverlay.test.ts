@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { computeBracketTarget, shouldHighlightAnchorText } from "../drawing/citationDrawing";
+import { computeBracketTarget, shouldHighlightSourceMatch } from "../drawing/citationDrawing";
 import { isValidOverlayGeometry, toPercentRect, wordCount } from "../react/overlayGeometry";
 import type { DeepTextItem } from "../types/boxes";
 
@@ -129,48 +129,48 @@ describe("CitationAnnotationOverlay utilities", () => {
     });
   });
 
-  describe("shouldHighlightAnchorText", () => {
+  describe("shouldHighlightSourceMatch", () => {
     it("returns false for null/undefined inputs", () => {
-      expect(shouldHighlightAnchorText(null, "hello world")).toBe(false);
-      expect(shouldHighlightAnchorText("hello", null)).toBe(false);
-      expect(shouldHighlightAnchorText(undefined, undefined)).toBe(false);
+      expect(shouldHighlightSourceMatch(null, "hello world")).toBe(false);
+      expect(shouldHighlightSourceMatch("hello", null)).toBe(false);
+      expect(shouldHighlightSourceMatch(undefined, undefined)).toBe(false);
     });
 
-    it("returns true when anchorText equals fullPhrase (visual gate is in computeKeySpanHighlight)", () => {
-      expect(shouldHighlightAnchorText("hello world", "hello world")).toBe(true);
+    it("returns true when sourceMatch equals sourceContext (visual gate is in computeKeySpanHighlight)", () => {
+      expect(shouldHighlightSourceMatch("hello world", "hello world")).toBe(true);
     });
 
-    it("returns true when anchorText has more words than fullPhrase", () => {
-      expect(shouldHighlightAnchorText("the quick brown fox", "quick brown")).toBe(true);
+    it("returns true when sourceMatch has more words than sourceContext", () => {
+      expect(shouldHighlightSourceMatch("the quick brown fox", "quick brown")).toBe(true);
     });
 
     it("returns true for 2 words in 3 words", () => {
-      expect(shouldHighlightAnchorText("quick brown", "the quick brown")).toBe(true);
+      expect(shouldHighlightSourceMatch("quick brown", "the quick brown")).toBe(true);
     });
 
     it("returns true for 2 words in 4 words", () => {
-      expect(shouldHighlightAnchorText("quick brown", "the quick brown fox")).toBe(true);
+      expect(shouldHighlightSourceMatch("quick brown", "the quick brown fox")).toBe(true);
     });
 
     it("returns true for 1 word in 3 words", () => {
-      expect(shouldHighlightAnchorText("brown", "the quick brown")).toBe(true);
+      expect(shouldHighlightSourceMatch("brown", "the quick brown")).toBe(true);
     });
 
     it("returns true for 1 word in 2 words", () => {
-      expect(shouldHighlightAnchorText("hello", "hello world")).toBe(true);
+      expect(shouldHighlightSourceMatch("hello", "hello world")).toBe(true);
     });
 
     it("returns true for 1 word in 1 word (visual distinctness decided downstream)", () => {
-      expect(shouldHighlightAnchorText("hello", "world")).toBe(true);
+      expect(shouldHighlightSourceMatch("hello", "world")).toBe(true);
     });
 
     it("returns false for empty strings", () => {
-      expect(shouldHighlightAnchorText("", "hello world")).toBe(false);
-      expect(shouldHighlightAnchorText("hello", "")).toBe(false);
+      expect(shouldHighlightSourceMatch("", "hello world")).toBe(false);
+      expect(shouldHighlightSourceMatch("hello", "")).toBe(false);
     });
 
     it("returns false for whitespace-only strings", () => {
-      expect(shouldHighlightAnchorText("   ", "hello world")).toBe(false);
+      expect(shouldHighlightSourceMatch("   ", "hello world")).toBe(false);
     });
   });
 
@@ -181,7 +181,7 @@ describe("CitationAnnotationOverlay utilities", () => {
 
     const broadPhraseLine = makeItem(252, 1212, 748, 31, "10 John Doe 50 / M Full NKDA contact CONSULTS");
 
-    it("returns bounding hull of anchorTextMatchDeepItems when available", () => {
+    it("returns bounding hull of sourceMatchDeepItems when available", () => {
       // "NKDA" is a single word at x=644, w=63 — should NOT use the broad phrase line
       const anchorItems = [makeItem(644, 1210, 63, 20, "NKDA")];
       const result = computeBracketTarget(broadPhraseLine, anchorItems);
@@ -210,7 +210,7 @@ describe("CitationAnnotationOverlay utilities", () => {
       expect(result.height).toBe(1235 - 1208); // 27
     });
 
-    it("falls back to phraseMatchDeepItem when anchorTextMatchDeepItems is undefined", () => {
+    it("falls back to sourceContextDeepItem when sourceMatchDeepItems is undefined", () => {
       const result = computeBracketTarget(broadPhraseLine, undefined);
 
       expect(result.x).toBe(broadPhraseLine.x);
@@ -219,7 +219,7 @@ describe("CitationAnnotationOverlay utilities", () => {
       expect(result.height).toBe(broadPhraseLine.height);
     });
 
-    it("falls back to phraseMatchDeepItem when anchorTextMatchDeepItems is empty", () => {
+    it("falls back to sourceContextDeepItem when sourceMatchDeepItems is empty", () => {
       const result = computeBracketTarget(broadPhraseLine, []);
 
       expect(result.x).toBe(broadPhraseLine.x);
@@ -238,7 +238,7 @@ describe("CitationAnnotationOverlay utilities", () => {
     });
 
     it("real-world: radial art line anchor should not span entire chart section", () => {
-      // phraseMatchDeepItem covers a massive area (many OCR lines merged)
+      // sourceContextDeepItem covers a massive area (many OCR lines merged)
       const massivePhrase = makeItem(
         200,
         800,

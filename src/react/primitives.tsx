@@ -28,14 +28,14 @@ export interface CitationRootProps {
   citation: Citation;
   verification?: Verification | null;
   children: ReactNode;
-  fallbackDisplay?: string | null;
+  fallbackText?: string | null;
   pendingContent?: ReactNode;
 }
 
 /** Root component that provides citation context to all child primitives. */
 export const CitationRoot = forwardRef<HTMLSpanElement, CitationRootProps & HTMLAttributes<HTMLSpanElement>>(
   (
-    { citation, verification = null, children, fallbackDisplay = null, pendingContent = "..", className, ...props },
+    { citation, verification = null, children, fallbackText = null, pendingContent = "..", className, ...props },
     ref,
   ) => {
     const citationKey = useMemo(() => getCitationKey(citation), [citation]);
@@ -50,11 +50,11 @@ export const CitationRoot = forwardRef<HTMLSpanElement, CitationRootProps & HTML
         status,
         verification,
         config: {
-          fallbackDisplay,
+          fallbackText,
           pendingContent,
         },
       }),
-      [citation, citationKey, citationInstanceId, status, verification, fallbackDisplay, pendingContent],
+      [citation, citationKey, citationInstanceId, status, verification, fallbackText, pendingContent],
     );
 
     return (
@@ -255,7 +255,7 @@ export const CitationNumber = forwardRef<HTMLSpanElement, CitationNumberProps>(
 
     const displayNumber = useMemo(() => {
       if (number !== undefined) return String(number);
-      return citation.anchorText?.toString() || citation.citationNumber?.toString() || config.fallbackDisplay || "1";
+      return citation.sourceMatch?.toString() || citation.citationNumber?.toString() || config.fallbackText || "1";
     }, [number, citation, config]);
 
     if (status.isPending) {
@@ -277,19 +277,19 @@ export const CitationNumber = forwardRef<HTMLSpanElement, CitationNumberProps>(
 CitationNumber.displayName = "Citation.Number";
 
 export interface CitationAnchorTextProps extends HTMLAttributes<HTMLSpanElement> {
-  anchorText?: string;
+  sourceMatch?: string;
   separator?: string;
 }
 
-/** Displays the citation anchorText (summary text). */
+/** Displays the citation sourceMatch (summary text). */
 export const CitationAnchorText = forwardRef<HTMLSpanElement, CitationAnchorTextProps>(
-  ({ className, anchorText, separator = " ", ...props }, ref) => {
+  ({ className, sourceMatch, separator = " ", ...props }, ref) => {
     const { citation } = useCitationContext();
 
     const displayKeySpan = useMemo(() => {
-      if (anchorText !== undefined) return anchorText;
-      return citation.anchorText?.toString() || "";
-    }, [anchorText, citation]);
+      if (sourceMatch !== undefined) return sourceMatch;
+      return citation.sourceMatch?.toString() || "";
+    }, [sourceMatch, citation]);
 
     if (!displayKeySpan) return null;
 
@@ -420,10 +420,10 @@ export const CitationPhrase = forwardRef<HTMLSpanElement, CitationPhraseProps>(
     const { citation } = useCitationContext();
 
     const displayPhrase = useMemo(() => {
-      const phrase = citation.fullPhrase || "";
+      const phrase = citation.sourceContext || "";
       if (!maxLength || phrase.length <= maxLength) return phrase;
       return phrase.slice(0, maxLength) + truncationSuffix;
-    }, [citation.fullPhrase, maxLength, truncationSuffix]);
+    }, [citation.sourceContext, maxLength, truncationSuffix]);
 
     if (!displayPhrase) return null;
 

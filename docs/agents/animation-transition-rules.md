@@ -302,7 +302,7 @@ Why: the keyhole image never upscales (`zoom = Math.min(1.0, …)`). For images 
 **Three sites encode the no-upscale invariant — they must move together**:
 1. `projectKeyholeDisplayedWidth()` in `react/constants.ts` — the shared projection helper.
 2. `usePopoverPosition.ts` width memo and `DefaultPopoverContent.tsx` initial-state seed — both delegate to the helper.
-3. `AnchorTextFocusedImage.stripHeightStyle` (above) — CSS `min()` on the container height.
+3. `EvidenceKeyhole.stripHeightStyle` (above) — CSS `min()` on the container height.
 
 See the `projectKeyholeDisplayedWidth` docstring for why `Math.min(1, …)` is load-bearing. Regression covered by `src/__tests__/projectKeyholeDisplayedWidth.test.ts`.
 

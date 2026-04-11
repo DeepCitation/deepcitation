@@ -421,7 +421,7 @@ describe("unauthenticated command errors", () => {
     mkdirSync(cwd, { recursive: true });
     writeFileSync(
       join(cwd, "cit.json"),
-      JSON.stringify({ c1: { attachmentId: "a", fullPhrase: "t", anchorText: "t", pageNumber: 1 } }),
+      JSON.stringify({ c1: { attachmentId: "a", sourceContext: "t", sourceMatch: "t", pageNumber: 1 } }),
     );
     const r = run(["verify", "--citations", join(cwd, "cit.json")], { env });
     expect(r.exitCode).toBe(1);

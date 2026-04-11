@@ -53,8 +53,8 @@ The company reported strong growth [1]. Revenue increased in Q4 [2].
 <<<CITATION_DATA>>>
 {
   "abc123": [
-    {"id": 1, "reasoning": "...", "full_phrase": "...", "anchor_text": "...", "page_id": "...", "line_ids": [12]},
-    {"id": 2, "reasoning": "...", "full_phrase": "...", "anchor_text": "...", "page_id": "...", "line_ids": [5]}
+    {"id": 1, "reasoning": "...", "source_context": "...", "source_match": "...", "page_id": "...", "line_ids": [12]},
+    {"id": 2, "reasoning": "...", "source_context": "...", "source_match": "...", "page_id": "...", "line_ids": [5]}
   ]
 }
 <<<END_CITATION_DATA>>>
@@ -107,8 +107,8 @@ by attachment_id to avoid repetition.
 <<<CITATION_DATA>>>
 {
   "attachment_id_here": [
-    {"id": 1, "reasoning": "why", "full_phrase": "quote",
-     "anchor_text": "key", "page_id": "page_number_2_index_1",
+    {"id": 1, "reasoning": "why", "source_context": "quote",
+     "source_match": "key", "page_id": "page_number_2_index_1",
      "line_ids": [12]}
   ]
 }
@@ -156,11 +156,11 @@ The wrapping strategy places instructions at the **start** and a reminder at the
 The citation JSON fields are ordered to encourage the model to think step by step:
 
 ```
-attachment_id -> reasoning -> full_phrase -> anchor_text -> page_id -> line_ids
+attachment_id -> reasoning -> source_context -> source_match -> page_id -> line_ids
 ```
 
 - `reasoning` comes first so the model articulates **why** before specifying **what**
-- `full_phrase` comes before `anchor_text` so the model produces the complete verbatim quote first, then extracts the anchor — ensuring `anchor_text` is always a valid substring of `full_phrase`
+- `source_context` comes before `source_match` so the model produces the complete verbatim quote first, then extracts the anchor — ensuring `source_match` is always a valid substring of `source_context`
 
 ---
 
@@ -195,8 +195,8 @@ The prompts tell the LLM that shorthand keys are accepted. This is optional — 
 |:---------|:----------|:--------|
 | `id` | `n` | `"n": 1` |
 | `reasoning` | `r` | `"r": "states growth"` |
-| `full_phrase` | `f` | `"f": "Revenue grew 45%"` |
-| `anchor_text` | `k` | `"k": "45%"` |
+| `source_context` | `f` | `"f": "Revenue grew 45%"` |
+| `source_match` | `k` | `"k": "45%"` |
 | `page_id` | `p` | `"p": "page_number_2_index_1"` |
 | `line_ids` | `l` | `"l": [12, 13]` |
 | `timestamps` | `t` | `"t": {"s": "00:05:23.000", "e": "00:05:45.500"}` |

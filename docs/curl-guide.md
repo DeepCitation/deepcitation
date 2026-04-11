@@ -69,11 +69,11 @@ curl -X POST "https://api.deepcitation.com/verifyCitations" \
       "attachmentId": "YOUR_ATTACHMENT_ID",
       "citations": {
         "1": {
-          "fullPhrase": "Revenue increased by 25%",
+          "sourceContext": "Revenue increased by 25%",
           "pageNumber": 1
         },
         "2": {
-          "fullPhrase": "Operating costs decreased",
+          "sourceContext": "Operating costs decreased",
           "value": "costs decreased"
         }
       },
@@ -124,7 +124,7 @@ VERIFY_RESPONSE=$(curl -s -X POST "$BASE_URL/verifyCitations" \
       \"attachmentId\": \"$ATTACHMENT_ID\",
       \"citations\": {
         \"1\": {
-          \"fullPhrase\": \"exact quote from document\",
+          \"sourceContext\": \"exact quote from document\",
           \"pageNumber\": 1
         }
       },

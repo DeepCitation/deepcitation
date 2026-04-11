@@ -25,8 +25,8 @@ const baseCitation: Citation = {
   attachmentId: "test-123",
   pageNumber: 1,
   lineIds: [5],
-  fullPhrase: "Revenue grew 45% in Q4.",
-  anchorText: "grew 45%",
+  sourceContext: "Revenue grew 45% in Q4.",
+  sourceMatch: "grew 45%",
   citationNumber: 1,
 };
 

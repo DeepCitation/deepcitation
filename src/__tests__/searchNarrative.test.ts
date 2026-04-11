@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { buildSearchNarrative } from "../react/searchNarrative";
+import { buildSearchNarrative } from "../analysis/narrative";
 import type { SearchAttempt } from "../types/search";
 
 describe("buildSearchNarrative", () => {
@@ -114,13 +114,13 @@ describe("buildSearchNarrative", () => {
   });
 
   describe("outcomeSummary", () => {
-    it("returns 'Exact match' for found with exact_full_phrase variation", () => {
+    it("returns 'Exact match' for found with exact_source_context variation", () => {
       const attempts: SearchAttempt[] = [
         {
           method: "exact_line_match",
           success: true,
           searchPhrase: "hello",
-          matchedVariation: "exact_full_phrase",
+          matchedVariation: "exact_source_context",
           pageSearched: 1,
         },
       ];

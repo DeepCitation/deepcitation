@@ -25,7 +25,7 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `CARET_INDICATOR_SIZE_STYLE` | `src/react/constants.ts` | Caret indicator sizing (0.7em, between dot and icon) |
 | `CARET_PILL_STYLE` | `src/react/constants.ts` | Pill wrapper padding for caret indicator |
 | `ChevronDownIcon` | `src/react/icons.tsx` | Down chevron for caret indicator variant |
-| `HighlightedPhrase` | `src/react/HighlightedPhrase.tsx` | Shared fullPhrase highlight component |
+| `HighlightedSourceContext` | `src/react/HighlightedSourceContext.tsx` | Shared sourceContext highlight component |
 | `formatCaptureDate()` | `src/react/dateUtils.ts` | Date formatting for timestamps |
 | `extractDomain()`, `isDomainMatch()` | `src/utils/urlSafety.ts` | Safe domain matching (never use `url.includes()`) |
 | `sanitizeForLog()`, `createLogEntry()` | `src/utils/logSafety.ts` | Log injection prevention |
@@ -64,9 +64,10 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `InlineExpandedImage` | `src/react/evidence/InlineExpandedImage.tsx` | Expanded page image viewer with zoom + arrow-key pan |
 | `DefaultPopoverContent` | `src/react/DefaultPopoverContent.tsx` | Three-zone popover layout (success/partial/miss) |
 | `CitationStatusIndicator` | `src/react/CitationStatusIndicator.tsx` | Unified status indicator component |
-| `CitationContentDisplay` | `src/react/CitationContentDisplay.tsx` | Variant rendering (chip, superscript, badge, etc.) |
+| `CitationTriggerContent` | `src/react/CitationTriggerContent.tsx` | Variant rendering (chip, superscript, badge, etc.) |
 | `getUrlAccessExplanation()` | `src/react/urlAccessExplanation.ts` | URL access failure explanation mapping |
-| `UrlAccessExplanationSection` | `src/react/DefaultPopoverContent.tsx` | URL access failure display component (private) |
+| `UrlAccessExplanationSection` | `src/react/UrlAccessExplanationSection.tsx` | URL access failure display component |
+| `SnippetZone` | `src/react/SnippetZone.tsx` | Closest-match snippets for partial/miss citations |
 | `CitationErrorBoundary` | `src/react/CitationErrorBoundary.tsx` | Error boundary for citation components |
 | `SearchAnalysisSummary` | `src/react/evidence/SearchAnalysisSummary.tsx` | Search attempt display component |
 | `SUPERSCRIPT_STYLE` | `src/react/constants.ts` | Superscript inline styles |
@@ -77,7 +78,7 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `VT_EVIDENCE_EXPAND_MS` | `src/react/constants.ts` | Evidence image VT expand duration (180ms) |
 | `VT_EVIDENCE_COLLAPSE_MS` | `src/react/constants.ts` | Evidence image VT collapse duration (120ms) |
 | `VT_EVIDENCE_DIP_OPACITY` | `src/react/constants.ts` | Cross-fade old-snapshot opacity dip (0.45) |
-| `isStrategyOverride()` | `src/drawing/citationDrawing.ts` | True when verifiedFullPhrase === verifiedAnchorText |
+| `isStrategyOverride()` | `src/drawing/citationDrawing.ts` | True when verifiedSourceContext === verifiedSourceMatch |
 | `acquireScrollLock()`, `releaseScrollLock()` | `src/react/scrollLock.ts` | Ref-counted body scroll lock (shared by popover + drawer) |
 | `triggerHaptic()` | `src/react/haptics.ts` | Fire haptic feedback for a named interaction event |
 | `HapticEvent` | `src/react/haptics.ts` | Union type of haptic event names ("expand" \| "collapse") |
@@ -100,8 +101,8 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `deriveContextWindow()` | `src/react/searchSummaryUtils.ts` | Context window derivation from attempts |
 | `EXPANDED_POPOVER_MID_WIDTH` | `src/react/expandedWidthPolicy.ts` | Mid-width fallback for expanded popover states |
 | `getExpandedPopoverWidth()` | `src/react/expandedWidthPolicy.ts` | Computes expanded popover width from image width |
-| `getInteractionClasses()` | `src/react/CitationContentDisplay.utils.ts` | Hover/active interaction classes for citation triggers |
-| `VARIANTS_WITH_OWN_HOVER` | `src/react/CitationContentDisplay.utils.ts` | Set of variants handling own hover styling |
+| `getInteractionClasses()` | `src/react/CitationTriggerContent.utils.ts` | Hover/active interaction classes for citation triggers |
+| `VARIANTS_WITH_OWN_HOVER` | `src/react/CitationTriggerContent.utils.ts` | Set of variants handling own hover styling |
 | `openedViaKeyboardRef` | `src/react/Citation.tsx` | Tracks keyboard vs mouse/touch open (focus trap + focus return) |
 | `UrlCitationComponent` | `src/react/UrlCitationComponent.tsx` | URL citation display (badge/chip/inline/bracket variants); re-exported from `Citation.tsx` |
 | `MemoizedUrlCitationComponent` | `src/react/UrlCitationComponent.tsx` | Memoized URL citation component; re-exported from `Citation.tsx` |

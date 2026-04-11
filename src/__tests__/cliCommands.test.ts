@@ -446,7 +446,7 @@ describe("inject command", () => {
     );
   });
 
-  it("auto-fixes display-label when visible text differs from anchorText", async () => {
+  it("auto-fixes display-label when visible text differs from sourceMatch", async () => {
     const htmlPath = join(tmpDir, "test.html");
     const verifyPath = join(tmpDir, "verify.json");
     const outPath = join(tmpDir, "out.html");
@@ -456,7 +456,7 @@ describe("inject command", () => {
       verifyPath,
       JSON.stringify({
         verifications: {
-          abc123: { status: "found", citation: { anchorText: "completely different anchor text" } },
+          abc123: { status: "found", citation: { sourceMatch: "completely different anchor text" } },
         },
       }),
     );
@@ -484,8 +484,8 @@ describe("keygen command", () => {
       citPath,
       JSON.stringify({
         "my-label": {
-          fullPhrase: "test phrase",
-          anchorText: "test",
+          sourceContext: "test phrase",
+          sourceMatch: "test",
           pageNumber: 1,
           lineIds: [1],
           attachmentId: "att-1",
@@ -507,8 +507,8 @@ describe("keygen command", () => {
       citPath,
       JSON.stringify({
         "label-1": {
-          fullPhrase: "test phrase",
-          anchorText: "test",
+          sourceContext: "test phrase",
+          sourceMatch: "test",
           pageNumber: 1,
           lineIds: [1],
           attachmentId: "att-1",
@@ -531,7 +531,7 @@ describe("keygen command", () => {
   it("produces deterministic keys", async () => {
     const citPath = join(tmpDir, "citations.json");
     const data = {
-      a: { fullPhrase: "same phrase", anchorText: "same", pageNumber: 1, lineIds: [1], attachmentId: "att-1" },
+      a: { sourceContext: "same phrase", sourceMatch: "same", pageNumber: 1, lineIds: [1], attachmentId: "att-1" },
     };
     writeFileSync(citPath, JSON.stringify(data));
 
@@ -735,7 +735,7 @@ describe("verify command (--citations mode)", () => {
   it("exits on invalid --image-format", async () => {
     const tmpDir = makeTmpDir();
     const citPath = join(tmpDir, "citations.json");
-    writeFileSync(citPath, JSON.stringify({ key1: { attachmentId: "a", fullPhrase: "x" } }));
+    writeFileSync(citPath, JSON.stringify({ key1: { attachmentId: "a", sourceContext: "x" } }));
 
     await expect(
       captureOutput(() => verify(["--citations", citPath, "--image-format", "gif"], fmtNetErr)),
@@ -745,7 +745,7 @@ describe("verify command (--citations mode)", () => {
   it("exits when citations are missing attachmentId", async () => {
     const tmpDir = makeTmpDir();
     const citPath = join(tmpDir, "citations.json");
-    writeFileSync(citPath, JSON.stringify({ key1: { fullPhrase: "x" } }));
+    writeFileSync(citPath, JSON.stringify({ key1: { sourceContext: "x" } }));
 
     await expect(captureOutput(() => verify(["--citations", citPath], fmtNetErr))).rejects.toThrow("process.exit(1)");
   });
@@ -760,9 +760,9 @@ describe("verify command (--citations mode)", () => {
     writeFileSync(
       citPath,
       JSON.stringify({
-        key1: { attachmentId: "att-1", fullPhrase: "phrase 1", anchorText: "anchor 1", pageNumber: 1 },
-        key2: { attachmentId: "att-1", fullPhrase: "phrase 2", anchorText: "anchor 2", pageNumber: 2 },
-        key3: { attachmentId: "att-2", fullPhrase: "phrase 3", anchorText: "anchor 3", pageNumber: 1 },
+        key1: { attachmentId: "att-1", sourceContext: "phrase 1", sourceMatch: "anchor 1", pageNumber: 1 },
+        key2: { attachmentId: "att-1", sourceContext: "phrase 2", sourceMatch: "anchor 2", pageNumber: 2 },
+        key3: { attachmentId: "att-2", sourceContext: "phrase 3", sourceMatch: "anchor 3", pageNumber: 1 },
       }),
     );
 
@@ -963,52 +963,52 @@ Raw OCR line B`,
 });
 
 describe("hydrateCitations", () => {
-  // Hydration always widens the cited range by ±1 so full_phrase is reliably
-  // broader than anchor_text — otherwise HighlightedPhrase has nothing to
+  // Hydration always widens the cited range by ±1 so source_context is reliably
+  // broader than source_match — otherwise HighlightedSourceContext has nothing to
   // highlight inside the popover quote when the cited line happens to equal
   // the anchor verbatim (OCR-fragmented sources).
-  it("fills full_phrase from a single lineId and pulls ±1 neighbor lines", () => {
-    const citations = [{ id: 1, anchor_text: "Discount Rate", page_id: "page_number_1_index_0", line_ids: [1] }];
+  it("fills source_context from a single lineId and pulls ±1 neighbor lines", () => {
+    const citations = [{ id: 1, source_match: "Discount Rate", page_id: "page_number_1_index_0", line_ids: [1] }];
     const { hydrated, misses } = hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
     expect(hydrated).toBe(1);
     expect(misses).toEqual([]);
-    expect(citations[0].full_phrase).toBe(
+    expect(citations[0].source_context).toBe(
       "The Discount Rate is 80% of the lowest price per share. The Purchase Amount is the amount invested.",
     );
   });
 
   it("concatenates text for multi-lineId citations and pulls ±1 neighbor lines", () => {
-    const citations = [{ id: 1, anchor_text: "Purchase Amount", page_id: "page_number_1_index_0", line_ids: [2, 3] }];
+    const citations = [{ id: 1, source_match: "Purchase Amount", page_id: "page_number_1_index_0", line_ids: [2, 3] }];
     hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
-    expect(citations[0].full_phrase).toBe(
+    expect(citations[0].source_context).toBe(
       "The Discount Rate is 80% of the lowest price per share. The Purchase Amount is the amount invested. A Dissolution Event means a liquidation.",
     );
   });
 
-  it("skips citations that already have full_phrase", () => {
-    const citations = [{ id: 1, full_phrase: "existing phrase", line_ids: [1] }];
+  it("skips citations that already have source_context", () => {
+    const citations = [{ id: 1, source_context: "existing phrase", line_ids: [1] }];
     const { hydrated } = hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
     expect(hydrated).toBe(0);
-    expect(citations[0].full_phrase).toBe("existing phrase");
+    expect(citations[0].source_context).toBe("existing phrase");
   });
 
   it("adds to misses when lineId is not found in summary", () => {
-    const citations = [{ id: 1, anchor_text: "Something", line_ids: [999] }];
+    const citations = [{ id: 1, source_match: "Something", line_ids: [999] }];
     const { hydrated, misses } = hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
     expect(hydrated).toBe(0);
     expect(misses).toEqual([1]);
-    expect(citations[0].full_phrase).toBeUndefined();
+    expect(citations[0].source_context).toBeUndefined();
   });
 
   it("adds to misses when line_ids is empty", () => {
-    const citations = [{ id: 2, anchor_text: "Something", line_ids: [] }];
+    const citations = [{ id: 2, source_match: "Something", line_ids: [] }];
     const { hydrated, misses } = hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
     expect(hydrated).toBe(0);
     expect(misses).toEqual([2]);
   });
 
   it("adds to misses when line_ids is absent", () => {
-    const citations = [{ id: 3, anchor_text: "Something" }];
+    const citations = [{ id: 3, source_match: "Something" }];
     const { hydrated, misses } = hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
     expect(hydrated).toBe(0);
     expect(misses).toEqual([3]);
@@ -1020,17 +1020,17 @@ describe("hydrateCitations", () => {
   // is what prevents that.
   it("uses qualified map when page_id matches and pulls ±1 neighbor lines", () => {
     const citations = [
-      { id: 1, anchor_text: "page one line one", page_id: "page_number_1_index_0", line_ids: [1] },
-      { id: 2, anchor_text: "page two line one", page_id: "page_number_2_index_0", line_ids: [1] },
+      { id: 1, source_match: "page one line one", page_id: "page_number_1_index_0", line_ids: [1] },
+      { id: 2, source_match: "page two line one", page_id: "page_number_2_index_0", line_ids: [1] },
     ];
     hydrateCitations({ summaryContent: MULTI_PAGE_SUMMARY, citations });
-    expect(citations[0].full_phrase).toBe("Page one line one. Page one line two.");
-    expect(citations[1].full_phrase).toBe("Page two line one.");
+    expect(citations[0].source_context).toBe("Page one line one. Page one line two.");
+    expect(citations[1].source_context).toBe("Page two line one.");
   });
 });
 
 describe("hydrate CLI command", () => {
-  it("fills full_phrase in draft file and writes output", async () => {
+  it("fills source_context in draft file and writes output", async () => {
     const tmpDir = makeTmpDir();
     const mdPath = join(tmpDir, "draft.md");
     const summaryPath = join(tmpDir, "summary.txt");
@@ -1040,7 +1040,7 @@ describe("hydrate CLI command", () => {
       `The [Discount Rate](cite:1) is 80%.
 
 <<<CITATION_DATA>>>
-[{"id":1,"attachment_id":"att-123","anchor_text":"Discount Rate","page_id":"page_number_1_index_0","line_ids":[1]}]
+[{"id":1,"attachment_id":"att-123","source_match":"Discount Rate","page_id":"page_number_1_index_0","line_ids":[1]}]
 <<<END_CITATION_DATA>>>
 `,
     );
@@ -1052,7 +1052,7 @@ describe("hydrate CLI command", () => {
       readFileSync(mdPath, "utf-8").split("<<<CITATION_DATA>>>")[1].split("<<<END_CITATION_DATA>>>")[0].trim(),
     );
     // Cited [1], expanded to [1, 2] by the neighbor-line widening.
-    expect(result[0].full_phrase).toBe(
+    expect(result[0].source_context).toBe(
       "The Discount Rate is 80% of the lowest price per share. The Purchase Amount is the amount invested.",
     );
     expect(stderr).toContain("Hydrated 1 citation(s)");

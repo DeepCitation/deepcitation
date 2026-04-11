@@ -16,9 +16,9 @@ const PAGE_IMAGE_URL = "https://cdn.deepcitation.com/proof/page1.avif";
 const fullData: VerificationData = {
   status: "found",
   label: "Test Document",
-  verifiedFullPhrase: "The quick brown fox jumps over the lazy dog.",
-  verifiedAnchorText: "quick brown fox",
-  verifiedMatchSnippet: "The quick brown fox jumps",
+  verifiedSourceContext: "The quick brown fox jumps over the lazy dog.",
+  verifiedSourceMatch: "quick brown fox",
+  sourceSnippet: "The quick brown fox jumps",
   evidence: { src: EVIDENCE_SRC, dimensions: { width: 800, height: 150 } },
   document: { verifiedPageNumber: 3, mimeType: "application/pdf" },
   url: {
@@ -27,7 +27,7 @@ const fullData: VerificationData = {
     verifiedDomain: "example.com",
     verifiedFaviconUrl: "https://example.com/favicon.ico",
   },
-  citation: { fullPhrase: "The quick brown fox", anchorText: "brown fox", type: "url" },
+  citation: { sourceContext: "The quick brown fox", sourceMatch: "brown fox", type: "url" },
   searchAttempts: [
     {
       method: "exact_line_match",
@@ -55,7 +55,7 @@ describe("mapToVerification", () => {
     const r = mapToVerification(fullData);
     expect(r.status).toBe("found");
     expect(r.label).toBe("Test Document");
-    expect(r.verifiedFullPhrase).toBe("The quick brown fox jumps over the lazy dog.");
+    expect(r.verifiedSourceContext).toBe("The quick brown fox jumps over the lazy dog.");
   });
   it("preserves evidence image", () => {
     const r = mapToVerification(fullData);
@@ -110,7 +110,7 @@ describe("mapToCitation", () => {
   it("creates url citation", () => {
     const r = mapToCitation(fullData);
     expect(r.type).toBe("url");
-    expect(r.fullPhrase).toBe("The quick brown fox");
+    expect(r.sourceContext).toBe("The quick brown fox");
     if (r.type === "url") {
       expect(r.url).toBe("https://example.com/doc.pdf");
       expect(r.domain).toBe("example.com");
@@ -119,20 +119,20 @@ describe("mapToCitation", () => {
   it("creates document citation", () => {
     const r = mapToCitation({
       ...fullData,
-      citation: { fullPhrase: "Some phrase", anchorText: "phrase", type: "document" },
+      citation: { sourceContext: "Some phrase", sourceMatch: "phrase", type: "document" },
     });
     expect(r.type).toBe("document");
   });
   it("defaults to document when type absent", () => {
-    expect(mapToCitation({ ...fullData, citation: { fullPhrase: "Test" } }).type).toBe("document");
+    expect(mapToCitation({ ...fullData, citation: { sourceContext: "Test" } }).type).toBe("document");
   });
-  it("falls back to verifiedFullPhrase", () => {
-    expect(mapToCitation({ ...fullData, citation: undefined }).fullPhrase).toBe(
+  it("falls back to verifiedSourceContext", () => {
+    expect(mapToCitation({ ...fullData, citation: undefined }).sourceContext).toBe(
       "The quick brown fox jumps over the lazy dog.",
     );
   });
   it("returns empty string when both absent", () => {
-    expect(mapToCitation(minData).fullPhrase).toBe("");
+    expect(mapToCitation(minData).sourceContext).toBe("");
   });
 });
 
@@ -142,7 +142,7 @@ describe("CDN popover viewState contract", () => {
       const [viewState, setViewState] = useState<PopoverViewState>("summary");
       return (
         <DefaultPopoverContent
-          citation={{ type: "document", fullPhrase: "Test" }}
+          citation={{ type: "document", sourceContext: "Test" }}
           verification={{ status: "found", evidence: { src: EVIDENCE_SRC } }}
           status={{ isVerified: true, isMiss: false, isPartialMatch: false, isPending: false }}
           viewState={viewState}
@@ -163,7 +163,7 @@ describe("CDN popover viewState contract", () => {
       const [viewState, setViewState] = useState<PopoverViewState>("summary");
       return (
         <DefaultPopoverContent
-          citation={{ type: "document", fullPhrase: "Test" }}
+          citation={{ type: "document", sourceContext: "Test" }}
           verification={{ status: "found", evidence: { src: EVIDENCE_SRC } }}
           pageImages={pageImages}
           status={{ isVerified: true, isMiss: false, isPartialMatch: false, isPending: false }}

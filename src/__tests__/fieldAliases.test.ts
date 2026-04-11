@@ -6,8 +6,8 @@ import { getFieldAliases, normalizeCitationFields, resolveField, resolveFieldNam
 
 describe("resolveFieldName", () => {
   it("returns canonical name for camelCase input", () => {
-    expect(resolveFieldName("anchorText")).toBe("anchorText");
-    expect(resolveFieldName("fullPhrase")).toBe("fullPhrase");
+    expect(resolveFieldName("sourceMatch")).toBe("sourceMatch");
+    expect(resolveFieldName("sourceContext")).toBe("sourceContext");
     expect(resolveFieldName("attachmentId")).toBe("attachmentId");
     expect(resolveFieldName("startPageId")).toBe("startPageId");
     expect(resolveFieldName("lineIds")).toBe("lineIds");
@@ -16,8 +16,8 @@ describe("resolveFieldName", () => {
   });
 
   it("resolves snake_case to camelCase", () => {
-    expect(resolveFieldName("anchor_text")).toBe("anchorText");
-    expect(resolveFieldName("full_phrase")).toBe("fullPhrase");
+    expect(resolveFieldName("source_match")).toBe("sourceMatch");
+    expect(resolveFieldName("source_context")).toBe("sourceContext");
     expect(resolveFieldName("attachment_id")).toBe("attachmentId");
     expect(resolveFieldName("start_page_id")).toBe("startPageId");
     expect(resolveFieldName("line_ids")).toBe("lineIds");
@@ -29,8 +29,8 @@ describe("resolveFieldName", () => {
   });
 
   it("resolves kebab-case to camelCase", () => {
-    expect(resolveFieldName("anchor-text")).toBe("anchorText");
-    expect(resolveFieldName("full-phrase")).toBe("fullPhrase");
+    expect(resolveFieldName("anchor-text")).toBe("sourceMatch");
+    expect(resolveFieldName("full-phrase")).toBe("sourceContext");
     expect(resolveFieldName("attachment-id")).toBe("attachmentId");
     expect(resolveFieldName("start-page-id")).toBe("startPageId");
     expect(resolveFieldName("line-ids")).toBe("lineIds");
@@ -42,9 +42,9 @@ describe("resolveFieldName", () => {
   });
 
   it("resolves shortened LLM names to canonical", () => {
-    expect(resolveFieldName("anchor")).toBe("anchorText");
-    expect(resolveFieldName("phrase")).toBe("fullPhrase");
-    expect(resolveFieldName("full")).toBe("fullPhrase");
+    expect(resolveFieldName("anchor")).toBe("sourceMatch");
+    expect(resolveFieldName("phrase")).toBe("sourceContext");
+    expect(resolveFieldName("full")).toBe("sourceContext");
     expect(resolveFieldName("page")).toBe("pageNumber");
     expect(resolveFieldName("lines")).toBe("lineIds");
     expect(resolveFieldName("desc")).toBe("description");
@@ -52,10 +52,15 @@ describe("resolveFieldName", () => {
     expect(resolveFieldName("timestamp")).toBe("timestamps");
   });
 
+  it("resolves old canonical names (anchorText, fullPhrase) to new canonical", () => {
+    expect(resolveFieldName("anchorText")).toBe("sourceMatch");
+    expect(resolveFieldName("fullPhrase")).toBe("sourceContext");
+  });
+
   it("resolves legacy field names (keySpan, key_span, fileId, etc.)", () => {
-    expect(resolveFieldName("keySpan")).toBe("anchorText");
-    expect(resolveFieldName("key_span")).toBe("anchorText");
-    expect(resolveFieldName("key-span")).toBe("anchorText");
+    expect(resolveFieldName("keySpan")).toBe("sourceMatch");
+    expect(resolveFieldName("key_span")).toBe("sourceMatch");
+    expect(resolveFieldName("key-span")).toBe("sourceMatch");
     expect(resolveFieldName("fileId")).toBe("attachmentId");
     expect(resolveFieldName("file_id")).toBe("attachmentId");
     expect(resolveFieldName("file-id")).toBe("attachmentId");
@@ -76,10 +81,10 @@ describe("resolveFieldName", () => {
   });
 
   it("is case-insensitive", () => {
-    expect(resolveFieldName("ANCHOR_TEXT")).toBe("anchorText");
-    expect(resolveFieldName("Full_Phrase")).toBe("fullPhrase");
-    expect(resolveFieldName("ANCHORTEXT")).toBe("anchorText");
-    expect(resolveFieldName("FullPhrase")).toBe("fullPhrase");
+    expect(resolveFieldName("ANCHOR_TEXT")).toBe("sourceMatch");
+    expect(resolveFieldName("Full_Phrase")).toBe("sourceContext");
+    expect(resolveFieldName("ANCHORTEXT")).toBe("sourceMatch");
+    expect(resolveFieldName("FullPhrase")).toBe("sourceContext");
     expect(resolveFieldName("LINEIDS")).toBe("lineIds");
   });
 
@@ -94,35 +99,35 @@ describe("resolveFieldName", () => {
 
 describe("resolveField", () => {
   it("finds value by canonical name", () => {
-    expect(resolveField({ anchorText: "hello" }, "anchorText")).toBe("hello");
-    expect(resolveField({ fullPhrase: "world" }, "fullPhrase")).toBe("world");
+    expect(resolveField({ sourceMatch: "hello" }, "sourceMatch")).toBe("hello");
+    expect(resolveField({ sourceContext: "world" }, "sourceContext")).toBe("world");
   });
 
   it("finds value by snake_case alias", () => {
-    expect(resolveField({ anchor_text: "hello" }, "anchorText")).toBe("hello");
-    expect(resolveField({ full_phrase: "world" }, "fullPhrase")).toBe("world");
+    expect(resolveField({ source_match: "hello" }, "sourceMatch")).toBe("hello");
+    expect(resolveField({ source_context: "world" }, "sourceContext")).toBe("world");
     expect(resolveField({ attachment_id: "abc" }, "attachmentId")).toBe("abc");
     expect(resolveField({ start_page_id: "p1" }, "startPageId")).toBe("p1");
   });
 
   it("finds value by kebab-case alias", () => {
-    expect(resolveField({ "anchor-text": "hello" }, "anchorText")).toBe("hello");
-    expect(resolveField({ "full-phrase": "world" }, "fullPhrase")).toBe("world");
+    expect(resolveField({ "anchor-text": "hello" }, "sourceMatch")).toBe("hello");
+    expect(resolveField({ "full-phrase": "world" }, "sourceContext")).toBe("world");
     expect(resolveField({ "line-ids": [1, 2] }, "lineIds")).toEqual([1, 2]);
   });
 
   it("finds value by shortened alias", () => {
-    expect(resolveField({ anchor: "hello" }, "anchorText")).toBe("hello");
-    expect(resolveField({ phrase: "world" }, "fullPhrase")).toBe("world");
-    expect(resolveField({ full: "ctx" }, "fullPhrase")).toBe("ctx");
+    expect(resolveField({ anchor: "hello" }, "sourceMatch")).toBe("hello");
+    expect(resolveField({ phrase: "world" }, "sourceContext")).toBe("world");
+    expect(resolveField({ full: "ctx" }, "sourceContext")).toBe("ctx");
     expect(resolveField({ page: 5 }, "pageNumber")).toBe(5);
     expect(resolveField({ lines: [1] }, "lineIds")).toEqual([1]);
     expect(resolveField({ favicon: "url" }, "faviconUrl")).toBe("url");
   });
 
   it("finds value by legacy alias", () => {
-    expect(resolveField({ keySpan: "span" }, "anchorText")).toBe("span");
-    expect(resolveField({ key_span: "span2" }, "anchorText")).toBe("span2");
+    expect(resolveField({ keySpan: "span" }, "sourceMatch")).toBe("span");
+    expect(resolveField({ key_span: "span2" }, "sourceMatch")).toBe("span2");
     expect(resolveField({ fileId: "f1" }, "attachmentId")).toBe("f1");
     expect(resolveField({ file_id: "f2" }, "attachmentId")).toBe("f2");
     expect(resolveField({ startPageKey: "k1" }, "startPageId")).toBe("k1");
@@ -138,19 +143,19 @@ describe("resolveField", () => {
   });
 
   it("prefers canonical name over aliases", () => {
-    expect(resolveField({ anchorText: "canonical", anchor_text: "alias" }, "anchorText")).toBe("canonical");
-    expect(resolveField({ fullPhrase: "canonical", full_phrase: "alias" }, "fullPhrase")).toBe("canonical");
+    expect(resolveField({ sourceMatch: "canonical", source_match: "alias" }, "sourceMatch")).toBe("canonical");
+    expect(resolveField({ sourceContext: "canonical", source_context: "alias" }, "sourceContext")).toBe("canonical");
     expect(resolveField({ url: "canonical", URL: "alias" }, "url")).toBe("canonical");
   });
 
   it("prefers earlier aliases in the list (camelCase legacy before snake_case legacy)", () => {
     // keySpan comes before key_span in the alias list
-    expect(resolveField({ keySpan: "camel", key_span: "snake" }, "anchorText")).toBe("camel");
+    expect(resolveField({ keySpan: "camel", key_span: "snake" }, "sourceMatch")).toBe("camel");
   });
 
   it("returns undefined for missing fields", () => {
-    expect(resolveField({}, "anchorText")).toBeUndefined();
-    expect(resolveField({ unrelated: "val" }, "fullPhrase")).toBeUndefined();
+    expect(resolveField({}, "sourceMatch")).toBeUndefined();
+    expect(resolveField({ unrelated: "val" }, "sourceContext")).toBeUndefined();
   });
 
   it("returns undefined for unknown canonical names", () => {
@@ -162,14 +167,14 @@ describe("resolveField", () => {
 
 describe("getFieldAliases", () => {
   it("includes canonical name as first element", () => {
-    expect(getFieldAliases("anchorText")[0]).toBe("anchorText");
-    expect(getFieldAliases("fullPhrase")[0]).toBe("fullPhrase");
+    expect(getFieldAliases("sourceMatch")[0]).toBe("sourceMatch");
+    expect(getFieldAliases("sourceContext")[0]).toBe("sourceContext");
     expect(getFieldAliases("url")[0]).toBe("url");
   });
 
   it("includes all known aliases", () => {
-    const anchorAliases = getFieldAliases("anchorText");
-    expect(anchorAliases).toContain("anchor_text");
+    const anchorAliases = getFieldAliases("sourceMatch");
+    expect(anchorAliases).toContain("source_match");
     expect(anchorAliases).toContain("anchor-text");
     expect(anchorAliases).toContain("anchor");
     expect(anchorAliases).toContain("keySpan");
@@ -210,14 +215,14 @@ describe("getFieldAliases", () => {
 describe("normalizeCitationFields", () => {
   it("normalizes snake_case to camelCase", () => {
     const result = normalizeCitationFields({
-      anchor_text: "hello",
-      full_phrase: "world",
+      source_match: "hello",
+      source_context: "world",
       attachment_id: "abc",
       line_ids: [1, 2],
     });
     expect(result).toEqual({
-      anchorText: "hello",
-      fullPhrase: "world",
+      sourceMatch: "hello",
+      sourceContext: "world",
       attachmentId: "abc",
       lineIds: [1, 2],
     });
@@ -230,8 +235,8 @@ describe("normalizeCitationFields", () => {
       "start-page-id": "p1",
     });
     expect(result).toEqual({
-      anchorText: "hello",
-      fullPhrase: "world",
+      sourceMatch: "hello",
+      sourceContext: "world",
       startPageId: "p1",
     });
   });
@@ -244,8 +249,8 @@ describe("normalizeCitationFields", () => {
       lines: [1, 2, 3],
     });
     expect(result).toEqual({
-      anchorText: "hello",
-      fullPhrase: "world",
+      sourceMatch: "hello",
+      sourceContext: "world",
       pageNumber: 3,
       lineIds: [1, 2, 3],
     });
@@ -258,7 +263,7 @@ describe("normalizeCitationFields", () => {
       startPageKey: "k1",
     });
     expect(result).toEqual({
-      anchorText: "span",
+      sourceMatch: "span",
       attachmentId: "f1",
       startPageId: "k1",
     });
@@ -266,27 +271,27 @@ describe("normalizeCitationFields", () => {
 
   it("passes through unknown fields unchanged", () => {
     const result = normalizeCitationFields({
-      anchor_text: "hello",
+      source_match: "hello",
       customField: "preserved",
       anotherThing: 42,
     });
-    expect(result.anchorText).toBe("hello");
+    expect(result.sourceMatch).toBe("hello");
     expect(result.customField).toBe("preserved");
     expect(result.anotherThing).toBe(42);
   });
 
   it("first writer wins when multiple aliases map to the same canonical", () => {
-    // Object.entries() preserves insertion order — anchorText appears first
+    // Object.entries() preserves insertion order — sourceMatch appears first
     const result = normalizeCitationFields({
-      anchorText: "canonical",
-      anchor_text: "snake",
+      sourceMatch: "canonical",
+      source_match: "snake",
       anchor: "short",
     });
-    expect(result.anchorText).toBe("canonical");
+    expect(result.sourceMatch).toBe("canonical");
   });
 
   it("does not mutate the input", () => {
-    const input = { anchor_text: "hello", full_phrase: "world" };
+    const input = { source_match: "hello", source_context: "world" };
     const inputCopy = { ...input };
     normalizeCitationFields(input);
     expect(input).toEqual(inputCopy);
@@ -294,16 +299,16 @@ describe("normalizeCitationFields", () => {
 
   it("normalizes a full URL citation object", () => {
     const result = normalizeCitationFields({
-      full_phrase: "The text says...",
-      anchor_text: "text says",
+      source_context: "The text says...",
+      source_match: "text says",
       URL: "https://example.com",
       site_name: "Example",
       favicon_url: "https://example.com/favicon.ico",
       source_type: "web",
     });
     expect(result).toEqual({
-      fullPhrase: "The text says...",
-      anchorText: "text says",
+      sourceContext: "The text says...",
+      sourceMatch: "text says",
       url: "https://example.com",
       siteName: "Example",
       faviconUrl: "https://example.com/favicon.ico",
@@ -327,8 +332,8 @@ describe("getAllCitationsFromLlmOutput — field alias integration", () => {
 
       const citations = Object.values(result);
       expect(citations).toHaveLength(1);
-      expect(citations[0].fullPhrase).toBe("Revenue grew 23% year-over-year");
-      expect(citations[0].anchorText).toBe("grew 23%");
+      expect(citations[0].sourceContext).toBe("Revenue grew 23% year-over-year");
+      expect(citations[0].sourceMatch).toBe("grew 23%");
       expect(citations[0].type).toBe("document");
     });
 
@@ -353,45 +358,45 @@ describe("getAllCitationsFromLlmOutput — field alias integration", () => {
   });
 
   describe("shortened field names in JSON citations", () => {
-    it("parses citation with 'anchor' instead of 'anchorText'", () => {
+    it("parses citation with 'anchor' instead of 'sourceMatch'", () => {
       const input = {
-        fullPhrase: "The company reported strong earnings",
+        sourceContext: "The company reported strong earnings",
         anchor: "strong earnings",
       };
       const result = getAllCitationsFromLlmOutput(input);
 
       const citations = Object.values(result);
       expect(citations).toHaveLength(1);
-      expect(citations[0].anchorText).toBe("strong earnings");
+      expect(citations[0].sourceMatch).toBe("strong earnings");
     });
 
-    it("parses citation with 'phrase' instead of 'fullPhrase'", () => {
+    it("parses citation with 'phrase' instead of 'sourceContext'", () => {
       const input = {
         phrase: "The quarterly report showed improvement",
-        anchorText: "showed improvement",
+        sourceMatch: "showed improvement",
       };
       const result = getAllCitationsFromLlmOutput(input);
 
       const citations = Object.values(result);
       expect(citations).toHaveLength(1);
-      expect(citations[0].fullPhrase).toBe("The quarterly report showed improvement");
+      expect(citations[0].sourceContext).toBe("The quarterly report showed improvement");
     });
 
-    it("parses citation with 'full' instead of 'fullPhrase'", () => {
+    it("parses citation with 'full' instead of 'sourceContext'", () => {
       const input = {
         full: "Market conditions remained stable throughout",
-        anchorText: "remained stable",
+        sourceMatch: "remained stable",
       };
       const result = getAllCitationsFromLlmOutput(input);
 
       const citations = Object.values(result);
       expect(citations).toHaveLength(1);
-      expect(citations[0].fullPhrase).toBe("Market conditions remained stable throughout");
+      expect(citations[0].sourceContext).toBe("Market conditions remained stable throughout");
     });
 
     it("parses citation with 'desc' instead of 'description'", () => {
       const input = {
-        fullPhrase: "Data from the report",
+        sourceContext: "Data from the report",
         url: "https://example.com",
         desc: "A detailed report about data",
       };
@@ -408,7 +413,7 @@ describe("getAllCitationsFromLlmOutput — field alias integration", () => {
   describe("URL field aliases in JSON citations", () => {
     it("parses citation using 'URI' as url alias", () => {
       const input = {
-        fullPhrase: "The source confirms this",
+        sourceContext: "The source confirms this",
         uri: "https://example.com/source",
       };
       const result = getAllCitationsFromLlmOutput(input);
@@ -423,7 +428,7 @@ describe("getAllCitationsFromLlmOutput — field alias integration", () => {
 
     it("parses citation using 'href' as url alias", () => {
       const input = {
-        fullPhrase: "Referenced from the article",
+        sourceContext: "Referenced from the article",
         href: "https://example.com/article",
       };
       const result = getAllCitationsFromLlmOutput(input);
@@ -438,7 +443,7 @@ describe("getAllCitationsFromLlmOutput — field alias integration", () => {
 
     it("parses citation using 'link' as url alias", () => {
       const input = {
-        fullPhrase: "Found at the link below",
+        sourceContext: "Found at the link below",
         link: "https://example.com/resource",
       };
       const result = getAllCitationsFromLlmOutput(input);
@@ -456,13 +461,13 @@ describe("getAllCitationsFromLlmOutput — field alias integration", () => {
     it("handles array where each citation uses different naming conventions", () => {
       const input = [
         {
-          fullPhrase: "First citation in camelCase",
-          anchorText: "camelCase",
+          sourceContext: "First citation in camelCase",
+          sourceMatch: "camelCase",
           attachmentId: "file12345678901234567",
         },
         {
-          full_phrase: "Second citation in snake_case",
-          anchor_text: "snake_case",
+          source_context: "Second citation in snake_case",
+          source_match: "snake_case",
           file_id: "file12345678901234568",
         },
         {
@@ -479,7 +484,7 @@ describe("getAllCitationsFromLlmOutput — field alias integration", () => {
 
       const citations = Object.values(result);
       expect(citations).toHaveLength(4);
-      expect(citations.map(c => c.anchorText)).toEqual(
+      expect(citations.map(c => c.sourceMatch)).toEqual(
         expect.arrayContaining(["camelCase", "snake_case", "kebab-case", "shortened"]),
       );
     });
@@ -500,8 +505,8 @@ describe("getAllCitationsFromLlmOutput — field alias integration", () => {
 
       const citations = Object.values(result);
       expect(citations).toHaveLength(1);
-      expect(citations[0].fullPhrase).toBe("Revenue grew significantly");
-      expect(citations[0].anchorText).toBe("grew significantly");
+      expect(citations[0].sourceContext).toBe("Revenue grew significantly");
+      expect(citations[0].sourceMatch).toBe("grew significantly");
     });
   });
 
@@ -519,7 +524,7 @@ describe("getAllCitationsFromLlmOutput — field alias integration", () => {
     });
 
     it("detects URL citations using 'href' alias", () => {
-      const input = { fullPhrase: "from the article", href: "https://example.com" };
+      const input = { sourceContext: "from the article", href: "https://example.com" };
       const result = getAllCitationsFromLlmOutput(input);
       const citation = Object.values(result)[0];
       expect(citation.type).toBe("url");

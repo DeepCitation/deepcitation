@@ -9,75 +9,81 @@ describe("Citation Parsing Edge Cases", () => {
         {
           id: 1,
           attachment_id: "file1",
-          full_phrase: "first phrase",
-          anchor_text: "first",
+          source_context: "first phrase",
+          source_match: "first",
           page_id: "1_0",
           line_ids: [1],
         },
         {
           id: 2,
           attachment_id: "file2",
-          full_phrase: "second phrase",
-          anchor_text: "second",
+          source_context: "second phrase",
+          source_match: "second",
           page_id: "2_0",
           line_ids: [2],
         },
       ]);
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result).length).toBe(2);
-      const anchorTexts = Object.values(result).map(c => c.anchorText);
-      expect(anchorTexts).toContain("first");
-      expect(anchorTexts).toContain("second");
+      const sourceMatches = Object.values(result).map(c => c.sourceMatch);
+      expect(sourceMatches).toContain("first");
+      expect(sourceMatches).toContain("second");
     });
   });
 
   describe("Special characters in attributes", () => {
-    it("preserves unicode characters in full_phrase", () => {
+    it("preserves unicode characters in source_context", () => {
       const input = makeNumericResponse("Temperature reading [1]", [
         {
           id: 1,
           attachment_id: "test123",
-          full_phrase: "Temperature: 98.6°F • Heart rate: 72 bpm",
-          anchor_text: "98.6°F",
+          source_context: "Temperature: 98.6°F • Heart rate: 72 bpm",
+          source_match: "98.6°F",
           page_id: "1_0",
         },
       ]);
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result).length).toBe(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toContain("°");
-      expect(citation.fullPhrase).toContain("•");
+      expect(citation.sourceContext).toContain("°");
+      expect(citation.sourceContext).toContain("•");
     });
 
     it("preserves forward slashes in attribute values", () => {
       const input = makeNumericResponse("Date reference [1]", [
-        { id: 1, attachment_id: "test123", full_phrase: "Date: 01/15/2024", anchor_text: "01/15/2024", page_id: "1_0" },
+        {
+          id: 1,
+          attachment_id: "test123",
+          source_context: "Date: 01/15/2024",
+          source_match: "01/15/2024",
+          page_id: "1_0",
+        },
       ]);
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result).length).toBe(1);
-      expect(Object.values(result)[0].fullPhrase).toBe("Date: 01/15/2024");
+      expect(Object.values(result)[0].sourceContext).toBe("Date: 01/15/2024");
     });
 
     it("preserves equals signs in attribute values", () => {
       const input = makeNumericResponse("Formula [1]", [
-        { id: 1, attachment_id: "test123", full_phrase: "Formula: E=mc²", anchor_text: "E=mc²", page_id: "1_0" },
+        { id: 1, attachment_id: "test123", source_context: "Formula: E=mc²", source_match: "E=mc²", page_id: "1_0" },
       ]);
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result).length).toBe(1);
-      expect(Object.values(result)[0].fullPhrase).toContain("E=mc");
+      expect(Object.values(result)[0].sourceContext).toContain("E=mc");
     });
   });
 
   describe("Edge cases with incomplete data", () => {
-    it("skips citations without full_phrase", () => {
+    it("skips citations without source_context", () => {
       const input = makeNumericResponse("Test [1] [2]", [
-        { id: 1, attachment_id: "test123", anchor_text: "no phrase" },
-        { id: 2, attachment_id: "test123", full_phrase: "has phrase", anchor_text: "phrase", page_id: "1_0" },
+        { id: 1, attachment_id: "test123", source_match: "no phrase" },
+        { id: 2, attachment_id: "test123", source_context: "has phrase", source_match: "phrase", page_id: "1_0" },
       ]);
       const result = getAllCitationsFromLlmOutput(input);
-      // Only citations with fullPhrase are included
+      // Only citations with sourceContext are included
       expect(Object.keys(result).length).toBe(1);
-      expect(Object.values(result)[0].fullPhrase).toBe("has phrase");
+      expect(Object.values(result)[0].sourceContext).toBe("has phrase");
     });
 
     it("handles empty input", () => {
@@ -97,8 +103,8 @@ describe("Citation Parsing Edge Cases", () => {
         {
           id: 1,
           attachment_id: "test123",
-          full_phrase: "phrase",
-          anchor_text: "phrase",
+          source_context: "phrase",
+          source_match: "phrase",
           page_id: "1_0",
           line_ids: [50, 30, 10, 40, 20],
         },
@@ -117,11 +123,11 @@ describe("Citation Parsing Edge Cases", () => {
       const input = {
         citations: [
           {
-            fullPhrase: "important findings in Q4",
-            anchorText: "important findings",
+            sourceContext: "important findings in Q4",
+            sourceMatch: "important findings",
             startPageId: "page_number_1_index_0",
           },
-          { fullPhrase: "revenue growth of 15 percent", anchorText: "15%", startPageId: "page_number_2_index_0" },
+          { sourceContext: "revenue growth of 15 percent", sourceMatch: "15%", startPageId: "page_number_2_index_0" },
         ],
       };
       const result = getAllCitationsFromLlmOutput(input);
@@ -134,8 +140,8 @@ describe("Citation Parsing Edge Cases", () => {
           id: 1,
           attachment_id: "test123",
           reasoning: "This citation references the section where the author discusses methodology",
-          full_phrase: "methodology results conclusions",
-          anchor_text: "methodology",
+          source_context: "methodology results conclusions",
+          source_match: "methodology",
           page_id: "1_0",
         },
       ]);

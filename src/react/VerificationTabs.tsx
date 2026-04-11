@@ -18,9 +18,9 @@ interface VerificationTabsProps {
   // NEW PROPS from PRD
   /** Verification status for contextual messages */
   status?: SearchStatus | null;
-  /** Expected anchorText to highlight */
-  anchorText?: string;
-  /** Found anchorText to highlight */
+  /** Expected sourceMatch to highlight */
+  sourceMatch?: string;
+  /** Found sourceMatch to highlight */
   verifiedKeySpan?: string;
   /** Default display mode */
   defaultMode?: DiffDisplayMode;
@@ -135,8 +135,8 @@ const FoundContentTab = ({
           <CollapsibleText
             text={actual}
             maxLength={maxCollapsedLength}
-            anchorText={verifiedKeySpan}
-            anchorTextClass="bg-dc-verified/20 px-0.5 rounded border-b-2 border-dc-verified"
+            sourceMatch={verifiedKeySpan}
+            sourceMatchClass="bg-dc-verified/20 px-0.5 rounded border-b-2 border-dc-verified"
           />
         </div>
       </div>
@@ -156,7 +156,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
   emptyText,
   // New props
   status,
-  anchorText,
+  sourceMatch,
   verifiedKeySpan,
   defaultMode = "auto",
   expectedPage,
@@ -277,8 +277,8 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                 <CollapsibleText
                   text={expected}
                   maxLength={maxCollapsedLength}
-                  anchorText={anchorText}
-                  anchorTextClass="bg-dc-primary/20 px-0.5 rounded border-b-2 border-dc-primary"
+                  sourceMatch={sourceMatch}
+                  sourceMatchClass="bg-dc-primary/20 px-0.5 rounded border-b-2 border-dc-primary"
                 />
               </div>
             </div>
@@ -305,8 +305,8 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                 mode="split"
                 showMatchQuality={showMatchQuality}
                 maxCollapsedLength={maxCollapsedLength}
-                anchorTextExpected={anchorText}
-                anchorTextFound={verifiedKeySpan}
+                sourceMatchExpected={sourceMatch}
+                sourceMatchFound={verifiedKeySpan}
                 status={status}
                 similarity={similarity}
               />

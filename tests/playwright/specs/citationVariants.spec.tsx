@@ -15,8 +15,8 @@ import type { Verification } from "../../../src/types/verification";
 
 const baseCitation: Citation = {
   citationNumber: 1,
-  fullPhrase: "This is a test citation",
-  anchorText: "Test Value",
+  sourceContext: "This is a test citation",
+  sourceMatch: "Test Value",
   pageNumber: 5,
 };
 
@@ -60,7 +60,7 @@ test.describe("ChipCitation", () => {
 
     await expect(chip).toBeVisible();
     await expect(chip).toHaveAttribute("data-variant", "chip");
-    // ChipCitation shows anchorText by default (via getCitationDisplayText)
+    // ChipCitation shows sourceMatch by default (via getCitationDisplayText)
     await expect(chip).toContainText("Test Value");
   });
 
@@ -143,7 +143,7 @@ test.describe("ChipCitation", () => {
     expect(text).toContain("📄");
   });
 
-  test("renders anchorText text by default", async ({ mount, page }) => {
+  test("renders sourceMatch text by default", async ({ mount, page }) => {
     await mount(<ChipCitation citation={baseCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
@@ -301,11 +301,11 @@ test.describe("InlineCitation", () => {
     await expect(inline).toHaveClass(/border-dashed/);
   });
 
-  test("renders anchorText text by default", async ({ mount, page }) => {
+  test("renders sourceMatch text by default", async ({ mount, page }) => {
     await mount(<InlineCitation citation={baseCitation} />);
     const inline = page.locator('[data-variant="inline"]');
 
-    // InlineCitation shows anchorText by default
+    // InlineCitation shows sourceMatch by default
     await expect(inline).toContainText("Test Value");
   });
 
@@ -378,7 +378,7 @@ test.describe("Accessibility", () => {
     await mount(<ChipCitation citation={baseCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
-    // ChipCitation shows anchorText by default, so aria-label uses anchorText
+    // ChipCitation shows sourceMatch by default, so aria-label uses sourceMatch
     await expect(chip).toHaveAttribute("aria-label", /Citation: Test Value/);
   });
 

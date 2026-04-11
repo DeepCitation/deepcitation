@@ -13,8 +13,8 @@ const baseCitation: Citation = {
   type: "document",
   attachmentId: "att-1",
   citationNumber: 1,
-  anchorText: "Functional status",
-  fullPhrase: "Functional status: He is at baseline, no assistance needed, independent ADLs",
+  sourceMatch: "Functional status",
+  sourceContext: "Functional status: He is at baseline, no assistance needed, independent ADLs",
   pageNumber: 5,
 };
 
@@ -27,7 +27,7 @@ const tallImageBase64 =
 const verificationWithTallImage: Verification = {
   status: "found",
   attachmentId: "att-1",
-  verifiedMatchSnippet: "Functional status: He is at baseline",
+  sourceSnippet: "Functional status: He is at baseline",
   document: {
     verifiedPageNumber: 5,
   },

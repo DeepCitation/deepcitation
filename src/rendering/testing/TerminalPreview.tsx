@@ -93,7 +93,7 @@ export function TerminalPreview() {
                     const colorClass = getStatusColorClass(status);
                     const indicator = getIndicator(status, "check");
                     const num = citation.citationNumber ?? 1;
-                    const anchor = citation.anchorText ?? "citation";
+                    const anchor = citation.sourceMatch ?? "citation";
 
                     let display: React.ReactNode;
                     switch (variant) {
@@ -148,7 +148,7 @@ export function TerminalPreview() {
               const statusKey = getStatusKey(status);
               return (
                 <div key={name} data-terminal-status={statusKey}>
-                  <span className="text-gray-300">{citation.fullPhrase} </span>
+                  <span className="text-gray-300">{citation.sourceContext} </span>
                   <span className={colorClass}>
                     [{num}
                     {indicator}]
@@ -239,7 +239,7 @@ function TerminalSourcesDisplay() {
               </span>
             </div>
             <div className="ml-5 text-gray-500">
-              {status.isMiss ? "Not found in source document" : `"${citation.fullPhrase}"`}
+              {status.isMiss ? "Not found in source document" : `"${citation.sourceContext}"`}
             </div>
           </div>
         );
@@ -293,7 +293,7 @@ function terminalSourcesRaw(): string {
     if (status.isMiss) {
       lines.push(`     Not found in source document`);
     } else {
-      lines.push(`     "${citation.fullPhrase}"`);
+      lines.push(`     "${citation.sourceContext}"`);
     }
   }
   lines.push("────────────────────────────────────────────────");

@@ -222,23 +222,86 @@ export function useDrawerDragToClose({
     });
   }, [threshold, computeVelocity]);
 
-  // Attach touchstart to handle, touchmove/touchend to document
+  // Mouse drag support — registers document listeners only during active drag.
+  // Guards against synthesized mouse events on touch devices via isTouchActiveRef.
+  const isTouchActiveRef = useRef(false);
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      e.preventDefault(); // prevent native drag on images/links
+      handleTouchMove({
+        touches: [{ clientY: e.clientY }],
+      } as unknown as TouchEvent);
+    },
+    [handleTouchMove],
+  );
+
+  const handleMouseUp = useCallback(() => {
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+    if (startYRef.current === null) return;
+    handleTouchEnd();
+  }, [handleTouchEnd, handleMouseMove]);
+
+  const handleMouseDown = useCallback(
+    (e: MouseEvent) => {
+      if (!enabled) return;
+      // Ignore synthesized mouse events from touch on hybrid devices
+      if (isTouchActiveRef.current) return;
+      e.preventDefault(); // prevent text selection during drag
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      handleTouchStart({
+        touches: [{ clientY: e.clientY }],
+      } as unknown as TouchEvent);
+    },
+    [enabled, handleTouchStart, handleMouseMove, handleMouseUp],
+  );
+
+  // Wrap touch handlers to track touch-active state (for hybrid device guard)
+  const handleTouchStartWrapped = useCallback(
+    (e: TouchEvent) => {
+      isTouchActiveRef.current = true;
+      handleTouchStart(e);
+    },
+    [handleTouchStart],
+  );
+
+  const handleTouchEndWrapped = useCallback(() => {
+    isTouchActiveRef.current = false;
+    handleTouchEnd();
+  }, [handleTouchEnd]);
+
+  // Attach touchstart + mousedown to handle, touchmove/touchend to document
   useEffect(() => {
     const handle = handleRef.current;
     if (!handle || !enabled) return;
 
-    handle.addEventListener("touchstart", handleTouchStart, { passive: true });
+    handle.addEventListener("touchstart", handleTouchStartWrapped, { passive: true });
+    handle.addEventListener("mousedown", handleMouseDown);
     document.addEventListener("touchmove", handleTouchMove, { passive: true });
-    document.addEventListener("touchend", handleTouchEnd, { passive: true });
-    document.addEventListener("touchcancel", handleTouchEnd, { passive: true });
+    document.addEventListener("touchend", handleTouchEndWrapped, { passive: true });
+    document.addEventListener("touchcancel", handleTouchEndWrapped, { passive: true });
 
     return () => {
-      handle.removeEventListener("touchstart", handleTouchStart);
+      handle.removeEventListener("touchstart", handleTouchStartWrapped);
+      handle.removeEventListener("mousedown", handleMouseDown);
       document.removeEventListener("touchmove", handleTouchMove);
-      document.removeEventListener("touchend", handleTouchEnd);
-      document.removeEventListener("touchcancel", handleTouchEnd);
+      document.removeEventListener("touchend", handleTouchEndWrapped);
+      document.removeEventListener("touchcancel", handleTouchEndWrapped);
+      // Clean up any in-flight mouse drag listeners
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [enabled, handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [
+    enabled,
+    handleTouchStartWrapped,
+    handleTouchMove,
+    handleTouchEndWrapped,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+  ]);
 
   return { handleRef, drawerRef, dragOffset, isDragging, dragDirection };
 }

@@ -4,8 +4,8 @@ import { computeAmendments } from "../utils/amendments";
 
 const baseCitation: Citation = {
   type: "document",
-  fullPhrase: "The total revenue was $1.2M",
-  anchorText: "total revenue",
+  sourceContext: "The total revenue was $1.2M",
+  sourceMatch: "total revenue",
   pageNumber: 3,
   lineIds: [10, 11],
   reasoning: "Annual report figure",
@@ -17,12 +17,12 @@ describe("computeAmendments", () => {
     expect(computeAmendments(baseCitation, { ...baseCitation })).toEqual([]);
   });
 
-  it("detects fullPhrase change", () => {
-    const next = { ...baseCitation, fullPhrase: "Total revenue was $1.2 million" };
+  it("detects sourceContext change", () => {
+    const next = { ...baseCitation, sourceContext: "Total revenue was $1.2 million" };
     const amendments = computeAmendments(baseCitation, next);
     expect(amendments).toEqual([
       {
-        field: "fullPhrase",
+        field: "sourceContext",
         previousValue: "The total revenue was $1.2M",
         newValue: "Total revenue was $1.2 million",
       },
@@ -30,10 +30,10 @@ describe("computeAmendments", () => {
   });
 
   it("detects multiple field changes", () => {
-    const next = { ...baseCitation, anchorText: "revenue", pageNumber: 5 };
+    const next = { ...baseCitation, sourceMatch: "revenue", pageNumber: 5 };
     const amendments = computeAmendments(baseCitation, next);
     expect(amendments).toHaveLength(2);
-    expect(amendments.map(a => a.field)).toEqual(["anchorText", "pageNumber"]);
+    expect(amendments.map(a => a.field)).toEqual(["sourceMatch", "pageNumber"]);
   });
 
   it("detects lineIds array change", () => {

@@ -27,8 +27,8 @@ ${CITATION_DATA_START_DELIMITER}
     "id": 1,
     "attachment_id": "abc123",
     "reasoning": "directly states growth metrics",
-    "full_phrase": "The company achieved 45% year-over-year growth",
-    "anchor_text": "45% year-over-year growth",
+    "source_context": "The company achieved 45% year-over-year growth",
+    "source_match": "45% year-over-year growth",
     "page_id": "page_number_2_index_1",
     "line_ids": [12, 13]
   },
@@ -36,8 +36,8 @@ ${CITATION_DATA_START_DELIMITER}
     "id": 2,
     "attachment_id": "abc123",
     "reasoning": "states Q4 revenue figure",
-    "full_phrase": "Q4 revenue reached $2.3 billion",
-    "anchor_text": "$2.3 billion",
+    "source_context": "Q4 revenue reached $2.3 billion",
+    "source_match": "$2.3 billion",
     "page_id": "page_number_3_index_2",
     "line_ids": [5, 6, 7]
   }
@@ -50,7 +50,7 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.visibleText).toBe("The company reported strong growth [1]. Revenue increased significantly [2].");
     expect(result.citations.length).toBe(2);
     expect(result.citationMap.get(1)?.attachment_id).toBe("abc123");
-    expect(result.citationMap.get(2)?.anchor_text).toBe("$2.3 billion");
+    expect(result.citationMap.get(2)?.source_match).toBe("$2.3 billion");
   });
 
   it("handles response without citation block", () => {
@@ -74,7 +74,7 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.error).toContain("Invalid input");
   });
 
-  it("handles citations with quotes in full_phrase", () => {
+  it("handles citations with quotes in source_context", () => {
     const response = `The contract states "no liability" [1].
 
 ${CITATION_DATA_START_DELIMITER}
@@ -82,8 +82,8 @@ ${CITATION_DATA_START_DELIMITER}
   {
     "id": 1,
     "attachment_id": "doc456",
-    "full_phrase": "The user's liability shall be limited to \\"no liability\\" as stated",
-    "anchor_text": "no liability",
+    "source_context": "The user's liability shall be limited to \\"no liability\\" as stated",
+    "source_match": "no liability",
     "page_id": "page_number_5_index_0",
     "line_ids": [20, 21]
   }
@@ -93,10 +93,10 @@ ${CITATION_DATA_END_DELIMITER}`;
     const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
-    expect(result.citations[0].full_phrase).toContain("no liability");
+    expect(result.citations[0].source_context).toContain("no liability");
   });
 
-  it("handles citations with newlines in full_phrase", () => {
+  it("handles citations with newlines in source_context", () => {
     const response = `Multi-line content [1].
 
 ${CITATION_DATA_START_DELIMITER}
@@ -104,8 +104,8 @@ ${CITATION_DATA_START_DELIMITER}
   {
     "id": 1,
     "attachment_id": "doc789",
-    "full_phrase": "Line one\\nLine two\\nLine three",
-    "anchor_text": "Line two",
+    "source_context": "Line one\\nLine two\\nLine three",
+    "source_match": "Line two",
     "page_id": "page_number_1_index_0"
   }
 ]
@@ -114,7 +114,7 @@ ${CITATION_DATA_END_DELIMITER}`;
     const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
-    expect(result.citations[0].full_phrase).toContain("Line one");
+    expect(result.citations[0].source_context).toContain("Line one");
   });
 
   it("handles multiple citations in single sentence", () => {
@@ -122,9 +122,9 @@ ${CITATION_DATA_END_DELIMITER}`;
 
 ${CITATION_DATA_START_DELIMITER}
 [
-  {"id": 1, "attachment_id": "a", "full_phrase": "$1B", "anchor_text": "$1B"},
-  {"id": 2, "attachment_id": "a", "full_phrase": "$100M", "anchor_text": "$100M"},
-  {"id": 3, "attachment_id": "a", "full_phrase": "Q4", "anchor_text": "Q4"}
+  {"id": 1, "attachment_id": "a", "source_context": "$1B", "source_match": "$1B"},
+  {"id": 2, "attachment_id": "a", "source_context": "$100M", "source_match": "$100M"},
+  {"id": 3, "attachment_id": "a", "source_context": "Q4", "source_match": "Q4"}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
@@ -140,7 +140,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 
 ${CITATION_DATA_START_DELIMITER}
 [
-  {"id": 1, "attachment_id": "a", "full_phrase": "test", "anchor_text": "test",},
+  {"id": 1, "attachment_id": "a", "source_context": "test", "source_match": "test",},
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
@@ -154,7 +154,7 @@ ${CITATION_DATA_END_DELIMITER}`;
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "a", "full_phrase": "test", "anchor_text": "test"}]`;
+[{"id": 1, "attachment_id": "a", "source_context": "test", "source_match": "test"}]`;
 
     const result = parseCitationData(response);
 
@@ -199,8 +199,8 @@ ${CITATION_DATA_START_DELIMITER}
   {
     "id": 1,
     "attachment_id": "video123",
-    "full_phrase": "This is important",
-    "anchor_text": "important",
+    "source_context": "This is important",
+    "source_match": "important",
     "timestamps": {
       "start_time": "00:05:23.000",
       "end_time": "00:05:45.500"
@@ -221,7 +221,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 
 ${CITATION_DATA_START_DELIMITER}
 \`\`\`json
-[{"id": 1, "attachment_id": "a", "full_phrase": "test", "anchor_text": "test"}]
+[{"id": 1, "attachment_id": "a", "source_context": "test", "source_match": "test"}]
 \`\`\`
 ${CITATION_DATA_END_DELIMITER}`;
 
@@ -238,8 +238,8 @@ describe("getAllCitationsFromNumericResponse", () => {
 
 ${CITATION_DATA_START_DELIMITER}
 [
-  {"id": 1, "attachment_id": "abc", "full_phrase": "phrase one", "anchor_text": "one", "page_id": "page_number_1_index_0", "line_ids": [1]},
-  {"id": 2, "attachment_id": "abc", "full_phrase": "phrase two", "anchor_text": "two", "page_id": "page_number_2_index_0", "line_ids": [5]}
+  {"id": 1, "attachment_id": "abc", "source_context": "phrase one", "source_match": "one", "page_id": "page_number_1_index_0", "line_ids": [1]},
+  {"id": 2, "attachment_id": "abc", "source_context": "phrase two", "source_match": "two", "page_id": "page_number_2_index_0", "line_ids": [5]}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
@@ -249,9 +249,9 @@ ${CITATION_DATA_END_DELIMITER}`;
 
     // Verify the citations have proper structure
     const citationValues = Object.values(citations);
-    expect(citationValues[0].fullPhrase).toBe("phrase one");
+    expect(citationValues[0].sourceContext).toBe("phrase one");
     expect(citationValues[0].attachmentId).toBe("abc");
-    expect(citationValues[1].fullPhrase).toBe("phrase two");
+    expect(citationValues[1].sourceContext).toBe("phrase two");
   });
 
   it("returns empty object for response without citations", () => {
@@ -260,11 +260,11 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(Object.keys(citations).length).toBe(0);
   });
 
-  it("skips citations without fullPhrase", () => {
+  it("skips citations without sourceContext", () => {
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "abc", "anchor_text": "test"}]
+[{"id": 1, "attachment_id": "abc", "source_match": "test"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const citations = getAllCitationsFromNumericResponse(response);
@@ -278,8 +278,8 @@ describe("citationDataToCitation", () => {
       id: 1,
       attachment_id: "doc123",
       reasoning: "test reasoning",
-      full_phrase: "The full phrase here",
-      anchor_text: "anchor text",
+      source_context: "The full phrase here",
+      source_match: "anchor text",
       page_id: "page_number_3_index_2",
       line_ids: [10, 11, 12],
     };
@@ -288,8 +288,8 @@ describe("citationDataToCitation", () => {
 
     expect(citation.attachmentId).toBe("doc123");
     expect(citation.reasoning).toBe("test reasoning");
-    expect(citation.fullPhrase).toBe("The full phrase here");
-    expect(citation.anchorText).toBe("anchor text");
+    expect(citation.sourceContext).toBe("The full phrase here");
+    expect(citation.sourceMatch).toBe("anchor text");
     expect(citation.pageNumber).toBe(3);
     expect(citation.startPageId).toBe("page_number_3_index_2");
     expect(citation.lineIds).toEqual([10, 11, 12]);
@@ -300,7 +300,7 @@ describe("citationDataToCitation", () => {
     const data = {
       id: 1,
       attachment_id: "doc",
-      full_phrase: "test",
+      source_context: "test",
       line_ids: [15, 10, 12, 11],
     };
 
@@ -312,7 +312,7 @@ describe("citationDataToCitation", () => {
     const data = {
       id: 1,
       attachment_id: "video",
-      full_phrase: "transcript text",
+      source_context: "transcript text",
       timestamps: {
         start_time: "00:01:00.000",
         end_time: "00:01:30.500",
@@ -321,7 +321,7 @@ describe("citationDataToCitation", () => {
 
     const citation = citationDataToCitation(data);
     expect(citation.type).toBe("audio");
-    expect(citation.fullPhrase).toBe("transcript text");
+    expect(citation.sourceContext).toBe("transcript text");
     // timestamps are mapped to camelCase on AudioVideoCitation
     if (citation.type === "audio" || citation.type === "video") {
       expect(citation.timestamps?.startTime).toBe("00:01:00.000");
@@ -333,7 +333,7 @@ describe("citationDataToCitation", () => {
     const data = {
       id: 5,
       attachment_id: "doc",
-      full_phrase: "test",
+      source_context: "test",
     };
 
     const citation = citationDataToCitation(data, 99);
@@ -362,7 +362,7 @@ describe("extractVisibleText", () => {
     const response = `This is visible text [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "full_phrase": "test"}]
+[{"id": 1, "source_context": "test"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     expect(extractVisibleText(response)).toBe("This is visible text [1].");
@@ -383,13 +383,13 @@ describe("replaceCitationMarkers", () => {
   it("replaces markers with key spans", () => {
     const text = "Revenue grew 45% [1] in Q4 [2].";
     const citationMap = new Map([
-      [1, { id: 1, anchor_text: "45%" }],
-      [2, { id: 2, anchor_text: "Q4 2024" }],
+      [1, { id: 1, source_match: "45%" }],
+      [2, { id: 2, source_match: "Q4 2024" }],
     ]);
 
     const result = replaceCitationMarkers(text, {
       citationMap,
-      showAnchorText: true,
+      showSourceMatch: true,
     });
     expect(result).toBe("Revenue grew 45% 45% in Q4 Q4 2024.");
   });
@@ -404,11 +404,11 @@ describe("replaceCitationMarkers", () => {
 
   it("handles missing citations gracefully", () => {
     const text = "Test [1] and [99].";
-    const citationMap = new Map([[1, { id: 1, anchor_text: "found" }]]);
+    const citationMap = new Map([[1, { id: 1, source_match: "found" }]]);
 
     const result = replaceCitationMarkers(text, {
       citationMap,
-      showAnchorText: true,
+      showSourceMatch: true,
     });
     expect(result).toBe("Test found and .");
   });
@@ -450,14 +450,14 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.citations[0].id).toBe(1);
     expect(result.citations[0].attachment_id).toBe("abc123");
     expect(result.citations[0].reasoning).toBe("states growth");
-    expect(result.citations[0].full_phrase).toBe("45% year-over-year growth");
-    expect(result.citations[0].anchor_text).toBe("45% growth");
+    expect(result.citations[0].source_context).toBe("45% year-over-year growth");
+    expect(result.citations[0].source_match).toBe("45% growth");
     expect(result.citations[0].page_id).toBe("2_1");
     expect(result.citations[0].line_ids).toEqual([12, 13]);
 
     // Verify citation map uses expanded id
     expect(result.citationMap.get(1)?.attachment_id).toBe("abc123");
-    expect(result.citationMap.get(2)?.anchor_text).toBe("$2.3 billion");
+    expect(result.citationMap.get(2)?.source_match).toBe("$2.3 billion");
   });
 
   it("parses compact AV citations with short timestamp keys", () => {
@@ -484,7 +484,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 ${CITATION_DATA_START_DELIMITER}
 [
   {"n":1,"a":"doc1","f":"compact format","k":"compact"},
-  {"id":2,"attachment_id":"doc2","full_phrase":"full format","anchor_text":"full"}
+  {"id":2,"attachment_id":"doc2","source_context":"full format","source_match":"full"}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
@@ -493,9 +493,9 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(2);
     expect(result.citations[0].id).toBe(1);
-    expect(result.citations[0].full_phrase).toBe("compact format");
+    expect(result.citations[0].source_context).toBe("compact format");
     expect(result.citations[1].id).toBe(2);
-    expect(result.citations[1].full_phrase).toBe("full format");
+    expect(result.citations[1].source_context).toBe("full format");
   });
 });
 
@@ -506,8 +506,8 @@ describe("grouped by attachment format", () => {
 ${CITATION_DATA_START_DELIMITER}
 {
   "abc123": [
-    {"id": 1, "reasoning": "states growth", "full_phrase": "45% year-over-year growth", "anchor_text": "45% growth", "page_id": "2_1", "line_ids": [12, 13]},
-    {"id": 2, "reasoning": "states revenue", "full_phrase": "Q4 revenue reached $2.3 billion", "anchor_text": "$2.3 billion", "page_id": "3_2", "line_ids": [5, 6, 7]}
+    {"id": 1, "reasoning": "states growth", "source_context": "45% year-over-year growth", "source_match": "45% growth", "page_id": "2_1", "line_ids": [12, 13]},
+    {"id": 2, "reasoning": "states revenue", "source_context": "Q4 revenue reached $2.3 billion", "source_match": "$2.3 billion", "page_id": "3_2", "line_ids": [5, 6, 7]}
   ]
 }
 ${CITATION_DATA_END_DELIMITER}`;
@@ -523,9 +523,9 @@ ${CITATION_DATA_END_DELIMITER}`;
 
     // Verify other fields
     expect(result.citations[0].id).toBe(1);
-    expect(result.citations[0].full_phrase).toBe("45% year-over-year growth");
+    expect(result.citations[0].source_context).toBe("45% year-over-year growth");
     expect(result.citations[1].id).toBe(2);
-    expect(result.citations[1].anchor_text).toBe("$2.3 billion");
+    expect(result.citations[1].source_match).toBe("$2.3 billion");
   });
 
   it("parses grouped format with multiple attachments", () => {
@@ -534,10 +534,10 @@ ${CITATION_DATA_END_DELIMITER}`;
 ${CITATION_DATA_START_DELIMITER}
 {
   "doc1": [
-    {"id": 1, "full_phrase": "content from doc1", "anchor_text": "doc1"}
+    {"id": 1, "source_context": "content from doc1", "source_match": "doc1"}
   ],
   "doc2": [
-    {"id": 2, "full_phrase": "content from doc2", "anchor_text": "doc2"}
+    {"id": 2, "source_context": "content from doc2", "source_match": "doc2"}
   ]
 }
 ${CITATION_DATA_END_DELIMITER}`;
@@ -548,10 +548,10 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.citations.length).toBe(2);
 
     expect(result.citations[0].attachment_id).toBe("doc1");
-    expect(result.citations[0].full_phrase).toBe("content from doc1");
+    expect(result.citations[0].source_context).toBe("content from doc1");
 
     expect(result.citations[1].attachment_id).toBe("doc2");
-    expect(result.citations[1].full_phrase).toBe("content from doc2");
+    expect(result.citations[1].source_context).toBe("content from doc2");
   });
 
   it("parses grouped format with compact keys", () => {
@@ -572,8 +572,8 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.citations[0].attachment_id).toBe("attachment123");
     expect(result.citations[0].id).toBe(1);
     expect(result.citations[0].reasoning).toBe("reason");
-    expect(result.citations[0].full_phrase).toBe("full phrase here");
-    expect(result.citations[0].anchor_text).toBe("phrase");
+    expect(result.citations[0].source_context).toBe("full phrase here");
+    expect(result.citations[0].source_match).toBe("phrase");
     expect(result.citations[0].page_id).toBe("1_0");
     expect(result.citations[0].line_ids).toEqual([5]);
   });
@@ -584,7 +584,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 ${CITATION_DATA_START_DELIMITER}
 {
   "video456": [
-    {"id": 1, "full_phrase": "transcript text", "anchor_text": "text", "timestamps": {"start_time": "00:01:00.000", "end_time": "00:01:30.000"}}
+    {"id": 1, "source_context": "transcript text", "source_match": "text", "timestamps": {"start_time": "00:01:00.000", "end_time": "00:01:30.000"}}
   ]
 }
 ${CITATION_DATA_END_DELIMITER}`;
@@ -601,7 +601,7 @@ ${CITATION_DATA_END_DELIMITER}`;
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "abc", "full_phrase": "test", "anchor_text": "test"}]
+[{"id": 1, "attachment_id": "abc", "source_context": "test", "source_match": "test"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
@@ -617,7 +617,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 ${CITATION_DATA_START_DELIMITER}
 {
   "docXYZ": [
-    {"id": 1, "full_phrase": "the quote", "anchor_text": "quote", "page_id": "5_2", "line_ids": [10, 11]}
+    {"id": 1, "source_context": "the quote", "source_match": "quote", "page_id": "5_2", "line_ids": [10, 11]}
   ]
 }
 ${CITATION_DATA_END_DELIMITER}`;
@@ -627,7 +627,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 
     expect(citationValues.length).toBe(1);
     expect(citationValues[0].attachmentId).toBe("docXYZ");
-    expect(citationValues[0].fullPhrase).toBe("the quote");
+    expect(citationValues[0].sourceContext).toBe("the quote");
     expect(citationValues[0].pageNumber).toBe(5);
     expect(citationValues[0].startPageId).toBe("page_number_5_index_2");
   });
@@ -638,8 +638,8 @@ describe("simplified page_id format", () => {
     const data = {
       id: 1,
       attachment_id: "doc",
-      full_phrase: "test phrase",
-      anchor_text: "test",
+      source_context: "test phrase",
+      source_match: "test",
       page_id: "3_2",
       line_ids: [10],
     };
@@ -654,8 +654,8 @@ describe("simplified page_id format", () => {
     const data = {
       id: 1,
       attachment_id: "doc",
-      full_phrase: "test phrase",
-      anchor_text: "test",
+      source_context: "test phrase",
+      source_match: "test",
       page_id: "page_number_5_index_3",
       line_ids: [20],
     };
@@ -670,7 +670,7 @@ describe("simplified page_id format", () => {
     const singleDigit = citationDataToCitation({
       id: 1,
       page_id: "1_0",
-      full_phrase: "test",
+      source_context: "test",
     });
     expect(singleDigit.pageNumber).toBe(1);
     expect(singleDigit.startPageId).toBe("page_number_1_index_0");
@@ -678,7 +678,7 @@ describe("simplified page_id format", () => {
     const multiDigit = citationDataToCitation({
       id: 2,
       page_id: "123_45",
-      full_phrase: "test",
+      source_context: "test",
     });
     expect(multiDigit.pageNumber).toBe(123);
     expect(multiDigit.startPageId).toBe("page_number_123_index_45");
@@ -688,7 +688,7 @@ describe("simplified page_id format", () => {
     const data = {
       id: 1,
       attachment_id: "doc",
-      full_phrase: "test",
+      source_context: "test",
       page_id: "invalid_format",
     };
 
@@ -703,7 +703,7 @@ describe("simplified page_id format", () => {
     const zeroIndexed = citationDataToCitation({
       id: 1,
       page_id: "0_0",
-      full_phrase: "test",
+      source_context: "test",
     });
     expect(zeroIndexed.pageNumber).toBe(1);
     expect(zeroIndexed.startPageId).toBe("page_number_1_index_0");
@@ -715,7 +715,7 @@ describe("simplified page_id format", () => {
     const zeroWithIndex = citationDataToCitation({
       id: 2,
       page_id: "0_5",
-      full_phrase: "test",
+      source_context: "test",
     });
     expect(zeroWithIndex.pageNumber).toBe(0);
     expect(zeroWithIndex.startPageId).toBe("page_number_0_index_5");
@@ -726,7 +726,7 @@ describe("simplified page_id format", () => {
     const pageTwo = citationDataToCitation({
       id: 3,
       page_id: "2_0",
-      full_phrase: "test",
+      source_context: "test",
     });
     expect(pageTwo.pageNumber).toBe(2);
     expect(pageTwo.startPageId).toBe("page_number_2_index_0");
@@ -737,7 +737,7 @@ describe("simplified page_id format", () => {
     const legacyZero = citationDataToCitation({
       id: 1,
       page_id: "page_number_0_index_0",
-      full_phrase: "test",
+      source_context: "test",
     });
     expect(legacyZero.pageNumber).toBe(1);
     expect(legacyZero.startPageId).toBe("page_number_1_index_0");
@@ -748,7 +748,7 @@ describe("simplified page_id format", () => {
     const legacyAmbiguous = citationDataToCitation({
       id: 1,
       page_id: "page_number_0_index_5",
-      full_phrase: "test",
+      source_context: "test",
     });
     expect(legacyAmbiguous.pageNumber).toBe(0);
     expect(legacyAmbiguous.startPageId).toBe("page_number_0_index_5");
@@ -760,41 +760,41 @@ describe("JSON repair - invalid escape sequences", () => {
     const response = `Patient info [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "doc", "full_phrase": "Output \\~100/hr", "anchor_text": "Output ~100/hr"}]
+[{"id": 1, "attachment_id": "doc", "source_context": "Output \\~100/hr", "source_match": "Output ~100/hr"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(1);
-    expect(result.citations[0].full_phrase).toBe("Output ~100/hr");
+    expect(result.citations[0].source_context).toBe("Output ~100/hr");
   });
 
   it("repairs multiple invalid escape sequences in same string", () => {
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "doc", "full_phrase": "\\~test\\xvalue\\!", "anchor_text": "test"}]
+[{"id": 1, "attachment_id": "doc", "source_context": "\\~test\\xvalue\\!", "source_match": "test"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
-    expect(result.citations[0].full_phrase).toBe("~testxvalue!");
+    expect(result.citations[0].source_context).toBe("~testxvalue!");
   });
 
   it("preserves valid escape sequences while fixing invalid ones", () => {
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "doc", "full_phrase": "line1\\nline2\\~test", "anchor_text": "test"}]
+[{"id": 1, "attachment_id": "doc", "source_context": "line1\\nline2\\~test", "source_match": "test"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \n should be preserved, \~ should become ~
-    expect(result.citations[0].full_phrase).toBe("line1\nline2~test");
+    expect(result.citations[0].source_context).toBe("line1\nline2~test");
   });
 
   it("handles medical notation with special characters", () => {
@@ -803,8 +803,8 @@ ${CITATION_DATA_END_DELIMITER}`;
 ${CITATION_DATA_START_DELIMITER}
 {
   "0": [
-    {"id": 1, "reasoning": "summarizes info", "full_phrase": "Output \\~100/hr", "anchor_text": "Output ~100/hr", "page_id": "0_0", "line_ids": [30]},
-    {"id": 1, "reasoning": "summarizes info", "full_phrase": "Na+ 138", "anchor_text": "Na+ 138", "page_id": "0_0", "line_ids": [36]}
+    {"id": 1, "reasoning": "summarizes info", "source_context": "Output \\~100/hr", "source_match": "Output ~100/hr", "page_id": "0_0", "line_ids": [30]},
+    {"id": 1, "reasoning": "summarizes info", "source_context": "Na+ 138", "source_match": "Na+ 138", "page_id": "0_0", "line_ids": [36]}
   ]
 }
 ${CITATION_DATA_END_DELIMITER}`;
@@ -813,7 +813,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(2);
-    expect(result.citations[0].full_phrase).toBe("Output ~100/hr");
+    expect(result.citations[0].source_context).toBe("Output ~100/hr");
     expect(result.citations[0].attachment_id).toBe("0");
   });
 
@@ -821,49 +821,49 @@ ${CITATION_DATA_END_DELIMITER}`;
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "doc", "full_phrase": "space\\u0020here", "anchor_text": "space here"}]
+[{"id": 1, "attachment_id": "doc", "source_context": "space\\u0020here", "source_match": "space here"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \u0020 is a valid unicode escape for space and should be preserved
-    expect(result.citations[0].full_phrase).toBe("space here");
+    expect(result.citations[0].source_context).toBe("space here");
   });
 
   it("preserves multiple valid unicode escapes in same string", () => {
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "doc", "full_phrase": "a\\u0041b\\u0042c", "anchor_text": "aAbBc"}]
+[{"id": 1, "attachment_id": "doc", "source_context": "a\\u0041b\\u0042c", "source_match": "aAbBc"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \u0041 = 'A', \u0042 = 'B'
-    expect(result.citations[0].full_phrase).toBe("aAbBc");
+    expect(result.citations[0].source_context).toBe("aAbBc");
   });
 
   it("repairs invalid unicode-like sequences (not followed by 4 hex digits)", () => {
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "doc", "full_phrase": "test\\utest", "anchor_text": "testutest"}]
+[{"id": 1, "attachment_id": "doc", "source_context": "test\\utest", "source_match": "testutest"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \utest is invalid (not 4 hex digits), backslash should be removed
-    expect(result.citations[0].full_phrase).toBe("testutest");
+    expect(result.citations[0].source_context).toBe("testutest");
   });
 
   it("handles mixed valid unicode escapes and invalid escapes", () => {
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "doc", "full_phrase": "\\~prefix\\u0020middle\\u0020\\xsuffix", "anchor_text": "prefix middle suffix"}]
+[{"id": 1, "attachment_id": "doc", "source_context": "\\~prefix\\u0020middle\\u0020\\xsuffix", "source_match": "prefix middle suffix"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
@@ -871,56 +871,56 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.success).toBe(true);
     // \~ and \x should be repaired (backslash removed)
     // \u0020 should be preserved as space
-    expect(result.citations[0].full_phrase).toBe("~prefix middle xsuffix");
+    expect(result.citations[0].source_context).toBe("~prefix middle xsuffix");
   });
 
   it("preserves unicode escapes with lowercase hex digits", () => {
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "doc", "full_phrase": "test\\u00e9test", "anchor_text": "testétest"}]
+[{"id": 1, "attachment_id": "doc", "source_context": "test\\u00e9test", "source_match": "testétest"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \u00e9 = 'é' (valid lowercase hex)
-    expect(result.citations[0].full_phrase).toBe("testétest");
+    expect(result.citations[0].source_context).toBe("testétest");
   });
 
   it("preserves unicode escapes with uppercase hex digits", () => {
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "doc", "full_phrase": "test\\u00E9test", "anchor_text": "testétest"}]
+[{"id": 1, "attachment_id": "doc", "source_context": "test\\u00E9test", "source_match": "testétest"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \u00E9 = 'é' (valid uppercase hex)
-    expect(result.citations[0].full_phrase).toBe("testétest");
+    expect(result.citations[0].source_context).toBe("testétest");
   });
 
   it("repairs \\u followed by only 3 hex digits", () => {
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "doc", "full_phrase": "test\\u00Fvalue", "anchor_text": "testu00Fvalue"}]
+[{"id": 1, "attachment_id": "doc", "source_context": "test\\u00Fvalue", "source_match": "testu00Fvalue"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \u00F is invalid (only 3 hex digits), backslash should be removed
-    expect(result.citations[0].full_phrase).toBe("testu00Fvalue");
+    expect(result.citations[0].source_context).toBe("testu00Fvalue");
   });
 
   it("repairs consecutive invalid unicode-like escapes", () => {
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "doc", "full_phrase": "test\\utest\\u00Gend", "anchor_text": "testutestu00Gend"}]
+[{"id": 1, "attachment_id": "doc", "source_context": "test\\utest\\u00Gend", "source_match": "testutestu00Gend"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
@@ -928,21 +928,21 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.success).toBe(true);
     // \utest is invalid (non-hex chars), \u00G is invalid (G is not hex)
     // Both should have backslashes removed
-    expect(result.citations[0].full_phrase).toBe("testutestu00Gend");
+    expect(result.citations[0].source_context).toBe("testutestu00Gend");
   });
 
   it("preserves valid unicode escape at end of string", () => {
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "doc", "full_phrase": "test\\u0020", "anchor_text": "test "}]
+[{"id": 1, "attachment_id": "doc", "source_context": "test\\u0020", "source_match": "test "}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \u0020 at end of string should be preserved as space
-    expect(result.citations[0].full_phrase).toBe("test ");
+    expect(result.citations[0].source_context).toBe("test ");
   });
 });
 
@@ -953,7 +953,7 @@ describe("grouped format with numeric string keys", () => {
 ${CITATION_DATA_START_DELIMITER}
 {
   "0": [
-    {"id": 1, "reasoning": "summarizes info", "full_phrase": "John Doe 50/M", "anchor_text": "John Doe", "page_id": "0_0", "line_ids": [1]}
+    {"id": 1, "reasoning": "summarizes info", "source_context": "John Doe 50/M", "source_match": "John Doe", "page_id": "0_0", "line_ids": [1]}
   ]
 }
 ${CITATION_DATA_END_DELIMITER}`;
@@ -973,10 +973,10 @@ ${CITATION_DATA_END_DELIMITER}`;
 ${CITATION_DATA_START_DELIMITER}
 {
   "0": [
-    {"id": 1, "full_phrase": "content from page 0", "anchor_text": "page 0", "page_id": "0_0", "line_ids": [1]}
+    {"id": 1, "source_context": "content from page 0", "source_match": "page 0", "page_id": "0_0", "line_ids": [1]}
   ],
   "1": [
-    {"id": 2, "full_phrase": "content from page 1", "anchor_text": "page 1", "page_id": "1_0", "line_ids": [1]}
+    {"id": 2, "source_context": "content from page 1", "source_match": "page 1", "page_id": "1_0", "line_ids": [1]}
   ]
 }
 ${CITATION_DATA_END_DELIMITER}`;
@@ -995,7 +995,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 ${CITATION_DATA_START_DELIMITER}
 {
   "0": [
-    {"id": 1, "full_phrase": "the quote", "anchor_text": "quote", "page_id": "0_0", "line_ids": [10, 11]}
+    {"id": 1, "source_context": "the quote", "source_match": "quote", "page_id": "0_0", "line_ids": [10, 11]}
   ]
 }
 ${CITATION_DATA_END_DELIMITER}`;
@@ -1005,7 +1005,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 
     expect(citationValues.length).toBe(1);
     expect(citationValues[0].attachmentId).toBe("0");
-    expect(citationValues[0].fullPhrase).toBe("the quote");
+    expect(citationValues[0].sourceContext).toBe("the quote");
     // page_id "0_0" is auto-corrected to page 1 (1-indexed)
     expect(citationValues[0].pageNumber).toBe(1);
     expect(citationValues[0].startPageId).toBe("page_number_1_index_0");
@@ -1046,14 +1046,14 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.citations[0].attachment_id).toBe("646274488");
     expect(result.citations[0].id).toBe(1);
     expect(result.citations[0].reasoning).toBe("patient demographics");
-    expect(result.citations[0].full_phrase).toBe("10 John Doe 50/M Full");
-    expect(result.citations[0].anchor_text).toBe("John Doe 50/M");
+    expect(result.citations[0].source_context).toBe("10 John Doe 50/M Full");
+    expect(result.citations[0].source_match).toBe("John Doe 50/M");
     expect(result.citations[0].page_id).toBe("0_0");
     expect(result.citations[0].line_ids).toEqual([1, 2, 3]);
 
     // Check last citation - plan
     expect(result.citations[3].reasoning).toBe("lists the plan for the patient");
-    expect(result.citations[3].anchor_text).toBe("Optimize for transplant");
+    expect(result.citations[3].source_match).toBe("Optimize for transplant");
   });
 
   it("converts medical document citations to standard Citation format", () => {
@@ -1074,8 +1074,8 @@ ${CITATION_DATA_END_DELIMITER}`;
 
     // Verify first citation conversion
     expect(citationValues[0].attachmentId).toBe("646274488");
-    expect(citationValues[0].fullPhrase).toBe("10 John Doe 50/M Full");
-    expect(citationValues[0].anchorText).toBe("John Doe 50/M");
+    expect(citationValues[0].sourceContext).toBe("10 John Doe 50/M Full");
+    expect(citationValues[0].sourceMatch).toBe("John Doe 50/M");
     // page_id "0_0" is auto-corrected to page 1 (1-indexed)
     expect(citationValues[0].pageNumber).toBe(1);
     expect(citationValues[0].startPageId).toBe("page_number_1_index_0");
@@ -1083,8 +1083,8 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(citationValues[0].reasoning).toBe("patient demographics");
 
     // Verify second citation conversion
-    expect(citationValues[1].fullPhrase).toBe("Na+ 138 k+ 4.4 Mg 1.7 Cr 1.21 WBC 18");
-    expect(citationValues[1].anchorText).toBe("Na+ 138");
+    expect(citationValues[1].sourceContext).toBe("Na+ 138 k+ 4.4 Mg 1.7 Cr 1.21 WBC 18");
+    expect(citationValues[1].sourceMatch).toBe("Na+ 138");
   });
 
   it("handles multiple citations with same id in grouped format", () => {
@@ -1109,9 +1109,9 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.citations[1].id).toBe(1);
     expect(result.citations[2].id).toBe(1);
 
-    expect(result.citations[0].full_phrase).toBe("First phrase");
-    expect(result.citations[1].full_phrase).toBe("Second phrase");
-    expect(result.citations[2].full_phrase).toBe("Third phrase");
+    expect(result.citations[0].source_context).toBe("First phrase");
+    expect(result.citations[1].source_context).toBe("Second phrase");
+    expect(result.citations[2].source_context).toBe("Third phrase");
   });
 
   it("handles special characters in medical notation", () => {
@@ -1129,8 +1129,8 @@ ${CITATION_DATA_END_DELIMITER}`;
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(2);
-    expect(result.citations[0].full_phrase).toBe("NSR w/ PVCs Pulses 2/2 Edema 1+");
-    expect(result.citations[1].full_phrase).toBe("Na+ 138 k+ 4.4 iCal Mg+ 1.7");
+    expect(result.citations[0].source_context).toBe("NSR w/ PVCs Pulses 2/2 Edema 1+");
+    expect(result.citations[1].source_context).toBe("Na+ 138 k+ 4.4 iCal Mg+ 1.7");
   });
 
   it("handles Unicode characters like arrows and symbols", () => {
@@ -1147,8 +1147,8 @@ ${CITATION_DATA_END_DELIMITER}`;
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(1);
-    expect(result.citations[0].full_phrase).toBe("Cardiac cath showing ↑ pulm HTN, low CI");
-    expect(result.citations[0].anchor_text).toBe("↑ pulm HTN");
+    expect(result.citations[0].source_context).toBe("Cardiac cath showing ↑ pulm HTN, low CI");
+    expect(result.citations[0].source_match).toBe("↑ pulm HTN");
   });
 });
 
@@ -1158,7 +1158,7 @@ describe("replaceCitationMarkers with verifications", () => {
     citation: {
       type: "document" as const,
       citationNumber,
-      fullPhrase: `phrase ${citationNumber}`,
+      sourceContext: `phrase ${citationNumber}`,
       attachmentId: "doc",
     },
   });
@@ -1234,7 +1234,7 @@ describe("replaceCitationMarkers with verifications", () => {
   it("resolves via citationMap key lookup when available", () => {
     const text = "Test [1].";
     const citationMap = new Map([
-      [1, { id: 1, attachment_id: "doc", full_phrase: "phrase one", anchor_text: "one", page_id: "1_0" }],
+      [1, { id: 1, attachment_id: "doc", source_context: "phrase one", source_match: "one", page_id: "1_0" }],
     ]);
 
     // Key is generated from the citation data
@@ -1272,7 +1272,7 @@ describe("replaceCitationMarkers with verifications", () => {
 
 describe("stripCitations", () => {
   it("does not strip XML cite tags (numeric-only)", () => {
-    const xmlInput = `Text <cite attachment_id='abc' full_phrase='foo' anchor_text='bar' /> more`;
+    const xmlInput = `Text <cite attachment_id='abc' source_context='foo' source_match='bar' /> more`;
     expect(stripCitations(xmlInput)).toBe(xmlInput);
   });
 });
@@ -1288,9 +1288,9 @@ describe("extractCitationsFromMarkers", () => {
     expect(values.length).toBe(3);
 
     const byNumber = values.sort((a, b) => (a.citationNumber ?? 0) - (b.citationNumber ?? 0));
-    expect(byNumber[0].fullPhrase).toContain("Patient: Doe, John A.");
-    expect(byNumber[1].fullPhrase).toContain("Date of birth: 09/20/1961");
-    expect(byNumber[2].fullPhrase).toContain("Test result: POSITIVE");
+    expect(byNumber[0].sourceContext).toContain("Patient: Doe, John A.");
+    expect(byNumber[1].sourceContext).toContain("Date of birth: 09/20/1961");
+    expect(byNumber[2].sourceContext).toContain("Test result: POSITIVE");
   });
 
   it("extracts citations from pre-claim markers (Anthropic style)", () => {
@@ -1300,8 +1300,8 @@ describe("extractCitationsFromMarkers", () => {
     const values = Object.values(citations);
     expect(values.length).toBe(2);
     // Both markers share the same sentence
-    expect(values[0].fullPhrase).toContain("POSITIVE");
-    expect(values[0].fullPhrase).toContain("HIGH bacterial risk");
+    expect(values[0].sourceContext).toContain("POSITIVE");
+    expect(values[0].sourceContext).toContain("HIGH bacterial risk");
   });
 
   it("extracts citations from comma-separated markers (Gemini style)", () => {
@@ -1327,7 +1327,7 @@ describe("extractCitationsFromMarkers", () => {
     expect(ids).toEqual([9, 10, 11]);
     // All should share the same sentence context
     for (const c of values) {
-      expect(c.fullPhrase).toContain("High-risk pathogens");
+      expect(c.sourceContext).toContain("High-risk pathogens");
     }
   });
 
@@ -1351,10 +1351,10 @@ describe("extractCitationsFromMarkers", () => {
     expect(Object.keys(extractCitationsFromMarkers(null as unknown as string)).length).toBe(0);
   });
 
-  it("strips markdown bold from full_phrase", () => {
+  it("strips markdown bold from source_context", () => {
     const text = `The result was [1] **POSITIVE** with **HIGH** risk.`;
     const citations = extractCitationsFromMarkers(text);
-    const phrase = Object.values(citations)[0].fullPhrase;
+    const phrase = Object.values(citations)[0].sourceContext;
     expect(phrase).not.toContain("**");
     expect(phrase).toContain("POSITIVE");
     expect(phrase).toContain("HIGH");
@@ -1385,11 +1385,11 @@ describe("replaceCitationMarkers — cite: link format", () => {
     expect(result).toBe("See (ref5) here.");
   });
 
-  it("uses citationMap anchor_text when showAnchorText is true", () => {
-    const citationMap = new Map([[2, { id: 2, anchor_text: "Resolved Rate" } as CitationData]]);
+  it("uses citationMap source_match when showSourceMatch is true", () => {
+    const citationMap = new Map([[2, { id: 2, source_match: "Resolved Rate" } as CitationData]]);
     const result = replaceCitationMarkers("The [Discount Rate](cite:2) applies.", {
       citationMap,
-      showAnchorText: true,
+      showSourceMatch: true,
     });
     expect(result).toBe("The Resolved Rate applies.");
   });
@@ -1431,25 +1431,25 @@ describe("extractCitationsFromMarkers — cite: link format", () => {
 
     expect(values.length).toBe(2);
     expect(values[0].citationNumber).toBe(2);
-    expect(values[0].anchorText).toBe("Discount Rate");
+    expect(values[0].sourceMatch).toBe("Discount Rate");
     expect(values[1].citationNumber).toBe(3);
-    expect(values[1].anchorText).toBe("Conversion Price");
+    expect(values[1].sourceMatch).toBe("Conversion Price");
   });
 
-  it("sets fullPhrase to the surrounding sentence", () => {
+  it("sets sourceContext to the surrounding sentence", () => {
     const text = "The [Discount Rate](cite:2) is applied to the conversion price.";
     const citations = extractCitationsFromMarkers(text);
     const c = Object.values(citations)[0];
-    expect(c.fullPhrase).toContain("Discount Rate");
-    expect(c.fullPhrase).toContain("conversion price");
-    expect(c.fullPhrase).not.toContain("(cite:");
+    expect(c.sourceContext).toContain("Discount Rate");
+    expect(c.sourceContext).toContain("conversion price");
+    expect(c.sourceContext).not.toContain("(cite:");
   });
 
   it("extracts citation from list item cite-link", () => {
     const text = "- [Junior to](cite:9) payment of outstanding indebtedness";
     const citations = extractCitationsFromMarkers(text);
     const c = Object.values(citations)[0];
-    expect(c.anchorText).toBe("Junior to");
+    expect(c.sourceMatch).toBe("Junior to");
     expect(c.citationNumber).toBe(9);
   });
 
@@ -1467,15 +1467,15 @@ describe("extractCitationsFromMarkers — cite: link format", () => {
     const text = `The [${longAnchor}](cite:1) applies.`;
     const citations = extractCitationsFromMarkers(text);
     const c = Object.values(citations)[0];
-    expect(c?.anchorText?.length).toBeLessThanOrEqual(50);
+    expect(c?.sourceMatch?.length).toBeLessThanOrEqual(50);
   });
 
-  it("never includes cite-link syntax in anchorText or fullPhrase", () => {
+  it("never includes cite-link syntax in sourceMatch or sourceContext", () => {
     const text = "The [Discount Rate](cite:2) matters.";
     const citations = extractCitationsFromMarkers(text);
     for (const c of Object.values(citations)) {
-      expect(c.anchorText ?? "").not.toContain("(cite:");
-      expect(c.fullPhrase ?? "").not.toContain("(cite:");
+      expect(c.sourceMatch ?? "").not.toContain("(cite:");
+      expect(c.sourceContext ?? "").not.toContain("(cite:");
     }
   });
 });

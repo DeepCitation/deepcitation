@@ -85,15 +85,15 @@ import { CitationComponent } from "deepcitation/react";
   citation={{
     type: "document",
     citationNumber: 1,
-    fullPhrase: "Revenue increased by 25%",
-    anchorText: "25% growth",
+    sourceContext: "Revenue increased by 25%",
+    sourceMatch: "25% growth",
     attachmentId: "report-2024",
     pageNumber: 1,
   }}
   verification={{
     status: "found",
     verifiedPageNumber: 1,
-    verifiedMatchSnippet: "...Revenue increased by 25% in Q4...",
+    sourceSnippet: "...Revenue increased by 25% in Q4...",
   }}
 />
 // Renders: [25% growth] with blue text
@@ -139,7 +139,7 @@ Neutral gray pill/badge style with status shown via indicator icon. Best for hig
 
 ### Brackets
 
-Shows anchorText in square brackets with blue styling. Best for academic papers, legal documents.
+Shows sourceMatch in square brackets with blue styling. Best for academic papers, legal documents.
 
 ```tsx
 <CitationComponent
@@ -408,13 +408,13 @@ function MyComponent() {
 | `citation` | `Citation` | Yes | The citation data to display |
 | `verification` | `Verification \| null` | No | Verification result data from the API |
 | `variant` | `"linter" \| "chip" \| "brackets" \| "text" \| "superscript" \| "footnote" \| "badge"` | No | Visual style variant (default: "linter") |
-| `content` | `"anchorText" \| "number" \| "indicator" \| "source"` | No | What content to display. Defaults based on variant. |
+| `content` | `"sourceMatch" \| "number" \| "indicator" \| "source"` | No | What content to display. Defaults based on variant. |
 | `interactionMode` | `"eager" \| "lazy"` | No | How eagerly to respond to interactions (default: "eager") |
 | `isLoading` | `boolean` | No | Explicitly show loading spinner |
 | `children` | `ReactNode` | No | Content to render before the citation |
 | `className` | `string` | No | Additional CSS classes |
 | `innerWidthClassName` | `string` | No | Class name for inner content width |
-| `fallbackDisplay` | `string \| null` | No | Fallback text when anchorText is empty |
+| `fallbackText` | `string \| null` | No | Fallback text when sourceMatch is empty |
 | `isMobile` | `boolean` | No | Enable mobile touch handlers |
 | `eventHandlers` | `CitationEventHandlers` | No | Interaction callbacks (disables default behaviors) |
 | `behaviorConfig` | `CitationBehaviorConfig` | No | Custom click/hover behavior configuration |
@@ -424,7 +424,7 @@ function MyComponent() {
 | `renderPopoverContent` | `(props) => ReactNode` | No | Custom popover content renderer |
 | `additionalCount` | `number` | No | Number of additional citations for badge variant |
 | `faviconUrl` | `string` | No | Favicon URL for badge variant |
-| `sourceLabel` | `string` | No | Override the source name displayed in popover headers (see below) |
+| `sourceTitle` | `string` | No | Override the source name displayed in popover headers (see below) |
 | `onSourceDownload` | `(citation: Citation) => void` | No | Callback when user clicks the download button in popover header. Button only renders when provided. |
 | `indicatorVariant` | `"icon" \| "dot" \| "caret" \| "none"` | No | Visual style for status indicators: `"icon"` (checkmarks/spinners, default), `"dot"` (subtle colored dots), `"caret"` (disclosure chevron), or `"none"` (hidden) |
 
@@ -432,10 +432,10 @@ function MyComponent() {
 
 ## Custom Source Labels
 
-The `sourceLabel` prop allows you to override the filename or URL title displayed in the citation popover header.
+The `sourceTitle` prop allows you to override the filename or URL title displayed in the citation popover header.
 
 {: .important }
-**The citation and verification objects only store the *original* filename from when the document was uploaded.** If users rename files in your application, you must use `sourceLabel` to display the updated name—the verification system has no way to know about filename changes.
+**The citation and verification objects only store the *original* filename from when the document was uploaded.** If users rename files in your application, you must use `sourceTitle` to display the updated name—the verification system has no way to know about filename changes.
 
 ### Document Citations
 
@@ -479,7 +479,7 @@ The `sourceLabel` prop allows you to override the filename or URL title displaye
 
 ### Behavior by Citation Type
 
-| Citation Type | Without `sourceLabel` | With `sourceLabel` |
+| Citation Type | Without `sourceTitle` | With `sourceTitle` |
 |:--------------|:----------------------|:-------------------|
 | Document | Shows `verification.label` (original filename) | Shows your custom label |
 | URL | Shows URL domain/path | Shows your custom label |

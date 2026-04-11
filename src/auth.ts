@@ -8,12 +8,8 @@ import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { escapeHtml } from "./utils/htmlEscape.js";
 import { isDomainMatch } from "./utils/urlSafety.js";
-
-/** Escape user-controlled strings for safe HTML interpolation. */
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
 
 // ── Credentials ────────────────────────────────────────────────────
 

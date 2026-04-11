@@ -93,8 +93,8 @@ const ICON_MARGIN_EXPANDED = "-0.25rem";
  */
 function getTitleForCitation(flatItem: FlatCitationItem, t: ReturnType<typeof useTranslation>): string {
   const statusLabel = getStatusInfo(flatItem.item.verification).label;
-  const anchorText = flatItem.item.citation.anchorText?.toString() || flatItem.item.citation.fullPhrase || null;
-  const preview = anchorText ? (anchorText.length > 40 ? `${anchorText.slice(0, 40)}...` : anchorText) : null;
+  const sourceMatch = flatItem.item.citation.sourceMatch?.toString() || flatItem.item.citation.sourceContext || null;
+  const preview = sourceMatch ? (sourceMatch.length > 40 ? `${sourceMatch.slice(0, 40)}...` : sourceMatch) : null;
 
   if (preview) {
     return t("aria.citationIconTitleWithPreview", { sourceName: flatItem.sourceName, preview, statusLabel });
@@ -157,8 +157,12 @@ function CitationTooltip({
   const statusInfo = getStatusInfo(item.verification, indicatorVariant);
 
   // Get anchor text for display
-  const anchorText = item.citation.anchorText?.toString() || item.citation.fullPhrase || null;
-  const displayAnchorText = anchorText ? (anchorText.length > 60 ? `${anchorText.slice(0, 60)}...` : anchorText) : null;
+  const sourceMatch = item.citation.sourceMatch?.toString() || item.citation.sourceContext || null;
+  const displaySourceMatch = sourceMatch
+    ? sourceMatch.length > 60
+      ? `${sourceMatch.slice(0, 60)}...`
+      : sourceMatch
+    : null;
 
   // Find evidence image for this specific citation, validating the source
   const rawEvidenceImage = showProofThumbnail ? item.verification?.evidence?.src : null;
@@ -232,8 +236,8 @@ function CitationTooltip({
       </div>
 
       {/* Anchor text preview */}
-      {displayAnchorText && (
-        <div className="px-3 pb-2 text-[11px] text-dc-subtle-foreground truncate">{displayAnchorText}</div>
+      {displaySourceMatch && (
+        <div className="px-3 pb-2 text-[11px] text-dc-subtle-foreground truncate">{displaySourceMatch}</div>
       )}
 
       {/* Evidence image thumbnail */}
@@ -493,7 +497,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
       [citationGroups, sourceLabelMap],
     );
 
-    const displayLabel = label ?? generateDefaultLabel(resolvedGroups, t);
+    const claimText = label ?? generateDefaultLabel(resolvedGroups, t);
 
     // Flatten citation groups into individual items for per-citation icons
     const flatCitations = useMemo(() => flattenCitations(resolvedGroups, t), [resolvedGroups, t]);
@@ -568,7 +572,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
         )}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
-        aria-label={t("aria.citationsSummary", { displayLabel })}
+        aria-label={t("aria.citationsSummary", { claimText })}
         data-testid="citation-drawer-trigger"
       >
         {/* Per-citation status icons */}
@@ -585,7 +589,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
         />
 
         {/* Label */}
-        <span className="text-xs text-dc-foreground truncate max-w-[200px]">{displayLabel}</span>
+        <span className="text-xs text-dc-foreground truncate max-w-[200px]">{claimText}</span>
 
         {/* Aggregate TtC — shows average user review time when metrics are available */}
         {timingMetrics && timingMetrics.resolvedCount > 0 && (

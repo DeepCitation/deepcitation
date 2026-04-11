@@ -20,15 +20,15 @@ describe("extractMarkersFromBody", () => {
   it("extracts simple cite markers", () => {
     const body = "The [Discount Rate](cite:1) is applied.";
     const markers = extractMarkersFromBody(body);
-    expect(markers).toEqual([{ id: 1, displayLabel: "Discount Rate" }]);
+    expect(markers).toEqual([{ id: 1, claimText: "Discount Rate" }]);
   });
 
   it("extracts multiple markers sorted by id", () => {
     const body = "The [Rate](cite:2) and [Price](cite:1) are related.";
     const markers = extractMarkersFromBody(body);
     expect(markers).toEqual([
-      { id: 1, displayLabel: "Price" },
-      { id: 2, displayLabel: "Rate" },
+      { id: 1, claimText: "Price" },
+      { id: 2, claimText: "Rate" },
     ]);
   });
 
@@ -36,19 +36,19 @@ describe("extractMarkersFromBody", () => {
     const body = "[Discount Rate](cite:1) again [DR](cite:1)";
     const markers = extractMarkersFromBody(body);
     expect(markers).toHaveLength(1);
-    expect(markers[0].displayLabel).toBe("Discount Rate");
+    expect(markers[0].claimText).toBe("Discount Rate");
   });
 
   it("extracts double-quoted anchor hint", () => {
     const body = '[terminates](cite:3 "automatically terminate")';
     const markers = extractMarkersFromBody(body);
-    expect(markers).toEqual([{ id: 3, displayLabel: "terminates", anchorHint: "automatically terminate" }]);
+    expect(markers).toEqual([{ id: 3, claimText: "terminates", anchorHint: "automatically terminate" }]);
   });
 
   it("extracts single-quoted anchor hint", () => {
     const body = "[terminates](cite:3 'automatically terminate')";
     const markers = extractMarkersFromBody(body);
-    expect(markers).toEqual([{ id: 3, displayLabel: "terminates", anchorHint: "automatically terminate" }]);
+    expect(markers).toEqual([{ id: 3, claimText: "terminates", anchorHint: "automatically terminate" }]);
   });
 
   it("handles double-quoted anchor with escaped quotes", () => {
@@ -70,9 +70,9 @@ describe("extractMarkersFromBody", () => {
       "The [Discount Rate](cite:1) and [terminates](cite:2 'automatically terminate') and [converts](cite:3 \"auto convert\")";
     const markers = extractMarkersFromBody(body);
     expect(markers).toHaveLength(3);
-    expect(markers[0]).toEqual({ id: 1, displayLabel: "Discount Rate" });
-    expect(markers[1]).toEqual({ id: 2, displayLabel: "terminates", anchorHint: "automatically terminate" });
-    expect(markers[2]).toEqual({ id: 3, displayLabel: "converts", anchorHint: "auto convert" });
+    expect(markers[0]).toEqual({ id: 1, claimText: "Discount Rate" });
+    expect(markers[1]).toEqual({ id: 2, claimText: "terminates", anchorHint: "automatically terminate" });
+    expect(markers[2]).toEqual({ id: 3, claimText: "converts", anchorHint: "auto convert" });
   });
 
   it("returns empty array for body with no markers", () => {
@@ -82,7 +82,7 @@ describe("extractMarkersFromBody", () => {
   it("ignores extra text in parens that is not a quoted anchor", () => {
     const body = "[declare War](cite:12 some extra stuff)";
     const markers = extractMarkersFromBody(body);
-    expect(markers).toEqual([{ id: 12, displayLabel: "declare War" }]);
+    expect(markers).toEqual([{ id: 12, claimText: "declare War" }]);
   });
 
   // Strategy 2c: **bold** [N] format
@@ -90,8 +90,8 @@ describe("extractMarkersFromBody", () => {
     const body = "The **Discount Rate** [1] is applied to the **conversion price** [2].";
     const markers = extractMarkersFromBody(body);
     expect(markers).toEqual([
-      { id: 1, displayLabel: "Discount Rate" },
-      { id: 2, displayLabel: "conversion price" },
+      { id: 1, claimText: "Discount Rate" },
+      { id: 2, claimText: "conversion price" },
     ]);
   });
 
@@ -99,14 +99,14 @@ describe("extractMarkersFromBody", () => {
     const body = "The [Discount Rate](cite:1) and **conversion price** [2].";
     const markers = extractMarkersFromBody(body);
     // cite:N format found, so **bold** [N] fallback is NOT used
-    expect(markers).toEqual([{ id: 1, displayLabel: "Discount Rate" }]);
+    expect(markers).toEqual([{ id: 1, claimText: "Discount Rate" }]);
   });
 
   it("deduplicates **bold** [N] markers by id", () => {
     const body = "**Rate** [1] then **Rate** [1] again";
     const markers = extractMarkersFromBody(body);
     expect(markers).toHaveLength(1);
-    expect(markers[0].displayLabel).toBe("Rate");
+    expect(markers[0].claimText).toBe("Rate");
   });
 });
 

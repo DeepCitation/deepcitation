@@ -1,12 +1,12 @@
 /**
  * Citation hydration utilities.
  *
- * Reconstructs `full_phrase` from a DeepCitation summary file using line IDs,
+ * Reconstructs `source_context` from a DeepCitation summary file using line IDs,
  * eliminating the need for the LLM to copy verbatim text during report generation.
  *
  * Pipeline:
- *   prepare → (summary file on disk) → LLM writes compact draft (no full_phrase)
- *   → hydrate reads summary + fills full_phrase → verify runs normally
+ *   prepare → (summary file on disk) → LLM writes compact draft (no source_context)
+ *   → hydrate reads summary + fills source_context → verify runs normally
  */
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -24,11 +24,11 @@ import { die, parseArgs } from "./cliUtils.js";
 
 export const HYDRATE_HELP = `Usage: deepcitation hydrate [options]
 
-Fill in full_phrase on citations that are missing it, by looking up line IDs
+Fill in source_context on citations that are missing it, by looking up line IDs
 in a DeepCitation summary file. Produces a hydrated draft ready for verify.
 
 Use this when the draft was generated with the compact citation format
-(no full_phrase/reasoning) to reduce LLM output token usage.
+(no source_context/reasoning) to reduce LLM output token usage.
 
 Options:
   --markdown <file>   Path to draft markdown file with <<<CITATION_DATA>>> block
@@ -65,14 +65,14 @@ export interface LineMap {
 export interface HydrateOptions {
   /** Raw content of the summary file (JSON string from deepcitation prepare --text) */
   summaryContent: string;
-  /** Citations to hydrate in place — full_phrase is mutated on matching entries */
+  /** Citations to hydrate in place — source_context is mutated on matching entries */
   citations: CitationData[];
   /** When true, log a warning for each citation that could not be hydrated */
   warnOnMiss?: boolean;
 }
 
 export interface HydrateResult {
-  /** Number of citations that had full_phrase filled in */
+  /** Number of citations that had source_context filled in */
   hydrated: number;
   /** Citation IDs that could not be hydrated */
   misses: number[];
@@ -242,10 +242,10 @@ function extractLines(
 }
 
 /**
- * Hydrates full_phrase on citations that are missing it.
+ * Hydrates source_context on citations that are missing it.
  *
- * For each citation with line_ids but no full_phrase, looks up the line text
- * from the summary and sets full_phrase to the concatenated line text.
+ * For each citation with line_ids but no source_context, looks up the line text
+ * from the summary and sets source_context to the concatenated line text.
  * Mutates citations in place.
  */
 export function hydrateCitations({ summaryContent, citations, warnOnMiss }: HydrateOptions): HydrateResult {
@@ -254,7 +254,7 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
   const misses: number[] = [];
 
   for (const citation of citations) {
-    if (citation.full_phrase) continue;
+    if (citation.source_context) continue;
 
     const lineIds = citation.line_ids;
     if (!lineIds?.length) {
@@ -266,8 +266,8 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
     // Resolve the normalized pageId for qualified lookups (handles both "N_I" and "page_number_N_index_I")
     const normalizedPageId = citation.page_id ? (parsePageId(citation.page_id).startPageId ?? "") : "";
 
-    // Always pull ±1 neighbor lines around the cited range so full_phrase is
-    // reliably wider than anchor_text. Without surrounding context, the popover
+    // Always pull ±1 neighbor lines around the cited range so source_context is
+    // reliably wider than source_match. Without surrounding context, the popover
     // quote has nothing to highlight (phrase === anchor) and the verify API
     // has no enclosing phrase to narrow the match — falls back to pageText →
     // partial_text_found. Mirrors the wrong-lineId fallback path below.
@@ -291,29 +291,29 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
     }
 
     if (lineTexts.length > 0) {
-      citation.full_phrase = lineTexts.join(" ");
+      citation.source_context = lineTexts.join(" ");
 
-      // If anchor_text is paraphrased (not verbatim in full_phrase), promote it
-      // to display_label and find the actual verbatim anchor from the evidence.
+      // If source_match is paraphrased (not verbatim in source_context), promote it
+      // to claim_text and find the actual verbatim anchor from the evidence.
       // Normalize curly/smart quotes before comparing — OCR text may have \u201c/\u201d
       // while the citation anchor uses straight ASCII quotes.
       if (
-        citation.anchor_text &&
-        !normalizeQuotes(citation.full_phrase.toLowerCase()).includes(
-          normalizeQuotes(citation.anchor_text.toLowerCase()),
+        citation.source_match &&
+        !normalizeQuotes(citation.source_context.toLowerCase()).includes(
+          normalizeQuotes(citation.source_match.toLowerCase()),
         )
       ) {
-        if (!citation.display_label) {
-          citation.display_label = citation.anchor_text;
+        if (!citation.claim_text) {
+          citation.claim_text = citation.source_match;
         }
         const allLines = getAllLines(lineMap);
-        const found = findAnchorWithFallback(citation.anchor_text, allLines);
+        const found = findAnchorWithFallback(citation.source_match, allLines);
         if (found) {
-          citation.anchor_text = found.verbatimAnchor;
+          citation.source_match = found.verbatimAnchor;
           // The assembled lines don't contain the anchor — the agent cited the wrong
           // location. Relocate the citation to the actual evidence and expand to
-          // include adjacent lines so full_phrase is broader than the anchor alone.
-          // Without surrounding context, fullPhrase === anchorText → the API's search
+          // include adjacent lines so source_context is broader than the anchor alone.
+          // Without surrounding context, sourceContext === sourceMatch → the API's search
           // has no enclosing phrase to narrow → pageText fallback → partial_text_found.
           const { lineId, pageId } = found;
           const neighborIds = [lineId - 1, lineId, lineId + 1].filter(id => id > 0);
@@ -330,7 +330,7 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
             }
           }
           if (neighborTexts.length > 1) {
-            citation.full_phrase = neighborTexts.join(" ");
+            citation.source_context = neighborTexts.join(" ");
             citation.page_id = toCompactPageId(pageId);
             citation.line_ids = resolvedIds;
           }
@@ -339,18 +339,18 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
 
       hydrated++;
     } else {
-      // Line ID lookup failed (agent guessed wrong IDs). Fall back to anchor_text search
-      // across all lines so we still get a correct full_phrase and page/line location.
-      if (citation.anchor_text) {
+      // Line ID lookup failed (agent guessed wrong IDs). Fall back to source_match search
+      // across all lines so we still get a correct source_context and page/line location.
+      if (citation.source_match) {
         const allLines = getAllLines(lineMap);
-        const found = findAnchorWithFallback(citation.anchor_text, allLines);
+        const found = findAnchorWithFallback(citation.source_match, allLines);
         if (found) {
-          // Preserve the original anchor_text as display_label before overwriting,
+          // Preserve the original source_match as claim_text before overwriting,
           // mirroring the paraphrase-promotion pattern in the successful hydration path.
-          if (!citation.display_label) citation.display_label = citation.anchor_text;
-          citation.anchor_text = found.verbatimAnchor;
-          // Update page_id and include adjacent lines so full_phrase is broader than
-          // anchor_text alone. Without surrounding context the API cannot compute the
+          if (!citation.claim_text) citation.claim_text = citation.source_match;
+          citation.source_match = found.verbatimAnchor;
+          // Update page_id and include adjacent lines so source_context is broader than
+          // source_match alone. Without surrounding context the API cannot compute the
           // anchor highlight position and falls back to pageText → partial_text_found.
           citation.page_id = toCompactPageId(found.pageId);
           const neighborIds = [found.lineId - 1, found.lineId, found.lineId + 1].filter(id => id > 0);
@@ -365,7 +365,7 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
               resolvedIds.push(id);
             }
           }
-          citation.full_phrase = neighborTexts.length > 1 ? neighborTexts.join(" ") : found.verbatimAnchor;
+          citation.source_context = neighborTexts.length > 1 ? neighborTexts.join(" ") : found.verbatimAnchor;
           citation.line_ids = resolvedIds.length > 0 ? resolvedIds : [found.lineId];
           hydrated++;
           continue;
@@ -414,7 +414,7 @@ export function findSummaryForMarkdown(_mdPath: string, attachmentId?: string): 
   if (candidates.length === 1) return join(dcDir, candidates[0]);
 
   // When attachmentId is known, find the prepare file that matches it exactly.
-  // Never fall back to mtime guessing — a wrong summary produces wrong full_phrases.
+  // Never fall back to mtime guessing — a wrong summary produces wrong source_contexts.
   if (attachmentId) {
     for (const f of candidates) {
       const filePath = join(dcDir, f);
@@ -436,7 +436,7 @@ export function findSummaryForMarkdown(_mdPath: string, attachmentId?: string): 
 
 /**
  * CLI command: hydrate a draft markdown file using a summary file.
- * Reads compact citations (missing full_phrase), fills in full_phrase from
+ * Reads compact citations (missing source_context), fills in source_context from
  * line text in the summary, then writes the enriched draft back to disk.
  */
 export function hydrate(argv: string[]): void {

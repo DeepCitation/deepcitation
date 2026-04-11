@@ -173,8 +173,8 @@ def parse_citations(llm_output: str) -> dict:
             # LLMs may use shorthand keys (n, f, k, p, l) to save tokens
             cid = item.get("id") or item.get("n")
             citations[f"{attachment_id}_{cid}"] = {
-                "fullPhrase": item.get("full_phrase") or item.get("f", ""),
-                "anchorText": item.get("anchor_text") or item.get("k", ""),
+                "sourceContext": item.get("source_context") or item.get("f", ""),
+                "sourceMatch": item.get("source_match") or item.get("k", ""),
                 "pageId": item.get("page_id") or item.get("p", ""),
                 "lineIds": item.get("line_ids") or item.get("l", []),
             }

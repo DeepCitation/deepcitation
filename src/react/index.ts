@@ -11,6 +11,31 @@
  * @packageDocumentation
  */
 
+// Search Summary Utilities
+export {
+  buildIntentSummary,
+  buildSearchSummary,
+  deriveContextWindow,
+  type IntentSummary,
+  type MatchSnippet,
+  type SearchOutcome,
+  type SearchQueryGroup,
+  type SearchSummary,
+} from "../analysis/intent.js";
+// Search Narrative (centralized interpretation of SearchAttempt[] → display-ready data)
+export {
+  buildSearchNarrative,
+  type CollapsedFailureRow,
+  type FailureRow,
+  getStatusColorScheme,
+  getStatusHeaderText,
+  type NarrativeOutcome,
+  type NarrativeRow,
+  type SearchNarrative,
+  type SuccessRow,
+} from "../analysis/narrative.js";
+// Variation Label Utilities
+export { getVariationLabel } from "../analysis/variationLabels.js";
 // Utilities - For type guards and display text
 export { isDocumentCitation, isUrlCitation } from "../types/citation.js";
 // URL Display utilities
@@ -58,6 +83,8 @@ export {
 } from "./CitationOverlayContext.js";
 // Citation Primitives Namespace (composable building blocks)
 export { Citation } from "./CitationPrimitives.js";
+// Citation Status — derive status from a Verification object
+export { getStatusFromVerification, getStatusLabel } from "./citationStatus.js";
 // Constants - Shared styling and configuration
 export {
   COPY_FEEDBACK_DURATION_MS,
@@ -105,6 +132,12 @@ export {
   type DeepCitationThemeColors,
   type DeepCitationThemeProps,
 } from "./DeepCitationTheme.js";
+// Popover Content — standalone popover body for custom popover wrappers or Remotion stills
+export {
+  DefaultPopoverContent,
+  type PopoverContentProps,
+  type PopoverViewState,
+} from "./DefaultPopoverContent.js";
 export { type ExpandedImageSource, resolveExpandedImage } from "./EvidenceTray.js";
 // Accessibility Hooks
 export { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
@@ -180,29 +213,6 @@ export {
   SplitDiffDisplay,
   type SplitDiffDisplayProps,
 } from "./SplitDiffDisplay.js";
-// Search Narrative (centralized interpretation of SearchAttempt[] → display-ready data)
-export {
-  buildSearchNarrative,
-  type CollapsedFailureRow,
-  type FailureRow,
-  getStatusColorScheme,
-  getStatusHeaderText,
-  type NarrativeOutcome,
-  type NarrativeRow,
-  type SearchNarrative,
-  type SuccessRow,
-} from "./searchNarrative.js";
-// Search Summary Utilities
-export {
-  buildIntentSummary,
-  buildSearchSummary,
-  deriveContextWindow,
-  type IntentSummary,
-  type MatchSnippet,
-  type SearchOutcome,
-  type SearchQueryGroup,
-  type SearchSummary,
-} from "./searchSummaryUtils.js";
 // Status Message Utilities
 export { getContextualStatusMessage } from "./statusMessage.js";
 // Time to Certainty (TtC) — timing utilities and hooks
@@ -295,9 +305,9 @@ export {
   CITATION_Y_PADDING,
   classNames,
   generateCitationInstanceId,
-  getCitationAnchorText,
-  getCitationDisplayText,
+  getCitationClaimText,
   getCitationNumber,
+  getCitationSourceMatch,
   truncateMiddle,
 } from "./utils.js";
 // Verification Log Components (Search attempt timeline display)
@@ -321,5 +331,3 @@ export {
 } from "./VerificationLog.js";
 // Verification Tabs Component
 export { VerificationTabs } from "./VerificationTabs.js";
-// Variation Label Utilities
-export { getVariationLabel } from "./variationLabels.js";

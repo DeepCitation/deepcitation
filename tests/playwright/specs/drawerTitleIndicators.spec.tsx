@@ -17,8 +17,8 @@ function makeCitation(overrides: Partial<Citation>): Citation {
   return {
     type: "document",
     citationNumber: 1,
-    anchorText: "test anchor",
-    fullPhrase: "The document states test anchor in context.",
+    sourceMatch: "test anchor",
+    sourceContext: "The document states test anchor in context.",
     lineIds: [1],
     ...overrides,
   };
@@ -30,8 +30,8 @@ function makeVerification(page: number): Verification {
     attachmentId,
     document: {
       verifiedPageNumber: page,
-      // phraseMatchDeepItem is required for citationsOnActivePage to include this item
-      phraseMatchDeepItem: { x: 100, y: 200, width: 300, height: 20, text: "test anchor" },
+      // sourceContextDeepItem is required for citationsOnActivePage to include this item
+      sourceContextDeepItem: { x: 100, y: 200, width: 300, height: 20, text: "test anchor" },
     },
     evidence: { src: testImage, dimensions: { width: 800, height: 400 } },
   };
@@ -40,7 +40,7 @@ function makeVerification(page: number): Verification {
 function makeItem(key: string, page: number, anchor: string): CitationDrawerItem {
   return {
     citationKey: key,
-    citation: makeCitation({ pageNumber: page, anchorText: anchor }),
+    citation: makeCitation({ pageNumber: page, sourceMatch: anchor }),
     verification: makeVerification(page),
   };
 }
@@ -106,14 +106,14 @@ test.describe("Drawer - Title Not Truncated", () => {
     expect(isTruncated).toBe(false);
   });
 
-  test("title h2 has no truncate class", async ({ mount, page }) => {
+  test("title h2 truncates gracefully in flat header row", async ({ mount, page }) => {
     await mount(<DrawerInteractionHarness groups={makeLongTitleGroups()} />);
 
     const dialog = page.locator("[role='dialog']");
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
     const heading = dialog.locator("h2").first();
-    await expect(heading).not.toHaveClass(/truncate/);
+    await expect(heading).toHaveClass(/truncate/);
   });
 });
 

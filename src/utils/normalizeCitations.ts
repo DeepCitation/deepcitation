@@ -4,8 +4,8 @@ import { sanitizeForLog } from "./logSafety.js";
  * Normalize citation JSON into the flat-map format expected by keygen/verify.
  *
  * Accepts two formats:
- *   1. Flat map (CLI format):   { "cite-key": { attachmentId, fullPhrase, ... } }
- *   2. Grouped array (LLM format): { "ATTACHMENT_ID": [ { id, fullPhrase, ... }, ... ] }
+ *   1. Flat map (CLI format):   { "cite-key": { attachmentId, sourceContext, ... } }
+ *   2. Grouped array (LLM format): { "ATTACHMENT_ID": [ { id, sourceContext, ... }, ... ] }
  *
  * Format 2 is produced by the LLM citation prompt (<<<CITATION_DATA>>> blocks).
  * This function detects format 2 and converts it to format 1, using the outer

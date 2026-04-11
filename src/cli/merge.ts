@@ -76,15 +76,15 @@ function qualKey(pageId: string | undefined, lineId: number): string {
 
 /**
  * Converts a parsed CitationData back to compact JSON output format.
- * Preserves full_phrase when present (hydrated citations) so downstream
+ * Preserves source_context when present (hydrated citations) so downstream
  * verify does not need to re-hydrate.
  */
 function toCompact(c: CitationData): Record<string, unknown> {
   const out: Record<string, unknown> = { n: c.id };
-  if (c.anchor_text) out.k = c.anchor_text;
+  if (c.source_match) out.k = c.source_match;
   if (c.page_id) out.p = c.page_id;
   if (c.line_ids?.length) out.l = c.line_ids;
-  if (c.full_phrase) out.f = c.full_phrase;
+  if (c.source_context) out.f = c.source_context;
   return out;
 }
 

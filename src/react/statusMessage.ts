@@ -16,9 +16,9 @@ export function getContextualStatusMessage(
   switch (status) {
     case "found":
       return t("message.exactMatch");
-    case "found_anchor_text_only":
-      return t("message.anchorTextFound");
-    case "found_phrase_missed_anchor_text":
+    case "found_source_match_only":
+      return t("message.sourceMatchFound");
+    case "found_context_missed_source_match":
       return t("message.phraseFound");
     case "partial_text_found":
       return t("message.partialTextMatch");

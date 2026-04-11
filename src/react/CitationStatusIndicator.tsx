@@ -35,7 +35,7 @@ import { cn } from "./utils.js";
 // | Status        | Indicator          | Color  | searchState.status values                    |
 // |---------------|--------------------| -------|----------------------------------------------|
 // | Pending       | Spinner            | Gray   | "pending", "loading", null/undefined         |
-// | Verified      | Checkmark (✓)      | Green  | "found", "found_anchor_text_only", etc.      |
+// | Verified      | Checkmark (✓)      | Green  | "found", "found_source_match_only", etc.      |
 // | Partial Match | Checkmark (✓)      | Amber  | "found_on_other_page", "partial_text_found"  |
 // | Not Found     | X icon (✕)         | Red    | "not_found"                                  |
 //

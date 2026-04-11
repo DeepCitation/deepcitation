@@ -143,10 +143,10 @@ export function resolveEvidenceSourceAnchorRatio(
   if (!dims || dims.width <= 0 || dims.height <= 0 || !items || items.length === 0) return null;
 
   const targets = [
-    verification?.verifiedAnchorText,
-    verification?.document?.anchorTextMatchDeepItems?.[0]?.text,
-    verification?.verifiedFullPhrase,
-    verification?.document?.phraseMatchDeepItem?.text,
+    verification?.verifiedSourceMatch,
+    verification?.document?.sourceMatchDeepItems?.[0]?.text,
+    verification?.verifiedSourceContext,
+    verification?.document?.sourceContextDeepItem?.text,
   ]
     .map(normalizeEvidenceText)
     .filter(Boolean);

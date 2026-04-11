@@ -11,8 +11,8 @@ const baseCitation: Citation = {
   type: "document",
   attachmentId: "att-edge-1",
   citationNumber: 1,
-  anchorText: "ministerial control over water approvals",
-  fullPhrase:
+  sourceMatch: "ministerial control over water approvals",
+  sourceContext:
     "Bill 56 expands ministerial control over water approvals and related governance frameworks",
   pageNumber: 3,
 };
@@ -24,7 +24,7 @@ const tallImageBase64 =
 const verifiedVerification: Verification = {
   status: "found",
   attachmentId: "att-edge-1",
-  verifiedMatchSnippet: "ministerial control over water approvals",
+  sourceSnippet: "ministerial control over water approvals",
   document: { verifiedPageNumber: 3 },
   evidence: {
     src: tallImageBase64,

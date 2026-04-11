@@ -342,7 +342,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
         providedCitation || {
           type: "url",
           url,
-          fullPhrase: title || url,
+          sourceContext: title || url,
         },
       [providedCitation, url, title],
     );

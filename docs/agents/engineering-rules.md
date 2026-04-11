@@ -29,7 +29,7 @@ Run these before opening a PR:
 
 `CitationBase` intentionally carries `attachmentId`, `pageNumber`, `lineIds`, and `startPageId` on **all** citation types, including `UrlCitation`. This is because URL citations are fetched and converted to PDFs before verification — after that conversion, every citation type can carry a page location. A `UrlCitation` without these fields simply hasn't been verified yet.
 
-Do **not** flag these shared fields as "semantically document-only" in code reviews. The correct mental model is:
+Do **not** flag these shared fields as "semantically document-only" in code reviews. For field naming conventions and domain binding rules, see [concepts.md](./concepts.md). The correct mental model is:
 
 > All citations are potentially verifiable against a page-indexed document. The `type` discriminator indicates the *source* of the citation, not whether page/line fields will be populated.
 
@@ -103,10 +103,10 @@ When a type uses a discriminator field (e.g., `type: "url" | "document"`), **eve
 
 ```typescript
 // WRONG
-return { pageNumber, lineIds, fullPhrase }; // Missing type: "document"
+return { pageNumber, lineIds, sourceContext }; // Missing type: "document"
 
 // CORRECT
-return { type: "document", pageNumber, lineIds, fullPhrase };
+return { type: "document", pageNumber, lineIds, sourceContext };
 ```
 
 ### No Unsafe Casts
@@ -134,3 +134,23 @@ When adding new public types or functions, verify they are exported from `src/in
 - Call out security-sensitive changes explicitly.
 - Flag breaking changes to API/types/component props.
 - Explain what changed and why.
+
+## Tailwind Preflight and Inline Image Sizing
+
+Tailwind's preflight resets include `img { max-width: 100%; height: auto; }`. When an `<img>` has explicit inline `width` and `height` (e.g. the keyhole strip in `EvidenceKeyhole.tsx`), preflight's `max-width: 100%` caps the rendered width to the container while the inline `height` holds — **breaking the aspect ratio and squishing the image**.
+
+**Rule**: Any `<img>` that sets explicit pixel `width` and `height` via inline style and is intended to overflow its container (e.g. inside an `overflow-x: auto` scroll container) **must** also set `maxWidth: "none"` in the same inline style object. This overrides preflight and lets the image render at its computed size.
+
+```tsx
+// WRONG — preflight caps width, height stays, image squishes
+style={{ width: displayedWidth, height: displayedHeight }}
+
+// CORRECT — maxWidth: "none" overrides preflight
+style={{ width: displayedWidth, height: displayedHeight, maxWidth: "none" }}
+```
+
+**Common mistake**: The pre-load branch may already have `maxWidth: "none"`, but it gets dropped when switching to the post-load branch with explicit dimensions. Ensure `maxWidth: "none"` is present in **both** branches.
+
+## Keyhole Image Sizing: Do Not Change Width
+
+When fixing keyhole image display issues, **do not alter the image width calculation or styling**. The keyhole's horizontal overflow is handled by the scroll/pan system (`overflow-x: auto` + `useDragToPan`). The image renders at its computed `displayedWidth` and overflows horizontally — that is correct behavior. If the image appears squished, the cause is almost certainly a CSS constraint (like Tailwind preflight) capping the rendered width, not a zoom or width calculation error.

@@ -50,8 +50,8 @@ function validateCitationStructure(citations: CitationData[]): ValidationResult 
 
     // Required fields
     if (!c.attachment_id) errors.push(`${prefix} missing attachment_id`);
-    if (!c.full_phrase) errors.push(`${prefix} missing full_phrase`);
-    if (!c.anchor_text) errors.push(`${prefix} missing anchor_text`);
+    if (!c.source_context) errors.push(`${prefix} missing source_context`);
+    if (!c.source_match) errors.push(`${prefix} missing source_match`);
     if (!c.page_id) errors.push(`${prefix} missing page_id`);
     if (!c.line_ids || c.line_ids.length === 0) errors.push(`${prefix} missing or empty line_ids`);
     if (!c.reasoning) warnings.push(`${prefix} missing reasoning`);
@@ -71,51 +71,51 @@ function validateCitationStructure(citations: CitationData[]): ValidationResult 
     }
 
     // Anchor text quality checks
-    if (c.anchor_text) {
-      if (c.anchor_text.length > 40) {
-        errors.push(`${prefix} anchor_text too long (${c.anchor_text.length} chars, max 40): "${c.anchor_text}"`);
+    if (c.source_match) {
+      if (c.source_match.length > 40) {
+        errors.push(`${prefix} source_match too long (${c.source_match.length} chars, max 40): "${c.source_match}"`);
       }
-      const wordCount = c.anchor_text.trim().split(/\s+/).length;
+      const wordCount = c.source_match.trim().split(/\s+/).length;
       if (wordCount > 4) {
-        errors.push(`${prefix} anchor_text too many words (${wordCount}, max 4): "${c.anchor_text}"`);
+        errors.push(`${prefix} source_match too many words (${wordCount}, max 4): "${c.source_match}"`);
       }
-      if (c.anchor_text.endsWith("...")) {
-        errors.push(`${prefix} anchor_text ends with ellipsis: "${c.anchor_text}"`);
+      if (c.source_match.endsWith("...")) {
+        errors.push(`${prefix} source_match ends with ellipsis: "${c.source_match}"`);
       }
     }
 
     // Verbatim substring check
-    if (c.anchor_text && c.full_phrase) {
-      if (!c.full_phrase.includes(c.anchor_text)) {
+    if (c.source_match && c.source_context) {
+      if (!c.source_context.includes(c.source_match)) {
         errors.push(
-          `${prefix} anchor_text not a verbatim substring of full_phrase: ` +
-            `anchor="${c.anchor_text}" full="${c.full_phrase.slice(0, 80)}${c.full_phrase.length > 80 ? "…" : ""}"`,
+          `${prefix} source_match not a verbatim substring of source_context: ` +
+            `anchor="${c.source_match}" full="${c.source_context.slice(0, 80)}${c.source_context.length > 80 ? "…" : ""}"`,
         );
       }
     }
 
     // Full phrase quality
-    if (c.full_phrase) {
-      if (c.full_phrase.includes("\n")) {
-        errors.push(`${prefix} full_phrase contains newline`);
+    if (c.source_context) {
+      if (c.source_context.includes("\n")) {
+        errors.push(`${prefix} source_context contains newline`);
       }
-      if (c.full_phrase.length < 10) {
-        warnings.push(`${prefix} full_phrase suspiciously short (${c.full_phrase.length} chars)`);
+      if (c.source_context.length < 10) {
+        warnings.push(`${prefix} source_context suspiciously short (${c.source_context.length} chars)`);
       }
-      if (c.full_phrase.length > 500) {
-        warnings.push(`${prefix} full_phrase very long (${c.full_phrase.length} chars)`);
+      if (c.source_context.length > 500) {
+        warnings.push(`${prefix} source_context very long (${c.source_context.length} chars)`);
       }
-      if (/<[a-z_]/i.test(c.full_phrase)) {
-        errors.push(`${prefix} full_phrase contains XML/HTML tag remnants: "${c.full_phrase.slice(0, 80)}"`);
+      if (/<[a-z_]/i.test(c.source_context)) {
+        errors.push(`${prefix} source_context contains XML/HTML tag remnants: "${c.source_context.slice(0, 80)}"`);
       }
-      if (/ATTACHMENT_ID|verbatim quote|FULL_PHRASE/i.test(c.full_phrase)) {
-        errors.push(`${prefix} full_phrase contains placeholder text`);
+      if (/ATTACHMENT_ID|verbatim quote|FULL_PHRASE/i.test(c.source_context)) {
+        errors.push(`${prefix} source_context contains placeholder text`);
       }
     }
 
     // Anchor text specificity (soft check)
-    if (c.anchor_text && !/[\d$%@#§]|[A-Z][a-z]/.test(c.anchor_text)) {
-      warnings.push(`${prefix} anchor_text may lack specificity (no numbers/proper nouns): "${c.anchor_text}"`);
+    if (c.source_match && !/[\d$%@#§]|[A-Z][a-z]/.test(c.source_match)) {
+      warnings.push(`${prefix} source_match may lack specificity (no numbers/proper nouns): "${c.source_match}"`);
     }
   }
 
@@ -165,22 +165,22 @@ function validateVerbatimAgainstPrepare(
   const warnings: string[] = [];
 
   for (const c of citations) {
-    if (!c.attachment_id || !c.full_phrase) continue;
+    if (!c.attachment_id || !c.source_context) continue;
     const deepText = prepareOutputs.get(c.attachment_id);
     if (!deepText) {
       warnings.push(`[${c.id}] No prepare output found for attachment_id "${c.attachment_id}"`);
       continue;
     }
 
-    if (!deepText.includes(c.full_phrase)) {
+    if (!deepText.includes(c.source_context)) {
       errors.push(
-        `[${c.id}] full_phrase NOT found verbatim in source deepTextPages: ` +
-          `"${c.full_phrase.slice(0, 60)}${c.full_phrase.length > 60 ? "…" : ""}"`,
+        `[${c.id}] source_context NOT found verbatim in source deepTextPages: ` +
+          `"${c.source_context.slice(0, 60)}${c.source_context.length > 60 ? "…" : ""}"`,
       );
     }
 
-    if (c.anchor_text && !deepText.includes(c.anchor_text)) {
-      errors.push(`[${c.id}] anchor_text NOT found verbatim in source deepTextPages: "${c.anchor_text}"`);
+    if (c.source_match && !deepText.includes(c.source_match)) {
+      errors.push(`[${c.id}] source_match NOT found verbatim in source deepTextPages: "${c.source_match}"`);
     }
 
     // Check page_id tag exists
@@ -275,7 +275,7 @@ describe("Phase 0: citation structure validation", () => {
     expect(result.errors).toEqual([]);
   });
 
-  it("detects anchor_text too long", () => {
+  it("detects source_match too long", () => {
     const parsed = parseCitationData(BAD_ANCHOR_FIXTURE);
     const result = validateCitationStructure(parsed.citations);
     expect(result.errors.some(e => e.includes("too long") || e.includes("too many words"))).toBe(true);
@@ -299,7 +299,7 @@ describe("Phase 0: citation structure validation", () => {
     expect(result.errors.some(e => e.includes("missing or empty line_ids"))).toBe(true);
   });
 
-  it("detects non-substring anchor_text", () => {
+  it("detects non-substring source_match", () => {
     const md = `Test [1].
 <<<CITATION_DATA>>>
 [{"n":1,"a":"att","r":"r","f":"The actual source text here","k":"paraphrased","p":"page_number_1_index_0","l":[1]}]
@@ -309,7 +309,7 @@ describe("Phase 0: citation structure validation", () => {
     expect(result.errors.some(e => e.includes("not a verbatim substring"))).toBe(true);
   });
 
-  it("detects full_phrase with newline", () => {
+  it("detects source_context with newline", () => {
     const md = `Test [1].
 <<<CITATION_DATA>>>
 [{"n":1,"a":"att","r":"r","f":"Line one\\nLine two","k":"Line","p":"page_number_1_index_0","l":[1]}]
@@ -320,7 +320,7 @@ describe("Phase 0: citation structure validation", () => {
     expect(result.errors.some(e => e.includes("newline"))).toBe(true);
   });
 
-  it("detects tag remnants in full_phrase", () => {
+  it("detects tag remnants in source_context", () => {
     const md = `Test [1].
 <<<CITATION_DATA>>>
 [{"n":1,"a":"att","r":"r","f":"<line id=\\"5\\">Some text</line>","k":"text","p":"page_number_1_index_0","l":[1]}]
@@ -330,7 +330,7 @@ describe("Phase 0: citation structure validation", () => {
     expect(result.errors.some(e => e.includes("tag remnants"))).toBe(true);
   });
 
-  it("detects anchor_text ending with ellipsis", () => {
+  it("detects source_match ending with ellipsis", () => {
     const md = `Test [1].
 <<<CITATION_DATA>>>
 [{"n":1,"a":"att","r":"r","f":"Revenue grew 45% year-over-year to $2.3B in total","k":"Revenue grew 45%...","p":"page_number_1_index_0","l":[1]}]

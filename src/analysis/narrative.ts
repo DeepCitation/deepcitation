@@ -1,6 +1,7 @@
 import { defaultTranslator, type MessageKey, type TranslateFunction, tPlural } from "../react/i18n.js";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import { groupSearchAttempts, groupSearchAttemptsForNotFound } from "./grouping.js";
+import { STATUS_MAP } from "./statusRegistry.js";
 
 // =============================================================================
 // TYPES
@@ -60,7 +61,7 @@ export interface CollapsedFailureRow {
 export interface AmendmentRow {
   kind: "amendment";
   key: string;
-  /** Pre-formatted descriptions of what changed, e.g. ["Changed fullPhrase"] */
+  /** Pre-formatted descriptions of what changed, e.g. ["Changed sourceContext"] */
   descriptions: string[];
   /** LLM's reason for amending, if provided */
   reason?: string;
@@ -101,18 +102,20 @@ const TRUNCATED_PHRASE_SUFFIX_LENGTH = 14;
 
 /**
  * Statuses that show only the successful hit (not the full search trail).
+ * Derived from STATUS_MAP.showOnlyHit — single source of truth.
  */
-const SHOW_ONLY_HIT_STATUSES: ReadonlySet<SearchStatus> = new Set<SearchStatus>([
-  "found",
-  "found_phrase_missed_anchor_text",
-]);
+const SHOW_ONLY_HIT_STATUSES: ReadonlySet<SearchStatus> = new Set(
+  (Object.entries(STATUS_MAP) as [SearchStatus, (typeof STATUS_MAP)[SearchStatus]][])
+    .filter(([, m]) => m.showOnlyHit)
+    .map(([s]) => s),
+);
 
 const METHOD_KEY_MAP: Record<SearchMethod, MessageKey> = {
   exact_line_match: "search.method.exactLineMatch",
   line_with_buffer: "search.method.lineWithBuffer",
   expanded_line_buffer: "search.method.expandedLineBuffer",
   current_page: "search.method.currentPage",
-  anchor_text_fallback: "search.method.anchorTextFallback",
+  source_match_fallback: "search.method.sourceMatchFallback",
   adjacent_pages: "search.method.adjacentPages",
   expanded_window: "search.method.expandedWindow",
   regex_search: "search.method.regexSearch",
@@ -158,45 +161,13 @@ function formatLocationLabel(page: number | undefined, line: number | undefined,
 
 export function getStatusColorScheme(status?: SearchStatus | null): "green" | "amber" | "red" | "gray" {
   if (!status) return "gray";
-  switch (status) {
-    case "found":
-    case "found_anchor_text_only":
-    case "found_phrase_missed_anchor_text":
-      return "green";
-    case "found_on_other_page":
-    case "found_on_other_line":
-    case "partial_text_found":
-    case "first_word_found":
-      return "amber";
-    case "not_found":
-      return "red";
-    default:
-      return "gray";
-  }
+  return STATUS_MAP[status]?.colorScheme ?? "gray";
 }
 
 export function getStatusHeaderText(status: SearchStatus | null | undefined, t: TranslateFunction): string {
   if (!status) return t("status.verifying");
-  switch (status) {
-    case "found":
-    case "found_anchor_text_only":
-    case "found_phrase_missed_anchor_text":
-      return t("status.verified");
-    case "found_on_other_page":
-      return t("message.foundOnDifferentPage");
-    case "found_on_other_line":
-      return t("message.foundOnDifferentLine");
-    case "partial_text_found":
-    case "first_word_found":
-      return t("status.partialMatch");
-    case "not_found":
-      return t("status.notFound");
-    case "pending":
-    case "loading":
-      return t("status.verifying");
-    default:
-      return "";
-  }
+  const mapping = STATUS_MAP[status];
+  return mapping ? t(mapping.headerKey) : "";
 }
 
 function getOutcomeSummary(
@@ -212,15 +183,15 @@ function getOutcomeSummary(
   const successfulAttempt = searchAttempts.find(a => a.success);
   if (successfulAttempt?.matchedVariation) {
     switch (successfulAttempt.matchedVariation) {
-      case "exact_full_phrase":
+      case "exact_source_context":
         return t("outcome.exactMatch");
-      case "normalized_full_phrase":
+      case "normalized_source_context":
         return t("outcome.normalizedMatch");
-      case "exact_anchor_text":
-      case "normalized_anchor_text":
-        return t("outcome.anchorTextMatch");
-      case "partial_full_phrase":
-      case "partial_anchor_text":
+      case "exact_source_match":
+      case "normalized_source_match":
+        return t("outcome.sourceMatchOnly");
+      case "partial_source_context":
+      case "partial_source_match":
         return t("outcome.partialMatch");
       case "first_word_only":
         return t("outcome.firstWordMatch");
@@ -231,10 +202,10 @@ function getOutcomeSummary(
 
   switch (status) {
     case "found":
-    case "found_phrase_missed_anchor_text":
+    case "found_context_missed_source_match":
       return t("outcome.exactMatch");
-    case "found_anchor_text_only":
-      return t("outcome.anchorTextMatch");
+    case "found_source_match_only":
+      return t("outcome.sourceMatchOnly");
     case "found_on_other_page":
     case "found_on_other_line":
       return t("outcome.foundDifferentLocation");
@@ -249,24 +220,7 @@ function getOutcomeSummary(
 
 export function deriveOutcome(status: SearchStatus | null | undefined): NarrativeOutcome {
   if (!status) return "pending";
-  switch (status) {
-    case "found":
-    case "found_anchor_text_only":
-    case "found_phrase_missed_anchor_text":
-      return "exact_match";
-    case "found_on_other_page":
-    case "found_on_other_line":
-    case "partial_text_found":
-    case "first_word_found":
-      return "partial_match";
-    case "not_found":
-      return "not_found";
-    case "pending":
-    case "loading":
-      return "pending";
-    default:
-      return "pending";
-  }
+  return STATUS_MAP[status]?.outcome ?? "pending";
 }
 
 // =============================================================================

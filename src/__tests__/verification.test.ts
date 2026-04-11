@@ -11,7 +11,7 @@ describe("verification helpers", () => {
         verifiedPageNumber: 3,
         hitIndexWithinPage: 2,
       },
-      verifiedMatchSnippet: "snippet",
+      sourceSnippet: "snippet",
     };
     const first = getVerificationKey(verification);
     const second = getVerificationKey(verification);

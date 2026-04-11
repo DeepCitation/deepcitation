@@ -94,13 +94,13 @@ describe("StatusHeader", () => {
   });
 
   // ==========================================================================
-  // COMBINED HEADER TESTS (with anchorText and fullPhrase)
+  // COMBINED HEADER TESTS (with sourceMatch and sourceContext)
   // ==========================================================================
 
-  describe("combined header with anchorText and fullPhrase", () => {
+  describe("combined header with sourceMatch and sourceContext", () => {
     it("renders status text for found citations", () => {
       // Status text "Verified" is now shown instead of echoing anchor text
-      const { container } = render(<StatusHeader status="found" foundPage={5} anchorText="increased by 15%" />);
+      const { container } = render(<StatusHeader status="found" foundPage={5} sourceMatch="increased by 15%" />);
 
       expect(container.textContent).toContain("DeepCitation Verified");
       expect(container.textContent).toContain("p.\u202f5");
@@ -108,7 +108,7 @@ describe("StatusHeader", () => {
 
     it("renders status text for not found citations", () => {
       // Status text "Not found" is now shown
-      const { container } = render(<StatusHeader status="not_found" expectedPage={5} anchorText="increased by 15%" />);
+      const { container } = render(<StatusHeader status="not_found" expectedPage={5} sourceMatch="increased by 15%" />);
 
       expect(container.textContent).toContain("DeepCitation Not Found");
       expect(container.textContent).toContain("p.\u202f5");
@@ -116,7 +116,7 @@ describe("StatusHeader", () => {
 
     it("shows arrow format page badge for partial match", () => {
       const { container } = render(
-        <StatusHeader status="found_on_other_page" foundPage={7} expectedPage={5} anchorText="test anchor" />,
+        <StatusHeader status="found_on_other_page" foundPage={7} expectedPage={5} sourceMatch="test anchor" />,
       );
 
       // Should show arrow format: Pg 5 → 7 (not strikethrough)

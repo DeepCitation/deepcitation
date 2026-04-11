@@ -37,7 +37,9 @@ import {
   type CitationData,
 } from "../prompts/citationPrompts.js";
 import type { AttachmentAssets } from "../types/index.js";
+import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
+import { escapeHtml } from "../utils/htmlEscape.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
 import { detectProxyUrl } from "../utils/proxy.js";
@@ -200,7 +202,7 @@ Options:
   --out <file>         Write re-keyed JSON (original labels → hashed keys). If omitted, prints mapping to stdout.
   -h, --help           Show this help message
 
-Input format: { "my-label": { "fullPhrase": "...", "anchorText": "...", "pageNumber": 1, "lineIds": [1] } }
+Input format: { "my-label": { "sourceContext": "...", "sourceMatch": "...", "pageNumber": 1, "lineIds": [1] } }
 Output: { "my-label": "a3f7b2c1d8e9f012", ... } (mapping) or re-keyed citations file (with --out)
 
 Examples:
@@ -241,7 +243,7 @@ const DEFAULT_API_URL = "https://api.deepcitation.com";
 function printAllNotFoundHint(): void {
   console.error(
     `\nAll citations returned not_found. Common causes:\n` +
-      `  1. anchor_text is not verbatim from the source (paraphrased or too long)\n` +
+      `  1. source_match is not verbatim from the source (paraphrased or too long)\n` +
       `  2. page_id format is wrong — must be page_number_N_index_I from the tag name\n` +
       `  3. The attachment was re-prepared — attachmentId has changed\n` +
       `\nFix the citation data and re-run "deepcitation verify --markdown <draft.md>".`,
@@ -640,12 +642,12 @@ export function inject(argv: string[]) {
 
   // Stamp data-dc-display-label on paraphrase inlines so the popover's
   // "displayed as" annotation fires for visible text that differs from the
-  // citation's anchorText. Shared with injectCdnRuntime so the verify
+  // citation's sourceMatch. Shared with injectCdnRuntime so the verify
   // --markdown path produces identical HTML.
   const autoFixed = autoFixDisplayLabels(stripped.html, verifications);
   if (autoFixed.log.length > 0) {
     console.error(
-      `Auto-set display label on ${autoFixed.log.length} element(s) where visible text differs from anchorText:\n` +
+      `Auto-set display label on ${autoFixed.log.length} element(s) where visible text differs from sourceMatch:\n` +
         autoFixed.log.join("\n"),
     );
   }
@@ -748,6 +750,19 @@ function loadUrlSourceMap(): Map<string, UrlSource> {
   return map;
 }
 
+/**
+ * Default output path for `verify`: places `{stem}-verified.html` next to the
+ * source file, except when the source lives in a temp `.deepcitation/` draft —
+ * those go to CWD so users don't have to dig through the cache directory.
+ * Shared by verifyMarkdown (before forwarding) and verifyHtml (as fallback).
+ */
+function defaultVerifiedOutPath(sourceFilePath: string): string {
+  const sourceDir = dirname(sourceFilePath);
+  const isDraftDir = /[\\/]\.deepcitation([\\/]|$)/.test(sourceDir);
+  const stem = basename(sourceFilePath, extname(sourceFilePath));
+  return resolve(isDraftDir ? process.cwd() : sourceDir, `${stem}-verified.html`);
+}
+
 export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) => string) {
   const args = parseArgs(argv, VERIFY_HELP);
   const mdPath = args.markdown;
@@ -799,22 +814,22 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
         const allLines = getAllLines(lineMap);
         const citations: CitationData[] = [];
 
-        for (const { id, displayLabel, anchorHint } of markers) {
-          const searchTerm = anchorHint ?? displayLabel;
+        for (const { id, claimText, anchorHint } of markers) {
+          const searchTerm = anchorHint ?? claimText;
           const found = findAnchorWithFallback(searchTerm, allLines);
           if (!found) {
-            console.error(`  Citation ${id} ("${displayLabel}"): not found in evidence`);
+            console.error(`  Citation ${id} ("${claimText}"): not found in evidence`);
             continue;
           }
           const { lineId, pageId, verbatimAnchor } = found;
-          const anchorText = anchorHint?.trim() || verbatimAnchor;
+          const sourceMatch = anchorHint?.trim() || verbatimAnchor;
           citations.push({
             id,
-            anchor_text: anchorText,
+            source_match: sourceMatch,
             page_id: toCompactPageId(pageId),
             line_ids: [lineId],
             attachment_id: attachmentId,
-            display_label: displayLabel.toLowerCase() !== anchorText.toLowerCase() ? displayLabel : undefined,
+            claim_text: claimText.toLowerCase() !== sourceMatch.toLowerCase() ? claimText : undefined,
           });
         }
 
@@ -838,9 +853,9 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     );
   }
 
-  // Auto-hydrate: if compact citations are detected (missing full_phrase but have line_ids),
-  // fill in full_phrase from the summary file before proceeding.
-  const needsHydration = parsed.citations.some(c => !c.full_phrase && c.line_ids?.length);
+  // Auto-hydrate: if compact citations are detected (missing source_context but have line_ids),
+  // fill in source_context from the summary file before proceeding.
+  const needsHydration = parsed.citations.some(c => !c.source_context && c.line_ids?.length);
   if (needsHydration) {
     // Extract attachmentId from parsed citations to find the matching summary file.
     // This prevents wrong-source hydration when multiple prepare files exist.
@@ -870,7 +885,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
       // Only if hydration succeeded for at least one citation — this confirms the summary
       // matches the citations and prevents assigning the wrong attachment_id.
       const missingAttId = parsed.citations.some(c => !c.attachment_id);
-      const anyHydrated = parsed.citations.some(c => c.full_phrase && c.line_ids?.length);
+      const anyHydrated = parsed.citations.some(c => c.source_context && c.line_ids?.length);
       if (missingAttId && anyHydrated) {
         try {
           const summaryAttId = (JSON.parse(summaryContent) as { attachmentId?: string }).attachmentId;
@@ -889,7 +904,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
         }
       }
     } else if (needsHydration) {
-      console.error("Warning: citations missing full_phrase — pass --summary for auto-hydration");
+      console.error("Warning: citations missing source_context — pass --summary for auto-hydration");
     }
   }
 
@@ -928,10 +943,10 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     parsed.visibleText = parsed.visibleText.replace(/\[\d+-\d+\]/g, "");
   }
 
-  // Extract display labels from body: [label](cite:N) where label differs from anchorText.
-  // The compact JSON only carries k (anchorText); the body label is for readers and may
+  // Extract display labels from body: [label](cite:N) where label differs from sourceMatch.
+  // The compact JSON only carries k (sourceMatch); the body label is for readers and may
   // deliberately differ (e.g. "pro rata distribution" body, "pro rata" k). Populating
-  // display_label here causes verifyHtml to inject data-dc-display-label so the popover
+  // claim_text here causes verifyHtml to inject data-dc-display-label so the popover
   // can show the "Displayed as" disclaimer.
   {
     const bodyRe = /\[([^\]]+)\]\(cite:(\d+)\)/g;
@@ -940,18 +955,18 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
       const label = bm[1].trim();
       const id = parseInt(bm[2], 10);
       const cd = parsed.citations.find(c => c.id === id);
-      if (cd && !cd.display_label && label.toLowerCase() !== (cd.anchor_text ?? "").toLowerCase()) {
-        cd.display_label = label;
+      if (cd && !cd.claim_text && label.toLowerCase() !== (cd.source_match ?? "").toLowerCase()) {
+        cd.claim_text = label;
       }
     }
   }
 
-  // Build anchor map: citation ID → anchorText, so markdownToHtml can wrap
+  // Build anchor map: citation ID → sourceMatch, so markdownToHtml can wrap
   // just the anchor phrase instead of the whole preceding clause.
-  const anchorMap: Record<string, string> = {};
+  const sourceMatchMap: Record<string, string> = {};
   for (const cd of parsed.citations) {
-    const anchor = cd.anchor_text;
-    if (anchor && cd.id) anchorMap[String(cd.id)] = anchor;
+    const anchor = cd.source_match;
+    if (anchor && cd.id) sourceMatchMap[String(cd.id)] = anchor;
   }
 
   const title = args.title as string | undefined;
@@ -967,7 +982,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     style,
     audience,
     title,
-    anchorMap,
+    sourceMatchMap,
     citationCount: parsed.citations.length,
     cowork: IS_COWORK,
     sourceUrl,
@@ -988,15 +1003,8 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     }
     forwardArgs.push(argv[i]);
   }
-  // Default output: place next to the source file, except when the source is
-  // a temp draft inside `.deepcitation/` — those land in CWD so users don't
-  // have to dig through the cache directory.
   if (!args.out) {
-    const stem = basename(resolved, extname(resolved));
-    const sourceDir = dirname(resolved);
-    const isDraftDir = /[\\/]\.deepcitation([\\/]|$)/.test(sourceDir);
-    const outDir = isDraftDir ? process.cwd() : sourceDir;
-    forwardArgs.push("--out", resolve(outDir, `${stem}-verified.html`));
+    forwardArgs.push("--out", defaultVerifiedOutPath(resolved));
   }
 
   return verifyHtml(forwardArgs, fmtNetErr, htmlWithCitations);
@@ -1020,20 +1028,21 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     die(`No valid <<<CITATION_DATA>>> block found in the ${src} file.`, VERIFY_HELP);
   }
 
-  // 1b. Auto-promote display label to anchor when the model picked two
-  //     different short substrings of the same evidence sentence (one as the
-  //     bold visible text, another as `k`). The bold text is what the reader
-  //     clicks; if it's a valid short anchor, it should drive the highlight.
-  //     Runs BEFORE the API call so the verify search uses the corrected
-  //     anchor.
+  // 1b. When the model picked a short bold display label that differs from
+  //     source_match, promote the bold text to anchor — it's what the reader
+  //     clicks and should drive the highlight. Mutates `parsed.citations`
+  //     before the verify API call.
   {
     const spanRe = /<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*data-cite="(\d+)"[^>]*>([\s\S]*?)<\/\1>/g;
     let m: RegExpExecArray | null;
     let promoted = 0;
     while ((m = safeExec(spanRe, parsed.visibleText)) !== null) {
       const id = parseInt(m[2], 10);
-      // Strip nested HTML tags to get the approximate visible text.
+      // Strip nested tags in one pass. data-cite spans wrap at most a single
+      // layer of presentational markup (e.g. <strong>); deeper nesting is rare
+      // and would need a proper parser anyway.
       let visible = m[3];
+      // Loop to handle nested/recursive tag fragments (e.g. <scr<script>ipt>)
       let prev: string;
       do {
         prev = visible;
@@ -1047,14 +1056,13 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
       const cd = parsed.citations.find(c => c.id === id);
       if (!cd) continue;
-      const currentAnchor = (cd.anchor_text ?? "").trim();
-      // Already aligned (case-insensitive)? Nothing to do.
+      const currentAnchor = (cd.source_match ?? "").trim();
       if (currentAnchor && currentAnchor.toLowerCase() === visible.toLowerCase()) continue;
 
       console.error(
         `  [${id}] auto-promoted display label to anchor: "${visible}" (was "${currentAnchor.slice(0, 40)}${currentAnchor.length > 40 ? "…" : ""}")`,
       );
-      cd.anchor_text = visible;
+      cd.source_match = visible;
       promoted++;
     }
     if (promoted > 0) {
@@ -1114,12 +1122,12 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   }
 
   // 3. Annotate HTML: map data-cite="N" → data-citation-key="hash", strip [N] markers
-  //    Also inject data-dc-display-label when display_label is provided in citation data.
+  //    Also inject data-dc-display-label when claim_text is provided in citation data.
   let html = parsed.visibleText;
   const keyMap: Record<string, string> = {};
   for (const [id, hash] of idToHash) {
     const cd = parsed.citations.find(c => c.id === id);
-    const label = cd?.display_label;
+    const label = cd?.claim_text;
     const replacement = label
       ? `data-citation-key="${hash}" data-dc-display-label="${label.replace(/"/g, "&quot;")}"`
       : `data-citation-key="${hash}"`;
@@ -1222,18 +1230,18 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
   // 5. Inject CDN runtime (same logic as inject command)
   // Re-attach pageImages in-memory only for CDN script injection below.
-  const verifications = verifyOutput.verifications;
+  const verifications = verifyOutput.verifications as Record<string, Verification>;
   reattachPageImages(verifications, mergedAttachments);
 
-  // 4b. Detect unfollowed local-file links in the source HTML. When the user
-  //     verifies an HTML report that links to local evidence files (e.g.
-  //     index.html → communications/email.pdf), those links are NOT
-  //     auto-followed by verify. Surface a banner so the user knows the
-  //     citations are anchored to the report's own text, not the linked
-  //     evidence — preventing silent cyclical-evidence failures.
+  // 4b. Detect unfollowed local-file links in the source HTML. When an HTML
+  //     report links to local evidence files, verify does NOT auto-follow
+  //     them, so the citations end up anchored to the report's own text. A
+  //     banner on the output surfaces this to prevent silent cyclical-evidence
+  //     failures.
+  const resolvedHtmlPath = htmlPath ? resolve(htmlPath) : undefined;
   const unfollowedLocalLinks: string[] = [];
-  if (htmlPath) {
-    const sourceDirAbs = dirname(resolve(htmlPath));
+  if (resolvedHtmlPath) {
+    const sourceDirAbs = dirname(resolvedHtmlPath);
     // Match href="...", href='...', and unquoted href=value (up to whitespace or >).
     const hrefRe = /<a\s+[^>]*href\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi;
     const seen = new Set<string>();
@@ -1243,7 +1251,6 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       // Skip absolute URLs, anchors, mailto/tel/javascript, data URIs
       if (/^[a-z][a-z0-9+.-]*:/i.test(href)) continue;
       if (href.startsWith("#") || href.startsWith("?") || href.trim() === "") continue;
-      // Strip fragment and query
       const cleanHref = href.split("#")[0].split("?")[0];
       if (!cleanHref) continue;
       const candidatePath = resolve(sourceDirAbs, cleanHref);
@@ -1261,42 +1268,28 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   }
   let output = injected.html;
 
-  // Inject the unfollowed-links banner just inside <body> so it's the first
-  // thing the reader sees. The banner is plain HTML with inline styles to
-  // avoid relying on stylesheet load order.
+  // Inject the unfollowed-links banner just inside <body> (falls back to
+  // prepending at the top if the document has no <body> tag).
   if (unfollowedLocalLinks.length > 0) {
     const count = unfollowedLocalLinks.length;
     const preview = unfollowedLocalLinks
       .slice(0, 5)
-      .map(
-        p =>
-          `<code style="background:#FEF3C7;padding:1px 4px;border-radius:3px;">${p.replace(/[<>&"']/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" })[c] ?? c)}</code>`,
-      )
+      .map(p => `<code style="background:#FEF3C7;padding:1px 4px;border-radius:3px;">${escapeHtml(p)}</code>`)
       .join(", ");
     const more = count > 5 ? ` <em>(and ${count - 5} more)</em>` : "";
     const banner = `<div role="alert" style="margin:0 0 1rem;padding:0.85rem 1rem;background:#FEF3C7;border:1px solid #F59E0B;border-left:4px solid #F59E0B;border-radius:6px;font-size:13px;line-height:1.5;color:#78350F;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"><strong>⚠ Unfollowed evidence links.</strong> This report cites against the source HTML's own text, but the source links to <strong>${count}</strong> local file${count === 1 ? "" : "s"} that were <strong>not</strong> ingested as evidence: ${preview}${more}. To verify against those files, run <code style="background:#FEF3C7;padding:1px 4px;border-radius:3px;">npx deepcitation prepare</code> on each one and re-run verify with all attachmentIds. Otherwise, citations are anchored to the report itself — not to the underlying evidence.</div>`;
-    if (output.includes("<body")) {
-      // Inject just after the opening <body ...> tag
-      output = output.replace(/(<body[^>]*>)/i, `$1\n${banner}`);
-    } else {
-      output = `${banner}\n${output}`;
-    }
+    let bannerInjected = false;
+    output = output.replace(/(<body[^>]*>)/i, (_, tag) => {
+      bannerInjected = true;
+      return `${tag}\n${banner}`;
+    });
+    if (!bannerInjected) output = `${banner}\n${output}`;
     console.error(`Warning: source HTML links to ${count} unfollowed local file(s). Banner added to output.`);
   }
 
-  // Default output: place next to the source HTML file. Falls back to a
-  // timestamped CWD name if no source path is known (preloadedContent path)
-  // or if the source lives inside a temp `.deepcitation/` draft directory.
-  let defaultOut: string;
-  if (htmlPath) {
-    const sourcePath = resolve(htmlPath);
-    const stem = basename(sourcePath, extname(sourcePath));
-    const sourceDir = dirname(sourcePath);
-    const isDraftDir = /[\\/]\.deepcitation([\\/]|$)/.test(sourceDir);
-    defaultOut = resolve(isDraftDir ? process.cwd() : sourceDir, `${stem}-verified.html`);
-  } else {
-    defaultOut = resolve(`verified-${ts}.html`);
-  }
+  // Falls back to a timestamped CWD name when the source path isn't known
+  // (preloadedContent path — verifyMarkdown already passes an explicit --out).
+  const defaultOut = resolvedHtmlPath ? defaultVerifiedOutPath(resolvedHtmlPath) : resolve(`verified-${ts}.html`);
   const outPath = resolve(args.out ?? defaultOut);
   writeVerifiedOutput(outPath, output);
 

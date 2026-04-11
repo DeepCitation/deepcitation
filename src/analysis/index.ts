@@ -46,5 +46,7 @@ export {
   type VerificationAnalysis,
 } from "./searchAnalysis.js";
 
+// Status registry — single source of truth for SearchStatus → display mappings
+export { STATUS_MAP, type StatusMapping } from "./statusRegistry.js";
 // Variation labels
 export { getVariationLabel } from "./variationLabels.js";

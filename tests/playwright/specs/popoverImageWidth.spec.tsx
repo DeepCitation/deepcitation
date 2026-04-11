@@ -10,8 +10,8 @@ import type { Verification } from "../../../src/types/verification";
 
 const baseCitation: Citation = {
   citationNumber: 1,
-  anchorText: "Functional status",
-  fullPhrase: "Functional status: He is at baseline, no assistance needed, independent ADLs",
+  sourceMatch: "Functional status",
+  sourceContext: "Functional status: He is at baseline, no assistance needed, independent ADLs",
   pageNumber: 5,
 };
 
@@ -22,7 +22,7 @@ const wideImageBase64 =
 
 const verificationWithWideImage: Verification = {
   status: "found",
-  verifiedMatchSnippet: "Functional status: He is at baseline",
+  sourceSnippet: "Functional status: He is at baseline",
   document: {
     verifiedPageNumber: 5,
   },
@@ -33,7 +33,7 @@ const verificationWithWideImage: Verification = {
 
 const verificationWithPartialMatch: Verification = {
   status: "partial_text_found",
-  verifiedMatchSnippet: "Functional status: at baseline",
+  sourceSnippet: "Functional status: at baseline",
   document: {
     verifiedPageNumber: 5,
   },
@@ -98,7 +98,8 @@ test.describe("Popover Image Keyhole Strip", () => {
     const strip = popover.locator("[data-dc-keyhole]");
     await expect(strip).toBeVisible();
 
-    // Strip should have a fixed height of 120px (default, set by KEYHOLE_STRIP_HEIGHT_DEFAULT)
+    // Strip always uses the default height (120px) — no longer clamped to
+    // displayedHeight. Cover-fill zoom ensures the image fills the strip.
     const stripHeight = await strip.evaluate(el =>
       parseFloat(window.getComputedStyle(el as HTMLElement).height)
     );

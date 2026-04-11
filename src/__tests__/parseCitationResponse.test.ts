@@ -15,8 +15,8 @@ describe("parseCitationResponse — numeric format", () => {
         id: 1,
         attachment_id: "abc12345678901234567",
         reasoning: "directly states growth metrics",
-        full_phrase: "The company achieved 45% year-over-year growth",
-        anchor_text: "45% year-over-year growth",
+        source_context: "The company achieved 45% year-over-year growth",
+        source_match: "45% year-over-year growth",
         page_id: "page_number_2_index_1",
         line_ids: [12, 13],
       },
@@ -24,8 +24,8 @@ describe("parseCitationResponse — numeric format", () => {
         id: 2,
         attachment_id: "abc12345678901234567",
         reasoning: "states Q4 revenue figure",
-        full_phrase: "Q4 revenue reached $2.3 billion",
-        anchor_text: "$2.3 billion",
+        source_context: "Q4 revenue reached $2.3 billion",
+        source_match: "$2.3 billion",
         page_id: "page_number_3_index_2",
         line_ids: [5, 6, 7],
       },
@@ -51,8 +51,8 @@ describe("parseCitationResponse — numeric format", () => {
     // Each citation has correct camelCase fields
     const firstKey = result.markerMap[1];
     const first = result.citations[firstKey];
-    expect(first.fullPhrase).toBe("The company achieved 45% year-over-year growth");
-    expect(first.anchorText).toBe("45% year-over-year growth");
+    expect(first.sourceContext).toBe("The company achieved 45% year-over-year growth");
+    expect(first.sourceMatch).toBe("45% year-over-year growth");
     expect(first.type).toBe("document");
     if (first.type === "document") {
       expect(first.attachmentId).toBe("abc12345678901234567");
@@ -97,8 +97,8 @@ describe("parseCitationResponse — numeric format", () => {
     const result = parseCitationResponse(compactResponse);
     const key = result.markerMap[1];
     const citation = result.citations[key];
-    expect(citation.fullPhrase).toBe("Revenue grew 30% year over year");
-    expect(citation.anchorText).toBe("grew 30%");
+    expect(citation.sourceContext).toBe("Revenue grew 30% year over year");
+    expect(citation.sourceMatch).toBe("grew 30%");
     if (citation.type === "document") {
       expect(citation.attachmentId).toBe("file123456789012345x");
       expect(citation.pageNumber).toBe(2);
@@ -110,8 +110,8 @@ describe("parseCitationResponse — numeric format", () => {
       {
         id: 1,
         attachment_id: "audio12345678901234x",
-        full_phrase: "AI will transform healthcare",
-        anchor_text: "transform healthcare",
+        source_context: "AI will transform healthcare",
+        source_match: "transform healthcare",
         timestamps: { start_time: "00:01:30", end_time: "00:01:45" },
       },
     ]);
@@ -166,7 +166,7 @@ describe("parseCitationResponse — edge cases", () => {
 
   it("marker number not in markerMap returns undefined", () => {
     const response = makeNumericResponse("Claim [1] and [3].", [
-      { id: 1, attachment_id: "att_1", full_phrase: "Claim one", anchor_text: "Claim" },
+      { id: 1, attachment_id: "att_1", source_context: "Claim one", source_match: "Claim" },
     ]);
     const result = parseCitationResponse(response);
     expect(result.markerMap[1]).toBeDefined();
@@ -182,15 +182,15 @@ describe("parseCitationResponse — integration patterns", () => {
       {
         id: 1,
         attachment_id: "abc12345678901234567",
-        full_phrase: "Revenue grew 23%",
-        anchor_text: "grew 23%",
+        source_context: "Revenue grew 23%",
+        source_match: "grew 23%",
         page_id: "1_0",
       },
       {
         id: 2,
         attachment_id: "abc12345678901234567",
-        full_phrase: "Q4 results exceeded expectations",
-        anchor_text: "exceeded expectations",
+        source_context: "Q4 results exceeded expectations",
+        source_match: "exceeded expectations",
         page_id: "2_0",
       },
     ]);
@@ -206,7 +206,7 @@ describe("parseCitationResponse — integration patterns", () => {
         const n = Number(match[1]);
         const key = result.markerMap[n];
         const citation = result.citations[key];
-        rendered.push(`[Citation: ${citation.anchorText}]`);
+        rendered.push(`[Citation: ${citation.sourceMatch}]`);
       } else if (seg) {
         rendered.push(seg);
       }
@@ -220,15 +220,15 @@ describe("parseCitationResponse — integration patterns", () => {
       {
         id: 1,
         attachment_id: "abc12345678901234567",
-        full_phrase: "Claim A is substantiated",
-        anchor_text: "Claim A",
+        source_context: "Claim A is substantiated",
+        source_match: "Claim A",
         page_id: "1_0",
       },
       {
         id: 2,
         attachment_id: "abc12345678901234567",
-        full_phrase: "Claim B has supporting evidence",
-        anchor_text: "Claim B",
+        source_context: "Claim B has supporting evidence",
+        source_match: "Claim B",
         page_id: "2_0",
       },
     ]);
@@ -261,16 +261,16 @@ describe("parseCitationResponse — cite link format", () => {
       {
         id: 1,
         attachment_id: "abc12345678901234567",
-        full_phrase: "The discount rate of 80%",
-        anchor_text: "Discount Rate",
+        source_context: "The discount rate of 80%",
+        source_match: "Discount Rate",
         page_id: "page_number_2_index_1",
         line_ids: [12, 13],
       },
       {
         id: 2,
         attachment_id: "abc12345678901234567",
-        full_phrase: "Conversion price equals the VWAP",
-        anchor_text: "Conversion Price",
+        source_context: "Conversion price equals the VWAP",
+        source_match: "Conversion Price",
         page_id: "page_number_3_index_2",
         line_ids: [5, 6],
       },
@@ -306,14 +306,14 @@ describe("parseCitationResponse — cite link format", () => {
   it("resolves citation data via markerMap", () => {
     const result = parseCitationResponse(CITE_LINK_RESPONSE);
     const key1 = result.markerMap[1];
-    expect(result.citations[key1].fullPhrase).toBe("The discount rate of 80%");
-    expect(result.citations[key1].anchorText).toBe("Discount Rate");
+    expect(result.citations[key1].sourceContext).toBe("The discount rate of 80%");
+    expect(result.citations[key1].sourceMatch).toBe("Discount Rate");
   });
 
   it("handles mixed [N] and cite-link in same visibleText", () => {
     const mixed = makeNumericResponse("Old [1] and [New Rate](cite:2).", [
-      { id: 1, attachment_id: "a", full_phrase: "old thing", anchor_text: "Old" },
-      { id: 2, attachment_id: "a", full_phrase: "new rate value", anchor_text: "New Rate" },
+      { id: 1, attachment_id: "a", source_context: "old thing", source_match: "Old" },
+      { id: 2, attachment_id: "a", source_context: "new rate value", source_match: "New Rate" },
     ]);
     const result = parseCitationResponse(mixed);
     const segments = result.visibleText.split(result.splitPattern);

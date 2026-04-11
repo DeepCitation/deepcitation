@@ -100,7 +100,7 @@ curl -X POST "https://api.deepcitation.com/verifyCitations" \
       "attachmentId": "PASTE_ATTACHMENT_ID_HERE",
       "citations": {
         "test-1": {
-          "fullPhrase": "paste a sentence from your document here"
+          "sourceContext": "paste a sentence from your document here"
         }
       }
     }

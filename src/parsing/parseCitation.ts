@@ -22,7 +22,7 @@ import {
  * Module-level status sets for O(1) lookups — avoids per-call array allocations.
  */
 export const PARTIAL_STATUSES: ReadonlySet<SearchStatus> = new Set<SearchStatus>([
-  "found_anchor_text_only",
+  "found_source_match_only",
   "partial_text_found",
   "found_on_other_page",
   "found_on_other_line",
@@ -30,8 +30,8 @@ export const PARTIAL_STATUSES: ReadonlySet<SearchStatus> = new Set<SearchStatus>
 ]);
 
 const LOW_TRUST_VARIATIONS: ReadonlySet<MatchedVariation> = new Set<MatchedVariation>([
-  "partial_full_phrase",
-  "partial_anchor_text",
+  "partial_source_context",
+  "partial_source_match",
   "first_word_only",
 ]);
 
@@ -39,7 +39,7 @@ const LOW_TRUST_VARIATIONS: ReadonlySet<MatchedVariation> = new Set<MatchedVaria
  * Calculates the verification status of a citation based on the found highlight and search state.
  *
  * Checks both the top-level SearchStatus and individual searchAttempts for
- * low-trust matchedVariation values (partial_full_phrase, partial_anchor_text,
+ * low-trust matchedVariation values (partial_source_context, partial_source_match,
  * first_word_only). A successful attempt with a low-trust variation is classified
  * as a partial match (amber) rather than fully verified (green).
  *
@@ -69,7 +69,7 @@ export function getCitationStatus(verification: Verification | null | undefined)
   const isMiss = status === "not_found";
   const isPending = status === "pending" || status === "loading";
   const isPartialMatch = PARTIAL_STATUSES.has(status) || hasLowTrustMatch;
-  const isVerified = status === "found" || status === "found_phrase_missed_anchor_text" || isPartialMatch;
+  const isVerified = status === "found" || status === "found_context_missed_source_match" || isPartialMatch;
 
   return { isVerified, isMiss, isPartialMatch, isPending };
 }
@@ -91,15 +91,15 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
   const obj = jsonCitation as Record<string, unknown>;
 
   // Resolve field names using centralized alias map (handles camelCase, snake_case,
-  // kebab-case, and shortened LLM variants like "anchor" → anchorText)
-  const fullPhraseValue = resolveField(obj, "fullPhrase");
-  const fullPhrase = typeof fullPhraseValue === "string" ? fullPhraseValue : undefined;
+  // kebab-case, and shortened LLM variants like "anchor" → sourceMatch)
+  const sourceContextValue = resolveField(obj, "sourceContext");
+  const sourceContext = typeof sourceContextValue === "string" ? sourceContextValue : undefined;
 
   const startPageIdValue = resolveField(obj, "startPageId");
   const startPageId = typeof startPageIdValue === "string" ? startPageIdValue : undefined;
 
-  const anchorTextValue = resolveField(obj, "anchorText");
-  const anchorText = typeof anchorTextValue === "string" ? anchorTextValue : undefined;
+  const sourceMatchValue = resolveField(obj, "sourceMatch");
+  const sourceMatch = typeof sourceMatchValue === "string" ? sourceMatchValue : undefined;
 
   const rawLineIdsValue = resolveField(obj, "lineIds");
   const rawLineIds = Array.isArray(rawLineIdsValue) ? rawLineIdsValue : undefined;
@@ -113,7 +113,7 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
   const valueValue = resolveField(obj, "value");
   const value = typeof valueValue === "string" ? valueValue : undefined;
 
-  if (!fullPhrase) {
+  if (!sourceContext) {
     return null;
   }
 
@@ -146,9 +146,9 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
       description,
       siteName,
       faviconUrl,
-      fullPhrase,
+      sourceContext,
       citationNumber,
-      anchorText: anchorText || value,
+      sourceMatch: sourceMatch || value,
       reasoning,
     };
     return citation;
@@ -158,10 +158,10 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
     type: "document",
     attachmentId,
     pageNumber,
-    fullPhrase,
+    sourceContext,
     citationNumber,
     lineIds,
-    anchorText: anchorText || value,
+    sourceMatch: sourceMatch || value,
     reasoning,
   };
 
@@ -173,14 +173,14 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
  * Built once at module load from the centralized alias map.
  */
 const CITATION_DETECT_KEYS = new Set([
-  ...getFieldAliases("fullPhrase"),
+  ...getFieldAliases("sourceContext"),
   ...getFieldAliases("startPageId"),
-  ...getFieldAliases("anchorText"),
+  ...getFieldAliases("sourceMatch"),
   ...getFieldAliases("lineIds"),
 ]);
 
 const URL_DETECT_KEYS = new Set(getFieldAliases("url"));
-const PHRASE_DETECT_KEYS = new Set(getFieldAliases("fullPhrase"));
+const PHRASE_DETECT_KEYS = new Set(getFieldAliases("sourceContext"));
 
 /**
  * Checks if an object has citation-like properties.
@@ -194,7 +194,7 @@ const hasCitationProperties = (item: unknown): boolean => {
   const hasCitationKey = keys.some(k => CITATION_DETECT_KEYS.has(k));
   if (hasCitationKey) return true;
 
-  // URL citation: needs both a URL alias and a fullPhrase alias
+  // URL citation: needs both a URL alias and a sourceContext alias
   const hasUrl = keys.some(k => URL_DETECT_KEYS.has(k));
   const hasPhrase = keys.some(k => PHRASE_DETECT_KEYS.has(k));
   return hasUrl && hasPhrase;
@@ -224,7 +224,7 @@ const extractJsonCitations = (data: Citation[] | Citation): CitationRecord => {
   let citationNumber = 1;
   for (const item of items) {
     const citation = parseJsonCitation(item, citationNumber++);
-    if (citation?.fullPhrase) {
+    if (citation?.sourceContext) {
       const citationKey = getCitationKey(citation);
       citations[citationKey] = citation;
     }
@@ -309,7 +309,7 @@ const findJsonCitationsInObject = (obj: unknown, found: Citation[], depth = 0): 
  *
  * // Iterate
  * for (const [citationKey, citation] of Object.entries(citations)) {
- *   console.log(`Citation ${citationKey}:`, citation.fullPhrase);
+ *   console.log(`Citation ${citationKey}:`, citation.sourceContext);
  * }
  * ```
  */
@@ -452,8 +452,8 @@ export function groupCitationsByAttachmentIdObject(
  * @example
  * ```typescript
  * // External data missing the discriminator
- * const raw = { url: "https://example.com", fullPhrase: "..." };
- * const citation = normalizeCitationType(raw); // { type: "url", url: "...", fullPhrase: "..." }
+ * const raw = { url: "https://example.com", sourceContext: "..." };
+ * const citation = normalizeCitationType(raw); // { type: "url", url: "...", sourceContext: "..." }
  *
  * // Already correct — passes through
  * const correct = { type: "url", url: "https://example.com" };

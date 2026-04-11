@@ -83,8 +83,8 @@ interface CitationBase {
   lineIds?: number[];
   /** Canonical page identifier (e.g. "page_number_3_index_0"). */
   startPageId?: string;
-  fullPhrase?: string;
-  anchorText?: string;
+  sourceContext?: string;
+  sourceMatch?: string;
   citationNumber?: number;
   reasoning?: string;
 }

@@ -1,7 +1,19 @@
 /**
  * Runtime-only types for the vanilla popover.
  * These are compiled into the IIFE and never imported by the Node.js entry.
+ *
+ * VerificationData references canonical types from `types/` so that field
+ * additions, renames, or removals in the source-of-truth types surface as
+ * compile errors here rather than silent runtime mismatches.
  */
+
+import type { SearchAttempt, SearchStatus } from "../../types/search.js";
+import type {
+  DocumentVerificationResult,
+  EvidenceImage,
+  PageImage,
+  UrlVerificationResult,
+} from "../../types/verification.js";
 
 export interface PopoverState {
   /** Currently visible popover element (singleton) */
@@ -17,64 +29,34 @@ export interface PopoverState {
 }
 
 export interface VerificationData {
-  status?: string;
+  status?: SearchStatus;
   label?: string;
-  evidence?: {
-    src?: string;
-    dimensions?: { width: number; height: number };
-  };
-  verifiedFullPhrase?: string;
-  verifiedAnchorText?: string;
-  verifiedMatchSnippet?: string;
-  document?: {
-    verifiedPageNumber?: number;
-    mimeType?: string;
-    phraseMatchDeepItem?: { x: number; y: number; width: number; height: number; text?: string };
-    anchorTextMatchDeepItems?: Array<{ x: number; y: number; width: number; height: number; text?: string }>;
-    renderScale?: { x: number; y: number };
-  };
-  url?: {
-    verifiedTitle?: string;
-    verifiedUrl?: string;
-    verifiedDomain?: string;
-    verifiedFaviconUrl?: string;
-    urlAccessStatus?: string;
-    urlVerificationError?: string;
-  };
+  evidence?: Pick<EvidenceImage, "src" | "dimensions">;
+  verifiedSourceContext?: string;
+  verifiedSourceMatch?: string;
+  sourceSnippet?: string;
+  document?: Pick<
+    DocumentVerificationResult,
+    "verifiedPageNumber" | "mimeType" | "sourceContextDeepItem" | "sourceMatchDeepItems" | "renderScale"
+  >;
+  url?: Pick<
+    UrlVerificationResult,
+    | "verifiedUrl"
+    | "verifiedTitle"
+    | "verifiedDomain"
+    | "verifiedFaviconUrl"
+    | "urlAccessStatus"
+    | "urlVerificationError"
+  >;
   citation?: {
-    fullPhrase?: string;
-    anchorText?: string;
+    sourceContext?: string;
+    sourceMatch?: string;
     type?: string;
   };
   /** Pre-resolved download URL for the source file (PDF, DOCX, etc.). */
   downloadUrl?: string;
   /** Ordered list of search attempts made during verification. */
-  searchAttempts?: Array<{
-    method?: string;
-    success?: boolean;
-    searchPhrase?: string;
-    searchPhraseType?: string;
-    regexPattern?: string;
-    pageSearched?: number;
-    lineSearched?: number | number[];
-    searchScope?: string;
-    expectedLocation?: { page: number; line?: number };
-    foundLocation?: { page: number; line?: number };
-    matchedVariation?: string;
-    matchedText?: string;
-    deepTextItems?: Array<{ x: number; y: number; width: number; height: number; text?: string }>;
-    note?: string;
-    durationMs?: number;
-    variationType?: string;
-    occurrencesFound?: number;
-    matchedExpectedOccurrence?: boolean;
-  }>;
+  searchAttempts?: SearchAttempt[];
   /** Page renders for the full-page viewer. */
-  pageImages?: Array<{
-    pageNumber: number;
-    dimensions: { width: number; height: number };
-    imageUrl: string;
-    isMatchPage?: boolean;
-    renderScale?: { x: number; y: number };
-  }>;
+  pageImages?: PageImage[];
 }

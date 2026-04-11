@@ -4,9 +4,9 @@ import {
   CITATION_Y_PADDING,
   classNames,
   generateCitationInstanceId,
-  getCitationAnchorText,
-  getCitationDisplayText,
+  getCitationClaimText,
   getCitationNumber,
+  getCitationSourceMatch,
   truncateMiddle,
 } from "../react/utils.js";
 import type { Citation } from "../types/citation.js";
@@ -17,8 +17,8 @@ describe("react utils", () => {
   const citation: Citation = {
     attachmentId: "file-1",
     pageNumber: 4,
-    fullPhrase: "Hello",
-    anchorText: "$10",
+    sourceContext: "Hello",
+    sourceMatch: "$10",
     citationNumber: 2,
     lineIds: [1, 2],
   };
@@ -26,7 +26,7 @@ describe("react utils", () => {
   it("generates deterministic keys", () => {
     const key = getCitationKey(citation);
     expect(key).toHaveLength(16);
-    expect(getCitationKey({ ...citation, anchorText: "$11" })).not.toBe(key);
+    expect(getCitationKey({ ...citation, sourceMatch: "$11" })).not.toBe(key);
   });
 
   it("creates unique instance ids with a random suffix", () => {
@@ -37,22 +37,22 @@ describe("react utils", () => {
     randomSpy.mockRestore();
   });
 
-  it("returns display text (anchorText with fallback to number)", () => {
-    // anchorText is preferred
-    expect(getCitationDisplayText(citation)).toBe("$10");
-    // Falls back to citationNumber when no anchorText
-    expect(getCitationDisplayText({ ...citation, anchorText: null })).toBe("2");
-    // Falls back to "1" when neither anchorText nor citationNumber
+  it("returns display text (sourceMatch with fallback to number)", () => {
+    // sourceMatch is preferred
+    expect(getCitationClaimText(citation)).toBe("$10");
+    // Falls back to citationNumber when no sourceMatch
+    expect(getCitationClaimText({ ...citation, sourceMatch: null })).toBe("2");
+    // Falls back to "1" when neither sourceMatch nor citationNumber
     expect(
-      getCitationDisplayText({
+      getCitationClaimText({
         ...citation,
-        anchorText: null,
+        sourceMatch: null,
         citationNumber: undefined,
       }),
     ).toBe("1");
     // Can use custom fallback
     expect(
-      getCitationDisplayText({ ...citation, anchorText: null, citationNumber: undefined }, { fallbackDisplay: "N/A" }),
+      getCitationClaimText({ ...citation, sourceMatch: null, citationNumber: undefined }, { fallbackText: "N/A" }),
     ).toBe("N/A");
   });
 
@@ -62,10 +62,10 @@ describe("react utils", () => {
     expect(getCitationNumber({ ...citation, citationNumber: undefined })).toBe("1");
   });
 
-  it("returns anchorText text", () => {
-    expect(getCitationAnchorText(citation)).toBe("$10");
-    // Returns empty string when no anchorText
-    expect(getCitationAnchorText({ ...citation, anchorText: null })).toBe("");
+  it("returns sourceMatch text", () => {
+    expect(getCitationSourceMatch(citation)).toBe("$10");
+    // Returns empty string when no sourceMatch
+    expect(getCitationSourceMatch({ ...citation, sourceMatch: null })).toBe("");
   });
 
   it("joins class names safely", () => {
@@ -81,7 +81,7 @@ describe("react utils", () => {
     it("returns true when citation has a URL string", () => {
       const urlCitation: Citation = {
         type: "url",
-        fullPhrase: "Test",
+        sourceContext: "Test",
         url: "https://example.com",
       };
       expect(isUrlCitation(urlCitation)).toBe(true);
@@ -89,14 +89,14 @@ describe("react utils", () => {
 
     it("returns false when citation has no URL", () => {
       const citation: Citation = {
-        fullPhrase: "Test",
+        sourceContext: "Test",
         pageNumber: 1,
       };
       expect(isUrlCitation(citation)).toBe(false);
     });
 
     it("returns false when URL is undefined", () => {
-      const citation = { fullPhrase: "Test" } as Citation;
+      const citation = { sourceContext: "Test" } as Citation;
       expect(isUrlCitation(citation)).toBe(false);
     });
   });
@@ -105,7 +105,7 @@ describe("react utils", () => {
     it("includes URL fields in key generation for URL citation", () => {
       const urlCitation: Citation = {
         type: "url",
-        fullPhrase: "Test phrase",
+        sourceContext: "Test phrase",
         url: "https://example.com/page",
         title: "Example Page",
         domain: "example.com",
@@ -125,7 +125,7 @@ describe("react utils", () => {
     it("generates same key for identical URL citation", () => {
       const urlCitation: Citation = {
         type: "url",
-        fullPhrase: "Revenue grew",
+        sourceContext: "Revenue grew",
         url: "https://example.com/report",
         title: "Q4 Report",
       };

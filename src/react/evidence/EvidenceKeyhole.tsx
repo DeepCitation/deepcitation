@@ -6,7 +6,6 @@ import {
   DOCUMENT_CANVAS_BG_CLASSES,
   DOCUMENT_IMAGE_EDGE_CLASSES,
   HIDE_SCROLLBAR_STYLE,
-  KEYHOLE_ANCHOR_FILL_TARGET,
   KEYHOLE_FADE_WIDTH,
   KEYHOLE_SKIP_THRESHOLD,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
@@ -34,7 +33,7 @@ import { IDENTITY_RENDER_SCALE } from "./resolvers.js";
  *
  * Falls back to horizontal centering when no bounding box data is available.
  */
-export function AnchorTextFocusedImage({
+export function EvidenceKeyhole({
   src,
   verification,
   onImageClick,
@@ -56,20 +55,19 @@ export function AnchorTextFocusedImage({
 }) {
   const t = useTranslation();
   // Anchor item and renderScale for scroll positioning.
-  // Uses anchorTextMatchDeepItems[0] (specific cited word) with phraseMatchDeepItem fallback.
+  // Uses sourceMatchDeepItems[0] (specific cited word) with sourceContextDeepItem fallback.
   // renderScale converts item coords → image pixel coords, matching
   // the same transform used by computeAnnotationScrollTarget / toPercentRect in overlayGeometry.
   // For image sources (mimeType: "image/*"), coords are already in pixel space — default to identity.
   const anchorScrollData = useMemo(() => {
     if (!verification) return null;
-    const anchorItem =
-      verification.document?.anchorTextMatchDeepItems?.[0] ?? verification.document?.phraseMatchDeepItem;
+    const anchorItem = verification.document?.sourceMatchDeepItems?.[0] ?? verification.document?.sourceContextDeepItem;
     if (!anchorItem) return null;
     const renderScale =
       verification.document?.renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);
     if (!renderScale) return null;
     const viewBoxOriginY = verification.document?.viewBoxOriginY;
-    const phraseItem = verification.document?.phraseMatchDeepItem;
+    const phraseItem = verification.document?.sourceContextDeepItem;
     return { anchorItem, renderScale, viewBoxOriginY, phraseItem };
   }, [verification]);
   // Drag-to-pan hook for mouse interaction (xy enables vertical pan for width-fit tall images;
@@ -105,20 +103,17 @@ export function AnchorTextFocusedImage({
     const stripHeight = container.clientHeight;
     const containerWidth = container.clientWidth;
 
-    // Compute zoom-to-fit anchor text: scale down so the anchor text fills
-    // ~70% of the keyhole width, giving useful context. Clamp:
-    //   max = 1.0 (never upscale — expanding reveals more content)
-    //   min = 1/renderScale.y (≈ 12pt readability: 1 image px per screen px)
-    let zoom = 1.0;
-    if (anchorScrollData) {
-      const { renderScale } = anchorScrollData;
-      const anchorWidthPx = anchorScrollData.anchorItem.width * renderScale.x;
-      if (anchorWidthPx > 0) {
-        const fitZoom = (containerWidth * KEYHOLE_ANCHOR_FILL_TARGET) / anchorWidthPx;
-        const minZoom = renderScale.y > 0 ? 1 / renderScale.y : 1.0;
-        zoom = Math.min(1.0, Math.max(minZoom, fitZoom));
-      }
-    }
+    // Zoom: the image must fill the strip — no squished thumbnails, no dead
+    // space. Pick the larger of width-fill and height-fill so the image
+    // covers both axes, then crop/scroll the overflow.
+    //   - Tall page image (1094×1500): width-fill wins (0.35 vs 0.08),
+    //     image fills width, strip crops a readable horizontal slice.
+    //   - Wide snippet (1094×148): height-fill wins (0.81 vs 0.35),
+    //     image fills height, strip scrolls horizontally.
+    // Never upscale past native resolution.
+    const widthFillZoom = img.naturalWidth > 0 ? containerWidth / img.naturalWidth : 1.0;
+    const heightFillZoom = img.naturalHeight > 0 ? stripHeight / img.naturalHeight : 1.0;
+    const zoom = Math.min(1.0, Math.max(widthFillZoom, heightFillZoom));
 
     const displayedWidth = img.naturalWidth * zoom;
     const displayedHeight = img.naturalHeight * zoom;
@@ -230,15 +225,7 @@ export function AnchorTextFocusedImage({
     [scrollState.canScrollLeft, scrollState.canScrollRight],
   );
 
-  // Container height — clamped to the actual displayed image height so short
-  // images (e.g. a cropped status-page strip) don't sit inside a 120px-tall
-  // frame with empty canvas below them. The image never upscales (zoom ≤ 1),
-  // so whenever `displayedHeight < stripHeight` the extra space is pure waste.
-  // Using CSS min() preserves the `--dc-keyhole-strip-height` override for
-  // tall images where the strip still caps the visible rect.
-  const stripHeightStyle = imageFitInfo
-    ? `min(${imageFitInfo.displayedHeight}px, var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px))`
-    : `var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px)`;
+  const stripHeightStyle = `var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px)`;
   const isPannable =
     scrollState.canScrollLeft || scrollState.canScrollRight || scrollState.canScrollUp || scrollState.canScrollDown;
 
@@ -359,7 +346,7 @@ export function AnchorTextFocusedImage({
                 className={cn(DOCUMENT_IMAGE_EDGE_CLASSES, "block select-none")}
                 style={
                   imageFitInfo
-                    ? { width: imageFitInfo.displayedWidth, height: imageFitInfo.displayedHeight }
+                    ? { width: imageFitInfo.displayedWidth, height: imageFitInfo.displayedHeight, maxWidth: "none" }
                     : { maxWidth: "none" }
                 }
                 loading="eager"

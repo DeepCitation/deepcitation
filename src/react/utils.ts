@@ -25,16 +25,16 @@ export function generateCitationInstanceId(citationKey: string): string {
 }
 
 /**
- * Gets the display text for a citation (anchorText with fallback to number).
+ * Gets the claim text for a citation (sourceMatch with fallback to number).
  */
-export function getCitationDisplayText(
+export function getCitationClaimText(
   citation: Citation,
   options: {
-    fallbackDisplay?: string | null;
+    fallbackText?: string | null;
   } = {},
 ): string {
-  const { fallbackDisplay } = options;
-  return citation.anchorText?.toString() || citation.citationNumber?.toString() || fallbackDisplay || "1";
+  const { fallbackText } = options;
+  return citation.sourceMatch?.toString() || citation.citationNumber?.toString() || fallbackText || "1";
 }
 
 /**
@@ -45,10 +45,10 @@ export function getCitationNumber(citation: Citation): string {
 }
 
 /**
- * Gets the anchorText text from a citation.
+ * Gets the sourceMatch text from a citation.
  */
-export function getCitationAnchorText(citation: Citation): string {
-  return citation.anchorText?.toString() || "";
+export function getCitationSourceMatch(citation: Citation): string {
+  return citation.sourceMatch?.toString() || "";
 }
 
 /**
@@ -65,7 +65,7 @@ export const CITATION_Y_PADDING = 1;
  * A "found" citation with garbled display text damages trust more than
  * a partial, so we clean it up client-side before rendering.
  *
- * When a `referenceText` is provided (typically the citation's fullPhrase),
+ * When a `referenceText` is provided (typically the citation's sourceContext),
  * uses it as a spacing template: strips spaces from both, finds the overlap,
  * and transfers correct spacing from the reference to the garbled snippet.
  * Falls back to regex heuristics for text not covered by the reference.
@@ -73,8 +73,8 @@ export const CITATION_Y_PADDING = 1;
 export function normalizeSnippetText(text: string, referenceText?: string | null): string {
   if (!text) return text;
 
-  // Phase 1: Reference-guided normalization (when fullPhrase is available).
-  // The fullPhrase has correct spacing from the LLM; the snippet has the same
+  // Phase 1: Reference-guided normalization (when sourceContext is available).
+  // The sourceContext has correct spacing from the LLM; the snippet has the same
   // words but with collapsed/missing spaces from the API's OCR extraction.
   let result = text;
   if (referenceText) {

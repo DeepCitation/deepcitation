@@ -26,15 +26,15 @@ describe("getCitationStatus", () => {
   it("marks verified citations", () => {
     const found: Verification = {
       citation: {
-        anchorText: "term",
-        fullPhrase: "term",
+        sourceMatch: "term",
+        sourceContext: "term",
         attachmentId: "file",
       },
       document: {
         verifiedPageNumber: 2,
       },
       status: "found",
-      verifiedMatchSnippet: "snippet",
+      sourceSnippet: "snippet",
     };
     const status = getCitationStatus(found);
     expect(status.isVerified).toBe(true);
@@ -44,15 +44,15 @@ describe("getCitationStatus", () => {
   it("marks misses and pending states", () => {
     const miss: Verification = {
       citation: {
-        anchorText: "term",
-        fullPhrase: "term",
+        sourceMatch: "term",
+        sourceContext: "term",
         attachmentId: "file",
       },
       document: {
         verifiedPageNumber: -1, // sentinel: -1 means "not found" (no valid page matched)
       },
       status: "not_found",
-      verifiedMatchSnippet: "snippet",
+      sourceSnippet: "snippet",
     };
     const status = getCitationStatus(miss);
     expect(status.isMiss).toBe(true);
@@ -69,8 +69,8 @@ describe("getCitationStatus", () => {
     it("treats found_on_other_page as partial match (verified with amber indicator)", () => {
       const verification: Verification = {
         citation: {
-          anchorText: "term",
-          fullPhrase: "term",
+          sourceMatch: "term",
+          sourceContext: "term",
           attachmentId: "file",
           pageNumber: 4,
         },
@@ -78,7 +78,7 @@ describe("getCitationStatus", () => {
           verifiedPageNumber: 5,
         },
         status: "found_on_other_page",
-        verifiedMatchSnippet: "snippet",
+        sourceSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
@@ -90,8 +90,8 @@ describe("getCitationStatus", () => {
     it("treats found_on_other_line as partial match (verified with amber indicator)", () => {
       const verification: Verification = {
         citation: {
-          anchorText: "term",
-          fullPhrase: "term",
+          sourceMatch: "term",
+          sourceContext: "term",
           attachmentId: "file",
           pageNumber: 3,
           lineIds: [1, 2, 3],
@@ -101,7 +101,7 @@ describe("getCitationStatus", () => {
           verifiedLineIds: [2, 3],
         },
         status: "found_on_other_line",
-        verifiedMatchSnippet: "snippet",
+        sourceSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
@@ -111,8 +111,8 @@ describe("getCitationStatus", () => {
     it("treats first_word_found as partial match (verified with amber indicator)", () => {
       const verification: Verification = {
         citation: {
-          anchorText: "term",
-          fullPhrase: "term",
+          sourceMatch: "term",
+          sourceContext: "term",
           attachmentId: "file",
           pageNumber: 1,
         },
@@ -120,7 +120,7 @@ describe("getCitationStatus", () => {
           verifiedPageNumber: 1,
         },
         status: "first_word_found",
-        verifiedMatchSnippet: "snippet",
+        sourceSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
@@ -130,51 +130,51 @@ describe("getCitationStatus", () => {
     it("treats partial_text_found as partial match (verified with amber indicator)", () => {
       const verification: Verification = {
         citation: {
-          anchorText: "term",
-          fullPhrase: "term",
+          sourceMatch: "term",
+          sourceContext: "term",
           attachmentId: "file",
         },
         document: {
           verifiedPageNumber: 2,
         },
         status: "partial_text_found",
-        verifiedMatchSnippet: "snippet",
+        sourceSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
       expect(status.isVerified).toBe(true); // Partial matches ARE verified (amber checkmark)
     });
 
-    it("treats found_phrase_missed_anchor_text as verified but not partial", () => {
+    it("treats found_context_missed_source_match as verified but not partial", () => {
       const verification: Verification = {
         citation: {
-          anchorText: "term",
-          fullPhrase: "term",
+          sourceMatch: "term",
+          sourceContext: "term",
           attachmentId: "file",
         },
         document: {
           verifiedPageNumber: 2,
         },
-        status: "found_phrase_missed_anchor_text",
-        verifiedMatchSnippet: "snippet",
+        status: "found_context_missed_source_match",
+        sourceSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isVerified).toBe(true);
       expect(status.isPartialMatch).toBe(false);
     });
 
-    it("treats found_anchor_text_only as partial match", () => {
+    it("treats found_source_match_only as partial match", () => {
       const verification: Verification = {
         citation: {
-          anchorText: "term",
-          fullPhrase: "full phrase",
+          sourceMatch: "term",
+          sourceContext: "full phrase",
           attachmentId: "file",
         },
         document: {
           verifiedPageNumber: 2,
         },
-        status: "found_anchor_text_only",
-        verifiedMatchSnippet: "term",
+        status: "found_source_match_only",
+        sourceSnippet: "term",
       };
       const status = getCitationStatus(verification);
       expect(status.isVerified).toBe(true);
@@ -184,15 +184,15 @@ describe("getCitationStatus", () => {
     it("treats loading status as pending", () => {
       const verification: Verification = {
         citation: {
-          anchorText: "term",
-          fullPhrase: "term",
+          sourceMatch: "term",
+          sourceContext: "term",
           attachmentId: "file",
         },
         document: {
           verifiedPageNumber: 2,
         },
         status: "loading",
-        verifiedMatchSnippet: "snippet",
+        sourceSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPending).toBe(true);
@@ -202,8 +202,8 @@ describe("getCitationStatus", () => {
     it("treats pending status as pending", () => {
       const verification: Verification = {
         citation: {
-          anchorText: "term",
-          fullPhrase: "term",
+          sourceMatch: "term",
+          sourceContext: "term",
           attachmentId: "file",
           pageNumber: 2,
         },
@@ -211,7 +211,7 @@ describe("getCitationStatus", () => {
           verifiedPageNumber: 2,
         },
         status: "pending",
-        verifiedMatchSnippet: "snippet",
+        sourceSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPending).toBe(true);
@@ -221,15 +221,15 @@ describe("getCitationStatus", () => {
     it("treats not_found as miss but not verified", () => {
       const verification: Verification = {
         citation: {
-          anchorText: "term",
-          fullPhrase: "term",
+          sourceMatch: "term",
+          sourceContext: "term",
           attachmentId: "file",
         },
         document: {
           verifiedPageNumber: -1, // sentinel: -1 means "not found" (no valid page matched)
         },
         status: "not_found",
-        verifiedMatchSnippet: "snippet",
+        sourceSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isMiss).toBe(true);
@@ -240,8 +240,8 @@ describe("getCitationStatus", () => {
     it("treats null status as no-data (not pending)", () => {
       const verification: Verification = {
         citation: {
-          anchorText: "term",
-          fullPhrase: "term",
+          sourceMatch: "term",
+          sourceContext: "term",
           attachmentId: "file",
           pageNumber: 2,
         },
@@ -249,7 +249,7 @@ describe("getCitationStatus", () => {
           verifiedPageNumber: 2,
         },
         status: null,
-        verifiedMatchSnippet: "snippet",
+        sourceSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       // null status with a verification object that has no status → not pending
@@ -269,11 +269,11 @@ describe("getCitationStatus", () => {
       // A Verification may have null status but still carry searchAttempts with low-trust
       // variation data — getCitationStatus must check searchAttempts regardless of status.
       const verification: Verification = {
-        citation: { anchorText: "term", fullPhrase: "term", attachmentId: "file", pageNumber: 1 },
+        citation: { sourceMatch: "term", sourceContext: "term", attachmentId: "file", pageNumber: 1 },
         document: { verifiedPageNumber: 1 },
         status: null,
-        verifiedMatchSnippet: null,
-        searchAttempts: [{ success: true, matchedVariation: "partial_anchor_text", matchedText: "term" }],
+        sourceSnippet: null,
+        searchAttempts: [{ success: true, matchedVariation: "partial_source_match", matchedText: "term" }],
       };
       const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
@@ -323,9 +323,9 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(text);
       expect(Object.keys(result).length).toBe(3);
       const values = Object.values(result);
-      expect(values.some(c => c.fullPhrase?.includes("POSITIVE"))).toBe(true);
-      expect(values.some(c => c.fullPhrase?.includes("bacteria"))).toBe(true);
-      expect(values.some(c => c.fullPhrase?.includes("Treatment"))).toBe(true);
+      expect(values.some(c => c.sourceContext?.includes("POSITIVE"))).toBe(true);
+      expect(values.some(c => c.sourceContext?.includes("bacteria"))).toBe(true);
+      expect(values.some(c => c.sourceContext?.includes("Treatment"))).toBe(true);
     });
 
     it("extracts from comma-separated markers like [2, 3, 4]", () => {
@@ -342,13 +342,13 @@ describe("getAllCitationsFromLlmOutput", () => {
       const text = `Result was positive [1].
 
 <<<CITATION_DATA>>>
-{"att1": [{"id": 1, "full_phrase": "specific phrase from JSON", "page_id": "1_0", "line_ids": [5]}]}
+{"att1": [{"id": 1, "source_context": "specific phrase from JSON", "page_id": "1_0", "line_ids": [5]}]}
 <<<END_CITATION_DATA>>>`;
       const result = getAllCitationsFromLlmOutput(text);
       const values = Object.values(result);
       expect(values.length).toBe(1);
       // Should use the JSON block phrase, not the sentence extraction
-      expect(values[0].fullPhrase).toBe("specific phrase from JSON");
+      expect(values[0].sourceContext).toBe("specific phrase from JSON");
     });
 
     it("returns empty for plain text without any [N] markers", () => {
@@ -358,10 +358,10 @@ describe("getAllCitationsFromLlmOutput", () => {
   });
 
   describe("JSON citation extraction", () => {
-    it("extracts citation from single JSON object with fullPhrase (backward compat: startPageKey -> startPageId)", () => {
+    it("extracts citation from single JSON object with sourceContext (backward compat: startPageKey -> startPageId)", () => {
       // Input uses old naming: startPageKey
       const input: Citation = {
-        fullPhrase: "test phrase",
+        sourceContext: "test phrase",
         attachmentId: "file123456789012345",
         startPageKey: "page_number_3_index_0",
         lineIds: [1, 2, 3],
@@ -370,20 +370,20 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("test phrase");
+      expect(citation.sourceContext).toBe("test phrase");
       expect(citation.pageNumber).toBe(3);
       expect(citation.lineIds).toEqual([1, 2, 3]);
     });
 
     it("extracts citations from array of JSON objects", () => {
       const input: Citation[] = [
-        { fullPhrase: "first phrase", attachmentId: "file1" },
-        { fullPhrase: "second phrase", attachmentId: "file2" },
+        { sourceContext: "first phrase", attachmentId: "file1" },
+        { sourceContext: "second phrase", attachmentId: "file2" },
       ];
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBe(2);
-      const phrases = Object.values(result).map(c => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.sourceContext);
       expect(phrases).toContain("first phrase");
       expect(phrases).toContain("second phrase");
     });
@@ -392,7 +392,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const input = {
         response: "Some response",
         citation: {
-          fullPhrase: "nested citation",
+          sourceContext: "nested citation",
           attachmentId: "file123",
         },
       };
@@ -400,21 +400,21 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("nested citation");
+      expect(citation.sourceContext).toBe("nested citation");
     });
 
     it("extracts citations from nested citations array property", () => {
       const input = {
         response: "Some response",
         citations: [
-          { fullPhrase: "citation one", attachmentId: "f1" },
-          { fullPhrase: "citation two", attachmentId: "f2" },
+          { sourceContext: "citation one", attachmentId: "f1" },
+          { sourceContext: "citation two", attachmentId: "f2" },
         ],
       };
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBe(2);
-      const phrases = Object.values(result).map(c => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.sourceContext);
       expect(phrases).toContain("citation one");
       expect(phrases).toContain("citation two");
     });
@@ -424,7 +424,7 @@ describe("getAllCitationsFromLlmOutput", () => {
         level1: {
           level2: {
             level3: {
-              citations: [{ fullPhrase: "deep citation", attachmentId: "deep1" }],
+              citations: [{ sourceContext: "deep citation", attachmentId: "deep1" }],
             },
           },
         },
@@ -433,13 +433,13 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("deep citation");
+      expect(citation.sourceContext).toBe("deep citation");
     });
 
     it("extracts citations from array containing objects with citations", () => {
       const input = [
-        { citation: { fullPhrase: "array item 1", attachmentId: "f1" } },
-        { citation: { fullPhrase: "array item 2", attachmentId: "f2" } },
+        { citation: { sourceContext: "array item 1", attachmentId: "f1" } },
+        { citation: { sourceContext: "array item 2", attachmentId: "f2" } },
       ];
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -454,7 +454,7 @@ describe("getAllCitationsFromLlmOutput", () => {
     it("parses page number from page_number_X_index_Y format", () => {
       // Input uses old naming: startPageKey
       const input: Citation = {
-        fullPhrase: "test",
+        sourceContext: "test",
         startPageKey: "page_number_5_index_2",
       };
       const result = getAllCitationsFromLlmOutput(input);
@@ -465,7 +465,7 @@ describe("getAllCitationsFromLlmOutput", () => {
     it("parses page number from pageKey_X_index_Y format", () => {
       // Input uses old naming: startPageKey
       const input: Citation = {
-        fullPhrase: "test",
+        sourceContext: "test",
         startPageKey: "pageKey_10_index_0",
       };
       const result = getAllCitationsFromLlmOutput(input);
@@ -475,7 +475,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
     it("handles missing startPageId gracefully", () => {
       const input: Citation = {
-        fullPhrase: "test without page",
+        sourceContext: "test without page",
       };
       const result = getAllCitationsFromLlmOutput(input);
       const citation = Object.values(result)[0];
@@ -485,7 +485,7 @@ describe("getAllCitationsFromLlmOutput", () => {
     it("parses page number from n_m format (e.g., '5_4' for page 5, index 4)", () => {
       // Input uses old naming: startPageKey
       const input: Citation = {
-        fullPhrase: "test",
+        sourceContext: "test",
         startPageKey: "5_4",
       };
       const result = getAllCitationsFromLlmOutput(input);
@@ -497,7 +497,7 @@ describe("getAllCitationsFromLlmOutput", () => {
   describe("JSON citation lineIds handling", () => {
     it("sorts lineIds in ascending order", () => {
       const input: Citation = {
-        fullPhrase: "test",
+        sourceContext: "test",
         lineIds: [5, 1, 10, 3],
       };
       const result = getAllCitationsFromLlmOutput(input);
@@ -507,7 +507,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
     it("handles empty lineIds array", () => {
       const input: Citation = {
-        fullPhrase: "test",
+        sourceContext: "test",
         lineIds: [],
       };
       const result = getAllCitationsFromLlmOutput(input);
@@ -517,7 +517,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
     it("handles null lineIds", () => {
       const input: Citation = {
-        fullPhrase: "test",
+        sourceContext: "test",
         lineIds: null,
       };
       const result = getAllCitationsFromLlmOutput(input);
@@ -527,22 +527,22 @@ describe("getAllCitationsFromLlmOutput", () => {
   });
 
   describe("citation filtering and validation", () => {
-    it("skips JSON citations without fullPhrase", () => {
+    it("skips JSON citations without sourceContext", () => {
       const input: Citation[] = [
-        { fullPhrase: "valid citation", attachmentId: "f1" },
-        { attachmentId: "f2", lineIds: [1, 2] } as Citation, // missing fullPhrase
+        { sourceContext: "valid citation", attachmentId: "f1" },
+        { attachmentId: "f2", lineIds: [1, 2] } as Citation, // missing sourceContext
       ];
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(1);
-      expect(Object.values(result)[0].fullPhrase).toBe("valid citation");
+      expect(Object.values(result)[0].sourceContext).toBe("valid citation");
     });
 
     it("skips null items in citation array", () => {
       const input = [
-        { fullPhrase: "valid", attachmentId: "f1" },
+        { sourceContext: "valid", attachmentId: "f1" },
         null,
-        { fullPhrase: "also valid", attachmentId: "f2" },
+        { sourceContext: "also valid", attachmentId: "f2" },
       ];
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -553,8 +553,8 @@ describe("getAllCitationsFromLlmOutput", () => {
   describe("citation key generation", () => {
     it("generates unique keys for different citations", () => {
       const input: Citation[] = [
-        { fullPhrase: "phrase one", attachmentId: "f1", pageNumber: 1 },
-        { fullPhrase: "phrase two", attachmentId: "f2", pageNumber: 2 },
+        { sourceContext: "phrase one", attachmentId: "f1", pageNumber: 1 },
+        { sourceContext: "phrase two", attachmentId: "f2", pageNumber: 2 },
       ];
       const result = getAllCitationsFromLlmOutput(input);
       const keys = Object.keys(result);
@@ -565,11 +565,11 @@ describe("getAllCitationsFromLlmOutput", () => {
 
     it("generates same key for identical citations", () => {
       const citation1: Citation = {
-        fullPhrase: "same phrase",
+        sourceContext: "same phrase",
         attachmentId: "same",
       };
       const citation2: Citation = {
-        fullPhrase: "same phrase",
+        sourceContext: "same phrase",
         attachmentId: "same",
       };
 
@@ -583,7 +583,7 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
 
     it("generates 16-character citation keys", () => {
-      const input: Citation = { fullPhrase: "test", attachmentId: "f1" };
+      const input: Citation = { sourceContext: "test", attachmentId: "f1" };
       const result = getAllCitationsFromLlmOutput(input);
       const key = Object.keys(result)[0];
 
@@ -615,22 +615,22 @@ describe("getAllCitationsFromLlmOutput", () => {
 
     it("handles citation with optional value and reasoning", () => {
       const input: Citation = {
-        fullPhrase: "test phrase",
+        sourceContext: "test phrase",
         attachmentId: "f1",
-        anchorText: "$500",
+        sourceMatch: "$500",
         reasoning: "This is the reasoning",
       };
       const result = getAllCitationsFromLlmOutput(input);
       const citation = Object.values(result)[0];
 
-      expect(citation.anchorText).toBe("$500");
+      expect(citation.sourceMatch).toBe("$500");
       expect(citation.reasoning).toBe("This is the reasoning");
     });
   });
 
   describe("isJsonCitationFormat detection", () => {
-    it("detects object with fullPhrase as citation format", () => {
-      const input = { fullPhrase: "test" };
+    it("detects object with sourceContext as citation format", () => {
+      const input = { sourceContext: "test" };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
     });
@@ -639,20 +639,20 @@ describe("getAllCitationsFromLlmOutput", () => {
       // Input uses old naming: startPageKey
       const input = {
         startPageKey: "page_number_1_index_0",
-        fullPhrase: "test",
+        sourceContext: "test",
       };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
     });
 
     it("detects object with lineIds as citation format", () => {
-      const input = { lineIds: [1, 2, 3], fullPhrase: "test" };
+      const input = { lineIds: [1, 2, 3], sourceContext: "test" };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
     });
 
     it("detects array with at least one citation-like object", () => {
-      const input = [{ notACitation: true }, { fullPhrase: "this is a citation" }];
+      const input = [{ notACitation: true }, { sourceContext: "this is a citation" }];
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
     });
@@ -664,22 +664,22 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
   });
 
-  describe("snake_case JSON citation support (backward compat: start_page_key -> startPageId, anchor_text)", () => {
+  describe("snake_case JSON citation support (backward compat: start_page_key -> startPageId, source_match)", () => {
     // NOTE: These tests use old snake_case names (start_page_key, key_span) to verify backward compatibility.
-    // The parser accepts old names but outputs the new names (anchorText, startPageId).
+    // The parser accepts old names but outputs the new names (sourceMatch, startPageId).
 
-    it("detects object with full_phrase (snake_case) as citation format", () => {
-      const input = { full_phrase: "test snake case" };
+    it("detects object with source_context (snake_case) as citation format", () => {
+      const input = { source_context: "test snake case" };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
-      expect(Object.values(result)[0].fullPhrase).toBe("test snake case");
+      expect(Object.values(result)[0].sourceContext).toBe("test snake case");
     });
 
     it("detects object with start_page_key (snake_case) as citation format (backward compat)", () => {
       // Input uses old naming: start_page_key
       const input = {
         start_page_key: "page_number_3_index_0",
-        full_phrase: "test",
+        source_context: "test",
       };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
@@ -687,49 +687,49 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
 
     it("detects object with line_ids (snake_case) as citation format", () => {
-      const input = { line_ids: [5, 2, 8], full_phrase: "test" };
+      const input = { line_ids: [5, 2, 8], source_context: "test" };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
       expect(Object.values(result)[0].lineIds).toEqual([2, 5, 8]);
     });
 
     it("detects object with attachment_id (snake_case)", () => {
-      const input = { attachment_id: "my_file_123", full_phrase: "test" };
+      const input = { attachment_id: "my_file_123", source_context: "test" };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
       expect(Object.values(result)[0].attachmentId).toBe("my_file_123");
     });
 
-    it("parses full snake_case citation object (backward compat: key_span -> anchorText)", () => {
-      // Input uses old naming: start_page_key, key_span is mapped to anchorText
+    it("parses full snake_case citation object (backward compat: key_span -> sourceMatch)", () => {
+      // Input uses old naming: start_page_key, key_span is mapped to sourceMatch
       const input = {
         attachment_id: "doc123",
-        full_phrase: "The quick brown fox",
+        source_context: "The quick brown fox",
         start_page_key: "page_number_7_index_2",
         line_ids: [10, 5, 15],
-        anchorText: "$100.00",
+        sourceMatch: "$100.00",
       };
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.attachmentId).toBe("doc123");
-      expect(citation.fullPhrase).toBe("The quick brown fox");
+      expect(citation.sourceContext).toBe("The quick brown fox");
       expect(citation.pageNumber).toBe(7);
       expect(citation.lineIds).toEqual([5, 10, 15]);
-      // Output uses new naming: anchorText
-      expect(citation.anchorText).toBe("$100.00");
+      // Output uses new naming: sourceMatch
+      expect(citation.sourceMatch).toBe("$100.00");
     });
 
     it("parses array of snake_case citations", () => {
       const input = [
-        { full_phrase: "first citation", attachment_id: "f1" },
-        { full_phrase: "second citation", attachment_id: "f2" },
+        { source_context: "first citation", attachment_id: "f1" },
+        { source_context: "second citation", attachment_id: "f2" },
       ];
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(2);
-      const phrases = Object.values(result).map(c => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.sourceContext);
       expect(phrases).toContain("first citation");
       expect(phrases).toContain("second citation");
     });
@@ -739,7 +739,7 @@ describe("getAllCitationsFromLlmOutput", () => {
         response: "Some text",
         citations: [
           {
-            full_phrase: "nested snake",
+            source_context: "nested snake",
             attachment_id: "n1",
             line_ids: [1, 2],
           },
@@ -749,14 +749,14 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("nested snake");
+      expect(citation.sourceContext).toBe("nested snake");
       expect(citation.lineIds).toEqual([1, 2]);
     });
 
     it("handles mixed camelCase and snake_case in same object (backward compat: start_page_key)", () => {
       // Input uses old naming: start_page_key
       const input = {
-        fullPhrase: "mixed case test",
+        sourceContext: "mixed case test",
         attachment_id: "mixed123",
         start_page_key: "page_number_2_index_0",
         lineIds: [3, 1, 2],
@@ -765,7 +765,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("mixed case test");
+      expect(citation.sourceContext).toBe("mixed case test");
       expect(citation.attachmentId).toBe("mixed123");
       expect(citation.pageNumber).toBe(2);
       expect(citation.lineIds).toEqual([1, 2, 3]);
@@ -773,27 +773,27 @@ describe("getAllCitationsFromLlmOutput", () => {
 
     it("prefers camelCase over snake_case when both present", () => {
       const input = {
-        fullPhrase: "camelCase wins",
-        full_phrase: "snake_case loses",
+        sourceContext: "camelCase wins",
+        source_context: "snake_case loses",
         attachmentId: "camelId",
         attachment_id: "snakeId",
       };
       const result = getAllCitationsFromLlmOutput(input);
 
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("camelCase wins");
+      expect(citation.sourceContext).toBe("camelCase wins");
       expect(citation.attachmentId).toBe("camelId");
     });
   });
 
-  describe("anchorText JSON citation support (backward compat: keySpan, key_span)", () => {
+  describe("sourceMatch JSON citation support (backward compat: keySpan, key_span)", () => {
     // NOTE: These tests use old names (keySpan, key_span) to verify backward compatibility.
-    // The parser accepts old names but outputs the new name (anchorText).
+    // The parser accepts old names but outputs the new name (sourceMatch).
 
-    it("parses anchorText from camelCase JSON citation (backward compat: keySpan)", () => {
+    it("parses sourceMatch from camelCase JSON citation (backward compat: keySpan)", () => {
       // Input uses old naming: keySpan
       const input = {
-        fullPhrase: "The quick brown fox jumps over the lazy dog",
+        sourceContext: "The quick brown fox jumps over the lazy dog",
         keySpan: "quick brown fox",
         attachmentId: "file123",
       };
@@ -801,15 +801,15 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("The quick brown fox jumps over the lazy dog");
-      // Output uses new naming: anchorText
-      expect(citation.anchorText).toBe("quick brown fox");
+      expect(citation.sourceContext).toBe("The quick brown fox jumps over the lazy dog");
+      // Output uses new naming: sourceMatch
+      expect(citation.sourceMatch).toBe("quick brown fox");
     });
 
-    it("parses anchor_text from snake_case JSON citation (backward compat: key_span)", () => {
+    it("parses source_match from snake_case JSON citation (backward compat: key_span)", () => {
       // Input uses old naming: key_span
       const input = {
-        full_phrase: "The quick brown fox jumps over the lazy dog",
+        source_context: "The quick brown fox jumps over the lazy dog",
         key_span: "quick brown fox",
         attachment_id: "file123",
       };
@@ -817,56 +817,56 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("The quick brown fox jumps over the lazy dog");
-      // Output uses new naming: anchorText
-      expect(citation.anchorText).toBe("quick brown fox");
+      expect(citation.sourceContext).toBe("The quick brown fox jumps over the lazy dog");
+      // Output uses new naming: sourceMatch
+      expect(citation.sourceMatch).toBe("quick brown fox");
     });
 
-    it("prefers camelCase anchorText over snake_case anchor_text (backward compat: keySpan, key_span)", () => {
+    it("prefers camelCase sourceMatch over snake_case source_match (backward compat: keySpan, key_span)", () => {
       // Input uses old naming: keySpan, key_span
       const input = {
-        fullPhrase: "test phrase",
+        sourceContext: "test phrase",
         keySpan: "camelCase span",
         key_span: "snake_case span",
       };
       const result = getAllCitationsFromLlmOutput(input);
 
       const citation = Object.values(result)[0];
-      // Output uses new naming: anchorText
-      expect(citation.anchorText).toBe("camelCase span");
+      // Output uses new naming: sourceMatch
+      expect(citation.sourceMatch).toBe("camelCase span");
     });
 
-    it("detects object with anchorText as citation format (backward compat: keySpan)", () => {
+    it("detects object with sourceMatch as citation format (backward compat: keySpan)", () => {
       // Input uses old naming: keySpan
       const input = {
         keySpan: "key words",
-        fullPhrase: "full sentence with key words",
+        sourceContext: "full sentence with key words",
       };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
-      // Output uses new naming: anchorText
-      expect(Object.values(result)[0].anchorText).toBe("key words");
+      // Output uses new naming: sourceMatch
+      expect(Object.values(result)[0].sourceMatch).toBe("key words");
     });
 
-    it("detects object with anchor_text as citation format (backward compat: key_span)", () => {
+    it("detects object with source_match as citation format (backward compat: key_span)", () => {
       // Input uses old naming: key_span
       const input = {
         key_span: "key words",
-        full_phrase: "full sentence with key words",
+        source_context: "full sentence with key words",
       };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
-      // Output uses new naming: anchorText
-      expect(Object.values(result)[0].anchorText).toBe("key words");
+      // Output uses new naming: sourceMatch
+      expect(Object.values(result)[0].sourceMatch).toBe("key words");
     });
 
-    it("parses full citation with anchorText from nested citations property (backward compat: keySpan, startPageKey)", () => {
+    it("parses full citation with sourceMatch from nested citations property (backward compat: keySpan, startPageKey)", () => {
       // Input uses old naming: keySpan, startPageKey
       const input = {
         response: "Some response",
         citations: [
           {
-            fullPhrase: "The total amount is $500.00",
+            sourceContext: "The total amount is $500.00",
             keySpan: "$500.00",
             attachmentId: "doc1",
             startPageKey: "page_number_5_index_0",
@@ -878,9 +878,9 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("The total amount is $500.00");
-      // Output uses new naming: anchorText
-      expect(citation.anchorText).toBe("$500.00");
+      expect(citation.sourceContext).toBe("The total amount is $500.00");
+      // Output uses new naming: sourceMatch
+      expect(citation.sourceMatch).toBe("$500.00");
       expect(citation.pageNumber).toBe(5);
       expect(citation.lineIds).toEqual([10, 11, 12]);
     });
@@ -889,9 +889,9 @@ describe("getAllCitationsFromLlmOutput", () => {
   describe("citation numbering in JSON extraction", () => {
     it("assigns sequential citation numbers", () => {
       const input: Citation[] = [
-        { fullPhrase: "first", attachmentId: "f1" },
-        { fullPhrase: "second", attachmentId: "f2" },
-        { fullPhrase: "third", attachmentId: "f3" },
+        { sourceContext: "first", attachmentId: "f1" },
+        { sourceContext: "second", attachmentId: "f2" },
+        { sourceContext: "third", attachmentId: "f3" },
       ];
       const result = getAllCitationsFromLlmOutput(input);
       const citations = Object.values(result);
@@ -905,7 +905,7 @@ describe("getAllCitationsFromLlmOutput", () => {
     it("parses JSON citation with fileId property (backward compat: startPageKey -> startPageId)", () => {
       // Input uses old naming: startPageKey
       const input: Citation = {
-        fullPhrase: "test phrase",
+        sourceContext: "test phrase",
         fileId: "file123456789012345",
         startPageKey: "page_number_3_index_0",
         lineIds: [1, 2, 3],
@@ -914,7 +914,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("test phrase");
+      expect(citation.sourceContext).toBe("test phrase");
       expect(citation.attachmentId).toBe("file123456789012345");
       expect(citation.pageNumber).toBe(3);
     });
@@ -922,7 +922,7 @@ describe("getAllCitationsFromLlmOutput", () => {
     it("parses JSON citation with file_id property (snake_case, backward compat: start_page_key)", () => {
       // Input uses old naming: start_page_key
       const input = {
-        full_phrase: "snake case test",
+        source_context: "snake case test",
         file_id: "file123456789012345",
         start_page_key: "page_number_5_index_0",
         line_ids: [1, 2],
@@ -931,7 +931,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("snake case test");
+      expect(citation.sourceContext).toBe("snake case test");
       expect(citation.attachmentId).toBe("file123456789012345");
       expect(citation.pageNumber).toBe(5);
     });
@@ -948,7 +948,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const input = {
         attachmentId: "file123456789012345",
         reasoning: "This citation directly supports the claim about revenue",
-        fullPhrase: "Revenue increased 45% year-over-year to $2.3 billion",
+        sourceContext: "Revenue increased 45% year-over-year to $2.3 billion",
         keySpan: "increased 45%",
         startPageKey: "page_number_2_index_1",
         lineIds: [12, 13, 14],
@@ -959,9 +959,9 @@ describe("getAllCitationsFromLlmOutput", () => {
       const citation = Object.values(result)[0];
       expect(citation.attachmentId).toBe("file123456789012345");
       expect(citation.reasoning).toBe("This citation directly supports the claim about revenue");
-      expect(citation.fullPhrase).toBe("Revenue increased 45% year-over-year to $2.3 billion");
-      // Output uses new naming (anchorText)
-      expect(citation.anchorText).toBe("increased 45%");
+      expect(citation.sourceContext).toBe("Revenue increased 45% year-over-year to $2.3 billion");
+      // Output uses new naming (sourceMatch)
+      expect(citation.sourceMatch).toBe("increased 45%");
       expect(citation.pageNumber).toBe(2);
       expect(citation.lineIds).toEqual([12, 13, 14]);
     });
@@ -973,7 +973,7 @@ describe("getAllCitationsFromLlmOutput", () => {
         citation: {
           attachmentId: "doc123",
           reasoning: "Supports the growth claim",
-          fullPhrase: "Q4 earnings exceeded expectations by 20%",
+          sourceContext: "Q4 earnings exceeded expectations by 20%",
           keySpan: "exceeded expectations",
           startPageKey: "page_number_5_index_0",
           lineIds: [10, 11],
@@ -983,9 +983,9 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("Q4 earnings exceeded expectations by 20%");
-      // Output uses new naming (anchorText)
-      expect(citation.anchorText).toBe("exceeded expectations");
+      expect(citation.sourceContext).toBe("Q4 earnings exceeded expectations by 20%");
+      // Output uses new naming (sourceMatch)
+      expect(citation.sourceMatch).toBe("exceeded expectations");
       expect(citation.reasoning).toBe("Supports the growth claim");
     });
 
@@ -997,7 +997,7 @@ describe("getAllCitationsFromLlmOutput", () => {
           {
             attachmentId: "doc1",
             reasoning: "First supporting evidence",
-            fullPhrase: "Market share increased to 35%",
+            sourceContext: "Market share increased to 35%",
             keySpan: "35%",
             startPageKey: "page_number_1_index_0",
             lineIds: [5],
@@ -1005,7 +1005,7 @@ describe("getAllCitationsFromLlmOutput", () => {
           {
             attachmentId: "doc2",
             reasoning: "Second supporting evidence",
-            fullPhrase: "Customer retention improved by 15%",
+            sourceContext: "Customer retention improved by 15%",
             keySpan: "15%",
             startPageKey: "page_number_3_index_0",
             lineIds: [20, 21],
@@ -1016,9 +1016,9 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(2);
       const citations = Object.values(result);
-      // Output uses new naming (anchorText)
-      expect(citations.map(c => c.anchorText)).toContain("35%");
-      expect(citations.map(c => c.anchorText)).toContain("15%");
+      // Output uses new naming (sourceMatch)
+      expect(citations.map(c => c.sourceMatch)).toContain("35%");
+      expect(citations.map(c => c.sourceMatch)).toContain("15%");
     });
 
     it("extracts single citation from 'citations' property (non-array)", () => {
@@ -1027,7 +1027,7 @@ describe("getAllCitationsFromLlmOutput", () => {
         citations: {
           attachmentId: "report123",
           reasoning: "Direct quote from conclusion",
-          fullPhrase: "The study conclusively demonstrates improvement",
+          sourceContext: "The study conclusively demonstrates improvement",
           keySpan: "conclusively demonstrates",
           startPageKey: "page_number_10_index_0",
           lineIds: [1, 2, 3],
@@ -1037,7 +1037,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("The study conclusively demonstrates improvement");
+      expect(citation.sourceContext).toBe("The study conclusively demonstrates improvement");
     });
 
     it("extracts citations from deeply nested structure with 'citation' property", () => {
@@ -1048,7 +1048,7 @@ describe("getAllCitationsFromLlmOutput", () => {
               citation: {
                 attachmentId: "nested123",
                 reasoning: "Deeply nested citation",
-                fullPhrase: "Nested finding in complex structure",
+                sourceContext: "Nested finding in complex structure",
                 keySpan: "Nested finding",
                 startPageKey: "page_number_7_index_2",
                 lineIds: [15],
@@ -1061,7 +1061,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("Nested finding in complex structure");
+      expect(citation.sourceContext).toBe("Nested finding in complex structure");
       expect(citation.pageNumber).toBe(7);
     });
 
@@ -1072,7 +1072,7 @@ describe("getAllCitationsFromLlmOutput", () => {
             section: "Introduction",
             citation: {
               attachmentId: "intro1",
-              fullPhrase: "First section citation",
+              sourceContext: "First section citation",
               keySpan: "First",
               startPageKey: "page_number_1_index_0",
               lineIds: [1],
@@ -1082,7 +1082,7 @@ describe("getAllCitationsFromLlmOutput", () => {
             section: "Methodology",
             citation: {
               attachmentId: "method1",
-              fullPhrase: "Second section citation",
+              sourceContext: "Second section citation",
               keySpan: "Second",
               startPageKey: "page_number_2_index_0",
               lineIds: [10],
@@ -1093,7 +1093,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(2);
-      const phrases = Object.values(result).map(c => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.sourceContext);
       expect(phrases).toContain("First section citation");
       expect(phrases).toContain("Second section citation");
     });
@@ -1103,7 +1103,7 @@ describe("getAllCitationsFromLlmOutput", () => {
         mainClaim: {
           citation: {
             attachmentId: "main1",
-            fullPhrase: "Main citation phrase",
+            sourceContext: "Main citation phrase",
             keySpan: "Main",
             startPageKey: "page_number_1_index_0",
             lineIds: [1],
@@ -1113,14 +1113,14 @@ describe("getAllCitationsFromLlmOutput", () => {
           citations: [
             {
               attachmentId: "support1",
-              fullPhrase: "Supporting citation one",
+              sourceContext: "Supporting citation one",
               keySpan: "one",
               startPageKey: "page_number_2_index_0",
               lineIds: [5],
             },
             {
               attachmentId: "support2",
-              fullPhrase: "Supporting citation two",
+              sourceContext: "Supporting citation two",
               keySpan: "two",
               startPageKey: "page_number_3_index_0",
               lineIds: [10],
@@ -1131,7 +1131,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(3);
-      const phrases = Object.values(result).map(c => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.sourceContext);
       expect(phrases).toContain("Main citation phrase");
       expect(phrases).toContain("Supporting citation one");
       expect(phrases).toContain("Supporting citation two");
@@ -1143,7 +1143,7 @@ describe("getAllCitationsFromLlmOutput", () => {
         citation: {
           attachment_id: "snake123",
           reasoning: "Using snake_case properties",
-          full_phrase: "Snake case formatted citation",
+          source_context: "Snake case formatted citation",
           key_span: "Snake case",
           start_page_key: "page_number_4_index_0",
           line_ids: [8, 9],
@@ -1154,9 +1154,9 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.attachmentId).toBe("snake123");
-      expect(citation.fullPhrase).toBe("Snake case formatted citation");
-      // Output uses new naming (anchorText)
-      expect(citation.anchorText).toBe("Snake case");
+      expect(citation.sourceContext).toBe("Snake case formatted citation");
+      // Output uses new naming (sourceMatch)
+      expect(citation.sourceMatch).toBe("Snake case");
       expect(citation.pageNumber).toBe(4);
       expect(citation.lineIds).toEqual([8, 9]);
     });
@@ -1171,7 +1171,7 @@ describe("getAllCitationsFromLlmOutput", () => {
           {
             attachmentId: "gpt-response-1",
             reasoning: "This directly answers the user question",
-            fullPhrase: "The quarterly revenue was $5.2 million",
+            sourceContext: "The quarterly revenue was $5.2 million",
             keySpan: "$5.2 million",
             startPageKey: "page_number_1_index_0",
             lineIds: [25, 26, 27],
@@ -1183,8 +1183,8 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      // Output uses new naming (anchorText)
-      expect(citation.anchorText).toBe("$5.2 million");
+      // Output uses new naming (sourceMatch)
+      expect(citation.sourceMatch).toBe("$5.2 million");
       expect(citation.lineIds).toEqual([25, 26, 27]);
     });
 
@@ -1193,7 +1193,7 @@ describe("getAllCitationsFromLlmOutput", () => {
         citation: "Just a string, not a citation object",
         citations: [1, 2, 3], // Array of numbers, not citation objects
         actualCitation: {
-          fullPhrase: "Real citation here",
+          sourceContext: "Real citation here",
           attachmentId: "real123",
         },
       };
@@ -1240,7 +1240,7 @@ describe("getAllCitationsFromLlmOutput", () => {
           question: "Q1",
           citations: [
             {
-              fullPhrase: "Answer to Q1",
+              sourceContext: "Answer to Q1",
               attachmentId: "q1-doc",
               keySpan: "Q1",
               lineIds: [1],
@@ -1251,7 +1251,7 @@ describe("getAllCitationsFromLlmOutput", () => {
           question: "Q2",
           citations: [
             {
-              fullPhrase: "Answer to Q2",
+              sourceContext: "Answer to Q2",
               attachmentId: "q2-doc",
               keySpan: "Q2",
               lineIds: [5],
@@ -1262,7 +1262,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(2);
-      const phrases = Object.values(result).map(c => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.sourceContext);
       expect(phrases).toContain("Answer to Q1");
       expect(phrases).toContain("Answer to Q2");
     });
@@ -1271,14 +1271,14 @@ describe("getAllCitationsFromLlmOutput", () => {
       const input = {
         level1: {
           citation: {
-            fullPhrase: "First nested",
+            sourceContext: "First nested",
             attachmentId: "f1",
           },
         },
         level2: {
           citations: [
-            { fullPhrase: "Second nested", attachmentId: "f2" },
-            { fullPhrase: "Third nested", attachmentId: "f3" },
+            { sourceContext: "Second nested", attachmentId: "f2" },
+            { sourceContext: "Third nested", attachmentId: "f3" },
           ],
         },
       };
@@ -1354,20 +1354,20 @@ Family:
 <<<CITATION_DATA>>>
 {
   "LOcZ46PdCNO1P62p0p9M": [
-    {"id": 1, "reasoning": "Patient identification details", "full_phrase": "John Doe 50/M Full NKDA", "anchor_text": "John Doe 50/M", "page_id": "1_0", "line_ids": [1, 5]},
-    {"id": 2, "reasoning": "Lists patient's medical history", "full_phrase": "HTN, CAD, HFEF, Hypothyroid, HLD, (R) Sided PICC on home milrinone, chronic back pain", "anchor_text": "medical history", "page_id": "1_0", "line_ids": [20, 25]},
-    {"id": 3, "reasoning": "Initial symptom onset", "full_phrase": "5/15-worsening soB at home", "anchor_text": "worsening soB", "page_id": "1_0", "line_ids": [10]},
-    {"id": 4, "reasoning": "Hospital admission details", "full_phrase": "5/17-admitted at outside hospital; cardiac cath Showing 1 pulm HTN, low Cl, low SVO2", "anchor_text": "admitted at outside hospital", "page_id": "1_0", "line_ids": [11, 12]},
-    {"id": 5, "reasoning": "Transfer and treatment details", "full_phrase": "5/18-transferred to CVICU IABP placed and placed on transplant list", "anchor_text": "transferred to CVICU", "page_id": "1_0", "line_ids": [15, 16]},
-    {"id": 6, "reasoning": "New treatment initiated", "full_phrase": "5/19-dobutamine started", "anchor_text": "dobutamine started", "page_id": "1_0", "line_ids": [17]},
-    {"id": 7, "reasoning": "Patient's current condition", "full_phrase": "AxOx4 afebrile", "anchor_text": "AxOx4 afebrile", "page_id": "1_0", "line_ids": [30, 35]},
-    {"id": 8, "reasoning": "Cardiovascular assessment", "full_phrase": "NSR w PVCS Pulses 2+ Edema 1+", "anchor_text": "Pulses 2+ Edema 1+", "page_id": "1_0", "line_ids": [40, 45, 50]},
-    {"id": 9, "reasoning": "Respiratory support", "full_phrase": "Fi0z 2L NC", "anchor_text": "2L NC", "page_id": "1_0", "line_ids": [80, 81]},
-    {"id": 10, "reasoning": "Patient mobility", "full_phrase": "ambulates 2+ assist SOB w/ exertion", "anchor_text": "ambulates 2+ assist", "page_id": "1_0", "line_ids": [110, 115]},
-    {"id": 11, "reasoning": "IV medication details", "full_phrase": "Gtts: Heparin 12 uhr, Bumex 5mg/hr, Dobutamine 2.5mcg/kg, Milrinone 0.25mg/kg, Nicardipine 2.5mg/hr", "anchor_text": "IV medications", "page_id": "1_0", "line_ids": [25, 30, 35]},
-    {"id": 12, "reasoning": "Medical devices and access points", "full_phrase": "(R) Sided PICC on home milrinone, IABP, radial art line, IT Mac w/swan 55, FA PIV, AC PIV, fem IABP, subclavian PICC", "anchor_text": "medical devices", "page_id": "1_0", "line_ids": [20, 75, 80]},
-    {"id": 13, "reasoning": "Requested medical consultations", "full_phrase": "CONSULTS: *Critical Care *Palliative *Psych ID", "anchor_text": "CONSULTS", "page_id": "1_0", "line_ids": [60, 65]},
-    {"id": 14, "reasoning": "Family information", "full_phrase": "FAMILY July-wife * Pon Chris-Son", "anchor_text": "FAMILY", "page_id": "1_0", "line_ids": [65, 70]}
+    {"id": 1, "reasoning": "Patient identification details", "source_context": "John Doe 50/M Full NKDA", "source_match": "John Doe 50/M", "page_id": "1_0", "line_ids": [1, 5]},
+    {"id": 2, "reasoning": "Lists patient's medical history", "source_context": "HTN, CAD, HFEF, Hypothyroid, HLD, (R) Sided PICC on home milrinone, chronic back pain", "source_match": "medical history", "page_id": "1_0", "line_ids": [20, 25]},
+    {"id": 3, "reasoning": "Initial symptom onset", "source_context": "5/15-worsening soB at home", "source_match": "worsening soB", "page_id": "1_0", "line_ids": [10]},
+    {"id": 4, "reasoning": "Hospital admission details", "source_context": "5/17-admitted at outside hospital; cardiac cath Showing 1 pulm HTN, low Cl, low SVO2", "source_match": "admitted at outside hospital", "page_id": "1_0", "line_ids": [11, 12]},
+    {"id": 5, "reasoning": "Transfer and treatment details", "source_context": "5/18-transferred to CVICU IABP placed and placed on transplant list", "source_match": "transferred to CVICU", "page_id": "1_0", "line_ids": [15, 16]},
+    {"id": 6, "reasoning": "New treatment initiated", "source_context": "5/19-dobutamine started", "source_match": "dobutamine started", "page_id": "1_0", "line_ids": [17]},
+    {"id": 7, "reasoning": "Patient's current condition", "source_context": "AxOx4 afebrile", "source_match": "AxOx4 afebrile", "page_id": "1_0", "line_ids": [30, 35]},
+    {"id": 8, "reasoning": "Cardiovascular assessment", "source_context": "NSR w PVCS Pulses 2+ Edema 1+", "source_match": "Pulses 2+ Edema 1+", "page_id": "1_0", "line_ids": [40, 45, 50]},
+    {"id": 9, "reasoning": "Respiratory support", "source_context": "Fi0z 2L NC", "source_match": "2L NC", "page_id": "1_0", "line_ids": [80, 81]},
+    {"id": 10, "reasoning": "Patient mobility", "source_context": "ambulates 2+ assist SOB w/ exertion", "source_match": "ambulates 2+ assist", "page_id": "1_0", "line_ids": [110, 115]},
+    {"id": 11, "reasoning": "IV medication details", "source_context": "Gtts: Heparin 12 uhr, Bumex 5mg/hr, Dobutamine 2.5mcg/kg, Milrinone 0.25mg/kg, Nicardipine 2.5mg/hr", "source_match": "IV medications", "page_id": "1_0", "line_ids": [25, 30, 35]},
+    {"id": 12, "reasoning": "Medical devices and access points", "source_context": "(R) Sided PICC on home milrinone, IABP, radial art line, IT Mac w/swan 55, FA PIV, AC PIV, fem IABP, subclavian PICC", "source_match": "medical devices", "page_id": "1_0", "line_ids": [20, 75, 80]},
+    {"id": 13, "reasoning": "Requested medical consultations", "source_context": "CONSULTS: *Critical Care *Palliative *Psych ID", "source_match": "CONSULTS", "page_id": "1_0", "line_ids": [60, 65]},
+    {"id": 14, "reasoning": "Family information", "source_context": "FAMILY July-wife * Pon Chris-Son", "source_match": "FAMILY", "page_id": "1_0", "line_ids": [65, 70]}
   ]
 }
 <<<END_CITATION_DATA>>>`;
@@ -1384,11 +1384,11 @@ Family:
 
       // Check a few specific citations
       const citation1 = citations.find(c => c.citationNumber === 1);
-      expect(citation1?.fullPhrase).toBe("John Doe 50/M Full NKDA");
+      expect(citation1?.sourceContext).toBe("John Doe 50/M Full NKDA");
       expect(citation1?.pageNumber).toBe(1);
 
       const citation14 = citations.find(c => c.citationNumber === 14);
-      expect(citation14?.fullPhrase).toBe("FAMILY July-wife * Pon Chris-Son");
+      expect(citation14?.sourceContext).toBe("FAMILY July-wife * Pon Chris-Son");
     });
 
     it("extracts citations from deferred JSON format (grouped by attachmentId)", () => {
@@ -1403,10 +1403,10 @@ Patient Profile:
 <<<CITATION_DATA>>>
 {
   "bm8JG5cIv5uhhj1ViHNm": [
-    {"id": 1, "reasoning": "Patient name", "full_phrase": "John Doe", "anchor_text": "John Doe", "page_id": "1_0", "line_ids": [1]},
-    {"id": 2, "reasoning": "Patient age", "full_phrase": "50/M", "anchor_text": "50", "page_id": "1_0", "line_ids": [1]},
-    {"id": 3, "reasoning": "Patient gender", "full_phrase": "50/M", "anchor_text": "M", "page_id": "1_0", "line_ids": [1]},
-    {"id": 4, "reasoning": "No known drug allergies", "full_phrase": "NKDA", "anchor_text": "NKDA", "page_id": "1_0", "line_ids": [5]}
+    {"id": 1, "reasoning": "Patient name", "source_context": "John Doe", "source_match": "John Doe", "page_id": "1_0", "line_ids": [1]},
+    {"id": 2, "reasoning": "Patient age", "source_context": "50/M", "source_match": "50", "page_id": "1_0", "line_ids": [1]},
+    {"id": 3, "reasoning": "Patient gender", "source_context": "50/M", "source_match": "M", "page_id": "1_0", "line_ids": [1]},
+    {"id": 4, "reasoning": "No known drug allergies", "source_context": "NKDA", "source_match": "NKDA", "page_id": "1_0", "line_ids": [5]}
   ]
 }
 <<<END_CITATION_DATA>>>`;
@@ -1415,13 +1415,13 @@ Patient Profile:
 
       expect(Object.keys(result).length).toBe(4);
       const citations = Object.values(result);
-      const phrases = citations.map(c => c.fullPhrase);
+      const phrases = citations.map(c => c.sourceContext);
       expect(phrases).toContain("John Doe");
       expect(phrases).toContain("50/M");
       expect(phrases).toContain("NKDA");
 
       // Verify attachmentId is correctly injected from the group key
-      const johndoeCitation = citations.find(c => c.fullPhrase === "John Doe");
+      const johndoeCitation = citations.find(c => c.sourceContext === "John Doe");
       expect(johndoeCitation?.attachmentId).toBe("bm8JG5cIv5uhhj1ViHNm");
       expect(johndoeCitation?.pageNumber).toBe(1);
     });
@@ -1431,7 +1431,7 @@ Patient Profile:
 
 <<<CITATION_DATA>>>
 [
-  {"id": 1, "attachment_id": "abc123", "reasoning": "growth metrics", "full_phrase": "The company achieved 45% year-over-year growth", "anchor_text": "45% growth", "page_id": "2_1", "line_ids": [12, 13]}
+  {"id": 1, "attachment_id": "abc123", "reasoning": "growth metrics", "source_context": "The company achieved 45% year-over-year growth", "source_match": "45% growth", "page_id": "2_1", "line_ids": [12, 13]}
 ]
 <<<END_CITATION_DATA>>>`;
 
@@ -1439,9 +1439,9 @@ Patient Profile:
 
       expect(Object.keys(result).length).toBe(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("The company achieved 45% year-over-year growth");
+      expect(citation.sourceContext).toBe("The company achieved 45% year-over-year growth");
       expect(citation.attachmentId).toBe("abc123");
-      expect(citation.anchorText).toBe("45% growth");
+      expect(citation.sourceMatch).toBe("45% growth");
       expect(citation.pageNumber).toBe(2);
       expect(citation.lineIds).toEqual([12, 13]);
     });
@@ -1459,9 +1459,9 @@ Patient Profile:
 
       expect(Object.keys(result).length).toBe(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("full phrase here");
+      expect(citation.sourceContext).toBe("full phrase here");
       expect(citation.attachmentId).toBe("doc123");
-      expect(citation.anchorText).toBe("phrase");
+      expect(citation.sourceMatch).toBe("phrase");
       expect(citation.reasoning).toBe("reason");
       expect(citation.pageNumber).toBe(3);
       expect(citation.lineIds).toEqual([5, 6]);
@@ -1472,7 +1472,7 @@ Patient Profile:
 
 <<<CITATION_DATA>>>
 [
-  {"id": 1, "attachmentId": "abc123", "reasoning": "growth metrics", "fullPhrase": "The company achieved 45% year-over-year growth", "anchorText": "45% growth", "pageId": "2_1", "lineIds": [12, 13]}
+  {"id": 1, "attachmentId": "abc123", "reasoning": "growth metrics", "sourceContext": "The company achieved 45% year-over-year growth", "sourceMatch": "45% growth", "pageId": "2_1", "lineIds": [12, 13]}
 ]
 <<<END_CITATION_DATA>>>`;
 
@@ -1480,9 +1480,9 @@ Patient Profile:
 
       expect(Object.keys(result).length).toBe(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("The company achieved 45% year-over-year growth");
+      expect(citation.sourceContext).toBe("The company achieved 45% year-over-year growth");
       expect(citation.attachmentId).toBe("abc123");
-      expect(citation.anchorText).toBe("45% growth");
+      expect(citation.sourceMatch).toBe("45% growth");
       expect(citation.pageNumber).toBe(2);
       expect(citation.lineIds).toEqual([12, 13]);
     });
@@ -1493,10 +1493,10 @@ Patient Profile:
 <<<CITATION_DATA>>>
 {
   "doc1AttachmentId": [
-    {"id": 1, "full_phrase": "content from doc1", "anchor_text": "doc1", "page_id": "1_0", "line_ids": [1]}
+    {"id": 1, "source_context": "content from doc1", "source_match": "doc1", "page_id": "1_0", "line_ids": [1]}
   ],
   "doc2AttachmentId": [
-    {"id": 2, "full_phrase": "content from doc2", "anchor_text": "doc2", "page_id": "2_0", "line_ids": [5]}
+    {"id": 2, "source_context": "content from doc2", "source_match": "doc2", "page_id": "2_0", "line_ids": [5]}
   ]
 }
 <<<END_CITATION_DATA>>>`;
@@ -1506,10 +1506,10 @@ Patient Profile:
       expect(Object.keys(result).length).toBe(2);
       const citations = Object.values(result);
 
-      const doc1Citation = citations.find(c => c.fullPhrase === "content from doc1");
+      const doc1Citation = citations.find(c => c.sourceContext === "content from doc1");
       expect(doc1Citation?.attachmentId).toBe("doc1AttachmentId");
 
-      const doc2Citation = citations.find(c => c.fullPhrase === "content from doc2");
+      const doc2Citation = citations.find(c => c.sourceContext === "content from doc2");
       expect(doc2Citation?.attachmentId).toBe("doc2AttachmentId");
     });
 
@@ -1517,13 +1517,13 @@ Patient Profile:
       const input = `Test [1].
 
 <<<CITATION_DATA>>>
-[{"id": 1, "attachment_id": "abc", "full_phrase": "test phrase", "anchor_text": "test"}]`;
+[{"id": 1, "attachment_id": "abc", "source_context": "test phrase", "source_match": "test"}]`;
 
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBe(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("test phrase");
+      expect(citation.sourceContext).toBe("test phrase");
     });
 
     it("handles AV citations with timestamps in deferred JSON format", () => {
@@ -1532,7 +1532,7 @@ Patient Profile:
 <<<CITATION_DATA>>>
 {
   "video456": [
-    {"id": 1, "full_phrase": "transcript text", "anchor_text": "text", "timestamps": {"start_time": "00:01:00.000", "end_time": "00:01:30.000"}}
+    {"id": 1, "source_context": "transcript text", "source_match": "text", "timestamps": {"start_time": "00:01:00.000", "end_time": "00:01:30.000"}}
   ]
 }
 <<<END_CITATION_DATA>>>`;
@@ -1561,8 +1561,8 @@ describe("parseJsonCitation — URL citations", () => {
       url: "https://example.com/article",
       domain: "example.com",
       title: "Test Article",
-      fullPhrase: "The data shows growth",
-      anchorText: "growth",
+      sourceContext: "The data shows growth",
+      sourceMatch: "growth",
     };
     const result = getAllCitationsFromLlmOutput(input);
     const citations = Object.values(result);
@@ -1578,7 +1578,7 @@ describe("parseJsonCitation — URL citations", () => {
     const input = {
       attachmentId: "abc123",
       url: "https://example.com",
-      fullPhrase: "Some phrase",
+      sourceContext: "Some phrase",
       pageNumber: 1,
     };
     const result = getAllCitationsFromLlmOutput(input);
@@ -1590,21 +1590,21 @@ describe("parseJsonCitation — URL citations", () => {
   });
 
   it("creates UrlCitation from JSON when only url (no attachmentId) is present", () => {
-    const input = { fullPhrase: "URL citation text", url: "https://example.com", domain: "example.com" };
+    const input = { sourceContext: "URL citation text", url: "https://example.com", domain: "example.com" };
     const result = getAllCitationsFromLlmOutput(input);
     const citation = Object.values(result)[0];
 
     expect(citation.type).toBe("url");
-    expect(citation.fullPhrase).toBe("URL citation text");
+    expect(citation.sourceContext).toBe("URL citation text");
   });
 
   it("creates DocumentCitation from JSON when attachmentId is present (no url)", () => {
-    const input = { fullPhrase: "Doc citation text", attachmentId: "file1", pageNumber: 1 };
+    const input = { sourceContext: "Doc citation text", attachmentId: "file1", pageNumber: 1 };
     const result = getAllCitationsFromLlmOutput(input);
     const citation = Object.values(result)[0];
 
     expect(citation.type).not.toBe("url");
-    expect(citation.fullPhrase).toBe("Doc citation text");
+    expect(citation.sourceContext).toBe("Doc citation text");
   });
 
   it("extracts siteName and faviconUrl from JSON URL citations", () => {
@@ -1612,7 +1612,7 @@ describe("parseJsonCitation — URL citations", () => {
       url: "https://example.com",
       siteName: "Example",
       faviconUrl: "https://example.com/favicon.ico",
-      fullPhrase: "test phrase",
+      sourceContext: "test phrase",
     };
     const result = getAllCitationsFromLlmOutput(input);
     const citation = Object.values(result)[0];
@@ -1629,41 +1629,41 @@ describe("parseJsonCitation — URL citations", () => {
 
 describe("normalizeCitationType", () => {
   it("passes through URL citations with type already set", () => {
-    const raw = { type: "url", url: "https://example.com", fullPhrase: "test" };
+    const raw = { type: "url", url: "https://example.com", sourceContext: "test" };
     const result = normalizeCitationType(raw);
     expect(result.type).toBe("url");
   });
 
   it("adds type: 'url' when url field is present but type is missing", () => {
-    const raw = { url: "https://example.com", fullPhrase: "test" };
+    const raw = { url: "https://example.com", sourceContext: "test" };
     const result = normalizeCitationType(raw);
     expect(result.type).toBe("url");
   });
 
   it("throws when type is 'url' but url field is missing", () => {
-    const raw = { type: "url", fullPhrase: "test" };
+    const raw = { type: "url", sourceContext: "test" };
     expect(() => normalizeCitationType(raw)).toThrow("URL citation missing required 'url' field");
   });
 
   it("throws when type is 'url' but url field is empty string", () => {
-    const raw = { type: "url", url: "", fullPhrase: "test" };
+    const raw = { type: "url", url: "", sourceContext: "test" };
     expect(() => normalizeCitationType(raw)).toThrow("URL citation missing required 'url' field");
   });
 
   it("returns DocumentCitation when no url field is present", () => {
-    const raw = { attachmentId: "abc", pageNumber: 1, fullPhrase: "test" };
+    const raw = { attachmentId: "abc", pageNumber: 1, sourceContext: "test" };
     const result = normalizeCitationType(raw);
     expect(result.type).toBe("document");
   });
 
   it("returns DocumentCitation when url is not a string", () => {
-    const raw = { url: 123, fullPhrase: "test" };
+    const raw = { url: 123, sourceContext: "test" };
     const result = normalizeCitationType(raw);
     expect(result.type).toBe("document");
   });
 
   it("coerces to UrlCitation when url field is present even if type is 'document'", () => {
-    const raw = { type: "document", url: "https://example.com", fullPhrase: "test" };
+    const raw = { type: "document", url: "https://example.com", sourceContext: "test" };
     const result = normalizeCitationType(raw);
     expect(result.type).toBe("url");
   });
@@ -1675,13 +1675,13 @@ describe("normalizeCitationType", () => {
 
 describe("type guards", () => {
   it("isUrlCitation returns true for URL citations", () => {
-    const citation: Citation = { type: "url", url: "https://example.com", fullPhrase: "test" };
+    const citation: Citation = { type: "url", url: "https://example.com", sourceContext: "test" };
     expect(isUrlCitation(citation)).toBe(true);
     expect(isDocumentCitation(citation)).toBe(false);
   });
 
   it("isDocumentCitation returns true for document citations", () => {
-    const citation: Citation = { type: "document", attachmentId: "abc", fullPhrase: "test" };
+    const citation: Citation = { type: "document", attachmentId: "abc", sourceContext: "test" };
     expect(isDocumentCitation(citation)).toBe(true);
     expect(isUrlCitation(citation)).toBe(false);
   });
@@ -1694,8 +1694,8 @@ describe("type guards", () => {
 describe("groupCitationsByAttachmentId — mixed citation types", () => {
   it("groups URL citations under empty string key", () => {
     const citations: Citation[] = [
-      { type: "url", url: "https://example.com", fullPhrase: "url phrase" },
-      { type: "document", attachmentId: "file1", fullPhrase: "doc phrase", pageNumber: 1 },
+      { type: "url", url: "https://example.com", sourceContext: "url phrase" },
+      { type: "document", attachmentId: "file1", sourceContext: "doc phrase", pageNumber: 1 },
     ];
     const grouped = groupCitationsByAttachmentId(citations);
 

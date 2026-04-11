@@ -43,22 +43,22 @@ export type CitationVariant =
  *
  * | Content       | Description                                    |
  * |---------------|------------------------------------------------|
- * | `anchorText`  | Descriptive text (e.g., "Revenue Growth")      |
+ * | `sourceMatch`  | Descriptive text (e.g., "Revenue Growth")      |
  * | `number`      | Citation number (e.g., "1", "2", "3")          |
  * | `indicator`   | Only the status icon (✓/⚠), no text            |
  * | `source`      | Source name with count (e.g., "Wikipedia +2")  |
  *
  * Default content per variant:
- * - `chip` → `anchorText`
- * - `brackets` → `anchorText`
- * - `text` → `anchorText`
- * - `linter` → `anchorText`
+ * - `chip` → `sourceMatch`
+ * - `brackets` → `sourceMatch`
+ * - `text` → `sourceMatch`
+ * - `linter` → `sourceMatch`
  * - `superscript` → `number`
  * - `footnote` → `number`
  * - `badge` → `source`
  */
 export type CitationContent =
-  | "anchorText" // Show anchorText text
+  | "sourceMatch" // Show sourceMatch text
   | "number" // Show citation number
   | "indicator" // Only show status icon
   | "source"; // Show source name with count (ChatGPT-style)
@@ -209,22 +209,22 @@ export interface BaseCitationProps {
   /**
    * What content to display in the citation.
    * If not specified, defaults based on variant:
-   * - `chip` → `anchorText`
+   * - `chip` → `sourceMatch`
    * - `brackets` → `number`
-   * - `text` → `anchorText`
+   * - `text` → `sourceMatch`
    * - `superscript` → `number`
    * - `footnote` → `number`
    * - `block` → `number`
-   * - `linter` → `anchorText`
+   * - `linter` → `sourceMatch`
    */
   content?: CitationContent;
-  /** Fallback display text when citation anchorText is empty */
-  fallbackDisplay?: string | null;
+  /** Fallback display text when citation sourceMatch is empty */
+  fallbackText?: string | null;
   /**
    * Override the display text shown on the citation trigger.
    *
-   * When provided with `content: "anchorText"` (or variants that default to it),
-   * this text replaces `citation.anchorText` on the trigger. The popover still
+   * When provided with `content: "sourceMatch"` (or variants that default to it),
+   * this text replaces `citation.sourceMatch` on the trigger. The popover still
    * shows the original verified claim, with an inline annotation when the label
    * differs from the verified text.
    *
@@ -235,12 +235,12 @@ export interface BaseCitationProps {
    * <CitationComponent
    *   citation={citation}
    *   verification={verification}
-   *   displayLabel="99.99%"
+   *   claimText="99.99%"
    * />
    * // Trigger shows "99.99%", popover shows verified claim "100%"
    * ```
    */
-  displayLabel?: string;
+  claimText?: string;
   /** Suppress all telemetry events (citation_seen, evidence_ready, popover timing). */
   disableTelemetry?: boolean;
   /** Image prefetch strategy. `"eager"` (default) prefetches on verification; `"lazy"` skips prefetch. */
@@ -263,7 +263,7 @@ export interface BaseCitationProps {
    * <CitationComponent
    *   citation={citation}
    *   verification={verification}
-   *   sourceLabel="Q4 Financial Report"
+   *   sourceTitle="Q4 Financial Report"
    * />
    * ```
    *
@@ -272,11 +272,11 @@ export interface BaseCitationProps {
    * <CitationComponent
    *   citation={urlCitation}
    *   verification={verification}
-   *   sourceLabel="Official Documentation"
+   *   sourceTitle="Official Documentation"
    * />
    * ```
    */
-  sourceLabel?: string;
+  sourceTitle?: string;
 }
 
 /**
@@ -378,7 +378,7 @@ export interface CitationRenderProps {
   citationKey: string;
   /** Display text for the citation */
   displayText: string;
-  /** Whether this is a merged anchorText display */
+  /** Whether this is a merged sourceMatch display */
   isMergedDisplay: boolean;
 }
 
@@ -690,5 +690,5 @@ export interface SourceChipProps {
  */
 export type GroupCitationsBySource = (
   citations: import("./CitationDrawer.types.js").CitationDrawerItem[],
-  sourceLabelMap?: Record<string, string>,
+  sourceTitleMap?: Record<string, string>,
 ) => import("./CitationDrawer.types.js").SourceCitationGroup[];

@@ -19,8 +19,8 @@ const DOC_CITATIONS: CitationDrawerItem[] = [
     citation: {
       type: "document",
       attachmentId: "att-abc-123",
-      anchorText: "revenue grew 25%",
-      fullPhrase: "In Q4, revenue grew 25% year-over-year.",
+      sourceMatch: "revenue grew 25%",
+      sourceContext: "In Q4, revenue grew 25% year-over-year.",
       pageNumber: 3,
     },
     verification: { status: "found", label: "att-abc-123.pdf" },

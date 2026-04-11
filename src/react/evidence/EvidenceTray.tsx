@@ -1,6 +1,7 @@
 import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { AmendmentRow } from "../../analysis/narrative.js";
+import { buildSearchNarrative } from "../../analysis/narrative.js";
 import type { CitationStatus } from "../../types/citation.js";
 import type { LlmSearchAttempt } from "../../types/llmAttempt.js";
 import type { SearchAttempt } from "../../types/search.js";
@@ -22,11 +23,10 @@ import { formatCaptureDate } from "../dateUtils.js";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion.js";
 import { type TranslateFunction, tPlural, useLocale, useTranslation } from "../i18n.js";
 import { ChevronRightIcon } from "../icons.js";
-import { buildSearchNarrative } from "../searchNarrative.js";
 import { cn } from "../utils.js";
 import { VerificationLogTimeline } from "../VerificationLog.js";
 import { primeEvidencePageExpandSource } from "../viewTransition.js";
-import { AnchorTextFocusedImage } from "./AnchorTextFocusedImage.js";
+import { EvidenceKeyhole } from "./EvidenceKeyhole.js";
 import { resolveEvidenceSrc } from "./resolvers.js";
 import { SearchAnalysisSummary } from "./SearchAnalysisSummary.js";
 import {
@@ -425,7 +425,7 @@ export function EvidenceTray({
       {/* Content: keyhole image (verified/partial AND miss with page image) or search analysis.
           Keys prevent React from reusing fibers across component-type swaps. */}
       {resolvedEvidenceSrc ? (
-        <AnchorTextFocusedImage
+        <EvidenceKeyhole
           key={resolvedEvidenceSrc}
           src={resolvedEvidenceSrc}
           verification={verification}
@@ -436,7 +436,7 @@ export function EvidenceTray({
           pageExpandSourceRef={pageExpandSourceRef}
         />
       ) : (isMiss || isPartialMatch) && isValidProofImageSrc(pageImageSrc) ? (
-        <AnchorTextFocusedImage
+        <EvidenceKeyhole
           key={pageImageSrc}
           src={pageImageSrc}
           onImageClick={onImageClick}
@@ -467,8 +467,12 @@ export function EvidenceTray({
                   >
                     <VerificationLogTimeline
                       narrative={searchNarrative}
-                      fullPhrase={verification?.citation?.fullPhrase ?? verification?.verifiedFullPhrase ?? undefined}
-                      anchorText={verification?.citation?.anchorText ?? verification?.verifiedAnchorText ?? undefined}
+                      sourceContext={
+                        verification?.citation?.sourceContext ?? verification?.verifiedSourceContext ?? undefined
+                      }
+                      sourceMatch={
+                        verification?.citation?.sourceMatch ?? verification?.verifiedSourceMatch ?? undefined
+                      }
                       onCollapse={() => setShowSearchLog(false)}
                     />
                   </div>

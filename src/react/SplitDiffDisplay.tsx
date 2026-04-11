@@ -29,10 +29,10 @@ export interface SplitDiffDisplayProps {
   showMatchQuality?: boolean;
   /** Maximum characters before collapsing with "Show more" */
   maxCollapsedLength?: number;
-  /** Expected anchorText to highlight within expected text */
-  anchorTextExpected?: string;
-  /** Found anchorText to highlight within actual text */
-  anchorTextFound?: string;
+  /** Expected sourceMatch to highlight within expected text */
+  sourceMatchExpected?: string;
+  /** Found sourceMatch to highlight within actual text */
+  sourceMatchFound?: string;
   /** Verification status for contextual messages */
   status?: SearchStatus | null;
   /** Similarity score (0-1), calculated if not provided */
@@ -151,19 +151,19 @@ interface CollapsibleTextProps {
   text: string;
   maxLength: number;
   className?: string;
-  anchorText?: string;
-  anchorTextClass?: string;
+  sourceMatch?: string;
+  sourceMatchClass?: string;
 }
 
 const CollapsibleText: React.FC<CollapsibleTextProps> = memo(
-  ({ text, maxLength, className, anchorText, anchorTextClass = "border-b-2 border-dc-primary" }) => {
+  ({ text, maxLength, className, sourceMatch, sourceMatchClass = "border-b-2 border-dc-primary" }) => {
     const t = useTranslation();
     const [isExpanded, setIsExpanded] = useState(false);
     const shouldCollapse = text.length > maxLength;
 
     const displayText = shouldCollapse && !isExpanded ? `${text.slice(0, maxLength)}…` : text;
 
-    const content = anchorText ? highlightSubstring(displayText, anchorText, anchorTextClass) : displayText;
+    const content = sourceMatch ? highlightSubstring(displayText, sourceMatch, sourceMatchClass) : displayText;
 
     return (
       <div className={className}>
@@ -195,14 +195,14 @@ interface SplitViewProps {
   expected: string;
   actual: string;
   maxCollapsedLength: number;
-  anchorTextExpected?: string;
-  anchorTextFound?: string;
+  sourceMatchExpected?: string;
+  sourceMatchFound?: string;
   showMatchQuality?: boolean;
   similarity: number;
 }
 
 const SplitView: React.FC<SplitViewProps> = memo(
-  ({ expected, actual, maxCollapsedLength, anchorTextExpected, anchorTextFound, showMatchQuality, similarity }) => {
+  ({ expected, actual, maxCollapsedLength, sourceMatchExpected, sourceMatchFound, showMatchQuality, similarity }) => {
     const t = useTranslation();
     return (
       <div className="space-y-2">
@@ -218,8 +218,8 @@ const SplitView: React.FC<SplitViewProps> = memo(
               text={expected}
               maxLength={maxCollapsedLength}
               className="flex-1 font-mono text-[11px] text-dc-destructive"
-              anchorText={anchorTextExpected}
-              anchorTextClass="bg-dc-destructive/20 px-0.5 rounded"
+              sourceMatch={sourceMatchExpected}
+              sourceMatchClass="bg-dc-destructive/20 px-0.5 rounded"
             />
           </div>
         </div>
@@ -238,8 +238,8 @@ const SplitView: React.FC<SplitViewProps> = memo(
                 text={actual}
                 maxLength={maxCollapsedLength}
                 className="flex-1 font-mono text-[11px] text-dc-verified"
-                anchorText={anchorTextFound}
-                anchorTextClass="bg-dc-verified/20 px-0.5 rounded"
+                sourceMatch={sourceMatchFound}
+                sourceMatchClass="bg-dc-verified/20 px-0.5 rounded"
               />
             ) : (
               <span className="flex-1 font-mono text-[11px] text-dc-muted-foreground italic">
@@ -279,8 +279,8 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(
     mode = "auto",
     showMatchQuality = false,
     maxCollapsedLength = 200,
-    anchorTextExpected,
-    anchorTextFound,
+    sourceMatchExpected,
+    sourceMatchFound,
     status,
     similarity: providedSimilarity,
   }) => {
@@ -311,7 +311,7 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(
       if (similarity < 0.6) return "split";
 
       // For status-based decisions
-      if (status === "found_anchor_text_only" || status === "partial_text_found") {
+      if (status === "found_source_match_only" || status === "partial_text_found") {
         return "split";
       }
 
@@ -347,8 +347,8 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(
           expected={sanitizedExpected}
           actual={sanitizedActual}
           maxCollapsedLength={maxCollapsedLength}
-          anchorTextExpected={anchorTextExpected}
-          anchorTextFound={anchorTextFound}
+          sourceMatchExpected={sourceMatchExpected}
+          sourceMatchFound={sourceMatchFound}
           showMatchQuality={showMatchQuality}
           similarity={similarity}
         />

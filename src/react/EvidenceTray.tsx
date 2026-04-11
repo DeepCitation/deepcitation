@@ -6,8 +6,8 @@
  * `import { ... } from "./EvidenceTray.js"` statements continue to work.
  */
 export {
-  AnchorTextFocusedImage,
   type EvidenceImages,
+  EvidenceKeyhole,
   EvidenceTray,
   type ExpandedImageSource,
   InlineExpandedImage,

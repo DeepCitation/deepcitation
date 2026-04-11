@@ -46,7 +46,7 @@ export const SDK_VERSION = "0.2.3";
 const DEFAULT_MAX_RETRIES = 3;
 
 /** Statuses that indicate a successful verification — no further retries needed. */
-const TERMINAL_VERIFY_STATUSES: ReadonlySet<string> = new Set(["found", "found_anchor_text_only"]);
+const TERMINAL_VERIFY_STATUSES: ReadonlySet<string> = new Set(["found", "found_source_match_only"]);
 
 /**
  * Fetch with exponential backoff retry for transient network failures.
@@ -312,7 +312,7 @@ export class DeepCitation {
     if (Array.isArray(citations)) {
       for (const c of citations) citationMap[getCitationKey(c)] = c;
     } else if (typeof citations === "object" && citations !== null) {
-      if ("fullPhrase" in citations || "value" in citations) {
+      if ("sourceContext" in citations || "sourceMatch" in citations || "value" in citations) {
         const key = getCitationKey(citations as Citation);
         citationMap[key] = citations as Citation;
       } else {
@@ -884,7 +884,7 @@ export class DeepCitation {
    * so the consumer can amend the citation and retry (up to maxAttempts).
    * The callback is where the consumer plugs in their LLM — the SDK is LLM-agnostic.
    *
-   * When a citation comes back as "found" or "found_anchor_text_only" it is
+   * When a citation comes back as "found" or "found_source_match_only" it is
    * accepted immediately without calling onAttemptComplete.
    *
    * Note: citations are verified serially (one at a time) so the callback can
@@ -940,7 +940,7 @@ export class DeepCitation {
         if (!callbackResult) break;
 
         // Normalise callback return — plain Citation or { citation, isFalsePositiveRejection }
-        if ("fullPhrase" in callbackResult || "value" in callbackResult) {
+        if ("sourceContext" in callbackResult || "value" in callbackResult) {
           currentCitation = callbackResult as Citation;
         } else {
           currentCitation = (callbackResult as { citation: Citation; isFalsePositiveRejection?: boolean }).citation;
@@ -990,8 +990,8 @@ export class DeepCitation {
    * @example
    * ```typescript
    * const result = await deepcitation.verifyBatch({
-   *   key1: { type: "document", fullPhrase: "HbA1c 5.5%", attachmentId: "abc123", pageNumber: 2 },
-   *   key2: { type: "document", fullPhrase: "disc protrusion", attachmentId: "def456", pageNumber: 1 },
+   *   key1: { type: "document", sourceContext: "HbA1c 5.5%", attachmentId: "abc123", pageNumber: 2 },
+   *   key2: { type: "document", sourceContext: "disc protrusion", attachmentId: "def456", pageNumber: 1 },
    * });
    *
    * for (const [key, verification] of Object.entries(result.verifications)) {

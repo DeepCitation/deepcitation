@@ -9,6 +9,7 @@
  */
 
 import { type ReactNode, type Ref, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { buildIntentSummary } from "../analysis/intent.js";
 import type { CitationStatus } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
@@ -28,15 +29,16 @@ import {
 } from "./constants.js";
 import { EvidenceTray, InlineExpandedImage, resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { getExpandedPopoverWidth, getSummaryPopoverWidth } from "./expandedWidthPolicy.js";
-import { HighlightedPhrase } from "./HighlightedPhrase.js";
+import { HighlightedSourceContext } from "./HighlightedSourceContext.js";
 import { useAnimatedHeight } from "./hooks/useAnimatedHeight.js";
 import { useBlinkMotionStage } from "./hooks/useBlinkMotionStage.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { useTranslation } from "./i18n.js";
 import { SpinnerIcon } from "./icons.js";
 import { getBlinkContainerMotionStyle } from "./motion/blinkAnimation.js";
-import { buildIntentSummary, type MatchSnippet } from "./searchSummaryUtils.js";
+import { SnippetZone } from "./SnippetZone.js";
 import type { BaseCitationProps, DownloadInfo, IndicatorVariant } from "./types.js";
+import { UrlAccessExplanationSection } from "./UrlAccessExplanationSection.js";
 import {
   getUrlAccessExplanation,
   mapSearchStatusToFetchStatus,
@@ -75,14 +77,14 @@ export interface PopoverContentProps {
   isVisible?: boolean;
   /**
    * Override label for the source display in the popover header.
-   * See BaseCitationProps.sourceLabel for details.
+   * See BaseCitationProps.sourceTitle for details.
    */
-  sourceLabel?: string;
+  sourceTitle?: string;
   /**
    * Override label displayed on the trigger. When this differs from the
-   * verified claim (anchorText), an inline annotation is shown in the popover.
+   * verified claim (sourceMatch), an inline annotation is shown in the popover.
    */
-  displayLabel?: string;
+  claimText?: string;
   /**
    * Visual style for status indicators inside the popover.
    * @default "icon"
@@ -117,86 +119,6 @@ export interface PopoverContentProps {
 // =============================================================================
 // PRIVATE HELPERS
 // =============================================================================
-
-/**
- * Renders a colored banner explaining why a URL could not be accessed.
- * Amber background for blocked states (potentially resolvable), red for errors.
- */
-function UrlAccessExplanationSection({ explanation }: { explanation: UrlAccessExplanation }) {
-  const t = useTranslation();
-  const isAmber = explanation.colorScheme === "amber";
-  return (
-    <div
-      className={cn(
-        "px-4 py-3 border-b",
-        isAmber ? "bg-dc-partial-bg border-dc-partial-border" : "bg-dc-destructive-bg border-dc-destructive-border",
-      )}
-      role="status"
-      aria-label={`${isAmber ? t("misc.warning") : t("misc.error")}: ${explanation.title}`}
-    >
-      <div
-        className={cn(
-          "text-sm font-medium mb-1 flex items-center gap-1.5",
-          isAmber ? "text-dc-partial" : "text-dc-destructive",
-        )}
-      >
-        <span className="shrink-0 text-xs" aria-hidden="true">
-          {isAmber ? "\u26A0" : "\u2718"}
-        </span>
-        {explanation.title}
-      </div>
-      <p className={cn("text-xs", isAmber ? "text-dc-partial" : "text-dc-destructive")}>{explanation.description}</p>
-      {explanation.suggestion && (
-        <p className={cn("text-xs mt-1.5 opacity-80", isAmber ? "text-dc-partial" : "text-dc-destructive")}>
-          {explanation.suggestion}
-        </p>
-      )}
-    </div>
-  );
-}
-
-/**
- * Display matched snippets inline within the popover for partial/displaced matches.
- * Shows 1-3 snippets with the matched portion highlighted.
- */
-function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
-  const t = useTranslation();
-  if (snippets.length === 0) return null;
-  return (
-    <div className="px-4 py-2 space-y-1.5 border-b border-dc-border">
-      {snippets.slice(0, 3).map((snippet, idx) => {
-        const before = normalizeSnippetText(snippet.contextText.slice(0, snippet.matchStart));
-        const match = normalizeSnippetText(snippet.contextText.slice(snippet.matchStart, snippet.matchEnd));
-        const after = normalizeSnippetText(snippet.contextText.slice(snippet.matchEnd));
-        return (
-          <div
-            key={`snippet-${snippet.matchStart}-${snippet.matchEnd}-${snippet.page ?? idx}`}
-            className="text-xs text-dc-muted-foreground font-mono leading-relaxed"
-          >
-            {before && <span className="text-dc-subtle-foreground">...{before}</span>}
-            <strong className="text-dc-foreground bg-dc-partial/15 px-0.5 rounded">{match}</strong>
-            {after && <span className="text-dc-subtle-foreground">{after}...</span>}
-            {snippet.page != null && (
-              <span className="text-[10px] text-dc-subtle-foreground ml-1">
-                ({t("location.page", { pageNumber: snippet.page })})
-              </span>
-            )}
-            {!snippet.isProximate && (
-              <span className="text-[10px] text-dc-subtle-foreground ml-1 italic">
-                {t("evidence.differentSection")}
-              </span>
-            )}
-          </div>
-        );
-      })}
-      {snippets.length > 3 && (
-        <div className="text-[10px] text-dc-subtle-foreground italic">
-          {t("evidence.andMore", { count: snippets.length - 3 })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Evidence source resolution uses resolveEvidenceSrc() from EvidenceTray.tsx —
 // the single canonical resolver for evidence snippet / web capture images.
@@ -284,14 +206,14 @@ function PopoverLayoutShell({
  * Border color reflects verification status: green (success), amber (partial), red (miss).
  */
 function ClaimQuote({
-  fullPhrase,
-  anchorText,
+  sourceContext,
+  sourceMatch,
   isMiss,
   borderColor,
   maxWidth,
 }: {
-  fullPhrase: string;
-  anchorText?: string;
+  sourceContext: string;
+  sourceMatch?: string;
   isMiss: boolean;
   borderColor: string;
   maxWidth?: string;
@@ -304,7 +226,7 @@ function ClaimQuote({
       )}
       style={maxWidth ? { maxWidth } : undefined}
     >
-      <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
+      <HighlightedSourceContext sourceContext={sourceContext} sourceMatch={sourceMatch} isMiss={isMiss} />
     </div>
   );
 }
@@ -572,19 +494,19 @@ function EvidenceZone({
 function PopoverLoadingView({
   citation,
   verification,
-  sourceLabel,
+  sourceTitle,
   download,
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
-  sourceLabel?: string;
+  sourceTitle?: string;
   download?: DownloadInfo;
 }) {
   const t = useTranslation();
-  const anchorText = citation.anchorText?.toString();
-  const fullPhrase = citation.fullPhrase;
+  const sourceMatch = citation.sourceMatch?.toString();
+  const sourceContext = citation.sourceContext;
   const searchStatus = verification?.status;
-  const searchingPhrase = fullPhrase || anchorText;
+  const searchingPhrase = sourceContext || sourceMatch;
   return (
     <div
       className={cn(POPOVER_CONTAINER_BASE_CLASSES, "min-w-[200px] max-w-[480px]")}
@@ -594,7 +516,7 @@ function PopoverLoadingView({
         citation={citation}
         verification={verification}
         status={searchStatus}
-        sourceLabel={sourceLabel}
+        sourceTitle={sourceTitle}
         download={download}
       />
       <div className="p-3 flex flex-col gap-2.5">
@@ -638,8 +560,8 @@ function PopoverLoadingView({
 function PopoverFallbackView({
   citation,
   verification,
-  sourceLabel,
-  displayLabel,
+  sourceTitle,
+  claimText,
   status,
   urlAccessExplanation,
   indicatorVariant = "icon",
@@ -648,8 +570,8 @@ function PopoverFallbackView({
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
-  sourceLabel?: string;
-  displayLabel?: string;
+  sourceTitle?: string;
+  claimText?: string;
   status: CitationStatus;
   urlAccessExplanation: UrlAccessExplanation | null;
   indicatorVariant?: IndicatorVariant;
@@ -659,7 +581,7 @@ function PopoverFallbackView({
   const t = useTranslation();
   const searchStatus = verification?.status;
   const statusLabel = indicatorVariant !== "none" ? getStatusLabel(status, t) : null;
-  const hasSnippet = verification?.verifiedMatchSnippet;
+  const hasSnippet = verification?.sourceSnippet;
   const pageNumber = verification?.document?.verifiedPageNumber;
 
   if (!hasSnippet && !statusLabel && !urlAccessExplanation) return null;
@@ -673,7 +595,7 @@ function PopoverFallbackView({
         citation={citation}
         verification={verification}
         status={searchStatus}
-        sourceLabel={sourceLabel}
+        sourceTitle={sourceTitle}
         download={download}
         customActions={customActions}
       />
@@ -697,22 +619,25 @@ function PopoverFallbackView({
             {/*
               Iter 23 polish: highlight the anchor inside the snippet so the
               fallback popover threads display→popover→evidence the same way
-              the main path's ClaimQuote does. The snippet (verifiedMatchSnippet)
+              the main path's ClaimQuote does. The snippet (sourceSnippet)
               is what the API actually found in the PDF, so we use it as the
-              phrase and let HighlightedPhrase locate the anchor inside it.
+              phrase and let HighlightedSourceContext locate the anchor inside it.
               normalizeSnippetText still cleans OCR-collapsed spacing using
-              the agent's fullPhrase as a reference template.
+              the agent's sourceContext as a reference template.
             */}
-            <HighlightedPhrase
-              fullPhrase={normalizeSnippetText(hasSnippet, citation.fullPhrase ?? verification?.verifiedFullPhrase)}
-              anchorText={citation.anchorText}
+            <HighlightedSourceContext
+              sourceContext={normalizeSnippetText(
+                hasSnippet,
+                citation.sourceContext ?? verification?.verifiedSourceContext,
+              )}
+              sourceMatch={citation.sourceMatch}
               isMiss={status.isMiss}
             />
           </q>
         )}
-        {displayLabel && displayLabel !== citation.anchorText?.toString() && (
+        {claimText && claimText !== citation.sourceMatch?.toString() && (
           <span className="text-[11px] text-dc-subtle-foreground">
-            {t("popover.displayedAs", { label: displayLabel })}
+            {t("popover.displayedAs", { label: claimText })}
           </span>
         )}
         {pageNumber && pageNumber > 0 && (
@@ -736,8 +661,8 @@ export function DefaultPopoverContent({
   status,
   isLoading = false,
   isVisible = true,
-  sourceLabel,
-  displayLabel,
+  sourceTitle,
+  claimText,
   indicatorVariant = "icon",
   viewState = "summary",
   onViewStateChange,
@@ -984,9 +909,9 @@ export function DefaultPopoverContent({
   const foundPage = verification?.document?.verifiedPageNumber ?? undefined;
 
   // Get humanizing message for partial/not-found states (URL citations only)
-  const anchorText = citation.anchorText?.toString();
-  const showDisplayLabelAnnotation = displayLabel && displayLabel !== anchorText;
-  const fullPhrase = citation.fullPhrase;
+  const sourceMatch = citation.sourceMatch?.toString();
+  const showDisplayLabelAnnotation = claimText && claimText !== sourceMatch;
+  const sourceContext = citation.sourceContext;
 
   // Intent summary for document citations — snippet-based display for partial matches
   const intentSummary = useMemo(
@@ -1021,7 +946,7 @@ export function DefaultPopoverContent({
         <PopoverLoadingView
           citation={citation}
           verification={verification}
-          sourceLabel={sourceLabel}
+          sourceTitle={sourceTitle}
           download={download}
         />
       </>
@@ -1085,7 +1010,7 @@ export function DefaultPopoverContent({
               citation={citation}
               verification={verification}
               status={searchStatus}
-              sourceLabel={sourceLabel}
+              sourceTitle={sourceTitle}
               onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
               onClose={isFullPage ? handleCollapseFromExpandedPage : undefined}
               download={download}
@@ -1097,7 +1022,7 @@ export function DefaultPopoverContent({
               foundPage={foundPage}
               expectedPage={expectedPage ?? undefined}
               hidePageBadge
-              anchorText={anchorText}
+              sourceMatch={sourceMatch}
               indicatorVariant={indicatorVariant}
             />
             {/* Partial/miss-specific sections (absent in success) */}
@@ -1105,25 +1030,25 @@ export function DefaultPopoverContent({
               <UrlAccessExplanationSection explanation={urlAccessExplanation} />
             )}
             {(isMiss || isPartialMatch) && !urlAccessExplanation && intentSnippets.length > 0 && (
-              <PopoverSnippetZone snippets={intentSnippets} />
+              <SnippetZone snippets={intentSnippets} />
             )}
 
             {/* Snap claim-zone height (0ms) so full-page → summary does not
                 create a top-to-bottom evidence reveal. The hook sees the real
                 viewState change but bails out immediately at duration === 0. */}
             <AnimatedHeightWrapper viewState={viewState} expandDurationMs={0} collapseDurationMs={0}>
-              {fullPhrase && (
+              {sourceContext && (
                 <ClaimQuote
-                  fullPhrase={fullPhrase}
-                  anchorText={anchorText}
+                  sourceContext={sourceContext}
+                  sourceMatch={sourceMatch}
                   isMiss={isMiss}
                   borderColor={claimBorderColor}
                   maxWidth={viewState === "summary" ? summaryWidth : undefined}
                 />
               )}
-              {showDisplayLabelAnnotation && fullPhrase && (
+              {showDisplayLabelAnnotation && sourceContext && (
                 <div className="ml-[1.34375rem] mr-3 -mt-2 mb-3 text-[11px] text-dc-subtle-foreground">
-                  {t("popover.displayedAs", { label: displayLabel })}
+                  {t("popover.displayedAs", { label: claimText })}
                 </div>
               )}
             </AnimatedHeightWrapper>
@@ -1159,8 +1084,8 @@ export function DefaultPopoverContent({
       <PopoverFallbackView
         citation={citation}
         verification={verification}
-        sourceLabel={sourceLabel}
-        displayLabel={displayLabel}
+        sourceTitle={sourceTitle}
+        claimText={claimText}
         status={status}
         urlAccessExplanation={urlAccessExplanation}
         indicatorVariant={indicatorVariant}

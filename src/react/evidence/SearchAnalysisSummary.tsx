@@ -1,8 +1,8 @@
 import { useMemo } from "react";
+import { buildIntentSummary, type MatchSnippet } from "../../analysis/intent.js";
 import type { SearchAttempt } from "../../types/search.js";
 import type { Verification } from "../../types/verification.js";
 import { type MessageKey, useTranslation } from "../i18n.js";
-import { buildIntentSummary, type MatchSnippet } from "../searchSummaryUtils.js";
 import { normalizeSnippetText } from "../utils.js";
 
 function getSearchSummaryPrimaryMessage(
