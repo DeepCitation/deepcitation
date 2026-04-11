@@ -1,10 +1,10 @@
 # DeepCitation SDK — Sub-Brand Guide
 
-The SDK is a **sub-brand** of DeepCitation. It is designed to embed harmoniously within any host application, so its visual defaults intentionally differ from the DeepCitation web app.
+The SDK is designed to embed harmoniously within any host application. Its visual defaults are intentionally neutral — soft corners, system fonts, and themeable tokens — so it feels at home without imposing an opinionated aesthetic.
 
 ---
 
-## Sub-Brand vs Web App
+## SDK vs Web App
 
 | Property | Web App | SDK |
 |----------|---------|-----|
@@ -184,15 +184,7 @@ SDK uses `rounded-dc-lg` (`--dc-radius-lg`, default 0.5rem) as default. This is 
 
 ---
 
-## Brand Hierarchy
+## Further Reading
 
-This document is a sub-brand of the DeepCitation web brand, which is itself a sub-brand of FileLasso. Read the chain top-down for context; read this file for SDK-specific rules.
-
-| Level | Document | Owns |
-| :--- | :--- | :--- |
-| FileLasso brand system | [`docs/BRANDING.md`](../../docs/BRANDING.md) | Slate scale, signal colors, type scale, motion tokens, logo |
-| DeepCitation Web | [`packages/deepcitation-web/BRANDING.md`](../deepcitation-web/BRANDING.md) | Web implementation layer, full token set, layout patterns |
-| **DeepCitation SDK** *(this file)* | `packages/deepcitation/BRANDING.md` | `--dc-*` token defaults, soft-corner sub-brand, customization API |
-| SDK contributor rules | [`docs/agents/branding.md`](docs/agents/branding.md) | Per-component implementation rules, class usage, token enforcement |
-
+- SDK contributor rules: [`docs/agents/branding.md`](docs/agents/branding.md) — per-component implementation rules, class usage, token enforcement
 - Styling guide for consumers: [docs.deepcitation.com/styling](https://docs.deepcitation.com/styling)

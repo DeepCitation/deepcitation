@@ -395,6 +395,7 @@ const PROVIDER_MODELS: Record<string, string> = {
 };
 const toSeconds = (ms: number) => Math.round(ms / 100) / 10;
 
+// Mirrors the canonical PARTIAL_STATUSES in src/parsing/parseCitation.ts
 const PARTIAL_STATUSES = new Set<SearchStatus>([
   "partial_text_found",
   "found_source_match_only",
@@ -403,12 +404,16 @@ const PARTIAL_STATUSES = new Set<SearchStatus>([
   "first_word_found",
 ]);
 
+// Mirrors the canonical isVerified logic in src/parsing/parseCitation.ts
+const VERIFIED_STATUSES = new Set<SearchStatus>(["found", "found_context_missed_source_match"]);
+
 timing.total_ms = Date.now() - runStart;
 if (s5?.verifications) {
   const verifs: Verification[] = Object.values(s5.verifications);
   const total = verifs.length;
-  const found = verifs.filter(v => v.status === "found").length;
+  const found = verifs.filter(v => v.status != null && VERIFIED_STATUSES.has(v.status)).length;
   const partial = verifs.filter(v => v.status != null && PARTIAL_STATUSES.has(v.status)).length;
+  const not_found = verifs.filter(v => v.status === "not_found").length;
   const metrics = {
     provider,
     model: PROVIDER_MODELS[provider] ?? provider,
@@ -421,7 +426,7 @@ if (s5?.verifications) {
     citations: total,
     found,
     partial,
-    not_found: total - found - partial,
+    not_found,
     found_pct: total ? Math.round(found * 1000 / total) / 10 : 0,
   };
   const metricsPath = resolve(cacheDir, `${safeName}-metrics.json`);
