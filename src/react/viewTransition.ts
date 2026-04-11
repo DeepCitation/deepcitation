@@ -2,7 +2,6 @@ import { flushSync } from "react-dom";
 import {
   DEBUG_PAGE_EXPAND_SOURCE_COLOR,
   DEBUG_PAGE_EXPAND_TARGET_COLOR,
-  EASE_GHOST_COLLAPSE,
   EASE_GHOST_EXPAND,
   GHOST_BLUR_EARLY_PX,
   GHOST_BLUR_LATE_PX,
@@ -19,7 +18,6 @@ import {
   GHOST_OPACITY_PEAK,
   GHOST_OPACITY_START,
   isValidProofImageSrc,
-  KEYHOLE_STRIP_BORDER_RADIUS,
   PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
   VT_EVIDENCE_PAGE_EXPAND_MS,
 } from "./constants.js";
@@ -948,9 +946,14 @@ function waitForPageCollapseTarget(
   });
 }
 
+/** Page-collapse ghost duration — faster than expand (decisive exit). */
+const PAGE_COLLAPSE_GHOST_MS = 180;
+
 /**
  * Runs the reverse ghost animation: spotlight → keyhole strip.
- * Mirror of `runPageExpandGhostAnimation` with reversed timing.
+ * Pure translate (no scale) — like the expand, the ghost keeps its source
+ * dimensions and slides into position. Blur masks any size mismatch during
+ * the fast animation. Faster and more decisive than expand.
  */
 function runPageCollapseGhostAnimation(
   ghost: HTMLDivElement,
@@ -960,91 +963,64 @@ function runPageCollapseGhostAnimation(
 ): void {
   const src = snapshot.viewportRect;
 
-  // Ghost starts at the spotlight (source), translates to the keyhole (target).
-  // Keyhole center = target. Anchor in ghost = center of viewport (spotlight is
-  // centered on the annotation).
+  // Pure translate: anchor (center of spotlight) → center of keyhole.
   const anchorInGhostX = src.width / 2;
   const anchorInGhostY = src.height / 2;
   const targetCX = keyholeRect.left + keyholeRect.width / 2;
   const targetCY = keyholeRect.top + keyholeRect.height / 2;
-
   const translateX = targetCX - anchorInGhostX - src.left;
   const translateY = targetCY - anchorInGhostY - src.top;
-  const scaleX = keyholeRect.width / src.width;
-  const scaleY = keyholeRect.height / src.height;
 
-  const tfAt = (t: number) =>
-    `translate(${translateX * t}px, ${translateY * t}px) scale(${1 + (scaleX - 1) * t}, ${1 + (scaleY - 1) * t})`;
+  const tfAt = (t: number) => `translate(${translateX * t}px, ${translateY * t}px)`;
   const blurAt = (px: number) => (px > 0 ? `blur(${px}px)` : "none");
 
-  // Reverse the expand: solid → blur mid-flight → fade out at keyhole.
-  // Border-radius morphs from spotlight (0px) to keyhole's rounded corners.
-  const tgtRadius = KEYHOLE_STRIP_BORDER_RADIUS;
+  // Collapse: solid at start, blur mid-flight, fade out at keyhole.
+  // Faster profile — fewer keyframes, sharper curve.
   const keyframes: Keyframe[] = [
+    { transform: tfAt(0), opacity: 1, filter: blurAt(0), borderRadius: "0px" },
     {
-      transform: tfAt(0),
+      transform: tfAt(0.3),
       opacity: 1,
-      filter: blurAt(GHOST_BLUR_START_PX),
-      borderRadius: "0px",
-    },
-    {
-      transform: tfAt(GHOST_OFFSET_EARLY),
-      opacity: 1,
-      filter: blurAt(GHOST_BLUR_EARLY_PX),
-      borderRadius: "0px",
-      offset: GHOST_OFFSET_EARLY,
-    },
-    {
-      transform: tfAt(GHOST_OFFSET_MID),
-      opacity: 1,
-      filter: blurAt(GHOST_BLUR_MID_PX),
+      filter: blurAt(5),
       borderRadius: "2px",
-      offset: GHOST_OFFSET_MID,
+      offset: 0.3,
     },
     {
-      transform: tfAt(GHOST_OFFSET_LATE),
-      opacity: 0.9,
-      filter: blurAt(GHOST_BLUR_LATE_PX),
-      borderRadius: tgtRadius,
-      offset: GHOST_OFFSET_LATE,
-    },
-    {
-      transform: tfAt(1),
-      opacity: 0.5,
-      filter: blurAt(GHOST_BLUR_PEAK_PX),
-      borderRadius: tgtRadius,
-      offset: GHOST_OFFSET_PEAK,
+      transform: tfAt(0.65),
+      opacity: 0.8,
+      filter: blurAt(6),
+      borderRadius: "4px",
+      offset: 0.65,
     },
     {
       transform: tfAt(1),
-      opacity: 0,
-      filter: blurAt(0),
-      borderRadius: tgtRadius,
+      opacity: 0.3,
+      filter: blurAt(2),
+      borderRadius: "6px",
+      offset: 0.88,
     },
+    { transform: tfAt(1), opacity: 0, filter: blurAt(0), borderRadius: "6px" },
   ];
 
-  // Collapse easing: fast departure (lift off spotlight), decelerate into keyhole.
+  // EASE_COLLAPSE: fast departure, decisive deceleration — appropriate for exits.
   const animation = ghost.animate(keyframes, {
-    duration: VT_EVIDENCE_PAGE_EXPAND_MS,
-    easing: EASE_GHOST_COLLAPSE,
+    duration: PAGE_COLLAPSE_GHOST_MS,
+    easing: "cubic-bezier(0.2, 0, 0, 1)",
     fill: "both",
   });
 
-  // Popover content fades in immediately — the summary layout is already
-  // correct, just dimmed. Slow ease-in so it materialises under the ghost.
+  // Popover content reveals quickly — collapse is decisive, page should snap in.
   if (popoverRoot) {
     const contentAnim = popoverRoot.animate(
       [
         { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR },
-        { opacity: 0.08, offset: 0.18 },
-        { opacity: 0.2, offset: 0.35 },
-        { opacity: 0.4, offset: 0.5 },
-        { opacity: 0.7, offset: 0.65 },
-        { opacity: 0.92, offset: 0.78 },
+        { opacity: 0.15, offset: 0.2 },
+        { opacity: 0.5, offset: 0.45 },
+        { opacity: 0.85, offset: 0.7 },
         { opacity: 1, offset: 0.85 },
         { opacity: 1 },
       ],
-      { duration: VT_EVIDENCE_PAGE_EXPAND_MS, easing: "ease-in", fill: "forwards" },
+      { duration: PAGE_COLLAPSE_GHOST_MS, easing: "ease-in", fill: "forwards" },
     );
     contentAnim.finished
       .catch(() => {})
@@ -1098,6 +1074,12 @@ export function startEvidencePageCollapseTransition(
     flushSync(update);
 
     if (!source) {
+      cleanupPageExpandScrim(rootEl);
+      _transitionDepth = Math.max(0, _transitionDepth - 1);
+      return;
+    }
+    // Defensive re-validation before creating the ghost element.
+    if (!isValidProofImageSrc(source.imageSrc)) {
       cleanupPageExpandScrim(rootEl);
       _transitionDepth = Math.max(0, _transitionDepth - 1);
       return;
