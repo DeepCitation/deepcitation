@@ -2,6 +2,7 @@ import { flushSync } from "react-dom";
 import {
   DEBUG_PAGE_EXPAND_SOURCE_COLOR,
   DEBUG_PAGE_EXPAND_TARGET_COLOR,
+  EASE_COLLAPSE,
   EASE_GHOST_EXPAND,
   GHOST_BLUR_EARLY_PX,
   GHOST_BLUR_LATE_PX,
@@ -18,6 +19,8 @@ import {
   GHOST_OPACITY_PEAK,
   GHOST_OPACITY_START,
   isValidProofImageSrc,
+  KEYHOLE_STRIP_BORDER_RADIUS,
+  PAGE_COLLAPSE_GHOST_MS,
   PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
   VT_EVIDENCE_PAGE_EXPAND_MS,
 } from "./constants.js";
@@ -946,9 +949,6 @@ function waitForPageCollapseTarget(
   });
 }
 
-/** Page-collapse ghost duration — faster than expand (decisive exit). */
-const PAGE_COLLAPSE_GHOST_MS = 180;
-
 /**
  * Runs the reverse ghost animation: spotlight → keyhole strip.
  * Pure translate (no scale) — like the expand, the ghost keeps its source
@@ -996,16 +996,16 @@ function runPageCollapseGhostAnimation(
       transform: tfAt(1),
       opacity: 0.3,
       filter: blurAt(2),
-      borderRadius: "6px",
+      borderRadius: KEYHOLE_STRIP_BORDER_RADIUS,
       offset: 0.88,
     },
-    { transform: tfAt(1), opacity: 0, filter: blurAt(0), borderRadius: "6px" },
+    { transform: tfAt(1), opacity: 0, filter: blurAt(0), borderRadius: KEYHOLE_STRIP_BORDER_RADIUS },
   ];
 
   // EASE_COLLAPSE: fast departure, decisive deceleration — appropriate for exits.
   const animation = ghost.animate(keyframes, {
     duration: PAGE_COLLAPSE_GHOST_MS,
-    easing: "cubic-bezier(0.2, 0, 0, 1)",
+    easing: EASE_COLLAPSE,
     fill: "both",
   });
 

@@ -821,6 +821,9 @@ export const EASE_GHOST_COLLAPSE = "cubic-bezier(0.4, 0, 0.2, 1)";
 /** Default border-radius for the keyhole strip — matches CSS in EvidenceKeyhole. */
 export const KEYHOLE_STRIP_BORDER_RADIUS = "6px";
 
+/** Page-collapse ghost duration (ms) — faster than expand for a decisive exit. */
+export const PAGE_COLLAPSE_GHOST_MS = 180;
+
 /** Locate icon pulse grow duration (ms) after annotation overlay dismiss. */
 export const LOCATE_ICON_PULSE_GROW_MS = 70;
 /** Locate icon pulse settle duration (ms) after grow stage completes. */
