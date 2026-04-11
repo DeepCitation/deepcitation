@@ -6,6 +6,8 @@ export interface ReviewUrlOptions {
    * isCached: true if the URL has already been fully processed today.
    */
   skipCache?: boolean;
+  /** Developer's end-user identifier for usage attribution. Overrides the instance-level endUserId if set. */
+  endUserId?: string;
 }
 
 /**
