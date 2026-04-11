@@ -1240,10 +1240,10 @@ function OpenCitationDrawer({
           </div>
         )}
 
-        {/* Header — single flat flex row: favicon, title, status icons, page badges */}
+        {/* Header — single flat flex row: favicon, title, page badges, status icons */}
         <div className={cn("px-4 py-2.5 shrink-0", !headerInline && "border-b border-dc-border")}>
           <div className="flex items-center gap-2.5 min-w-0">
-            {/* Favicon / document icon — inlined from DrawerSourceHeading */}
+            {/* Favicon / document icon */}
             {resolvedGroups.length > 0 && (
               <div className="shrink-0">
                 {resolvedGroups[0].sourceDomain ? (
@@ -1264,6 +1264,23 @@ function OpenCitationDrawer({
             <h2 className="text-sm font-semibold text-dc-foreground truncate min-w-0 flex-1">
               {resolvedGroups.length > 0 ? label?.trim() || generateDefaultLabel(resolvedGroups, t) : resolvedTitle}
             </h2>
+
+            {/* Page badges — left of status icons for single-group drawers */}
+            {isSingleGroup && drawerPages.length > 0 && (
+              <div
+                className="dc-drawer-page-strip max-w-[min(52vw,18rem)] overflow-x-auto overflow-y-hidden shrink-0"
+                style={HIDE_SCROLLBAR_STYLE}
+              >
+                <div className="flex items-center gap-1 min-w-max">
+                  <DrawerPageBadges
+                    pages={drawerPages}
+                    activePage={activePage}
+                    onPageClick={handlePageBadgeClick}
+                    onPageDeactivate={handlePageDeactivate}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Status overview icons */}
             {totalCitations > 0 && indicatorVariant !== "none" && (
@@ -1289,37 +1306,41 @@ function OpenCitationDrawer({
                 />
               </div>
             )}
-            {/* Per-page citation buttons — only when inline page image is open */}
+            {/* Per-page citation indicator dots — only when inline page image is open */}
             {headerInline && citationsOnActivePage.length > 0 && (
-              <div className="shrink-0 flex items-center gap-1" data-testid="drawer-header-indicators">
-                {citationsOnActivePage.map(item => (
-                  <button
-                    key={item.citationKey}
-                    type="button"
-                    aria-pressed={activeIndicatorKey === item.citationKey}
-                    onClick={() => setActiveIndicatorKey(prev => (prev === item.citationKey ? null : item.citationKey))}
-                    className="p-1 rounded transition-colors hover:bg-dc-muted"
-                    aria-label={item.citation.sourceMatch ?? item.citationKey}
-                  >
-                    <span className="w-2 h-2 rounded-full block bg-current opacity-70" />
-                  </button>
-                ))}
-              </div>
-            )}
-            {/* Page badges in header only for single-group drawers; multi-group shows them per file header */}
-            {isSingleGroup && drawerPages.length > 0 && (
-              <div
-                className="dc-drawer-page-strip max-w-[min(52vw,18rem)] overflow-x-auto overflow-y-hidden shrink-0"
-                style={HIDE_SCROLLBAR_STYLE}
-              >
-                <div className="flex items-center gap-1 min-w-max">
-                  <DrawerPageBadges
-                    pages={drawerPages}
-                    activePage={activePage}
-                    onPageClick={handlePageBadgeClick}
-                    onPageDeactivate={handlePageDeactivate}
-                  />
-                </div>
+              <div className="shrink-0 flex items-center gap-0.5" data-testid="drawer-header-indicators">
+                {citationsOnActivePage.map(item => {
+                  const isIndicatorActive = activeIndicatorKey === item.citationKey;
+                  const anyActive = activeIndicatorKey != null;
+                  return (
+                    <button
+                      key={item.citationKey}
+                      type="button"
+                      aria-pressed={isIndicatorActive}
+                      onClick={() =>
+                        setActiveIndicatorKey(prev => (prev === item.citationKey ? null : item.citationKey))
+                      }
+                      className={cn(
+                        "p-1 rounded-full transition-colors",
+                        isIndicatorActive
+                          ? "bg-dc-primary/15"
+                          : "hover:bg-dc-muted",
+                      )}
+                      aria-label={item.citation.sourceMatch ?? item.citationKey}
+                    >
+                      <span
+                        className={cn(
+                          "w-2 h-2 rounded-full block transition-opacity",
+                          isIndicatorActive
+                            ? "bg-dc-primary"
+                            : anyActive
+                              ? "bg-current opacity-30"
+                              : "bg-current opacity-70",
+                        )}
+                      />
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1344,13 +1365,13 @@ function OpenCitationDrawer({
                 }}
                 verification={headerInline.verification ?? undefined}
                 renderScale={headerInline.renderScale}
-                initialOverlayHidden={false}
-                showOverlay={activeIndicatorKey !== null || citationsOnActivePage.length > 0}
+                initialOverlayHidden
+                showOverlay={activeIndicatorKey !== null}
                 highlightItem={
                   activeIndicatorKey
                     ? (citationsOnActivePage.find(c => c.citationKey === activeIndicatorKey)?.verification?.document
                         ?.sourceContextDeepItem ?? undefined)
-                    : (citationsOnActivePage[0]?.verification?.document?.sourceContextDeepItem ?? undefined)
+                    : undefined
                 }
                 fill={isFullPage}
               />
