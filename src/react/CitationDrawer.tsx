@@ -46,11 +46,11 @@ import { getBlinkRowMotionStyle } from "./motion/blinkAnimation.js";
 import { SnippetZone } from "./SnippetZone.js";
 import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
 import type { IndicatorVariant } from "./types.js";
+import { UrlAccessExplanationSection } from "./UrlAccessExplanationSection.js";
 import {
   getUrlAccessExplanation,
   mapSearchStatusToFetchStatus,
   mapUrlAccessStatusToFetchStatus,
-  UrlAccessExplanationSection,
 } from "./urlAccessExplanation.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";

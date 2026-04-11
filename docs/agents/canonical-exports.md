@@ -66,7 +66,8 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `CitationStatusIndicator` | `src/react/CitationStatusIndicator.tsx` | Unified status indicator component |
 | `CitationTriggerContent` | `src/react/CitationTriggerContent.tsx` | Variant rendering (chip, superscript, badge, etc.) |
 | `getUrlAccessExplanation()` | `src/react/urlAccessExplanation.ts` | URL access failure explanation mapping |
-| `UrlAccessExplanationSection` | `src/react/DefaultPopoverContent.tsx` | URL access failure display component (private) |
+| `UrlAccessExplanationSection` | `src/react/UrlAccessExplanationSection.tsx` | URL access failure display component |
+| `SnippetZone` | `src/react/SnippetZone.tsx` | Closest-match snippets for partial/miss citations |
 | `CitationErrorBoundary` | `src/react/CitationErrorBoundary.tsx` | Error boundary for citation components |
 | `SearchAnalysisSummary` | `src/react/evidence/SearchAnalysisSummary.tsx` | Search attempt display component |
 | `SUPERSCRIPT_STYLE` | `src/react/constants.ts` | Superscript inline styles |

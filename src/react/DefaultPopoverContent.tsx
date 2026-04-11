@@ -38,12 +38,12 @@ import { SpinnerIcon } from "./icons.js";
 import { getBlinkContainerMotionStyle } from "./motion/blinkAnimation.js";
 import { SnippetZone } from "./SnippetZone.js";
 import type { BaseCitationProps, DownloadInfo, IndicatorVariant } from "./types.js";
+import { UrlAccessExplanationSection } from "./UrlAccessExplanationSection.js";
 import {
   getUrlAccessExplanation,
   mapSearchStatusToFetchStatus,
   mapUrlAccessStatusToFetchStatus,
   type UrlAccessExplanation,
-  UrlAccessExplanationSection,
 } from "./urlAccessExplanation.js";
 import { cn, isImageSource, normalizeSnippetText } from "./utils.js";
 import { SourceContextHeader, StatusHeader } from "./VerificationLog.js";
