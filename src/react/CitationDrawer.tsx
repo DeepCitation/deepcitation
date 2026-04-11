@@ -1322,9 +1322,7 @@ function OpenCitationDrawer({
                       }
                       className={cn(
                         "p-1 rounded-full transition-colors",
-                        isIndicatorActive
-                          ? "bg-dc-primary/15"
-                          : "hover:bg-dc-muted",
+                        isIndicatorActive ? "bg-dc-primary/15" : "hover:bg-dc-muted",
                       )}
                       aria-label={item.citation.sourceMatch ?? item.citationKey}
                     >
