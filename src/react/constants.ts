@@ -643,44 +643,35 @@ export const VT_EVIDENCE_DIP_OPACITY = 0.45;
 // The ghost is the "old snapshot equivalent" — the thing the eye tracks.
 // It must be opaque enough to dominate over the dimmed page beneath.
 // The page is the "new snapshot equivalent" — stays hidden, then reveals sharply.
-/** Ghost initial opacity — clearly visible "card" from click origin. */
-export const GHOST_OPACITY_START = 0.55;
-/** Ghost opacity at early interpolation (18% progress) — building dominance. */
-export const GHOST_OPACITY_EARLY = 0.75;
-/** Ghost opacity at mid interpolation (42% progress) — peak visibility, mid-motion. */
-export const GHOST_OPACITY_MID = 0.88;
-/** Ghost opacity at late interpolation (68% progress) — near-peak, approaching target. */
-export const GHOST_OPACITY_LATE = 0.92;
-/** Ghost near-peak opacity before final fade-out (92% progress). */
-export const GHOST_OPACITY_PEAK = 0.88;
+/** Ghost initial opacity — solid "card" lifting from click origin. */
+export const GHOST_OPACITY_START = 0.88;
+/** Ghost opacity at early interpolation (18% progress) — fully solid in flight. */
+export const GHOST_OPACITY_EARLY = 1;
+/** Ghost opacity at mid interpolation (42% progress) — fully solid, blur carries motion cue. */
+export const GHOST_OPACITY_MID = 1;
+/** Ghost opacity at late interpolation (68% progress) — still solid, approaching target. */
+export const GHOST_OPACITY_LATE = 1;
+/** Ghost near-peak opacity before final fade-out (92% progress) — beginning handoff. */
+export const GHOST_OPACITY_PEAK = 0.4;
 
 // Page-expand ghost motion blur.
 // CSS `filter: blur()` masks the non-uniform scale distortion (squashed text)
 // mid-flight and reads as cinematic motion blur. GPU-composited, no layout cost.
 /** Ghost blur (px) at start — sharp at source position. */
-export const GHOST_BLUR_START_PX = 1;
+export const GHOST_BLUR_START_PX = 0;
 /** Ghost blur (px) at early interpolation — motion building. */
-export const GHOST_BLUR_EARLY_PX = 4;
-/** Ghost blur (px) at mid interpolation — peak distortion zone. */
-export const GHOST_BLUR_MID_PX = 8;
+export const GHOST_BLUR_EARLY_PX = 3;
+/** Ghost blur (px) at mid interpolation — peak motion blur (sole mid-flight cue). */
+export const GHOST_BLUR_MID_PX = 7;
 /** Ghost blur (px) at late interpolation — clearing as ghost nears target. */
-export const GHOST_BLUR_LATE_PX = 5;
-/** Ghost blur (px) at near-peak — nearly clear before fade-out. */
-export const GHOST_BLUR_PEAK_PX = 2;
+export const GHOST_BLUR_LATE_PX = 3;
+/** Ghost blur (px) at near-peak — sharp for clean handoff to page content. */
+export const GHOST_BLUR_PEAK_PX = 0;
 
 /** Page content floor opacity during page-expand — nearly invisible.
  *  Must be very low so the ghost dominates the first 60% of the animation
  *  (mirroring how the collapse keeps new content at 0 until 60%). */
 export const PAGE_EXPAND_CONTENT_OPACITY_FLOOR = 0.03;
-/** Duration (ms) of the popover content recession (fade-down) at the start of
- *  a page-expand transition. Uses ease-in so opacity stays high for the first
- *  ~40ms (perceptually solid backing), then drops quickly to the floor.
- *  Prevents the peripheral-vision flash caused by an instant opacity jump.
- *
- *  Intentionally off the 5-tier scale — perceptual tuning: long enough for the
- *  ease-in to keep the background solid for 2–3 frames, short enough to finish
- *  before the ghost animation's dominant phase. */
-export const PAGE_EXPAND_RECESSION_MS = 100;
 /** Ghost keyframe offset: early interpolation. */
 export const GHOST_OFFSET_EARLY = 0.18;
 /** Ghost keyframe offset: mid interpolation. */
@@ -804,6 +795,40 @@ export const EASE_EXPAND = "cubic-bezier(0.34, 1.02, 0.64, 1)";
  * Bézier: starts with velocity (0.2), then eases into final state (0, 1).
  */
 export const EASE_COLLAPSE = "cubic-bezier(0.2, 0, 0, 1)";
+
+/**
+ * Easing for the page-expand ghost — deliberate departure, confident arrival.
+ * Slow out of the keyhole, fast through mid-flight, soft landing at spotlight.
+ * Feels like "expanding into" the space rather than "thrown and catching itself."
+ */
+export const EASE_GHOST_EXPAND = "cubic-bezier(0.05, 0.7, 0.1, 1)";
+
+/** Default border-radius for the keyhole strip — matches CSS in EvidenceKeyhole. */
+export const KEYHOLE_STRIP_BORDER_RADIUS = "6px";
+
+/** Page-collapse ghost duration (ms) — faster than expand for a decisive exit. */
+export const PAGE_COLLAPSE_GHOST_MS = 180;
+
+// Page-collapse ghost keyframe anchors — faster/tighter than expand (fewer keyframes).
+/** Collapse ghost offset at early blur peak. */
+export const GHOST_OFFSET_COLLAPSE_EARLY = 0.3;
+/** Collapse ghost offset at mid blur + fade. */
+export const GHOST_OFFSET_COLLAPSE_MID = 0.65;
+/** Collapse ghost offset at near-landing fade. */
+export const GHOST_OFFSET_COLLAPSE_PEAK = 0.88;
+/** Collapse ghost opacity at mid-flight — fading from full. */
+export const GHOST_OPACITY_COLLAPSE_MID = 0.8;
+/** Collapse ghost opacity at near-landing — almost gone. */
+export const GHOST_OPACITY_COLLAPSE_PEAK = 0.3;
+/** Collapse ghost blur (px) at early — motion building. */
+export const GHOST_BLUR_COLLAPSE_EARLY_PX = 5;
+/** Collapse ghost blur (px) at mid-flight — peak distortion. */
+export const GHOST_BLUR_COLLAPSE_MID_PX = 6;
+/** Collapse ghost blur (px) near landing — clearing for clean snap. */
+export const GHOST_BLUR_COLLAPSE_LATE_PX = 2;
+
+/** Easing for popover content reveal during page transitions (both expand and collapse). */
+export const EASE_CONTENT_REVEAL = "ease-in";
 
 /** Locate icon pulse grow duration (ms) after annotation overlay dismiss. */
 export const LOCATE_ICON_PULSE_GROW_MS = 70;

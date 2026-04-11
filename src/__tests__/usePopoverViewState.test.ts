@@ -6,6 +6,7 @@ const mockAcquireScrollLock = jest.fn();
 const mockReleaseScrollLock = jest.fn();
 const mockStartEvidenceViewTransition = jest.fn((cb: () => void) => cb());
 const mockStartEvidencePageExpandTransition = jest.fn((cb: () => void) => cb());
+const mockStartEvidencePageCollapseTransition = jest.fn((cb: () => void) => cb());
 const mockTriggerHaptic = jest.fn();
 
 jest.mock("../react/scrollLock", () => ({
@@ -16,6 +17,7 @@ jest.mock("../react/scrollLock", () => ({
 jest.mock("../react/viewTransition", () => ({
   startEvidenceViewTransition: mockStartEvidenceViewTransition,
   startEvidencePageExpandTransition: mockStartEvidencePageExpandTransition,
+  startEvidencePageCollapseTransition: mockStartEvidencePageCollapseTransition,
 }));
 
 jest.mock("../react/haptics", () => ({
@@ -37,6 +39,7 @@ beforeEach(() => {
   mockReleaseScrollLock.mockClear();
   mockStartEvidenceViewTransition.mockClear();
   mockStartEvidencePageExpandTransition.mockClear();
+  mockStartEvidencePageCollapseTransition.mockClear();
   mockTriggerHaptic.mockClear();
   cleanup();
 });
@@ -70,6 +73,29 @@ describe("usePopoverViewState", () => {
       expect(result.current.current).toBe("summary");
       // The second transition is a collapse — uses startEvidenceViewTransition with isCollapse
       expect(mockStartEvidenceViewTransition).toHaveBeenCalled();
+    });
+
+    it("uses page collapse VT when going from expanded-page to summary", () => {
+      const { result } = renderHook(() => usePopoverViewState(createConfig()));
+      act(() => result.current.transition("expanded-page"));
+      mockStartEvidencePageCollapseTransition.mockClear();
+      mockStartEvidencePageExpandTransition.mockClear();
+      act(() => result.current.transition("summary"));
+      expect(result.current.current).toBe("summary");
+      expect(mockStartEvidencePageCollapseTransition).toHaveBeenCalledTimes(1);
+      expect(mockStartEvidencePageExpandTransition).not.toHaveBeenCalled();
+    });
+
+    it("uses page collapse VT when going from expanded-page to expanded-keyhole", () => {
+      const { result } = renderHook(() => usePopoverViewState(createConfig()));
+      act(() => result.current.transition("expanded-keyhole"));
+      act(() => result.current.transition("expanded-page"));
+      mockStartEvidencePageCollapseTransition.mockClear();
+      mockStartEvidenceViewTransition.mockClear();
+      act(() => result.current.transition("expanded-keyhole"));
+      expect(result.current.current).toBe("expanded-keyhole");
+      expect(mockStartEvidencePageCollapseTransition).toHaveBeenCalledTimes(1);
+      expect(mockStartEvidenceViewTransition).not.toHaveBeenCalled();
     });
 
     it("calls onCollapseToSummary when transitioning to summary", () => {

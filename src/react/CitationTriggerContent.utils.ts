@@ -48,7 +48,7 @@ export function getInteractionClasses(isOpen: boolean, variant: CitationVariant)
 
   if (isOpen) {
     // Active state — solid variants get luminance-inverted bg/text at the
-    // call site (scan anchor reset rule, concepts.md). Inline variants get a
+    // call site (scan anchor reset rule, deep-citation-concepts.md). Inline variants get a
     // stronger overlay (up from 10% to 20%) so the active citation is
     // scannable on attention reset.
     return isSolid ? "" : "bg-black/20 dark:bg-white/20 rounded-sm";

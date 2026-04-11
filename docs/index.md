@@ -34,6 +34,7 @@ DeepCitation is an API and React component library that verifies whether your AI
 | [Framework Guides]({{ site.baseurl }}/frameworks) | LangChain, Next.js, Vercel AI SDK, Express, Python |
 | [Styling]({{ site.baseurl }}/styling) | 50+ CSS tokens, dark mode, brand theming examples |
 | [Error Handling]({{ site.baseurl }}/error-handling) | Error classes, retry patterns, common mistakes |
+| [Common Mistakes]({{ site.baseurl }}/error-handling#common-mistakes) | Unstyled citations, `not_found` results, API key exposure |
 | [Code Examples]({{ site.baseurl }}/code-examples) | 6 runnable example apps with live demos |
 
 ---

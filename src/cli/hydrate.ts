@@ -256,12 +256,11 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
   for (const citation of citations) {
     if (citation.source_context) continue;
 
-    const lineIds = citation.line_ids;
-    if (!lineIds?.length) {
-      if (warnOnMiss) console.error(`  Citation ${citation.id}: no line_ids — skipping`);
-      misses.push(citation.id);
-      continue;
-    }
+    const lineIds = citation.line_ids ?? [];
+    // Empty lineIds: skip the ID-lookup loop — lineTexts will be empty, which
+    // falls through to the anchor-text search below. This lets the LLM omit `l`
+    // entirely and rely on `k` (source_match) for location, exactly the same path
+    // taken when the LLM provides wrong IDs.
 
     // Resolve the normalized pageId for qualified lookups (handles both "N_I" and "page_number_N_index_I")
     const normalizedPageId = citation.page_id ? (parsePageId(citation.page_id).startPageId ?? "") : "";
@@ -278,6 +277,9 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
     // page_id. Synthetic neighbor IDs must match the qualified page or drop.
     // When page_id is absent, `normalizedPageId === ""` so neighbors can
     // never resolve and expansion silently no-ops for that citation.
+    //
+    // With lineIds = [], Math.min/max return ±Infinity, loId > hiId, loop is
+    // skipped, lineTexts stays empty → falls through to anchor-text search.
     const minCitedId = Math.min(...lineIds);
     const maxCitedId = Math.max(...lineIds);
     const loId = Math.max(1, minCitedId - 1);
@@ -339,11 +341,18 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
 
       hydrated++;
     } else {
-      // Line ID lookup failed (agent guessed wrong IDs). Fall back to source_match search
-      // across all lines so we still get a correct source_context and page/line location.
+      // Line ID lookup failed (wrong IDs) or line_ids was omitted. Fall back to
+      // anchor-text search to derive the correct location from source_match alone.
+      // When the LLM provided a page_id hint, search that page first before
+      // falling back to the full document — this resolves ambiguous anchors that
+      // appear on multiple pages (e.g. a repeated term in a definitions section).
       if (citation.source_match) {
         const allLines = getAllLines(lineMap);
-        const found = findAnchorWithFallback(citation.source_match, allLines);
+        const hintPageId = citation.page_id ? (parsePageId(citation.page_id).startPageId ?? "") : "";
+        const pageLines = hintPageId ? allLines.filter(l => l.pageId === hintPageId) : [];
+        const found =
+          (pageLines.length > 0 ? findAnchorWithFallback(citation.source_match, pageLines) : null) ??
+          findAnchorWithFallback(citation.source_match, allLines);
         if (found) {
           // Preserve the original source_match as claim_text before overwriting,
           // mirroring the paraphrase-promotion pattern in the successful hydration path.
@@ -372,7 +381,11 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
         }
       }
       if (warnOnMiss) {
-        console.error(`  Citation ${citation.id}: line_ids [${lineIds.join(", ")}] not found in summary`);
+        const detail =
+          lineIds.length > 0
+            ? `line_ids [${lineIds.join(", ")}] not found`
+            : "no line_ids provided and anchor-text search failed";
+        console.error(`  Citation ${citation.id}: ${detail} in summary`);
       }
       misses.push(citation.id);
     }

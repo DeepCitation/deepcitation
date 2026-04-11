@@ -1,10 +1,7 @@
 import { defineConfig } from "tsup";
 
-// Skip declaration generation during iterative development to halve build time.
-const skipDts = process.env.SKIP_DTS === "true";
-
-// Combined single config to avoid race conditions between parallel builds
-// This ensures DTS files are not cleaned up by competing processes
+// DTS generation is handled by tsc (see tsconfig.declarations.json) — ~10s vs 38-99s via rollup-plugin-dts.
+// JS bundling only; tsc runs as a separate build step afterward.
 export default defineConfig({
   entry: {
     index: "src/index.ts",
@@ -18,15 +15,7 @@ export default defineConfig({
     cli: "src/cli.ts",
   },
   format: ["esm", "cjs"],
-  dts: skipDts
-    ? false
-    : {
-        compilerOptions: {
-          composite: false,
-          declarationMap: false,
-          types: ["node"],
-        },
-      },
+  dts: false,
   clean: false,
   minify: true,
   treeshake: true,

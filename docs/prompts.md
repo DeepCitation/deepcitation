@@ -187,6 +187,57 @@ const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
 
 ---
 
+## Format Variants
+
+Beyond the standard document and AV formats, the SDK exports two additional prompt variants for specialized pipelines.
+
+### Compact format — latency-sensitive pipelines
+
+The compact format omits `source_context` (the verbatim quote) and `reasoning` from LLM output entirely. These fields are reconstructed offline from the line IDs after verification. The savings are significant: **~80–135 fewer tokens per citation**.
+
+Use the compact format when:
+- You have many citations per response and token budget is tight
+- You are running batch pipelines where latency matters more than per-citation explanation
+- You will hydrate `source_context` automatically using `deepcitation verify --markdown`
+
+```typescript
+import { COMPACT_CITATION_PROMPT, wrapSystemCitationPrompt } from "deepcitation";
+
+// Use the compact prompt directly
+const systemPrompt = `${COMPACT_CITATION_PROMPT}\n\nYou are a helpful assistant.`;
+```
+
+**Compact LLM output** uses only four fields:
+
+```json
+{
+  "attachment_id": [
+    {"n": 1, "k": "cost of cooling", "p": "2_0", "l": [47]},
+    {"n": 2, "k": "Board of Directors", "p": "1_0", "l": [12]}
+  ]
+}
+```
+
+The `source_context` is resolved from the `line_ids` during verification, so the citation still gets a highlighted quote in the popover — the LLM just doesn't have to write it out.
+
+### Compact scenario-2 — annotating pre-existing text
+
+`COMPACT_CITATION_SCENARIO2_PROMPT` is for when the user supplies pre-existing text (a report draft, a form, a summary) and you need to add citation markers to it without rewriting the prose.
+
+Key differences from the standard compact prompt:
+- **Text is frozen** — the LLM inserts `[N]` markers but does not rewrite or reorder
+- **`k` comes from the source document**, not from the user's text (the user may have paraphrased)
+- **High citation density** — every fact gets its own `[N]`
+
+```typescript
+import { COMPACT_CITATION_SCENARIO2_PROMPT } from "deepcitation";
+
+// Pass to LLM alongside the user's existing text and the source document
+const systemPrompt = `${COMPACT_CITATION_SCENARIO2_PROMPT}\n\nYou are a research assistant.`;
+```
+
+---
+
 ## Token-Saving Shorthand
 
 The prompts tell the LLM that shorthand keys are accepted. This is optional — the LLM can use either form and the parser handles both:

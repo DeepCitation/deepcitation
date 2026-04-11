@@ -56,45 +56,51 @@ test.describe("Page Expand Geometry Debug", () => {
   test("target phase lands near the settled expanded-page target and stays on-screen", async ({ mount, page }) => {
     await mount(<PageExpandGeometryCitation />);
     const { ghost } = await freezeSummaryToPageTransition(page, "target");
-    // The ghost lands on the spotlight (annotation + SPOTLIGHT_PADDING), not the
-    // bare annotation marker. Use [data-dc-spotlight] as the reference rect.
-    // Fall back to [data-dc-page-expand-target] if no spotlight is rendered.
+    // The ghost uses a pure translate: it keeps the source viewport's dimensions
+    // and slides so the evidence image center aligns with the spotlight center.
+    // We verify anchor alignment via the ghost's inner img element, not the
+    // ghost bounding box (which has source dimensions, not spotlight dimensions).
     const spotlight = page.locator("[data-dc-spotlight]").first();
     const target = page.locator("[data-dc-page-expand-target][data-dc-page-expand-ready='true']").first();
     await expect(target).toBeVisible();
 
-    // Prefer spotlight if it exists; fall back to the annotation marker.
-    // Resolve the reference element inside the poll so we pick up the spotlight
-    // even if it paints after the initial count check.
+    const ghostImg = ghost.locator("img").first();
+
+    // Poll until the img center (= anchorInGhost mapped to viewport) aligns with
+    // the spotlight/target center. Resolve reference inside poll to catch late paints.
     await expect
       .poll(
         async () => {
           const referenceEl = (await spotlight.count()) > 0 ? spotlight : target;
           const referenceBox = await referenceEl.boundingBox();
-          const ghostBox = await ghost.boundingBox();
-          if (!ghostBox || !referenceBox) return Number.POSITIVE_INFINITY;
-          return Math.max(
-            Math.abs(ghostBox.x - referenceBox.x),
-            Math.abs(ghostBox.y - referenceBox.y),
-            Math.abs(ghostBox.width - referenceBox.width),
-            Math.abs(ghostBox.height - referenceBox.height),
-          );
+          const imgBox = await ghostImg.boundingBox();
+          if (!imgBox || !referenceBox) return Number.POSITIVE_INFINITY;
+          const imgCX = imgBox.x + imgBox.width / 2;
+          const imgCY = imgBox.y + imgBox.height / 2;
+          const refCX = referenceBox.x + referenceBox.width / 2;
+          const refCY = referenceBox.y + referenceBox.height / 2;
+          return Math.max(Math.abs(imgCX - refCX), Math.abs(imgCY - refCY));
         },
         { timeout: 1500 },
       )
       .toBeLessThanOrEqual(5);
+
     // Re-sample after the poll has confirmed convergence.
     const referenceEl = (await spotlight.count()) > 0 ? spotlight : target;
     const referenceBox = await referenceEl.boundingBox();
+    const imgBox = await ghostImg.boundingBox();
     const ghostBox = await ghost.boundingBox();
     const viewport = page.viewportSize()!;
     expect(ghostBox).toBeTruthy();
     expect(referenceBox).toBeTruthy();
+    expect(imgBox).toBeTruthy();
 
-    expect(Math.abs(ghostBox!.x - referenceBox!.x)).toBeLessThanOrEqual(5);
-    expect(Math.abs(ghostBox!.y - referenceBox!.y)).toBeLessThanOrEqual(5);
-    expect(Math.abs(ghostBox!.width - referenceBox!.width)).toBeLessThanOrEqual(5);
-    expect(Math.abs(ghostBox!.height - referenceBox!.height)).toBeLessThanOrEqual(5);
+    const imgCX = imgBox!.x + imgBox!.width / 2;
+    const imgCY = imgBox!.y + imgBox!.height / 2;
+    const refCX = referenceBox!.x + referenceBox!.width / 2;
+    const refCY = referenceBox!.y + referenceBox!.height / 2;
+    expect(Math.abs(imgCX - refCX)).toBeLessThanOrEqual(5);
+    expect(Math.abs(imgCY - refCY)).toBeLessThanOrEqual(5);
     expect(ghostBox!.x).toBeGreaterThanOrEqual(-2);
     expect(ghostBox!.y).toBeGreaterThanOrEqual(-2);
     expect(ghostBox!.x + ghostBox!.width).toBeLessThanOrEqual(viewport.width + 2);

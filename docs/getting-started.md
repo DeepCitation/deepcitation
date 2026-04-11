@@ -266,7 +266,7 @@ The SDK handles API routing automatically. You only need to configure your API k
 ## Troubleshooting
 
 {: .note }
-Having issues? Error objects include a `docUrl` property linking to relevant documentation (e.g. `https://docs.deepcitation.com/errors#AUTH_INVALID_KEY`). Check [Common Mistakes]({{ site.baseurl }}/error-handling/#common-mistakes) for the most frequent integration problems (unstyled citations, unexpected `not_found` results, exposed API keys).
+Having issues? Error objects include a `docUrl` property linking to relevant documentation (e.g. `https://docs.deepcitation.com/errors#DC_AUTH_INVALID`). Check [Common Mistakes]({{ site.baseurl }}/error-handling/#common-mistakes) for the most frequent integration problems (unstyled citations, unexpected `not_found` results, exposed API keys).
 
 ---
 

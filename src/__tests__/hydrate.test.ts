@@ -197,6 +197,80 @@ describe("hydrateCitations — sourceContext context", () => {
   });
 });
 
+// ── Omitted line_ids — deterministic anchor-text derivation ─────────────────
+// The LLM may now omit `l` entirely. hydrateCitations must handle empty/absent
+// line_ids the same as wrong line_ids: skip the ID-lookup loop and fall through
+// to findAnchorWithFallback on source_match.
+describe("hydrateCitations — omitted line_ids", () => {
+  it("hydrates when line_ids is an empty array", () => {
+    const citations: CitationData[] = [
+      {
+        id: 1,
+        source_match: "automatically convert",
+        page_id: "page_number_1_index_0",
+        line_ids: [],
+      } as unknown as CitationData,
+    ];
+
+    const result = hydrateCitations({ summaryContent: SUMMARY_JSON, citations, warnOnMiss: false });
+
+    expect(result.hydrated).toBe(1);
+    expect(result.misses).toEqual([]);
+    expect(citations[0].source_context).toBeDefined();
+    expect(citations[0].source_context?.toLowerCase()).toContain("automatically convert");
+    // Must be broader than just the anchor
+    expect(citations[0].source_context!.length).toBeGreaterThan("automatically convert".length);
+  });
+
+  it("hydrates when line_ids is absent (undefined)", () => {
+    // "automatically convert" is on tagged line 10 in SUMMARY_JSON, so it's in the lineMap.
+    const citations: CitationData[] = [
+      {
+        id: 1,
+        source_match: "automatically convert",
+        page_id: "page_number_1_index_0",
+        // no line_ids field at all
+      } as CitationData,
+    ];
+
+    const result = hydrateCitations({ summaryContent: SUMMARY_JSON, citations, warnOnMiss: false });
+
+    expect(result.hydrated).toBe(1);
+    expect(result.misses).toEqual([]);
+    expect(citations[0].source_context?.toLowerCase()).toContain("automatically convert");
+    expect(citations[0].source_context!.length).toBeGreaterThan("automatically convert".length);
+  });
+
+  it("uses page hint to prefer correct page when anchor appears on multiple pages", () => {
+    const multiPageSummary = JSON.stringify({
+      attachmentId: "test-id",
+      deepTextPages: [
+        // Page 1: "Discount Price" in a formula/definition context (3 lines)
+        '"Discount Rate" is [100 minus the discount]%.\n"Discount Price" means the lowest price per share multiplied by the Discount Rate.\nSee Section 2 for other definitions.',
+        // Page 2: "Discount Price" in an operative clause with neighbors (3 lines)
+        "The Safe will convert on the initial closing.\nThe Discount Price shall be used to calculate Safe Preferred Stock.\nThe number of shares equals Purchase Amount divided by the Discount Price.",
+      ],
+    });
+
+    const citations: CitationData[] = [
+      {
+        id: 1,
+        source_match: "Discount Price",
+        page_id: "page_number_2_index_1", // LLM hints page 2
+        // no line_ids
+      } as CitationData,
+    ];
+
+    hydrateCitations({ summaryContent: multiPageSummary, citations, warnOnMiss: false });
+
+    // Should resolve from page 2 (the hint) rather than page 1 (first occurrence)
+    expect(citations[0].page_id).toContain("2_1");
+    // source_context must be broader than just the anchor — neighbors pulled in
+    expect(citations[0].source_context!.length).toBeGreaterThan("Discount Price".length);
+    expect(citations[0].source_context?.toLowerCase()).toContain("discount price");
+  });
+});
+
 // ── RC5 failure scenario (iter 19 Run 3) ────────────────────────────────────
 // Root cause: agent cites wrong page (e.g. page 17 certificate page instead of
 // page 25 Schedule C). Hydration assembles source_context from the wrong lines

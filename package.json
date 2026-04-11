@@ -60,10 +60,10 @@
   ],
   "scripts": {
     "build:cdn": "bun scripts/build-vanilla-runtime.mjs",
-    "build": "rimraf lib && npm run build:cdn && tsup && node scripts/add-use-client.mjs && npm run build:css",
+    "build": "rimraf lib && npm run build:cdn && tsup && tsc -p tsconfig.declarations.json && node scripts/add-use-client.mjs && npm run build:css",
     "build:css": "tailwindcss -i ./src/styles.css -o ./lib/styles.css --minify",
     "build:watch": "tsup --watch",
-    "build:tsc": "rimraf lib && bun ./node_modules/typescript/bin/tsc",
+    "build:tsc": "tsc -p tsconfig.declarations.json",
     "test": "DC_NON_INTERACTIVE=1 jest",
     "test:bun": "bun test ./src/__tests__/*.test.ts ./src/__tests__/*.test.tsx",
     "test:watch": "DC_NON_INTERACTIVE=1 jest --watch",

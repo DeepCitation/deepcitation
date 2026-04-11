@@ -1,25 +1,35 @@
 import { flushSync } from "react-dom";
-import { BOX_PADDING, SPOTLIGHT_PADDING } from "../drawing/citationDrawing.js";
 import {
-  BLINK_ENTER_EASING,
   DEBUG_PAGE_EXPAND_SOURCE_COLOR,
   DEBUG_PAGE_EXPAND_TARGET_COLOR,
   EASE_COLLAPSE,
+  EASE_CONTENT_REVEAL,
+  EASE_GHOST_EXPAND,
+  GHOST_BLUR_COLLAPSE_EARLY_PX,
+  GHOST_BLUR_COLLAPSE_LATE_PX,
+  GHOST_BLUR_COLLAPSE_MID_PX,
   GHOST_BLUR_EARLY_PX,
   GHOST_BLUR_LATE_PX,
   GHOST_BLUR_MID_PX,
   GHOST_BLUR_PEAK_PX,
   GHOST_BLUR_START_PX,
+  GHOST_OFFSET_COLLAPSE_EARLY,
+  GHOST_OFFSET_COLLAPSE_MID,
+  GHOST_OFFSET_COLLAPSE_PEAK,
   GHOST_OFFSET_EARLY,
   GHOST_OFFSET_LATE,
   GHOST_OFFSET_MID,
   GHOST_OFFSET_PEAK,
+  GHOST_OPACITY_COLLAPSE_MID,
+  GHOST_OPACITY_COLLAPSE_PEAK,
   GHOST_OPACITY_EARLY,
   GHOST_OPACITY_LATE,
   GHOST_OPACITY_MID,
   GHOST_OPACITY_PEAK,
   GHOST_OPACITY_START,
   isValidProofImageSrc,
+  KEYHOLE_STRIP_BORDER_RADIUS,
+  PAGE_COLLAPSE_GHOST_MS,
   PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
   VT_EVIDENCE_PAGE_EXPAND_MS,
 } from "./constants.js";
@@ -271,35 +281,53 @@ function capturePageExpandSource(root: ParentNode): GhostSnapshot | null {
 type PageExpandTarget = {
   markerRect: DOMRect;
   ghostRect: DOMRect;
+  /** Spotlight rect in viewport coords, used for clip-path convergence. Null when no spotlight. */
+  spotlightRect: DOMRect | null;
 };
 
-function buildGhostTargetRect(_snapshot: GhostSnapshot, targetEl: HTMLElement, markerRect: DOMRect): DOMRect {
-  // The ghost lands on the annotation spotlight — the "light area" cutout in
-  // the dimming overlay (annotation rect + SPOTLIGHT_PADDING). This is the
-  // visual focal point of the expanded page, sized to give surrounding context
-  // without covering the full page (which would create a giant flash).
-  const spotlight = targetEl.parentElement?.querySelector<HTMLElement>("[data-dc-spotlight]");
-  if (spotlight) {
-    const spotRect = spotlight.getBoundingClientRect();
-    if (isVisibleRect(spotRect)) return spotRect;
+function buildGhostTarget(
+  snapshot: GhostSnapshot,
+  targetEl: HTMLElement,
+  markerRect: DOMRect,
+): { ghostRect: DOMRect; spotlightRect: DOMRect | null } {
+  // Pure translate — the keyhole image is already at the correct rendered scale,
+  // so the ghost keeps the keyhole's exact dimensions and slides into position
+  // like a key into a keyhole. No scale = no squash/stretch.
+  //
+  // The keyhole viewport may be scrolled so only part of the evidence crop is
+  // visible (e.g. right half when the match is on the right). We find the
+  // annotation center WITHIN the ghost (imageOffset + imageSize/2) and align
+  // that point with the annotation center on the expanded page. This ensures
+  // content alignment regardless of keyhole scroll position.
+  const srcW = snapshot.viewportRect.width;
+  const srcH = snapshot.viewportRect.height;
+
+  // Annotation center within the ghost element: the evidence crop image is
+  // centered on the annotation, so the image center ≈ annotation center.
+  // imageOffset accounts for keyhole scroll position.
+  const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.imageWidth / 2;
+  const anchorInGhostY = snapshot.imageOffsetTop + snapshot.imageHeight / 2;
+
+  // Annotation center on the expanded page — use spotlight center (annotation
+  // center with symmetric padding) or marker center.
+  const spotlightEl = targetEl.parentElement?.querySelector<HTMLElement>("[data-dc-spotlight]");
+  if (spotlightEl) {
+    const spotRect = spotlightEl.getBoundingClientRect();
+    if (isVisibleRect(spotRect)) {
+      const pageCX = spotRect.left + spotRect.width / 2;
+      const pageCY = spotRect.top + spotRect.height / 2;
+      return {
+        ghostRect: new DOMRect(pageCX - anchorInGhostX, pageCY - anchorInGhostY, srcW, srcH),
+        spotlightRect: spotRect,
+      };
+    }
   }
-  // Overlay dismissed or not yet rendered — synthesize the spotlight rect from
-  // the annotation marker + padding. The spotlight is the annotation bounding
-  // box expanded by (BOX_PADDING + SPOTLIGHT_PADDING) in natural image pixels,
-  // scaled to the rendered image size.
-  const img = targetEl.parentElement?.querySelector<HTMLImageElement>("img");
-  if (img && img.naturalWidth > 0 && targetEl.parentElement) {
-    const containerRect = targetEl.parentElement.getBoundingClientRect();
-    const scale = containerRect.width / img.naturalWidth;
-    const pad = (BOX_PADDING + SPOTLIGHT_PADDING) * scale;
-    return new DOMRect(
-      markerRect.left - pad,
-      markerRect.top - pad,
-      markerRect.width + 2 * pad,
-      markerRect.height + 2 * pad,
-    );
-  }
-  return markerRect;
+  const pageCX = markerRect.left + markerRect.width / 2;
+  const pageCY = markerRect.top + markerRect.height / 2;
+  return {
+    ghostRect: new DOMRect(pageCX - anchorInGhostX, pageCY - anchorInGhostY, srcW, srcH),
+    spotlightRect: null,
+  };
 }
 
 /**
@@ -328,7 +356,7 @@ function buildGhostTargetFromViewport(root: ParentNode): PageExpandTarget | null
     const bottom = Math.min(containerRect.bottom, imgRect.bottom);
     if (right <= left || bottom <= top) continue;
     const visibleRect = new DOMRect(left, top, right - left, bottom - top);
-    return { markerRect: visibleRect, ghostRect: visibleRect };
+    return { markerRect: visibleRect, ghostRect: visibleRect, spotlightRect: null };
   }
   return null;
 }
@@ -339,7 +367,8 @@ function findPageExpandTarget(root: ParentNode, snapshot: GhostSnapshot): PageEx
     if (targetEl.dataset.dcPageExpandReady !== "true") continue;
     const rect = targetEl.getBoundingClientRect();
     if (!isVisibleRect(rect)) continue;
-    return { markerRect: rect, ghostRect: buildGhostTargetRect(snapshot, targetEl, rect) };
+    const { ghostRect, spotlightRect } = buildGhostTarget(snapshot, targetEl, rect);
+    return { markerRect: rect, ghostRect, spotlightRect };
   }
   // Annotation target elements exist but aren't ready yet — keep polling.
   if (candidates.length > 0) return null;
@@ -513,74 +542,126 @@ function runPageExpandGhostAnimation(
     return;
   }
 
-  // Animate using transform (translate + scale) + opacity so the compositor
-  // handles the interpolation without triggering layout on every frame.
-  // The ghost is positioned at the source rect; we compute the transform needed
-  // to move and scale it to the target rect.
+  // Animate transform + opacity + blur + clip-path + borderRadius.
+  // All compositor-friendly — no layout thrash per frame.
   const src = snapshot.viewportRect;
   const scaleX = ghostRect.width / src.width;
   const scaleY = ghostRect.height / src.height;
   const translateX = ghostRect.left - src.left;
   const translateY = ghostRect.top - src.top;
 
-  // Helper: build a transform string at a given interpolation fraction t ∈ [0, 1].
   const tfAt = (t: number) =>
     `translate(${translateX * t}px, ${translateY * t}px) scale(${1 + (scaleX - 1) * t}, ${1 + (scaleY - 1) * t})`;
-
-  // Helper: build a blur filter string at a given blur radius.
   const blurAt = (px: number) => (px > 0 ? `blur(${px}px)` : "none");
 
-  // Large-travel expand: EASE_COLLAPSE intentional (>200px travel, per animation-transition-rules.md large-motion rule)
-  // Motion blur (filter: blur) masks the non-uniform scale distortion (squashed text)
-  // and reads as cinematic motion blur. Peaks mid-flight, clears near landing.
+  // --- #3 Clip-path convergence ---
+  // In the last ~30%, iris the ghost's visible area down to the spotlight rect.
+  // Trims the excess keyhole padding so the ghost visually converges onto the
+  // landing zone instead of just vanishing as an oversized strip.
+  const spotlight = target.spotlightRect;
+  let clipTop = 0;
+  let clipRight = 0;
+  let clipBottom = 0;
+  let clipLeft = 0;
+  if (spotlight) {
+    // Spotlight rect relative to the ghost element at landing (t=1).
+    // Ghost element sits at ghostRect in viewport coords; spotlight is also viewport.
+    const spotInGhostLeft = spotlight.left - ghostRect.left;
+    const spotInGhostTop = spotlight.top - ghostRect.top;
+    const spotInGhostRight = src.width - (spotInGhostLeft + spotlight.width);
+    const spotInGhostBottom = src.height - (spotInGhostTop + spotlight.height);
+    clipLeft = Math.max(0, spotInGhostLeft);
+    clipTop = Math.max(0, spotInGhostTop);
+    clipRight = Math.max(0, spotInGhostRight);
+    clipBottom = Math.max(0, spotInGhostBottom);
+  }
+  const hasClip = clipTop > 0 || clipRight > 0 || clipBottom > 0 || clipLeft > 0;
+  // Clip ramps 0.42→0.88 so it's fully converged before the ghost's last visible
+  // frame (GHOST_OFFSET_PEAK = 0.92, opacity 0.4). The key must be fully seated
+  // in the keyhole by the time it becomes visible through the fading ghost.
+  const clipAt = (t: number) => {
+    const ct = Math.min(1, Math.max(0, (t - 0.42) / 0.46));
+    return `inset(${clipTop * ct}px ${clipRight * ct}px ${clipBottom * ct}px ${clipLeft * ct}px)`;
+  };
+
+  // --- #5 Border-radius morph ---
+  const srcRadius = snapshot.borderRadius;
+  const tgtRadius = "0px";
+
+  // Motion blur is the sole mid-flight cue — ghost stays fully opaque (1.0)
+  // through flight, fades only during handoff to page content.
   const keyframes: Keyframe[] = [
-    { transform: tfAt(0), opacity: GHOST_OPACITY_START, filter: blurAt(GHOST_BLUR_START_PX) },
+    {
+      transform: tfAt(0),
+      opacity: GHOST_OPACITY_START,
+      filter: blurAt(GHOST_BLUR_START_PX),
+      borderRadius: srcRadius,
+      ...(hasClip && { clipPath: clipAt(0) }),
+    },
     {
       transform: tfAt(GHOST_OFFSET_EARLY),
       opacity: GHOST_OPACITY_EARLY,
       filter: blurAt(GHOST_BLUR_EARLY_PX),
+      borderRadius: srcRadius,
       offset: GHOST_OFFSET_EARLY,
+      ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_EARLY) }),
     },
     {
       transform: tfAt(GHOST_OFFSET_MID),
       opacity: GHOST_OPACITY_MID,
       filter: blurAt(GHOST_BLUR_MID_PX),
+      borderRadius: srcRadius,
       offset: GHOST_OFFSET_MID,
+      ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_MID) }),
     },
     {
       transform: tfAt(GHOST_OFFSET_LATE),
       opacity: GHOST_OPACITY_LATE,
       filter: blurAt(GHOST_BLUR_LATE_PX),
+      borderRadius: tgtRadius,
       offset: GHOST_OFFSET_LATE,
+      ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_LATE) }),
     },
-    { transform: tfAt(1), opacity: GHOST_OPACITY_PEAK, filter: blurAt(GHOST_BLUR_PEAK_PX), offset: GHOST_OFFSET_PEAK },
-    { transform: tfAt(1), opacity: 0, filter: blurAt(0) },
+    {
+      transform: tfAt(1),
+      opacity: GHOST_OPACITY_PEAK,
+      filter: blurAt(GHOST_BLUR_PEAK_PX),
+      borderRadius: tgtRadius,
+      offset: GHOST_OFFSET_PEAK,
+      ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_PEAK) }),
+    },
+    {
+      transform: tfAt(1),
+      opacity: 0,
+      filter: blurAt(0),
+      borderRadius: tgtRadius,
+      ...(hasClip && { clipPath: clipAt(1) }),
+    },
   ];
 
+  // #6 — EASE_GHOST_EXPAND: deliberate departure, confident arrival.
   const animation = ghost.animate(keyframes, {
     duration: VT_EVIDENCE_PAGE_EXPAND_MS,
-    easing: EASE_COLLAPSE,
+    easing: EASE_GHOST_EXPAND,
     fill: "both",
   });
 
-  // Coordinated popover content fade-in — the popover is pre-dimmed to
-  // PAGE_EXPAND_CONTENT_OPACITY_FLOOR via inline style. A fixed-position scrim
-  // at the pre-expand rect provides solid backing only where the popover was,
-  // while the expansion area stays nearly transparent (no white-rectangle flash).
-  //
-  // Holds at the floor while the ghost dominates, then reveals sharply in the
-  // last ~40%, mirroring the collapse's "dip-then-reveal" temporal structure.
+  // Page reveal starts immediately (t=0) with a slow ease-in, reaching full
+  // opacity by ~0.85 — before the ghost lands at GHOST_OFFSET_PEAK (0.92).
+  // The page is fully solid when the key snaps into the keyhole.
   if (popoverRoot) {
     const contentAnim = popoverRoot.animate(
       [
         { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR },
-        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: 0.45 },
-        { opacity: 0.08, offset: 0.58 },
-        { opacity: 0.35, offset: 0.72 },
-        { opacity: 0.8, offset: 0.88 },
+        { opacity: 0.08, offset: 0.18 },
+        { opacity: 0.2, offset: 0.35 },
+        { opacity: 0.4, offset: 0.5 },
+        { opacity: 0.7, offset: 0.65 },
+        { opacity: 0.92, offset: 0.78 },
+        { opacity: 1, offset: 0.85 },
         { opacity: 1 },
       ],
-      { duration: VT_EVIDENCE_PAGE_EXPAND_MS, easing: BLINK_ENTER_EASING, fill: "forwards" },
+      { duration: VT_EVIDENCE_PAGE_EXPAND_MS, easing: EASE_CONTENT_REVEAL, fill: "forwards" },
     );
     contentAnim.finished
       .catch(() => {})
@@ -682,19 +763,19 @@ export function startEvidencePageExpandTransition(
   // task frame during React event batching), so the pre-dim + flushSync
   // + ghost creation all complete within the same visual frame.
   const commitAndAnimate = () => {
+    // Guard: if another transition is already in flight, apply the state change
+    // without animation to avoid dual-ghost / orphaned-scrim races.
+    if (_transitionDepth > 0) {
+      flushSync(update);
+      return;
+    }
     _transitionDepth++;
     const source = capturePageExpandSource(root);
 
     // Pre-dim the popover content BEFORE flushSync so when the expanded-page
     // slot becomes visible, it's already nearly invisible — preventing a flash
-    // of the final layout.
-    //
-    // CSS opacity on a parent makes its own background transparent too. A
-    // fixed-position scrim at the popover's PRE-EXPAND rect (created before
-    // the dim) provides solid backing only where the popover already was.
-    // The expansion area (new area from the larger expanded-page layout) has
-    // no scrim → stays at 0.03 opacity → nearly invisible over the page,
-    // preventing the white-rectangle flash that a full-area backing creates.
+    // of the final layout. The reveal animation starts immediately (t=0) with
+    // a slow ease-in so the page materialises subliminally under the ghost.
     //
     // Disable CSS transitions first so the blink-motion `transition: opacity 60ms`
     // doesn't compete. Cancel lingering WAAPI from a previous page-expand so
@@ -763,6 +844,365 @@ export function startEvidencePageExpandTransition(
         return;
       }
       runPageExpandGhostAnimation(ghost, source, target, rootEl);
+    });
+  };
+
+  queueMicrotask(commitAndAnimate);
+}
+
+// =============================================================================
+// PAGE COLLAPSE (reverse of page-expand ghost)
+// =============================================================================
+
+type CollapsePreflushData = {
+  /** Spotlight center in viewport coords — the ghost's starting anchor. */
+  spotlightCX: number;
+  spotlightCY: number;
+  /** Evidence snippet image src (same image the keyhole strip shows). */
+  keyholeImageSrc: string;
+  keyholeNaturalWidth: number;
+  keyholeNaturalHeight: number;
+  /** Border-radius from the keyhole container's computed style. */
+  borderRadius: string;
+};
+
+/**
+ * Pre-flushSync capture for the collapse ghost.
+ *
+ * Reads the spotlight center (the visual anchor while the page view is still
+ * shown) and the keyhole snippet image source. The keyhole element is in the
+ * DOM (EvidenceZone triple-always-render) but `display:none`, so only src and
+ * natural dimensions are accessible — layout dims come post-flushSync.
+ *
+ * Returns null when no spotlight is visible (miss/not_found states — no ghost).
+ */
+function captureCollapsePreflushData(root: ParentNode): CollapsePreflushData | null {
+  const spotlightEl = root.querySelector<HTMLElement>("[data-dc-spotlight]");
+  const spotRect = spotlightEl?.getBoundingClientRect();
+  if (!spotRect || !isVisibleRect(spotRect)) return null;
+
+  // [data-dc-keyhole] is always in the DOM (EvidenceZone triple-always-render),
+  // just display:none during expanded-page. Natural image dims are accessible.
+  const keyholeEl = root.querySelector<HTMLElement>("[data-dc-keyhole]");
+  if (!keyholeEl) return null;
+  const keyholeImg = keyholeEl.querySelector<HTMLImageElement>("img");
+  const keyholeImageSrc = keyholeImg?.currentSrc || keyholeImg?.src || "";
+  if (!keyholeImg || !keyholeImageSrc || !isValidProofImageSrc(keyholeImageSrc)) return null;
+  if (!keyholeImg.naturalWidth || !keyholeImg.naturalHeight) return null;
+
+  return {
+    spotlightCX: spotRect.left + spotRect.width / 2,
+    spotlightCY: spotRect.top + spotRect.height / 2,
+    keyholeImageSrc,
+    keyholeNaturalWidth: keyholeImg.naturalWidth,
+    keyholeNaturalHeight: keyholeImg.naturalHeight,
+    borderRadius: getComputedStyle(keyholeEl).borderRadius || "0px",
+  };
+}
+
+/**
+ * Post-flushSync: builds the collapse ghost snapshot using the now-visible
+ * destination element's layout. The ghost is destination-sized and centered
+ * on the pre-captured spotlight so its annotation anchor aligns with the
+ * spotlight center — exact reverse of the expand ghost's `buildGhostTarget`.
+ *
+ * Handles both collapse-to-summary ([data-dc-keyhole] visible) and
+ * collapse-to-expanded-keyhole ([data-dc-inline-expanded] visible).
+ */
+function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: ParentNode): GhostSnapshot | null {
+  // Find the visible destination — same priority as findPageCollapseTarget.
+  let destEl: HTMLElement | null = null;
+  let destRect: DOMRect | null = null;
+  const keyholeEl = root.querySelector<HTMLElement>("[data-dc-keyhole]");
+  if (keyholeEl) {
+    const r = keyholeEl.getBoundingClientRect();
+    if (isVisibleRect(r)) {
+      destEl = keyholeEl;
+      destRect = r;
+    }
+  }
+  if (!destEl) {
+    const expandedEl = root.querySelector<HTMLElement>("[data-dc-inline-expanded]");
+    if (expandedEl) {
+      const r = expandedEl.getBoundingClientRect();
+      if (isVisibleRect(r)) {
+        destEl = expandedEl;
+        destRect = r;
+      }
+    }
+  }
+  if (!destEl || !destRect) return null;
+
+  const destImg = destEl.querySelector<HTMLImageElement>("img");
+  const imgRect = destImg?.getBoundingClientRect();
+  const hasImgRect = !!imgRect && isVisibleRect(imgRect);
+  const imageOffsetLeft = hasImgRect ? imgRect.left - destRect.left : 0;
+  const imageOffsetTop = hasImgRect ? imgRect.top - destRect.top : 0;
+  const imageWidth = hasImgRect ? imgRect.width : destRect.width;
+  const imageHeight = hasImgRect ? imgRect.height : destRect.height;
+
+  // Ghost is destination-sized. Position it so the image center (annotation
+  // anchor within the ghost) aligns with the spotlight center — the exact
+  // reverse of buildGhostTarget in the expand path.
+  const anchorInGhostX = imageOffsetLeft + imageWidth / 2;
+  const anchorInGhostY = imageOffsetTop + imageHeight / 2;
+
+  return {
+    viewportRect: new DOMRect(
+      data.spotlightCX - anchorInGhostX,
+      data.spotlightCY - anchorInGhostY,
+      destRect.width,
+      destRect.height,
+    ),
+    imageSrc: data.keyholeImageSrc,
+    imageOffsetLeft,
+    imageOffsetTop,
+    imageWidth,
+    imageHeight,
+    imageNaturalWidth: data.keyholeNaturalWidth,
+    imageNaturalHeight: data.keyholeNaturalHeight,
+    sourceKind: null,
+    sourceAnchorX: 0.5,
+    sourceAnchorY: 0.5,
+    borderRadius: data.borderRadius,
+  };
+}
+
+/**
+ * After flushSync to summary, find the keyhole strip as the collapse target.
+ * Polls with rAF like the expand path — the keyhole image may need a frame
+ * to load/render.
+ */
+function findPageCollapseTarget(root: ParentNode): DOMRect | null {
+  // Summary keyhole strip (most common collapse target)
+  const keyhole = root.querySelector<HTMLElement>("[data-dc-keyhole]");
+  if (keyhole) {
+    const rect = keyhole.getBoundingClientRect();
+    if (isVisibleRect(rect)) return rect;
+  }
+  // Fallback: expanded-keyhole container (when collapsing page → expanded-keyhole)
+  const expanded = root.querySelector<HTMLElement>("[data-dc-inline-expanded]");
+  if (expanded) {
+    const rect = expanded.getBoundingClientRect();
+    if (isVisibleRect(rect)) return rect;
+  }
+  return null;
+}
+
+function waitForPageCollapseTarget(
+  root: ParentNode,
+  callback: (rect: DOMRect | null) => void,
+  attemptsLeft = 12,
+  previousRect: DOMRect | null = null,
+  stableFrames = 0,
+): void {
+  requestAnimationFrame(() => {
+    const rect = findPageCollapseTarget(root);
+    if (rect && isVisibleRect(rect)) {
+      const isStable =
+        previousRect &&
+        Math.abs(rect.left - previousRect.left) <= 1 &&
+        Math.abs(rect.top - previousRect.top) <= 1 &&
+        Math.abs(rect.width - previousRect.width) <= 1 &&
+        Math.abs(rect.height - previousRect.height) <= 1;
+      if (isStable && stableFrames >= 0) {
+        callback(rect);
+        return;
+      }
+      if (attemptsLeft <= 1) {
+        callback(rect);
+        return;
+      }
+      waitForPageCollapseTarget(root, callback, attemptsLeft - 1, rect, isStable ? stableFrames + 1 : 0);
+      return;
+    }
+    if (attemptsLeft <= 1) {
+      callback(rect);
+      return;
+    }
+    waitForPageCollapseTarget(root, callback, attemptsLeft - 1, null, 0);
+  });
+}
+
+/**
+ * Runs the reverse ghost animation: spotlight → keyhole strip.
+ * Pure translate (no scale) — like the expand, the ghost keeps its source
+ * dimensions and slides into position. Blur masks any size mismatch during
+ * the fast animation. Faster and more decisive than expand.
+ */
+function runPageCollapseGhostAnimation(
+  ghost: HTMLDivElement,
+  snapshot: GhostSnapshot,
+  keyholeRect: DOMRect,
+  popoverRoot: HTMLElement | null,
+): void {
+  const src = snapshot.viewportRect;
+
+  // Pure translate: align the ghost's annotation anchor (image center in ghost
+  // coords, same formula as buildGhostTarget in the expand path) with the
+  // keyhole center. Using src.width/2 would only be correct when the image
+  // exactly fills the ghost container with no scroll offset.
+  const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.imageWidth / 2;
+  const anchorInGhostY = snapshot.imageOffsetTop + snapshot.imageHeight / 2;
+  const targetCX = keyholeRect.left + keyholeRect.width / 2;
+  const targetCY = keyholeRect.top + keyholeRect.height / 2;
+  const translateX = targetCX - anchorInGhostX - src.left;
+  const translateY = targetCY - anchorInGhostY - src.top;
+
+  const tfAt = (t: number) => `translate(${translateX * t}px, ${translateY * t}px)`;
+  const blurAt = (px: number) => (px > 0 ? `blur(${px}px)` : "none");
+
+  // Collapse: solid at start, blur mid-flight, fade out at keyhole.
+  // Faster profile — fewer keyframes, sharper curve than expand.
+  // Ghost starts with the keyhole's border-radius (the snippet image frame)
+  // and maintains it throughout — no radius morph needed for this direction.
+  const startRadius = snapshot.borderRadius || "0px";
+  const keyframes: Keyframe[] = [
+    { transform: tfAt(0), opacity: 1, filter: blurAt(GHOST_BLUR_START_PX), borderRadius: startRadius },
+    {
+      transform: tfAt(GHOST_OFFSET_COLLAPSE_EARLY),
+      opacity: 1,
+      filter: blurAt(GHOST_BLUR_COLLAPSE_EARLY_PX),
+      borderRadius: startRadius,
+      offset: GHOST_OFFSET_COLLAPSE_EARLY,
+    },
+    {
+      transform: tfAt(GHOST_OFFSET_COLLAPSE_MID),
+      opacity: GHOST_OPACITY_COLLAPSE_MID,
+      filter: blurAt(GHOST_BLUR_COLLAPSE_MID_PX),
+      borderRadius: startRadius,
+      offset: GHOST_OFFSET_COLLAPSE_MID,
+    },
+    {
+      transform: tfAt(1),
+      opacity: GHOST_OPACITY_COLLAPSE_PEAK,
+      filter: blurAt(GHOST_BLUR_COLLAPSE_LATE_PX),
+      borderRadius: KEYHOLE_STRIP_BORDER_RADIUS,
+      offset: GHOST_OFFSET_COLLAPSE_PEAK,
+    },
+    { transform: tfAt(1), opacity: 0, filter: blurAt(GHOST_BLUR_PEAK_PX), borderRadius: KEYHOLE_STRIP_BORDER_RADIUS },
+  ];
+
+  // EASE_COLLAPSE: fast departure, decisive deceleration — appropriate for exits.
+  const animation = ghost.animate(keyframes, {
+    duration: PAGE_COLLAPSE_GHOST_MS,
+    easing: EASE_COLLAPSE,
+    fill: "both",
+  });
+
+  // Popover content reveals quickly — collapse is decisive, page should snap in.
+  if (popoverRoot) {
+    const contentAnim = popoverRoot.animate(
+      [
+        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR },
+        { opacity: 0.15, offset: 0.2 },
+        { opacity: 0.5, offset: 0.45 },
+        { opacity: 0.85, offset: 0.7 },
+        { opacity: 1, offset: 0.85 },
+        { opacity: 1 },
+      ],
+      { duration: PAGE_COLLAPSE_GHOST_MS, easing: EASE_CONTENT_REVEAL, fill: "forwards" },
+    );
+    contentAnim.finished
+      .catch(() => {})
+      .finally(() => {
+        contentAnim.cancel();
+        cleanupPageExpandScrim(popoverRoot);
+      });
+  }
+
+  animation.finished
+    .catch(() => {})
+    .finally(() => {
+      ghost.remove();
+    });
+}
+
+/**
+ * Page-collapse transition: expanded-page → summary/expanded-keyhole.
+ * Reverse of `startEvidencePageExpandTransition`.
+ *
+ * Ghost uses the keyhole evidence snippet image (same src as the expand ghost)
+ * for visual continuity — the "key" slides back out of the page and returns
+ * to the keyhole. Two-phase capture:
+ *
+ * 1. Pre-flushSync: spotlight center + keyhole image src/natural dims.
+ * 2. Post-flushSync: destination layout (now visible) → compute ghost start rect.
+ *
+ * The ghost is destination-sized, centered on the spotlight, and translates
+ * to the destination rect — exact reverse of the expand ghost path.
+ */
+export function startEvidencePageCollapseTransition(
+  update: () => void,
+  options?: { root?: ParentNode | null; skipAnimation?: boolean },
+): void {
+  const root = options?.root ?? null;
+  if (options?.skipAnimation || typeof document === "undefined" || !root) {
+    _transitionDepth++;
+    try {
+      update();
+    } finally {
+      _transitionDepth = Math.max(0, _transitionDepth - 1);
+    }
+    return;
+  }
+
+  const rootEl = root instanceof HTMLElement ? root : null;
+
+  const commitAndAnimate = () => {
+    // Guard: if another transition is already in flight, apply the state change
+    // without animation to avoid dual-ghost / orphaned-scrim races.
+    if (_transitionDepth > 0) {
+      flushSync(update);
+      return;
+    }
+    _transitionDepth++;
+
+    // Phase 1 (pre-flushSync): capture spotlight center + keyhole image info.
+    // The keyhole element is display:none but in the DOM — src/naturalDims accessible.
+    const preflush = captureCollapsePreflushData(root);
+
+    // Pre-dim before flushSync — same pattern as expand.
+    if (rootEl) {
+      for (const anim of rootEl.getAnimations()) anim.cancel();
+      rootEl.style.transition = "none";
+      createPreExpandScrim(rootEl);
+      rootEl.style.opacity = String(PAGE_EXPAND_CONTENT_OPACITY_FLOOR);
+    }
+
+    flushSync(update);
+
+    // No spotlight (miss/not_found) — skip ghost, just let content reveal.
+    if (!preflush) {
+      cleanupPageExpandScrim(rootEl);
+      _transitionDepth = Math.max(0, _transitionDepth - 1);
+      return;
+    }
+
+    // Phase 2 (post-flushSync): destination is now visible — read its layout
+    // and compute the ghost's starting rect (spotlight-aligned, dest-sized).
+    const snapshot = buildCollapseGhostSnapshot(preflush, root);
+    if (!snapshot) {
+      cleanupPageExpandScrim(rootEl);
+      _transitionDepth = Math.max(0, _transitionDepth - 1);
+      return;
+    }
+
+    const ghost = createPageExpandGhost(snapshot);
+    if (!ghost) {
+      cleanupPageExpandScrim(rootEl);
+      _transitionDepth = Math.max(0, _transitionDepth - 1);
+      return;
+    }
+
+    waitForPageCollapseTarget(root, keyholeRect => {
+      _transitionDepth = Math.max(0, _transitionDepth - 1);
+      if (!keyholeRect) {
+        ghost.remove();
+        cleanupPageExpandScrim(rootEl);
+        return;
+      }
+      runPageCollapseGhostAnimation(ghost, snapshot, keyholeRect, rootEl);
     });
   };
 
