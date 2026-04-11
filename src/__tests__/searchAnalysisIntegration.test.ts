@@ -51,7 +51,7 @@ describe("analyzeVerification integration", () => {
 
     // Intent
     expect(analysis.intent).not.toBeNull();
-    expect(analysis.intent!.outcome).toBe("exact_match");
+    expect(analysis.intent?.outcome).toBe("exact_match");
 
     // Summary
     expect(analysis.summary.totalAttempts).toBe(1);
