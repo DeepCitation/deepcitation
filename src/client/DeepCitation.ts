@@ -13,6 +13,7 @@ import {
   ValidationError,
 } from "./errors.js";
 import { normalizeVerifyResponse } from "./normalizeVerifyResponse.js";
+import type { ReviewUrlOptions, ReviewUrlResponse } from "./reviewUrl.types.js";
 import type {
   AttachmentResponse,
   CitationInput,
@@ -681,6 +682,46 @@ export class DeepCitation {
       url: options.url,
       attachmentId: result.attachmentId,
       cached: result.urlCache?.cached,
+    });
+    return result;
+  }
+
+  /**
+   * Lightweight pre-flight review of a URL before calling prepareUrl().
+   * Makes a HEAD request (with GET fallback) to the target URL and returns
+   * metadata about the content without triggering full PDF conversion.
+   *
+   * Use this to give users instant feedback about URL accessibility, content
+   * type, and cache status before committing to the 30-second prepareUrl() pipeline.
+   *
+   * Does not bill your account.
+   */
+  async reviewUrl(options: ReviewUrlOptions): Promise<ReviewUrlResponse> {
+    this.logger.info?.("Reviewing URL", { url: options.url });
+
+    const resolvedEndUserId = this.resolveEndUserId(options.endUserId);
+    const response = await this._fetch(`${this.apiUrl}/reviewUrl`, {
+      method: "POST",
+      headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: options.url,
+        skipCache: options.skipCache,
+        endUserId: resolvedEndUserId,
+      }),
+    });
+    this.checkLatestVersion(response);
+
+    if (!response.ok) {
+      this.logger.error?.("Review URL failed", { url: options.url, status: response.status });
+      throw await createApiError(response, "Review URL");
+    }
+
+    const result = (await response.json()) as ReviewUrlResponse;
+    this.logger.info?.("Review URL complete", {
+      url: options.url,
+      classifiedAs: result.classifiedAs,
+      isCached: result.isCached,
+      processingTimeMs: result.processingTimeMs,
     });
     return result;
   }
