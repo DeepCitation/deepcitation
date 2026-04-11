@@ -478,3 +478,32 @@ describe("markdownToHtml — **bold** [N] format", () => {
     expect(result).toContain('<span data-cite="2"><strong>automatically convert</strong></span>');
   });
 });
+
+// ── §7 false-positive structure regression tests ──────────────────
+//
+// These tests document the exact HTML structures that trigger false PLACEMENT
+// flags in the review-verify extraction script (review_extract.py).  They are
+// structural regression tests: if markdownToHtml ever changes the HTML shape
+// for these patterns, review_extract.py must be updated to match.
+//
+// Pattern 3 (list-item): span is sole <li> content → pre_text strips to "".
+// Pattern 4 (bold-text): span inner is <strong>label</strong> → display has HTML tags.
+
+describe("markdownToHtml — §7 extraction-script structure regressions", () => {
+  it("[§7 pattern 3] list-item citation produces span as sole <li> content", () => {
+    // "- transferable [1]" → heuristic wraps "transferable" → <li><span>transferable</span></li>
+    // Extractor pre_text after tag-strip = "" → empty-pre guard must suppress PLACEMENT flag.
+    const result = markdownToHtml("- transferable [1]", { style: "plain" });
+    expect(result).toMatch(/<li><span data-cite="1">transferable<\/span><\/li>/);
+  });
+
+  it("[§7 pattern 4] bold citation span inner is <strong>label</strong>, not plain text", () => {
+    // "**interest rate** [1]" → Strategy 2c → <span data-cite="1"><strong>interest rate</strong></span>
+    // Extractor must strip HTML from inner before placement check, else "<strong>interest rate</strong>"
+    // is searched in plain-text prose and never matches.
+    const result = markdownToHtml("The **interest rate** [1] applies.", { style: "plain" });
+    expect(result).toContain('<span data-cite="1"><strong>interest rate</strong></span>');
+    // Confirm the <strong> is INSIDE the span (not a sibling) — that's what gives inner its HTML tags.
+    expect(result).not.toMatch(/<strong>interest rate<\/strong>\s*<span data-cite="1">/);
+  });
+});
