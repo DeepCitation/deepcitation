@@ -1,10 +1,10 @@
 # DeepCitation SDK — Sub-Brand Guide
 
-The SDK is a **sub-brand** of DeepCitation. It is designed to embed harmoniously within any host application, so its visual defaults intentionally differ from the DeepCitation web app.
+The SDK is designed to embed harmoniously within any host application. Its visual defaults are intentionally neutral — soft corners, system fonts, and themeable tokens — so it feels at home without imposing an opinionated aesthetic.
 
 ---
 
-## Sub-Brand vs Web App
+## SDK vs Web App
 
 | Property | Web App | SDK |
 |----------|---------|-----|
@@ -184,8 +184,7 @@ SDK uses `rounded-dc-lg` (`--dc-radius-lg`, default 0.5rem) as default. This is 
 
 ---
 
-## References
+## Further Reading
 
-- Full implementation rules for contributors modifying SDK internals: [`docs/agents/branding.md`](docs/agents/branding.md)
-- Web app brand (full brand spec): [`packages/deepcitation-web/BRANDING.md`](../deepcitation-web/BRANDING.md)
+- SDK contributor rules: [`docs/agents/branding.md`](docs/agents/branding.md) — per-component implementation rules, class usage, token enforcement
 - Styling guide for consumers: [docs.deepcitation.com/styling](https://docs.deepcitation.com/styling)
