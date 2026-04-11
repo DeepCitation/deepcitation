@@ -275,13 +275,20 @@ if (from > 1) {
 
 const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
 
+// Per-step timing (ms) — only recorded when the step actually runs (not loaded from cache)
+const timing: { upload_ms?: number; llm_ms?: number; verify_ms?: number; total_ms?: number } = {};
+const runStart = Date.now();
+
 // ── Step 1: Upload ──────────────────────────────────────────────────────
 if (from <= 1 && to >= 1) {
   console.log("━━━ Step 1: Upload & Prepare ━━━");
+  const t0 = Date.now();
   s1 = await stepUpload(dc, source);
+  timing.upload_ms = Date.now() - t0;
   console.log(`   Attachment ID: ${s1.attachmentId}`);
   console.log(`   Pages: ${s1.deepTextPages.length}`);
   console.log(`   Has image: ${!!s1.imageBase64}`);
+  console.log(`   ⏱ ${timing.upload_ms}ms`);
   saveStep(cacheDir, safeName, 1, s1);
   console.log();
 }
@@ -311,8 +318,11 @@ if (from <= 3 && to >= 3) {
   } else {
     console.log(`   Provider: ${provider}`);
     const streamFn = await getStreamFn(provider);
+    const t3 = Date.now();
     s3 = await stepCallLlm(streamFn, s2!, s1?.imageBase64);
+    timing.llm_ms = Date.now() - t3;
     console.log(`\n   Response: ${s3.llmResponse.length} chars`);
+    console.log(`   ⏱ ${timing.llm_ms}ms`);
   }
   saveStep(cacheDir, safeName, 3, s3);
   console.log();
@@ -338,8 +348,11 @@ if (from <= 5 && to >= 5) {
     console.log("   ⚠️  No citations to verify.");
     s5 = { verifications: {} };
   } else {
+    const t5 = Date.now();
     s5 = await stepVerify(dc, s1!.attachmentId, s4!.parsedCitations);
+    timing.verify_ms = Date.now() - t5;
     console.log(`   Verifications: ${Object.keys(s5.verifications).length}`);
+    console.log(`   ⏱ ${timing.verify_ms}ms`);
   }
   saveStep(cacheDir, safeName, 5, s5);
   console.log();
@@ -372,6 +385,34 @@ if (from <= 6 && to >= 6) {
     catch { try { execFileSync("open", [s6.htmlPath], { stdio: "ignore", timeout: 5000 }); } catch { /* manual */ } }
   }
   console.log();
+}
+
+// ── Write metrics.json ──────────────────────────────────────────────────
+timing.total_ms = Date.now() - runStart;
+if (s5?.verifications) {
+  const verifs = Object.values(s5.verifications) as Array<{ status?: string }>;
+  const total = verifs.length;
+  const found = verifs.filter(v => v.status === "found").length;
+  const partial = verifs.filter(v => v.status && v.status !== "found" && v.status !== "not_found").length;
+  const metrics = {
+    provider,
+    model: provider === "openai" ? "gpt-5-mini" : provider === "anthropic" ? "claude-haiku-4-5-20251001" : "gemini-2.0-flash",
+    date: new Date().toISOString().slice(0, 10),
+    source: sourceLabel,
+    upload_s: timing.upload_ms != null ? Math.round(timing.upload_ms / 100) / 10 : null,
+    llm_s: timing.llm_ms != null ? Math.round(timing.llm_ms / 100) / 10 : null,
+    verify_s: timing.verify_ms != null ? Math.round(timing.verify_ms / 100) / 10 : null,
+    total_s: Math.round(timing.total_ms / 100) / 10,
+    citations: total,
+    found,
+    partial,
+    not_found: total - found - partial,
+    found_pct: total ? Math.round(found * 1000 / total) / 10 : 0,
+  };
+  const metricsPath = resolve(cacheDir, `${safeName}-metrics.json`);
+  writeFileSync(metricsPath, JSON.stringify(metrics, null, 2));
+  console.log(`📊 Metrics: ${metricsPath}`);
+  console.log(`   ${found}/${total} found (${metrics.found_pct}%) · total: ${metrics.total_s}s\n`);
 }
 
 console.log("✅ Done.\n");
