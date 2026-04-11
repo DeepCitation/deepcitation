@@ -114,57 +114,18 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       [contentRef, forwardedRef],
     );
 
-    // Find the scroll-root ancestor of the trigger so we can portal into it.
-    // This lets the popover scroll with the page content instead of staying
-    // fixed on the viewport.  We look for [data-radix-scroll-area-viewport]
-    // first (host apps using Radix ScrollArea expose this attribute), then fall
-    // back to the nearest overflow:scroll/auto ancestor, then document.body.
-    //
-    // Exception: if the consumer has placed a [data-dc-portal-root] element on
-    // the page (a position:fixed overlay outside any scroll container), use it
-    // instead.  This avoids the Radix viewport's overflow:hidden/scroll clipping
-    // the popover when it extends beyond the scroll area's bounds (e.g. above a
-    // sticky/fixed header).  Coordinate calculation still works because the fixed
-    // root has getBoundingClientRect() == {top:0,left:0}, so trigger coords are
-    // passed through unchanged as viewport-relative values.
+    // Portal target for position:fixed popover. With position:fixed the popover
+    // is in viewport space and doesn't need to be inside any scroll ancestor.
+    // The dedicated portal root ([data-dc-portal-root]) is a position:fixed
+    // overlay provided by the consumer to guarantee stacking above page chrome
+    // (sticky headers, drawers, etc.) — use it when available. Otherwise body.
+    // Coordinate calculation is always viewport-relative (no container offset).
     const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
     React.useLayoutEffect(() => {
       if (typeof window === "undefined") return;
-      const trigger = triggerRef.current;
-      if (!trigger) return;
-      let cleanupPosition: (() => void) | undefined;
-      // Prefer an explicit portal root provided by the consumer to escape overflow clipping.
       const dedicatedPortal = document.querySelector("[data-dc-portal-root]") as HTMLElement | null;
-      if (dedicatedPortal) {
-        setPortalContainer(dedicatedPortal);
-        return;
-      }
-      // Prefer the Radix ScrollArea viewport
-      const radixVP = trigger.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null;
-      if (radixVP) {
-        // Ensure the viewport is a containing block for position:absolute children
-        const prev = radixVP.style.position;
-        if (window.getComputedStyle(radixVP).position === "static") {
-          radixVP.style.position = "relative";
-          cleanupPosition = () => {
-            radixVP.style.position = prev;
-          };
-        }
-        setPortalContainer(radixVP);
-        return cleanupPosition;
-      }
-      // Fallback: nearest scrollable ancestor
-      let el: HTMLElement | null = trigger.parentElement;
-      while (el) {
-        const { overflowY } = window.getComputedStyle(el);
-        if ((overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight) {
-          setPortalContainer(el);
-          return;
-        }
-        el = el.parentElement;
-      }
-      setPortalContainer(document.body);
-    }, [triggerRef.current]); // triggerRef is a stable ref; open re-runs detection on each popover open
+      setPortalContainer(dedicatedPortal ?? document.body);
+    }, []); // run once on mount — portal target never changes mid-session
 
     const recomputePosition = React.useCallback(() => {
       if (!open) return;
@@ -175,13 +136,10 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       const triggerRect = triggerEl.getBoundingClientRect();
       const contentRect = contentEl.getBoundingClientRect();
       const next = computePosition(triggerRect, contentRect, side, align, sideOffset, alignOffset);
-      // computePosition returns viewport-relative coords. Convert to
-      // scroll-container-relative so position:absolute inside the scroll
-      // container places the popover at the right document position.
-      const container = portalContainer ?? document.body;
-      const containerRect = container.getBoundingClientRect();
-      const x = next.x - containerRect.left + container.scrollLeft;
-      const y = next.y - containerRect.top + container.scrollTop;
+      // computePosition returns viewport-relative coords. position:fixed renders
+      // in viewport space, so no container-offset adjustment is needed.
+      const x = next.x;
+      const y = next.y;
       // Skip if coords haven't changed — BUT only when the wrapper already has a transform.
       // On remount the wrapper is a fresh DOM node with no transform; coordsRef still holds
       // the previous open's coords, so the diff check would fire and leave the wrapper at (0,0).
@@ -196,7 +154,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       // Previously this callback also updated max-height on every scroll event,
       // which caused the popover to shrink ("squish") as the trigger scrolled
       // toward the viewport edge.
-    }, [align, alignOffset, isMounted, open, portalContainer, side, sideOffset, triggerRef]);
+    }, [align, alignOffset, isMounted, open, side, sideOffset, triggerRef]);
 
     React.useLayoutEffect(() => {
       if (!isMounted || !open) return;
@@ -479,7 +437,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
           ref={wrapperRef}
           data-dc-popover-wrapper=""
           style={{
-            position: "absolute",
+            position: "fixed",
             left: 0,
             top: 0,
             width: "max-content",
