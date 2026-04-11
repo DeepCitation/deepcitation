@@ -97,7 +97,7 @@ describe("formatCaptureDate", () => {
   // === Edge cases ===
 
   it("handles very old dates", () => {
-    const result = formatCaptureDate("1970-01-01T00:00:00Z");
+    const result = formatCaptureDate("1970-01-01T12:00:00Z");
     expect(result).not.toBeNull();
     expect(result?.display).toMatch(/1970/);
   });
