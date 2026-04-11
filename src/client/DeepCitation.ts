@@ -716,7 +716,12 @@ export class DeepCitation {
       throw await createApiError(response, "Review URL");
     }
 
-    const result = (await response.json()) as ReviewUrlResponse;
+    const result = (await response.json()) as ReviewUrlResponse & { status?: string; error?: string };
+    if (result.status === "error") {
+      const message = result.error ?? "Review URL processing failed";
+      this.logger.error?.("Review URL returned error status", { url: options.url, error: message });
+      throw new ValidationError(message);
+    }
     this.logger.info?.("Review URL complete", {
       url: options.url,
       classifiedAs: result.classifiedAs,

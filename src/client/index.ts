@@ -34,3 +34,4 @@ export type {
   VerifyCitationsResponse,
   VerifyInput,
 } from "./types.js";
+export type { ReviewUrlOptions, ReviewUrlResponse } from "./reviewUrl.types.js";

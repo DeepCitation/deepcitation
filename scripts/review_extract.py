@@ -54,7 +54,7 @@ def parse_cit_data(html: str) -> dict:
     try:
         return json.loads(raw)
     except Exception:
-        obj_m = re.search(r'(\{"[a-f0-9]{16}".*\})', raw, re.DOTALL)
+        obj_m = re.search(r'(\{"[a-f0-9]{16}".*?\})', raw, re.DOTALL)
         return json.loads(obj_m.group(1)) if obj_m else {}
 
 
@@ -192,7 +192,8 @@ def extract_citations(html: str, cit_data: dict | None = None) -> list[dict]:
 # ── CLI entry point ───────────────────────────────────────────────────────────
 
 def main(path: str) -> None:
-    content = open(path, encoding="utf-8").read()
+    with open(path, encoding="utf-8") as f:
+        content = f.read()
     results = extract_citations(content)
 
     os.makedirs(".deepcitation", exist_ok=True)
