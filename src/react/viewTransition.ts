@@ -335,7 +335,7 @@ function buildGhostTarget(
  * exists. Maps the keyhole's visible viewport onto the expanded page's visible
  * image area — the ghost lands on whatever region the user was already viewing.
  */
-function buildGhostTargetFromViewport(root: ParentNode): PageExpandTarget | null {
+function buildGhostTargetFromViewport(root: ParentNode, snapshot: GhostSnapshot): PageExpandTarget | null {
   // Only match containers that have no annotation data (miss/not_found).
   // data-dc-no-annotation is set by InlineExpandedImage when fill=true and
   // scrollTarget is null — derived from props, not layout measurements, so
@@ -348,15 +348,24 @@ function buildGhostTargetFromViewport(root: ParentNode): PageExpandTarget | null
     if (!img) continue;
     const imgRect = img.getBoundingClientRect();
     if (!isVisibleRect(imgRect)) continue;
-    // Ghost target = intersection of the container viewport and the image rect
-    // (the visible portion of the page image on screen).
+    // Visible intersection of the container and the page image.
     const left = Math.max(containerRect.left, imgRect.left);
     const top = Math.max(containerRect.top, imgRect.top);
     const right = Math.min(containerRect.right, imgRect.right);
     const bottom = Math.min(containerRect.bottom, imgRect.bottom);
     if (right <= left || bottom <= top) continue;
     const visibleRect = new DOMRect(left, top, right - left, bottom - top);
-    return { markerRect: visibleRect, ghostRect: visibleRect, spotlightRect: null };
+    // Keep ghost at source keyhole dimensions — no scale-up for miss/not_found.
+    // Mirror buildGhostTarget: align the image center-of-mass in the ghost to
+    // the center of the visible page area, so the ghost slides without scaling.
+    const srcW = snapshot.viewportRect.width;
+    const srcH = snapshot.viewportRect.height;
+    const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.imageWidth / 2;
+    const anchorInGhostY = snapshot.imageOffsetTop + snapshot.imageHeight / 2;
+    const pageCX = visibleRect.left + visibleRect.width / 2;
+    const pageCY = visibleRect.top + visibleRect.height / 2;
+    const ghostRect = new DOMRect(pageCX - anchorInGhostX, pageCY - anchorInGhostY, srcW, srcH);
+    return { markerRect: visibleRect, ghostRect, spotlightRect: null };
   }
   return null;
 }
@@ -377,7 +386,7 @@ function findPageExpandTarget(root: ParentNode, snapshot: GhostSnapshot): PageEx
   // The ready-attribute selector in buildGhostTargetFromViewport ensures we
   // don't fire prematurely — pageExpandReady is only set after the component's
   // useEffect has run and (for success states) annotation targets are rendered.
-  return buildGhostTargetFromViewport(root);
+  return buildGhostTargetFromViewport(root, snapshot);
 }
 
 function createPageExpandGhost(snapshot: GhostSnapshot): HTMLDivElement | null {
