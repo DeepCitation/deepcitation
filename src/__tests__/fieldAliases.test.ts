@@ -52,6 +52,11 @@ describe("resolveFieldName", () => {
     expect(resolveFieldName("timestamp")).toBe("timestamps");
   });
 
+  it("resolves old canonical names (anchorText, fullPhrase) to new canonical", () => {
+    expect(resolveFieldName("anchorText")).toBe("sourceMatch");
+    expect(resolveFieldName("fullPhrase")).toBe("sourceContext");
+  });
+
   it("resolves legacy field names (keySpan, key_span, fileId, etc.)", () => {
     expect(resolveFieldName("keySpan")).toBe("sourceMatch");
     expect(resolveFieldName("key_span")).toBe("sourceMatch");
