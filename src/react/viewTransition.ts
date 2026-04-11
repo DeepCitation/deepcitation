@@ -1111,8 +1111,17 @@ function runPageCollapseGhostAnimation(
 
 /**
  * Page-collapse transition: expanded-page → summary/expanded-keyhole.
- * Reverse of `startEvidencePageExpandTransition` — captures the spotlight,
- * commits the state change, then flies a ghost from spotlight → keyhole.
+ * Reverse of `startEvidencePageExpandTransition`.
+ *
+ * Ghost uses the keyhole evidence snippet image (same src as the expand ghost)
+ * for visual continuity — the "key" slides back out of the page and returns
+ * to the keyhole. Two-phase capture:
+ *
+ * 1. Pre-flushSync: spotlight center + keyhole image src/natural dims.
+ * 2. Post-flushSync: destination layout (now visible) → compute ghost start rect.
+ *
+ * The ghost is destination-sized, centered on the spotlight, and translates
+ * to the destination rect — exact reverse of the expand ghost path.
  */
 export function startEvidencePageCollapseTransition(
   update: () => void,
@@ -1133,7 +1142,10 @@ export function startEvidencePageCollapseTransition(
 
   const commitAndAnimate = () => {
     _transitionDepth++;
-    const source = capturePageCollapseSource(root);
+
+    // Phase 1 (pre-flushSync): capture spotlight center + keyhole image info.
+    // The keyhole element is display:none but in the DOM — src/naturalDims accessible.
+    const preflush = captureCollapsePreflushData(root);
 
     // Pre-dim before flushSync — same pattern as expand.
     if (rootEl) {
@@ -1145,18 +1157,23 @@ export function startEvidencePageCollapseTransition(
 
     flushSync(update);
 
-    if (!source) {
+    // No spotlight (miss/not_found) — skip ghost, just let content reveal.
+    if (!preflush) {
       cleanupPageExpandScrim(rootEl);
       _transitionDepth = Math.max(0, _transitionDepth - 1);
       return;
     }
-    // Defensive re-validation before creating the ghost element.
-    if (!isValidProofImageSrc(source.imageSrc)) {
+
+    // Phase 2 (post-flushSync): destination is now visible — read its layout
+    // and compute the ghost's starting rect (spotlight-aligned, dest-sized).
+    const snapshot = buildCollapseGhostSnapshot(preflush, root);
+    if (!snapshot) {
       cleanupPageExpandScrim(rootEl);
       _transitionDepth = Math.max(0, _transitionDepth - 1);
       return;
     }
-    const ghost = createPageExpandGhost(source);
+
+    const ghost = createPageExpandGhost(snapshot);
     if (!ghost) {
       cleanupPageExpandScrim(rootEl);
       _transitionDepth = Math.max(0, _transitionDepth - 1);
@@ -1170,7 +1187,7 @@ export function startEvidencePageCollapseTransition(
         cleanupPageExpandScrim(rootEl);
         return;
       }
-      runPageCollapseGhostAnimation(ghost, source, keyholeRect, rootEl);
+      runPageCollapseGhostAnimation(ghost, snapshot, keyholeRect, rootEl);
     });
   };
 
