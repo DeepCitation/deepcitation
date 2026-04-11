@@ -39,7 +39,7 @@ def _minimal_cit(n: int, anchor: str, full_phrase: str = "", status: str = "foun
 def _result_for(html: str, n: int = 1, anchor: str = "label", full_phrase: str = "", status: str = "found") -> dict:
     cit_data = {KEY: _minimal_cit(n, anchor, full_phrase, status)}
     results = extract_citations(html, cit_data)
-    assert len(results) == 1
+    assert len(results) == 1, f"Expected 1 result, got {len(results)}: {results}"
     return results[0]
 
 

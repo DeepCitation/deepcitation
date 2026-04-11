@@ -13,6 +13,7 @@ Importable API (for tests):
 """
 
 import json
+import os
 import re
 import sys
 from html import unescape
@@ -191,14 +192,14 @@ def extract_citations(html: str, cit_data: dict | None = None) -> list[dict]:
 # ── CLI entry point ───────────────────────────────────────────────────────────
 
 def main(path: str) -> None:
-    import os
     content = open(path, encoding="utf-8").read()
     results = extract_citations(content)
 
     os.makedirs(".deepcitation", exist_ok=True)
-    basename = os.path.basename(path).replace(".html", "")
+    basename = os.path.splitext(os.path.basename(path))[0]
     out = f".deepcitation/review-{basename}.json"
-    json.dump(results, open(out, "w"), indent=2)
+    with open(out, "w") as f:
+        json.dump(results, f, indent=2)
 
     print(f"Extracted {len(results)} citations → {out}")
     for r in results:
