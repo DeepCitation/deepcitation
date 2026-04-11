@@ -398,11 +398,9 @@ const toSeconds = (ms: number) => Math.round(ms / 100) / 10;
 const PARTIAL_STATUSES = new Set<SearchStatus>([
   "partial_text_found",
   "found_source_match_only",
-  "found_context_missed_source_match",
   "found_on_other_page",
   "found_on_other_line",
   "first_word_found",
-  "first_word_fallback",
 ]);
 
 timing.total_ms = Date.now() - runStart;
