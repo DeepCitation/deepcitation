@@ -35,7 +35,7 @@
  */
 
 import "dotenv/config";
-import { DeepCitation } from "deepcitation";
+import { DeepCitation, type Verification } from "deepcitation";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { basename, extname, resolve } from "path";
 import { execFileSync } from "child_process";
@@ -388,21 +388,28 @@ if (from <= 6 && to >= 6) {
 }
 
 // ── Write metrics.json ──────────────────────────────────────────────────
+const PROVIDER_MODELS: Record<string, string> = {
+  openai: "gpt-5-mini",
+  anthropic: "claude-haiku-4-5-20251001",
+  gemini: "gemini-2.0-flash-lite",
+};
+const toSeconds = (ms: number) => Math.round(ms / 100) / 10;
+
 timing.total_ms = Date.now() - runStart;
 if (s5?.verifications) {
-  const verifs = Object.values(s5.verifications) as Array<{ status?: string }>;
+  const verifs = Object.values(s5.verifications) as Verification[];
   const total = verifs.length;
   const found = verifs.filter(v => v.status === "found").length;
   const partial = verifs.filter(v => v.status && v.status !== "found" && v.status !== "not_found").length;
   const metrics = {
     provider,
-    model: provider === "openai" ? "gpt-5-mini" : provider === "anthropic" ? "claude-haiku-4-5-20251001" : "gemini-2.0-flash",
+    model: PROVIDER_MODELS[provider] ?? provider,
     date: new Date().toISOString().slice(0, 10),
     source: sourceLabel,
-    upload_s: timing.upload_ms != null ? Math.round(timing.upload_ms / 100) / 10 : null,
-    llm_s: timing.llm_ms != null ? Math.round(timing.llm_ms / 100) / 10 : null,
-    verify_s: timing.verify_ms != null ? Math.round(timing.verify_ms / 100) / 10 : null,
-    total_s: Math.round(timing.total_ms / 100) / 10,
+    upload_s: timing.upload_ms != null ? toSeconds(timing.upload_ms) : null,
+    llm_s: timing.llm_ms != null ? toSeconds(timing.llm_ms) : null,
+    verify_s: timing.verify_ms != null ? toSeconds(timing.verify_ms) : null,
+    total_s: toSeconds(timing.total_ms),
     citations: total,
     found,
     partial,
