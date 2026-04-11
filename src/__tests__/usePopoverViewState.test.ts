@@ -75,6 +75,29 @@ describe("usePopoverViewState", () => {
       expect(mockStartEvidenceViewTransition).toHaveBeenCalled();
     });
 
+    it("uses page collapse VT when going from expanded-page to summary", () => {
+      const { result } = renderHook(() => usePopoverViewState(createConfig()));
+      act(() => result.current.transition("expanded-page"));
+      mockStartEvidencePageCollapseTransition.mockClear();
+      mockStartEvidencePageExpandTransition.mockClear();
+      act(() => result.current.transition("summary"));
+      expect(result.current.current).toBe("summary");
+      expect(mockStartEvidencePageCollapseTransition).toHaveBeenCalledTimes(1);
+      expect(mockStartEvidencePageExpandTransition).not.toHaveBeenCalled();
+    });
+
+    it("uses page collapse VT when going from expanded-page to expanded-keyhole", () => {
+      const { result } = renderHook(() => usePopoverViewState(createConfig()));
+      act(() => result.current.transition("expanded-keyhole"));
+      act(() => result.current.transition("expanded-page"));
+      mockStartEvidencePageCollapseTransition.mockClear();
+      mockStartEvidenceViewTransition.mockClear();
+      act(() => result.current.transition("expanded-keyhole"));
+      expect(result.current.current).toBe("expanded-keyhole");
+      expect(mockStartEvidencePageCollapseTransition).toHaveBeenCalledTimes(1);
+      expect(mockStartEvidenceViewTransition).not.toHaveBeenCalled();
+    });
+
     it("calls onCollapseToSummary when transitioning to summary", () => {
       const onCollapse = jest.fn();
       const { result } = renderHook(() => usePopoverViewState(createConfig({ onCollapseToSummary: onCollapse })));

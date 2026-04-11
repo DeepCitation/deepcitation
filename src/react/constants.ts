@@ -812,12 +812,6 @@ export const EASE_COLLAPSE = "cubic-bezier(0.2, 0, 0, 1)";
  */
 export const EASE_GHOST_EXPAND = "cubic-bezier(0.05, 0.7, 0.1, 1)";
 
-/**
- * Easing for the page-collapse ghost — fast lift off the spotlight, decelerates
- * into the keyhole. Mirrors the expand: confident departure, soft landing.
- */
-export const EASE_GHOST_COLLAPSE = "cubic-bezier(0.4, 0, 0.2, 1)";
-
 /** Default border-radius for the keyhole strip — matches CSS in EvidenceKeyhole. */
 export const KEYHOLE_STRIP_BORDER_RADIUS = "6px";
 
