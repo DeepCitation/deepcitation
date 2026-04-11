@@ -30,6 +30,39 @@ export function toCompactPageId(verbose: string): string {
 }
 
 /**
+ * Annotates every non-blank line of raw page text with a sequential `<line id="N">` tag.
+ *
+ * Use this ONLY on pages that have no existing `<line id>` tags (i.e. raw OCR text
+ * with no tag metadata). Pages that already carry sparse `<line id>` tags have their
+ * IDs set by the OCR pipeline to correspond to the PDF's actual rendered-line positions.
+ * Re-annotating those pages would replace OCR-derived positions with sequential text-line
+ * counts, causing `lineIds` sent to the verify API to index the wrong PDF lines.
+ *
+ * Output format matches what `extractLines` in hydrate.ts expects:
+ *   `<line id="1">first line text</line>\n<line id="2">second line text</line>...`
+ *
+ * Blank lines are silently skipped — they carry no evidence content and the sequential
+ * counter should not advance for them, so IDs remain contiguous across non-blank lines.
+ *
+ * @param rawText  Raw page text with no existing `<line id>` tags.
+ * @param startId  First ID to assign (default: 1). Useful when caller needs IDs to
+ *                 continue from a previous page's counter.
+ */
+export function denseAnnotatePage(rawText: string, startId = 1): string {
+  if (!rawText.trim()) return "";
+  let id = startId - 1;
+  return rawText
+    .split("\n")
+    .map(line => {
+      const t = line.trim();
+      if (t.length === 0) return "";
+      return `<line id="${++id}">${t}</line>`;
+    })
+    .filter(line => line.length > 0)
+    .join("\n");
+}
+
+/**
  * Flattens the LineMap from parseSummaryToLineMap into a sorted array of
  * LineEntry objects. Uses the qualified map for full page context. Sorted by
  * lineId for deterministic first-match behaviour.
