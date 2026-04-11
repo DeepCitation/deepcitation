@@ -447,18 +447,14 @@ describe("hydrateCitations — wrong line IDs (RC5 regression)", () => {
 describe("denseAnnotatePage", () => {
   it("wraps each non-blank line with a sequential <line id> tag starting at 1", () => {
     const result = denseAnnotatePage("line one\nline two\nline three");
-    expect(result).toBe(
-      '<line id="1">line one</line>\n<line id="2">line two</line>\n<line id="3">line three</line>',
-    );
+    expect(result).toBe('<line id="1">line one</line>\n<line id="2">line two</line>\n<line id="3">line three</line>');
   });
 
   it("skips blank lines and does not advance the ID counter for them", () => {
     // Blank lines (whitespace-only) must not consume an ID — the next non-blank
     // line should continue the sequence without gaps.
     const result = denseAnnotatePage("line one\n\nline two\n   \nline three");
-    expect(result).toBe(
-      '<line id="1">line one</line>\n<line id="2">line two</line>\n<line id="3">line three</line>',
-    );
+    expect(result).toBe('<line id="1">line one</line>\n<line id="2">line two</line>\n<line id="3">line three</line>');
   });
 
   it("returns empty string for blank-only input", () => {
@@ -482,7 +478,8 @@ describe("denseAnnotatePage", () => {
   it("produces output that parseSummaryToLineMap can round-trip via extractLines", () => {
     // End-to-end: annotate a page, embed it in a summary JSON, parse it back,
     // and verify that the qualified map resolves the expected lines.
-    const rawPage = "Section 1. Definitions\nThis document sets forth the terms.\nAll capitalized terms are defined below.";
+    const rawPage =
+      "Section 1. Definitions\nThis document sets forth the terms.\nAll capitalized terms are defined below.";
     const annotated = denseAnnotatePage(rawPage);
 
     const summaryJson = JSON.stringify({

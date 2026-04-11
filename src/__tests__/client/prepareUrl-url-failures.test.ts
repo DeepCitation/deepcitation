@@ -50,9 +50,7 @@ describe("prepareUrl() — URL failure scenarios", () => {
 
   describe("SSRF protection", () => {
     it("throws ValidationError when URL resolves to a private/internal address", async () => {
-      mockFetch.mockResolvedValueOnce(
-        makeUrlErrorResponse("URL resolves to a private or internal address"),
-      );
+      mockFetch.mockResolvedValueOnce(makeUrlErrorResponse("URL resolves to a private or internal address"));
       const err = await client.prepareUrl({ url: "http://192.168.1.1/" }).catch(e => e);
       expect(err).toBeInstanceOf(ValidationError);
       expect(err.message).toBe("URL resolves to a private or internal address");
@@ -61,9 +59,7 @@ describe("prepareUrl() — URL failure scenarios", () => {
 
   describe("DNS / network failures", () => {
     it("throws ValidationError when DNS lookup fails (ENOTFOUND)", async () => {
-      mockFetch.mockResolvedValueOnce(
-        makeUrlErrorResponse("Could not reach the conversion service or URL not found"),
-      );
+      mockFetch.mockResolvedValueOnce(makeUrlErrorResponse("Could not reach the conversion service or URL not found"));
       const err = await client.prepareUrl({ url: "https://nonexistent-xyz.example.com/" }).catch(e => e);
       expect(err).toBeInstanceOf(ValidationError);
       expect(err.message).toBe("Could not reach the conversion service or URL not found");

@@ -147,9 +147,7 @@ describe("reviewUrl() — URL failure scenarios", () => {
   });
 
   it("returns ReviewUrlResponse with isCached: true when URL is cached", async () => {
-    mockFetch.mockResolvedValueOnce(
-      makeReviewSuccess({ isCached: true, cacheExpiresAt: "2026-04-11T23:59:59.999Z" }),
-    );
+    mockFetch.mockResolvedValueOnce(makeReviewSuccess({ isCached: true, cacheExpiresAt: "2026-04-11T23:59:59.999Z" }));
     const result = await client.reviewUrl({ url: "https://example.com/paper.pdf" });
     expect(result.isCached).toBe(true);
     expect(result.cacheExpiresAt).toBe("2026-04-11T23:59:59.999Z");
