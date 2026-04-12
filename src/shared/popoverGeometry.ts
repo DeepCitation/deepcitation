@@ -29,9 +29,12 @@ export function lockSide(
   viewportHeight: number,
   preferredSide: "top" | "bottom",
   threshold = MIN_SPACE_PX,
+  containerTop = 0,
 ): "top" | "bottom" {
   const spaceBelow = viewportHeight - triggerBottom;
-  const spaceAbove = triggerTop;
+  // Subtract containerTop (scroll area's top edge, e.g. header height) so we
+  // don't count the header region as usable space above the trigger.
+  const spaceAbove = triggerTop - containerTop;
   if (preferredSide === "bottom") {
     return spaceBelow >= threshold ? "bottom" : "top";
   }
@@ -97,6 +100,8 @@ export function expandedPageOffset(
  * @param viewportHeight - Window inner height
  * @param skipVertical - When true, only compute horizontal correction
  * @param padding - Viewport edge padding (default 16px for horizontal, 0 for vertical)
+ * @param topInset - Minimum Y the element top may reach (e.g. header height when
+ *   portaled into a scroll area that sits below a fixed header). Defaults to 0.
  * @returns {dx, dy} correction offsets in pixels
  */
 export function guardClamp(
@@ -105,6 +110,7 @@ export function guardClamp(
   viewportHeight: number,
   skipVertical = false,
   padding = GEOMETRY_VIEWPORT_MARGIN,
+  topInset = 0,
 ): { dx: number; dy: number } {
   let dx = 0;
   if (elRect.left < padding) {
@@ -115,8 +121,8 @@ export function guardClamp(
 
   let dy = 0;
   if (!skipVertical) {
-    if (elRect.top < 0) {
-      dy = -elRect.top;
+    if (elRect.top < topInset) {
+      dy = topInset - elRect.top;
     } else if (elRect.bottom > viewportHeight) {
       dy = viewportHeight - elRect.bottom;
     }

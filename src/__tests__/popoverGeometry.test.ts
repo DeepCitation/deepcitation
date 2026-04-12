@@ -24,6 +24,15 @@ describe("lockSide", () => {
     // 150px below, threshold 200 — not enough
     expect(lockSide(750, 750, 900, "bottom", 200)).toBe("top");
   });
+
+  it("accounts for containerTop (fixed header height) when measuring space above", () => {
+    // Trigger at viewport y=250, header 64px → usable space above = 186px < 200 → flip to bottom
+    expect(lockSide(270, 250, 900, "top", undefined, 64)).toBe("bottom");
+    // Without containerTop: 250 >= 200 → stays top
+    expect(lockSide(270, 250, 900, "top")).toBe("top");
+    // With containerTop but enough space: trigger at y=270, header 64px → 206px ≥ 200 → top
+    expect(lockSide(290, 270, 900, "top", undefined, 64)).toBe("top");
+  });
 });
 
 describe("alignOffset", () => {
@@ -102,5 +111,21 @@ describe("guardClamp", () => {
     const { dx, dy } = guardClamp({ top: -20, left: 5, right: 305, bottom: 200 }, 1024, 768, true);
     expect(dx).toBe(16 - 5);
     expect(dy).toBe(0); // Vertical skipped
+  });
+
+  it("respects topInset — clamps to header height, not viewport top", () => {
+    // Element top at y=30, header (topInset) = 64px → needs to shift down by 34px
+    const { dy } = guardClamp({ top: 30, left: 50, right: 350, bottom: 280 }, 1024, 768, false, 16, 64);
+    expect(dy).toBe(64 - 30); // +34
+  });
+
+  it("no correction when element top is exactly at topInset", () => {
+    const { dy } = guardClamp({ top: 64, left: 50, right: 350, bottom: 314 }, 1024, 768, false, 16, 64);
+    expect(dy).toBe(0);
+  });
+
+  it("topInset defaults to 0 — existing overflow-top behavior unchanged", () => {
+    const { dy } = guardClamp({ top: -20, left: 50, right: 350, bottom: 200 }, 1024, 768);
+    expect(dy).toBe(20);
   });
 });
