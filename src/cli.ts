@@ -18,7 +18,6 @@ import { dirname, resolve } from "node:path";
 import { checkForUpdate, formatNetworkError } from "./cli/cliUtils.js";
 import {
   auth,
-  env,
   getAttachment,
   HELP,
   hydrate,
@@ -30,7 +29,6 @@ import {
   openBillingDashboard,
   prepare,
   resolveBaseUrl,
-  showcase,
   status,
   verify,
   whoami,
@@ -94,13 +92,6 @@ switch (command) {
       process.exit(1);
     });
     break;
-  case "cite":
-    // "cite" is an alias for "verify --html" for backwards compatibility
-    verify(["--html", ...rest], fmtNetErr, resolveSpecPath).catch(err => {
-      console.error(`Error: ${fmtNetErr(err)}`);
-      process.exit(1);
-    });
-    break;
   case "hydrate":
     hydrate(rest);
     break;
@@ -109,9 +100,6 @@ switch (command) {
     break;
   case "inject":
     inject(rest);
-    break;
-  case "showcase":
-    showcase(rest);
     break;
   case "keygen":
     keygen(rest);
@@ -136,9 +124,6 @@ switch (command) {
     break;
   case "status":
     status();
-    break;
-  case "env":
-    env();
     break;
   case "billing":
     openBillingDashboard(BILLING_URL).catch(err => {

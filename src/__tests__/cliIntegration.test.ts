@@ -162,14 +162,14 @@ describe("auth commands", () => {
     expect(r.stdout).toContain("Source:");
   });
 
-  it("env outputs export statement", () => {
-    const r = run(["env"], { env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" } });
+  it("auth env outputs export statement", () => {
+    const r = run(["auth", "env"], { env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" } });
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toContain('export DEEPCITATION_API_KEY="sk-dc-test12345678901234"');
   });
 
-  it("env exits 1 when not logged in", () => {
-    const r = run(["env"], { env: { HOME: fakeHome, DEEPCITATION_API_KEY: "" } });
+  it("auth env exits 1 when not logged in", () => {
+    const r = run(["auth", "env"], { env: { HOME: fakeHome, DEEPCITATION_API_KEY: "" } });
     expect(r.exitCode).toBe(1);
   });
 
@@ -339,15 +339,6 @@ describe("verify command", () => {
     // If spec file doesn't exist in built output, that's also acceptable (exit 1 with message)
   });
 
-  it("cite is alias for verify --html", () => {
-    // cite prepends --html to argv, so "cite --help" becomes "verify --html --help"
-    // where --help gets consumed as the value for --html. Test with a different pattern.
-    const r = run(["cite"]);
-    // Without args, cite dispatches as "verify --html" with no file — which errors
-    // because --html has no value. This confirms the alias routes through verify.
-    expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("--html");
-  });
 });
 
 // ── inject command ────────────────────────────────────────────────
@@ -728,9 +719,9 @@ describe("get command", () => {
   });
 });
 
-// ── env command edge cases ───────────────────────────────────────
+// ── auth env edge cases ──────────────────────────────────────────
 
-describe("env edge cases", () => {
+describe("auth env edge cases", () => {
   it("rejects saved key with special characters (format validation)", () => {
     // Keys with hyphens/special chars after sk-dc- are rejected by env's strict regex
     const envHome = join(TEST_DIR, "env-format-home");
@@ -739,13 +730,13 @@ describe("env edge cases", () => {
       join(envHome, ".deepcitation", "credentials.json"),
       JSON.stringify({ apiKey: "sk-dc-has-hyphens-in-key" }),
     );
-    const r = run(["env"], { env: { HOME: envHome, DEEPCITATION_API_KEY: "" } });
+    const r = run(["auth", "env"], { env: { HOME: envHome, DEEPCITATION_API_KEY: "" } });
     expect(r.exitCode).toBe(1);
     expect(r.stderr).toContain("unexpected format");
   });
 
   it("accepts key with only alphanumeric chars after prefix", () => {
-    const r = run(["env"], { env: { DEEPCITATION_API_KEY: "sk-dc-validAlphaNum123" } });
+    const r = run(["auth", "env"], { env: { DEEPCITATION_API_KEY: "sk-dc-validAlphaNum123" } });
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toContain('export DEEPCITATION_API_KEY="sk-dc-validAlphaNum123"');
   });
