@@ -7,21 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- **Cowork `verify` hang** — `createCoworkFetch` no longer routes through `undici.EnvHttpProxyAgent`, which was observed to hang indefinitely on JSON POSTs through `localhost:3128` in Claude Cowork while succeeding on multipart. It now delegates to the same hand-rolled CONNECT tunnel (`createProxyFetch`) used in non-Cowork environments, which is built only on Node built-ins and has deterministic per-phase timeouts.
-- **Per-phase transport timeouts** — `createProxyFetch` now enforces four timers (`proxy_connect`, `tls_handshake`, `response_headers`, `response_idle`) plus an outer `request_overall` ceiling. Defaults: 5 s / 10 s / 60 s / 30 s / 90 s, each overridable via `DC_PROXY_CONNECT_MS` / `DC_TLS_HANDSHAKE_MS` / `DC_HEADERS_TIMEOUT_MS` / `DC_IDLE_DATA_MS` / `DC_REQUEST_TIMEOUT_MS`. Prevents indefinite hangs when a proxy accepts the connection but then stalls.
-- **FormData multipart now rides the CONNECT tunnel** — `createProxyFetch` serializes `FormData` to an RFC 7578 multipart body inline (`encodeMultipart`) and writes it over the same hand-rolled TLS tunnel as JSON POSTs. The previous `sendViaUndiciProxy` fallback required `import("undici")` at runtime, which fails in the Claude Cowork sandbox and caused every file upload to hit `"FormData upload through proxy requires the 'undici' package"`. Prepare now has the same transport (and the same per-phase timeouts) as verify, with zero `undici` dependency on any path. `sendViaUndiciProxy` and `convertFormData` deleted as dead code.
+## [0.4.0] - 2026-04-11
 
 ### Added
 
-- **`TimeoutError` class** — structured error with `phase` (one of `proxy_connect | tls_handshake | response_headers | response_idle | request_overall`), `elapsedMs`, `proxyUrl`, and `target` fields. Exported from `src/cli/proxy.ts`.
-- **Structured CLI error output** — `formatNetworkError` recognizes `TimeoutError` and emits a human-readable block (phase explanation, redacted proxy URL, explicit "Do NOT" guidance block for AI agents) followed by a final `__DC_ERROR__ {...}` JSON marker line. Agent-driven callers can parse the marker and short-circuit their recovery loop (`retryable: false` → don't retry, `recoverable: false` → don't try workarounds).
-- **Environment notes for cloud sandboxes in `verify` skill** — `packages/skills/skills/verify/SKILL.md` gains a new section covering bundled-binary expectations, proxy env-var constraints, expected command timings, the "no hand-built HTML fallback" rule, and `__DC_ERROR__` recognition. Four new invariants forbid the failure modes observed when the agent previously stumbled through Cowork setup (npm-installing `undici`, munging `HTTP_PROXY`, extending timeouts via shell wrappers, fabricating verified-looking reports).
-- **Refined evidence triage in `verify` skill** — the Step 1 triage table now explicitly handles user-supplied files (e.g. `index.html`, `draft.md`) that contain claims to verify, with a "use verbatim" instruction to prevent the agent from rewriting claims during the citation step.
-- **`CliAuthPage` agent-relay polish** — hides the "copy key / copy command" toggle in agent-relay mode (`isManual && !cliWasListening`), forcing the full command format so agents receive actionable context instead of a bare `sk-dc-…`.
-- **`cliProxyTimeouts.test.ts`** — mock TCP server tests that verify each `TimeoutError` phase fires within its budget and the outer ceiling bounds the total lifetime.
-- **`cliProxyMultipart.test.ts`** — unit tests for the RFC 7578 multipart serializer (string + Blob + mixed fields, header-param escaping, boundary uniqueness, filename and Content-Type defaults).
+- **`reviewUrl()` SDK method** — new client method with `ReviewUrlOptions` and `ReviewUrlResponse` types; full typed error coverage including `ValidationError` for HTTP 200 + `status:error` bodies. (#415)
+- **Page-collapse reverse animation** — `startEvidencePageCollapseTransition` animates spotlight → keyhole strip with a two-phase pre/post-`flushSync` capture and a fast-tap guard against dual-ghost/orphaned-scrim race conditions. (#413)
+- **Mouse drag support for drawer** — desktop users can drag the drawer handle to close; mouse listeners register on `document` only during active drag with `preventDefault` blocking text selection. (#412)
+- **New React exports** — `getStatusFromVerification`, `getStatusLabel`, `DefaultPopoverContent` (with `PopoverContentProps`/`PopoverViewState` types), and `SnippetZone` exported for custom popover wrappers and Remotion stills. (#412)
+- **`denseAnnotatePage()`** — annotates un-tagged page text with dense sequential `<line id="N">` tags for lineId-based anchor lookup; exported from `cite.ts`. Must not be applied to pages with existing sparse OCR tags.
+- **`TimeoutError` class** — structured error with `phase` (one of `proxy_connect | tls_handshake | response_headers | response_idle | request_overall`), `elapsedMs`, `proxyUrl`, and `target` fields. Exported from `src/cli/proxy.ts`. (#411)
+- **Structured CLI error output** — `formatNetworkError` recognizes `TimeoutError` and emits a human-readable block with phase explanation, redacted proxy URL, and "Do NOT" guidance, followed by a `__DC_ERROR__ {...}` JSON marker line so agent-driven callers can short-circuit their recovery loop (`retryable: false`, `recoverable: false`). (#411)
+- **`CliAuthPage` agent-relay polish** — hides the "copy key / copy command" toggle in agent-relay mode (`isManual && !cliWasListening`), forcing the full command format so agents receive actionable context instead of a bare `sk-dc-…`. (#411)
+- **Per-step timing and `metrics.json`** — example scripts record upload/llm/verify step durations and write a summary file (provider, model, date, source, timing, citation counts/pct) to the cache dir after each run. (#416)
+
+### Changed
+
+- **`sourceContext`/`sourceMatch` rename** — `fullPhrase` → `sourceContext` and `anchorText` → `sourceMatch` across the full codebase, types, i18n strings, and docs. LLMs emitting old field names are handled via backward-compat alias resolution in `normalizeCitationInput`. (#412)
+- **Drawer UX** — URL/snippet zones in expanded view, claim-vs-source variance annotation, page badges before status icons, always-render fiber-stability pattern for evidence slots (display:none toggle), active/inactive indicator dot styling. (#412)
+- **Page-expand ghost** — pure translate animation (no scale); clip-path iris convergence (0.42→0.88 progress) trims keyhole padding; border-radius morph from keyhole corners to 0 px at landing; new `EASE_GHOST_EXPAND` easing. (#413)
+- **Per-phase transport timeouts** — `createProxyFetch` enforces `proxy_connect` / `tls_handshake` / `response_headers` / `response_idle` / `request_overall` timers (5 s / 10 s / 60 s / 30 s / 90 s), each overridable via `DC_PROXY_*_MS` env vars. Prevents indefinite hangs when a proxy accepts but then stalls. (#411)
+- **FormData multipart rides the CONNECT tunnel** — `createProxyFetch` serializes `FormData` inline via `encodeMultipart` over the hand-rolled TLS tunnel; `sendViaUndiciProxy` and `convertFormData` deleted as dead code, eliminating the `undici` runtime dependency from all proxy paths. (#411)
+- **`tsconfig` `moduleResolution: bundler`** — migrates from deprecated `node`/`node10` to `bundler`, silencing TS5101/TS5107 errors that become hard failures in TypeScript 6.0. (#416)
+
+### Fixed
+
+- **Popover scrolls with page** — portals into the Radix ScrollArea viewport (or nearest scrollable ancestor); with `position:absolute` inside the scroll container the popover sits in document space and scrolls away naturally. (#417)
+- **Ghost scale-up for miss/not_found** — page-expand ghost for citations without annotations now uses source keyhole dimensions (pure translate, scale=1.0) instead of full viewport rect, eliminating the aggressive "keyhole filling the screen" effect. (#417)
+- **`prepareUrl` silent error swallowing** — HTTP 200 responses with `status:error` in the JSON body now throw `ValidationError` with the server-supplied message instead of silently passing a poisoned response to callers. (#415)
+- **Date-only timezone shift** — `YYYY-MM-DD` strings are now parsed as local noon (`T12:00:00`) instead of UTC midnight, preventing off-by-one day display in UTC− timezones. (#415)
+- **`review_extract.py` false positives** — list-item `PLACEMENT`, bold-text `PLACEMENT`, and smart-quote `NOT_SUBSTRING` false positives fixed; file-handle resource leak and greedy fallback regex also corrected. (#415)
+- **Parsing truncation after start delimiter** — `parseCitationData` now returns `success:true` with empty citations when input ends immediately after `<<<CITATION_DATA>>>` (token-limit cutoff), as distinct from a genuinely empty block (start + end delimiter with nothing between).
+- **Cowork `verify` hang** — `createCoworkFetch` no longer routes through `undici.EnvHttpProxyAgent`, which hung indefinitely on JSON POSTs through `localhost:3128` in Claude Cowork. Now delegates to `createProxyFetch` (built on Node built-ins only) with deterministic per-phase timeouts. (#411)
 
 ## [0.3.11] - 2026-04-06
 
