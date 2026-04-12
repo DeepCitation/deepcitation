@@ -38,6 +38,10 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+          token: ''
+
+      - name: Upgrade npm
+        run: npm install -g npm@latest
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -142,10 +146,11 @@ jobs:
         run: |
           npm pack --dry-run 2>&1 | grep -q 'README.md' || { echo "ERROR: README.md missing from npm tarball"; exit 1; }
 
+      - name: Clear npm token (use OIDC trusted publishing)
+        run: npm config delete "//registry.npmjs.org/:_authToken"
+
       - name: Publish to npm
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
 
       - name: Append publish status to release
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
