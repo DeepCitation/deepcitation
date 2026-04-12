@@ -70,6 +70,13 @@ test("popover stays fixed to viewport when scroll container scrolls (position:fi
   const popover = page.getByRole("dialog");
   await expect(popover).toBeVisible();
 
+  // Assert the wrapper uses position:fixed — this is the mechanism under test.
+  // Without this, the coordinate assertions below could pass spuriously if the
+  // popover happened to portal into document.body with position:absolute (body
+  // is outside the test's scroll container so it would also appear viewport-stable).
+  const wrapper = page.locator("[data-dc-popover-wrapper]");
+  await expect(wrapper).toHaveCSS("position", "fixed");
+
   // Record viewport-relative position before scrolling
   const beforeBox = await popover.boundingBox();
   expect(beforeBox).not.toBeNull();

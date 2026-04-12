@@ -125,7 +125,11 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       if (typeof window === "undefined") return;
       const dedicatedPortal = document.querySelector("[data-dc-portal-root]") as HTMLElement | null;
       setPortalContainer(dedicatedPortal ?? document.body);
-    }, []); // run once on mount — portal target never changes mid-session
+      // Assumption: [data-dc-portal-root] is present in the DOM before any
+      // CitationComponent mounts. If added lazily after mount, the popover
+      // falls back to document.body (still correct for position:fixed, but
+      // loses the z-index stacking guarantee of the dedicated overlay).
+    }, []); // run once on mount — portal target is stable for the session
 
     const recomputePosition = React.useCallback(() => {
       if (!open) return;
