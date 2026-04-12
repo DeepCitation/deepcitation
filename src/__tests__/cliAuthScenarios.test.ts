@@ -553,11 +553,11 @@ describe("whoami output detail", () => {
   });
 });
 
-// ── env command safety ────────────────────────────────────────────
+// ── auth env command safety ───────────────────────────────────────
 
-describe("env command", () => {
+describe("auth env command", () => {
   it("outputs only the export statement on stdout (safe for eval)", () => {
-    const r = run(["env"], { env: { DEEPCITATION_API_KEY: "sk-dc-evalSafeKey1234567" } });
+    const r = run(["auth", "env"], { env: { DEEPCITATION_API_KEY: "sk-dc-evalSafeKey1234567" } });
     expect(r.exitCode).toBe(0);
     // stdout should contain ONLY the export line
     expect(r.stdout.trim()).toBe('export DEEPCITATION_API_KEY="sk-dc-evalSafeKey1234567"');
@@ -580,7 +580,7 @@ describe("env command", () => {
       }),
     );
 
-    const r = run(["env"], { env: noAuthEnv(home) });
+    const r = run(["auth", "env"], { env: noAuthEnv(home) });
     // resolveAuth checks sk-dc- prefix, so this should fail at auth level
     expect(r.exitCode).toBe(1);
   });

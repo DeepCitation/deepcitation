@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed ⚠️ Breaking CLI changes
+
+- **`deepcitation cite`** removed — use `deepcitation verify --html <file>` instead.
+- **`deepcitation env`** (top-level) removed — use `deepcitation auth env` instead.
+- **`deepcitation showcase`** removed (internal dev tool, no public API contract).
+
 ## [0.4.0] - 2026-04-11
 
 ### Added

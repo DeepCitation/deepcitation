@@ -1,7 +1,7 @@
 {
   "sources": [
     {
-      "url": "https://bundlephobia.com/package/deepcitation@0.3.10",
+      "url": "https://bundlephobia.com/package/deepcitation",
       "name": "bundlephobia.com/deepcitation"
     },
     {
@@ -24,7 +24,7 @@
   "citations": [
     {
       "type": "url",
-      "url": "https://bundlephobia.com/package/deepcitation@0.3.10",
+      "url": "https://bundlephobia.com/package/deepcitation",
       "anchorText": "no dependencies",
       "fullPhrase": "tree-shakeable side-effect free no dependencies",
       "reasoning": "Bundlephobia confirms the deepcitation package has no runtime dependencies.",
