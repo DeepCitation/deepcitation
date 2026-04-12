@@ -12,8 +12,7 @@
  * @packageDocumentation
  */
 
-// Client & Errors
-export { DeepCitation, SDK_VERSION } from "./client/DeepCitation.js";
+// Client Errors (value exports; DeepCitation class is in deepcitation/client)
 export {
   AuthenticationError,
   DeepCitationError,
@@ -92,28 +91,13 @@ export {
   isGeminiGarbage,
 } from "./parsing/parseWorkAround.js";
 
-// Prompts
+// Prompts types only — prompt constants and wrappers are in deepcitation/prompts
 export type {
   CitationData,
   ParsedCitationResponse,
   WrapCitationPromptOptions,
   WrapCitationPromptResult,
   WrapSystemPromptOptions,
-} from "./prompts/citationPrompts.js";
-export {
-  AV_CITATION_PROMPT,
-  CITATION_AV_JSON_OUTPUT_FORMAT,
-  CITATION_AV_REMINDER,
-  CITATION_DATA_END_DELIMITER,
-  CITATION_DATA_START_DELIMITER,
-  CITATION_JSON_OUTPUT_FORMAT,
-  CITATION_PROMPT,
-  CITATION_REMINDER,
-  COMPACT_CITATION_JSON_OUTPUT_FORMAT,
-  COMPACT_CITATION_PROMPT,
-  COMPACT_CITATION_SCENARIO2_PROMPT,
-  wrapCitationPrompt,
-  wrapSystemCitationPrompt,
 } from "./prompts/citationPrompts.js";
 export {
   type CompressedResult,

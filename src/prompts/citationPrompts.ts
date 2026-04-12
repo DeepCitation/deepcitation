@@ -1,4 +1,7 @@
-import { removeLineIdMetadata, removePageNumberMetadata } from "../utils/textCleanup.js";
+// Inlined from textCleanup.ts — avoids a cross-chunk shared dependency that
+// pulls prompt strings into the main bundle (see bundle optimization notes).
+const _PAGE_NUMBER_RE = /<\/?page_number_\d+_index_\d+>/g;
+const _LINE_ID_RE = /<line id="[^"]*">|<\/line>/g;
 
 /**
  * Citation Prompts
@@ -230,7 +233,7 @@ export interface WrapCitationPromptResult {
  *
  * @example
  * ```typescript
- * import { wrapSystemCitationPrompt } from 'deepcitation';
+ * import { wrapSystemCitationPrompt } from 'deepcitation/prompts';
  *
  * const systemPrompt = "You are a helpful assistant that analyzes documents.";
  * const enhanced = wrapSystemCitationPrompt({ systemPrompt });
@@ -258,7 +261,7 @@ export function wrapSystemCitationPrompt(options: WrapSystemPromptOptions): stri
  *
  * @example
  * ```typescript
- * import { wrapCitationPrompt } from 'deepcitation';
+ * import { wrapCitationPrompt } from 'deepcitation/prompts';
  *
  * // Single file
  * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
@@ -345,7 +348,7 @@ function renderDeepTextPromptString(attachmentId: string, filePages: string[]): 
 }
 
 function pageToLineTaggedText(page: string): string {
-  const cleanPage = removeLineIdMetadata(removePageNumberMetadata(page));
+  const cleanPage = page.replace(_PAGE_NUMBER_RE, "").trim().replace(_LINE_ID_RE, "");
   const lines = cleanPage
     .split("\n")
     .map(line => line.trim())
