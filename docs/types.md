@@ -98,6 +98,8 @@ interface Verification {
   attachmentId?: string | null;
   label?: string;
   citation?: Citation;
+  /** True when the citation was skipped (e.g. missing attachmentId). Only `status` is set on skipped entries. */
+  skipped?: boolean;
 
   // Search results
   status?: SearchStatus;
@@ -121,6 +123,10 @@ interface Verification {
   // Timing
   timeToCertaintyMs?: number;
 
+  // Location precision
+  /** True when the citation text was found but the input citation lacked precise location data (no page number or line IDs). */
+  isImpreciseLocation?: boolean;
+
   // Ambiguity detection
   ambiguity?: {
     totalOccurrences: number;
@@ -128,6 +134,10 @@ interface Verification {
     confidence: "high" | "medium" | "low";
     note: string;
   };
+
+  // LLM search history
+  /** History of LLM-level search attempts when iterative verification was used. */
+  llmAttempts?: LlmSearchAttempt[];
 }
 
 type SearchStatus =

@@ -17,6 +17,7 @@ import type { AttachmentAssets } from "../../../src/types/verification.js";
 
 // CLI internals -- direct source imports (monorepo-only, not public API)
 import { markdownToHtml } from "../../../src/cli/markdownToHtml.js";
+import { safeReplace } from "../../../src/utils/regexSafety.js";
 import {
   buildCitationMaps,
   injectCdnRuntime,
@@ -39,6 +40,23 @@ export interface GenerateHtmlReportOptions {
 }
 
 /**
+ * Remove duplicate [N] citation markers that appear within `window` characters of
+ * a previous occurrence of the same N. This collapses the common LLM pattern of
+ * citing the same source multiple times within a single sentence
+ * (e.g. "**gov** [5], **industry** [5], **third parties** [5]" → "**gov** [5], **industry**, **third parties**")
+ * without removing legitimate cross-paragraph citations.
+ */
+function deduplicateCloseMarkers(text: string, window = 150 /* ~1–2 sentences of prose */): string {
+  const lastSeen = new Map<string, number>();
+  return safeReplace(text, /\[(\d+)\]/g, (match, n, offset: number) => {
+    const prev = lastSeen.get(n);
+    if (prev !== undefined && offset - prev <= window) return "";
+    lastSeen.set(n, offset);
+    return match;
+  });
+}
+
+/**
  * Generate a self-contained HTML report with embedded CDN popover runtime.
  *
  * Returns the complete HTML string ready to write to disk.
@@ -49,7 +67,8 @@ export function generateHtmlReport(opts: GenerateHtmlReportOptions): string {
 
   const { sourceMatchMap, keyMap } = buildCitationMaps(parsedCitations);
 
-  const normalizedText = normalizeNumericMarkers(visibleText, sourceMatchMap);
+  const deduplicatedText = deduplicateCloseMarkers(visibleText);
+  const normalizedText = normalizeNumericMarkers(deduplicatedText, sourceMatchMap);
 
   let html = markdownToHtml(normalizedText, {
     style: "report",

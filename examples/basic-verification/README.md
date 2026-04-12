@@ -17,17 +17,21 @@ bun install
 # Copy environment file and add your API keys
 cp .env.example .env
 
-# Run with OpenAI
+# Run with OpenAI (interactive source picker)
 bun run start:openai
 
-# Or run with Anthropic Claude
+# Or run with Anthropic Claude / Google Gemini
 bun run start:anthropic
-
-# Or run with Google Gemini
 bun run start:gemini
 
-# Or run with raw API calls (curl/fetch)
-bun run start:curl
+# Pass a URL or file path directly (skips the interactive menu)
+bun src/openai.ts https://arxiv.org/pdf/1706.03762
+bun src/openai.ts /path/to/document.pdf
+
+# Run all three providers on the same source (baseline comparison)
+bun src/openai.ts <source>      # gpt-5-mini
+bun src/gemini.ts <source>      # gemini-2.0-flash-lite
+bun src/anthropic.ts <source>   # claude-haiku-4-5
 ```
 
 ## Required API Keys
@@ -82,17 +86,21 @@ The Asia-Pacific region performed best with 35% year-over-year growth.
 
 ## Using Your Own Documents
 
-Replace the sample document buffer in the source file with your own PDF:
+Pass a URL or file path as the first argument — no code changes needed:
 
-```typescript
-import { readFileSync } from "fs";
+```bash
+# URL (HTML page, arXiv paper, etc.)
+bun src/openai.ts https://example.com/document.html
 
-const myDocument = readFileSync("./path/to/your/document.pdf");
+# Local PDF or DOCX
+bun src/openai.ts /path/to/document.pdf
+bun src/openai.ts /path/to/report.docx
 
-const { fileDataParts, deepTextPages } = await deepcitation.prepareAttachments([
-  { file: myDocument, filename: "my-document.pdf" },
-]);
+# Image (vision — only works with vision-capable providers)
+bun src/openai.ts /path/to/chart.png
 ```
+
+The workflow auto-detects the source type from the argument: URLs go through `prepareUrl()`, local files through `prepareAttachments()`, and image files also send base64 to the LLM for vision.
 
 ## Key Functions Used
 

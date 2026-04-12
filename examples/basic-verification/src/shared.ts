@@ -12,19 +12,19 @@
  */
 
 import "dotenv/config";
+import { DeepCitation } from "deepcitation/client";
 import {
-  DeepCitation,
   extractVisibleText,
   getAllCitationsFromLlmOutput,
   getCitationStatus,
   getVerificationTextIndicator,
   replaceCitationMarkers,
-  wrapCitationPrompt,
 } from "deepcitation";
+import { wrapCitationPrompt } from "deepcitation/prompts";
 import type { CitationRecord } from "../../../src/types/citation.js";
 import type { AttachmentAssets } from "../../../src/types/verification.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { dirname, resolve } from "path";
+import { basename, dirname, resolve } from "path";
 import { createInterface } from "readline";
 import { fileURLToPath } from "url";
 import { execFileSync } from "child_process";
@@ -175,7 +175,7 @@ export async function stepUpload(dc: DeepCitation, source: Source): Promise<Step
 }
 
 export function stepWrapPrompts(
-  deepTextPages: string[],
+  step1: Pick<Step1Result, "attachmentId" | "deepTextPages">,
   opts?: { systemPrompt?: string; userPrompt?: string },
 ): Step2Result {
   const systemPrompt =
@@ -192,7 +192,7 @@ provided documents accurately and cite your sources.`;
   const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
     systemPrompt,
     userPrompt,
-    deepTextPages,
+    deepTextPagesByAttachmentId: { [step1.attachmentId]: step1.deepTextPages },
   });
 
   return { enhancedSystemPrompt, enhancedUserPrompt, systemPrompt, userPrompt };
@@ -296,7 +296,7 @@ async function runSingleSource(
   console.log(`   Attachment ID: ${s1.attachmentId}\n`);
 
   // ── Step 2: Wrap Prompts ──
-  const s2 = stepWrapPrompts(s1.deepTextPages);
+  const s2 = stepWrapPrompts(s1);
 
   console.log("📋 System Prompt (BEFORE):");
   console.log(separator);
@@ -363,6 +363,9 @@ async function runSingleSource(
   } else {
     console.log(`Found ${verifications.length} citation(s):\n`);
 
+    // verifiedMatchSnippet is the legacy field name (renamed to verifiedSourceContext)
+    type LegacyVerification = (typeof verifications)[number][1] & { verifiedMatchSnippet?: string };
+
     for (const [key, verification] of verifications) {
       const statusIndicator = getVerificationTextIndicator(verification);
 
@@ -377,9 +380,11 @@ async function runSingleSource(
         );
       }
 
-      if (verification.verifiedMatchSnippet) {
+      const foundSnippet = verification.verifiedSourceContext
+        || (verification as LegacyVerification).verifiedMatchSnippet;
+      if (foundSnippet) {
         console.log(
-          `  🔍 Found: "${verification.verifiedMatchSnippet.slice(0, 100)}${verification.verifiedMatchSnippet.length > 100 ? "..." : ""}"`,
+          `  🔍 Found: "${foundSnippet.slice(0, 100)}${foundSnippet.length > 100 ? "..." : ""}"`,
         );
       } else {
         const lineInfo = verification.citation?.lineIds?.length
@@ -450,11 +455,13 @@ async function runSingleSource(
  * Run the full DeepCitation verification workflow.
  *
  * Source selection priority (first match wins):
- *   1. CLI argument:   bun run start:openai 2       # url
- *   2. CLI argument:   bun run start:openai all      # run all sources
- *   3. Interactive:     prompts the user to pick a source
+ *   1. URL argument:   bun src/openai.ts https://example.com/doc.pdf
+ *   2. Path argument:  bun src/openai.ts /path/to/file.pdf
+ *   3. Index argument: bun src/openai.ts 2    (into SOURCES array)
+ *   4. "all" argument: bun src/openai.ts all  (run all predefined sources)
+ *   5. Interactive:    prompts the user to pick a source (no argument)
  *
- * Index reference:
+ * Predefined SOURCES index reference:
  *   0 = image (medical chart)
  *   1 = pdf   (presentation)
  *   2 = url   (arXiv HTML paper)
@@ -475,11 +482,21 @@ export async function runWorkflow(providerName: string, streamLlm: StreamLlmFn) 
     // Run all pre-filled sources
     sources = SOURCES;
   } else if (sourceArg != null) {
-    // Run a specific source by index
-    const idx = Number(sourceArg);
-    const s = SOURCES[idx];
-    if (!s) throw new Error(`Invalid source "${sourceArg}". Valid: 0-${SOURCES.length - 1} or "all"`);
-    sources = [s];
+    const parsedUrl = (() => { try { return new URL(sourceArg); } catch { return null; } })();
+    const resolvedPath = resolve(sourceArg);
+    if (parsedUrl?.protocol === "http:" || parsedUrl?.protocol === "https:") {
+      sources = [{ type: "url", url: sourceArg, label: sourceArg }];
+    } else if (existsSync(resolvedPath)) {
+      const filename = basename(resolvedPath);
+      const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+      const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(ext);
+      sources = [{ type: isImage ? "image" : "pdf", path: resolvedPath, filename, label: filename }];
+    } else {
+      const idx = Number(sourceArg);
+      const s = SOURCES[idx];
+      if (!s) throw new Error(`Invalid source "${sourceArg}". Expected: a URL, a file path, a number 0-${SOURCES.length - 1}, or "all"`);
+      sources = [s];
+    }
   } else {
     // Interactive menu
     const source = await promptSourceSelection();

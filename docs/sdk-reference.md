@@ -379,7 +379,7 @@ import {
 ### Prompt Wrapping
 
 ```typescript
-import { wrapCitationPrompt, wrapSystemCitationPrompt } from "deepcitation";
+import { wrapCitationPrompt, wrapSystemCitationPrompt } from "deepcitation/prompts";
 ```
 
 | Function | Signature | Description |

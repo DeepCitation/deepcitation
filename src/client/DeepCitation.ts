@@ -209,7 +209,7 @@ async function createApiError(response: Response, fallbackAction: string): Promi
  *
  * @example
  * ```typescript
- * import { DeepCitation } from 'deepcitation';
+ * import { DeepCitation } from 'deepcitation/client';
  *
  * const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
  *

@@ -82,9 +82,9 @@ const display = replaceCitationMarkers(visibleText, {
 // =============================================================================
 
 /** Quick Start — Server side (full pipeline) */
-export const QUICKSTART_SERVER = `import {
-  DeepCitation,
-  wrapCitationPrompt,
+export const QUICKSTART_SERVER = `import { DeepCitation } from "deepcitation/client";
+import { wrapCitationPrompt } from "deepcitation/prompts";
+import {
   getAllCitationsFromLlmOutput,
   extractVisibleText,
   getCitationStatus,
@@ -223,7 +223,7 @@ export const SETUP_IMPORT_TYPES = `import type {
 } from "deepcitation";`;
 
 /** Section 1.3 — Initialize client */
-export const SETUP_INIT_CLIENT = `import { DeepCitation } from "deepcitation";
+export const SETUP_INIT_CLIENT = `import { DeepCitation } from "deepcitation/client";
 
 const deepcitation = new DeepCitation({
   apiKey: process.env.DEEPCITATION_API_KEY!,
@@ -262,7 +262,7 @@ export const SETUP_PROOF_IMAGES = `const result = await deepcitation.verifyAttac
 // =============================================================================
 
 /** Section 2.1 — Wrap prompts */
-export const SERVER_WRAP_PROMPTS = `import { wrapCitationPrompt } from "deepcitation";
+export const SERVER_WRAP_PROMPTS = `import { wrapCitationPrompt } from "deepcitation/prompts";
 
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a helpful assistant...",

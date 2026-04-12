@@ -190,7 +190,7 @@ export const CitationTriggerContent = ({
   // Variant: text
   if (variant === "text") {
     return (
-      <span className={cn("font-normal", statusClasses)}>
+      <span className={cn("font-normal", statusClasses, getInteractionClasses(isOpen, variant))}>
         {displayText}
         {/* U+2060 word joiner: prevents line break between text and indicator */}
         {"\u2060"}

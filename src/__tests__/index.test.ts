@@ -1,26 +1,29 @@
 import { describe, expect, it } from "@jest/globals";
+import { CITATION_X_PADDING, CITATION_Y_PADDING, sha1Hash } from "../index.js";
 import {
   CITATION_DATA_END_DELIMITER,
   CITATION_DATA_START_DELIMITER,
   CITATION_PROMPT,
-  CITATION_X_PADDING,
-  CITATION_Y_PADDING,
-  sha1Hash,
   wrapCitationPrompt,
   wrapSystemCitationPrompt,
-} from "../index.js";
+} from "../prompts/citationPrompts.js";
 
 describe("index exports", () => {
   it("re-exports core helpers and constants", () => {
     expect(typeof sha1Hash).toBe("function");
-    expect(typeof CITATION_PROMPT).toBe("string");
-    expect(typeof CITATION_DATA_START_DELIMITER).toBe("string");
-    expect(typeof CITATION_DATA_END_DELIMITER).toBe("string");
     expect(typeof CITATION_X_PADDING).toBe("number");
     expect(typeof CITATION_Y_PADDING).toBe("number");
   });
+});
 
-  it("re-exports citation prompt functions", () => {
+describe("prompts subpath exports", () => {
+  it("exports citation prompt constants", () => {
+    expect(typeof CITATION_PROMPT).toBe("string");
+    expect(typeof CITATION_DATA_START_DELIMITER).toBe("string");
+    expect(typeof CITATION_DATA_END_DELIMITER).toBe("string");
+  });
+
+  it("exports citation prompt functions", () => {
     expect(typeof wrapSystemCitationPrompt).toBe("function");
     expect(typeof wrapCitationPrompt).toBe("function");
   });

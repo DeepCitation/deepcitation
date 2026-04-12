@@ -1102,15 +1102,18 @@ function runPageCollapseGhostAnimation(
     fill: "both",
   });
 
-  // Popover content reveals quickly — collapse is decisive, page should snap in.
+  // Content reveal: holds at floor through GHOST_OFFSET_COLLAPSE_MID (0.65) while
+  // the ghost covers vertical travel, then ramps 0.03→0.35 by GHOST_OFFSET_COLLAPSE_PEAK
+  // (0.88) as the ghost fades to GHOST_OPACITY_COLLAPSE_PEAK (0.3), then finishes 0.35→1.0
+  // after the ghost exits. Revealing earlier caused jank: large vertical travel (e.g.
+  // spotlight in a tall page → expanded-keyhole container near the top) meant the
+  // destination content became visible before the ghost had covered it.
   if (popoverRoot) {
     const contentAnim = popoverRoot.animate(
       [
         { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR },
-        { opacity: 0.15, offset: 0.2 },
-        { opacity: 0.5, offset: 0.45 },
-        { opacity: 0.85, offset: 0.7 },
-        { opacity: 1, offset: 0.85 },
+        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: GHOST_OFFSET_COLLAPSE_MID },
+        { opacity: 0.35, offset: GHOST_OFFSET_COLLAPSE_PEAK },
         { opacity: 1 },
       ],
       { duration: PAGE_COLLAPSE_GHOST_MS, easing: EASE_CONTENT_REVEAL, fill: "forwards" },

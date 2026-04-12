@@ -282,7 +282,8 @@ describe("snippets reference real SDK exports", () => {
     // Import the real SDK to check exports exist
     const sdk = await import("../index");
 
-    // Functions that snippets reference
+    // Functions that snippets reference from the main "deepcitation" entry
+    // (wrapCitationPrompt is in "deepcitation/prompts"; DeepCitation is in "deepcitation/client")
     const expectedFunctions = [
       "stripCitations",
       "extractVisibleText",
@@ -290,7 +291,6 @@ describe("snippets reference real SDK exports", () => {
       "getCitationKey",
       "replaceCitationMarkers",
       "parseCitationData",
-      "wrapCitationPrompt",
       "getAllCitationsFromLlmOutput",
       "getCitationStatus",
     ];
@@ -301,10 +301,10 @@ describe("snippets reference real SDK exports", () => {
     }
   });
 
-  it("DeepCitation class is exported", async () => {
-    const sdk = await import("../index");
-    expect(sdk).toHaveProperty("DeepCitation");
-    expect(typeof sdk.DeepCitation).toBe("function");
+  it("DeepCitation class is exported from deepcitation/client", async () => {
+    const client = await import("../client/index");
+    expect(client).toHaveProperty("DeepCitation");
+    expect(typeof client.DeepCitation).toBe("function");
   });
 
   it("all referenced types exist as type exports", async () => {
