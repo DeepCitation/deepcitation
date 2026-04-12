@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
-import { buildGhostTargetFromViewport } from "../react/viewTransition";
 import type { GhostSnapshot } from "../react/viewTransition";
+import { buildGhostTargetFromViewport } from "../react/viewTransition";
 
 // Regression guard for the miss/not_found ghost scale-up bug (fix/miss-keyhole-page-expand-scale).
 //
@@ -44,10 +44,7 @@ function makeSnapshot(opts: {
 }
 
 /** Build a document fragment with a container + img that returns the given rects. */
-function makeRoot(
-  containerRect: DOMRect,
-  imgRect: DOMRect,
-): { root: HTMLElement; cleanup: () => void } {
+function makeRoot(containerRect: DOMRect, imgRect: DOMRect): { root: HTMLElement; cleanup: () => void } {
   const root = document.createElement("div");
   const container = document.createElement("div");
   container.setAttribute("data-dc-inline-expanded", "");
@@ -78,8 +75,8 @@ describe("buildGhostTargetFromViewport — ghost dimensions invariant", () => {
 
     expect(result).not.toBeNull();
     // Ghost must match keyhole dimensions, NOT the visible page area (800×600)
-    expect(result!.ghostRect.width).toBe(300);
-    expect(result!.ghostRect.height).toBe(120);
+    expect(result?.ghostRect.width).toBe(300);
+    expect(result?.ghostRect.height).toBe(120);
   });
 
   test("ghostRect image center-of-mass lands on the visible page center", () => {
@@ -102,7 +99,9 @@ describe("buildGhostTargetFromViewport — ghost dimensions invariant", () => {
     cleanup();
 
     expect(result).not.toBeNull();
-    const { ghostRect } = result!;
+    if (result == null) return; // narrow for TypeScript — expect above handles failure
+
+    const { ghostRect } = result;
 
     // Page center: (200 + 600/2, 150 + 400/2) = (500, 350)
     const pageCX = 500;
@@ -131,10 +130,10 @@ describe("buildGhostTargetFromViewport — ghost dimensions invariant", () => {
 
     expect(result).not.toBeNull();
     // Visible intersection = imgRect (fully within container)
-    expect(result!.markerRect.left).toBe(100);
-    expect(result!.markerRect.top).toBe(100);
-    expect(result!.markerRect.width).toBe(300);
-    expect(result!.markerRect.height).toBe(200);
+    expect(result?.markerRect.left).toBe(100);
+    expect(result?.markerRect.top).toBe(100);
+    expect(result?.markerRect.width).toBe(300);
+    expect(result?.markerRect.height).toBe(200);
   });
 
   test("returns null when img rect is not visible", () => {
@@ -166,6 +165,6 @@ describe("buildGhostTargetFromViewport — ghost dimensions invariant", () => {
     cleanup();
 
     expect(result).not.toBeNull();
-    expect(result!.spotlightRect).toBeNull();
+    expect(result?.spotlightRect).toBeNull();
   });
 });
