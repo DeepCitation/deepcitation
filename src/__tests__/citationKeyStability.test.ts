@@ -92,6 +92,33 @@ describe("getCitationKey URL citations", () => {
   });
 });
 
+describe("getCitationKey alias resolution", () => {
+  it("old-CLI fullPhrase/anchorText aliases hash identically to canonical names", () => {
+    // Old CLI emitted fullPhrase/anchorText; canonical names are sourceContext/sourceMatch.
+    // resolveField must translate them so the same content produces the same key.
+    const legacyCli = {
+      type: "document",
+      fullPhrase: "Revenue grew 45% year-over-year to $2.3B",
+      anchorText: "$2.3B",
+      pageNumber: 2,
+      lineIds: [20],
+    } as unknown as DocumentCitation;
+
+    expect(getCitationKey(legacyCli)).toBe(getCitationKey(baseCitation));
+  });
+
+  it("old-CLI citations do not hash as empty-citation key (regression guard)", () => {
+    const legacyCli = {
+      type: "document",
+      fullPhrase: "Some context",
+      anchorText: "context",
+    } as unknown as DocumentCitation;
+    const emptyKey = getCitationKey({ type: "document" } as DocumentCitation);
+
+    expect(getCitationKey(legacyCli)).not.toBe(emptyKey);
+  });
+});
+
 describe("getCitationKey regression fixtures", () => {
   // Frozen hash outputs. If these break, the hash algorithm changed —
   // which breaks all existing injected HTML files referencing these keys.
