@@ -75,7 +75,7 @@ jobs:
           npm config get "//registry.npmjs.org/:_authToken" 2>&1 || true
 
       - name: Publish to npm
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance --loglevel=verbose
 
       - name: Update release description
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
