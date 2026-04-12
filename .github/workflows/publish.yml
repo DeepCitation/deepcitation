@@ -49,12 +49,8 @@ jobs:
       - name: Build package
         run: bun run build
 
-      - name: Authenticate with npm via OIDC
-        run: |
-          OIDC_TOKEN=$(curl -sS \
-            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm" | jq -r '.value')
-          npm config set "//registry.npmjs.org/:_authToken" "${OIDC_TOKEN}"
+      - name: Clear npm token (use OIDC trusted publishing)
+        run: npm config delete "//registry.npmjs.org/:_authToken"
 
       - name: Publish to npm
         run: npm publish --access public --provenance
