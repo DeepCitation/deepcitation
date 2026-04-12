@@ -46,7 +46,7 @@ The key insight: AG-UI's `STATE_DELTA` events let you push verification results 
 
 ```typescript
 import { EventType } from "@ag-ui/core";
-import { DeepCitation, extractVisibleText } from "deepcitation";
+import { DeepCitation, extractVisibleText } from "deepcitation/client";
 import { wrapCitationPrompt } from "deepcitation/prompts";
 
 const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });

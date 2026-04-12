@@ -46,7 +46,7 @@ export interface GenerateHtmlReportOptions {
  * (e.g. "**gov** [5], **industry** [5], **third parties** [5]" → "**gov** [5], **industry**, **third parties**")
  * without removing legitimate cross-paragraph citations.
  */
-function deduplicateCloseMarkers(text: string, window = 150): string {
+function deduplicateCloseMarkers(text: string, window = 150 /* ~1–2 sentences of prose */): string {
   const lastSeen = new Map<string, number>();
   return safeReplace(text, /\[(\d+)\]/g, (match, n, offset: number) => {
     const prev = lastSeen.get(n);
