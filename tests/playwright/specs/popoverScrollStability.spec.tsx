@@ -1,12 +1,7 @@
 /**
- * Regression test: popover is dismissed when the page scroll container scrolls.
- *
- * When a consumer provides a [data-dc-portal-root] element (a position:fixed
- * full-viewport overlay), the popover is viewport-pinned regardless of its own
- * position:absolute CSS — the containing block is the fixed overlay, not the
- * scroll container. Rather than trying to reposition in real time, the popover
- * dismisses when the page scroll container fires a scroll event (matching
- * Linear / Notion / GitHub behavior).
+ * Regression test: popover should scroll with the page content — it moves with
+ * the trigger element (position:absolute inside the scroll container), NOT
+ * pinned to the viewport.
  *
  * Uses a fixed-height scrollable container (NOT window.scrollBy) so the test
  * is immune to parallel-test pollution from other specs that scroll the window.
@@ -48,7 +43,7 @@ const pageImagesByAttachmentId = {
   ],
 };
 
-test("popover dismisses when the page scroll container scrolls", async ({ mount, page }) => {
+test("popover scrolls with page content (position:absolute in scroll container)", async ({ mount, page }) => {
   // Mount inside a scrollable container with a fixed viewport height.
   // We scroll THIS container (not the window) so the test is isolated
   // from parallel workers that may scroll the window independently.
@@ -75,18 +70,32 @@ test("popover dismisses when the page scroll container scrolls", async ({ mount,
   const popover = page.getByRole("dialog");
   await expect(popover).toBeVisible();
 
+  // Record viewport-relative position before scrolling
+  const beforeBox = await popover.boundingBox();
+  expect(beforeBox).not.toBeNull();
+
+  const scrollAmount = 200;
+
   // Scroll the container (not the window) by 200px
   await page.evaluate(
     ({ id, px }) => {
       const container = document.getElementById(id)!;
       container.scrollTop = px;
     },
-    { id: scrollContainerId, px: 200 },
+    { id: scrollContainerId, px: scrollAmount },
   );
-  await page.waitForTimeout(100); // let the scroll event and React state flush
+  await page.waitForTimeout(100); // let any rAF / ResizeObserver settle
 
-  // Popover must be dismissed after the scroll container scrolls.
-  // This covers the [data-dc-portal-root] scenario where the popover portals into
-  // a position:fixed overlay and would otherwise stay pinned to the viewport.
-  await expect(popover).not.toBeVisible();
+  // Record viewport-relative position after scrolling
+  const afterBox = await popover.boundingBox();
+  expect(afterBox).not.toBeNull();
+
+  // With position:absolute inside the scroll container, the popover scrolls
+  // with the page. Viewport Y should shift by approximately the scroll amount.
+  const yDelta = beforeBox!.y - afterBox!.y;
+  expect(yDelta).toBeGreaterThanOrEqual(scrollAmount - 5);
+  expect(yDelta).toBeLessThanOrEqual(scrollAmount + 5);
+
+  // Horizontal position should be unchanged
+  expect(Math.abs(afterBox!.x - beforeBox!.x)).toBeLessThanOrEqual(2);
 });

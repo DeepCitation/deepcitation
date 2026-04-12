@@ -119,26 +119,12 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
     // fixed on the viewport.  We look for [data-radix-scroll-area-viewport]
     // first (host apps using Radix ScrollArea expose this attribute), then fall
     // back to the nearest overflow:scroll/auto ancestor, then document.body.
-    //
-    // Exception: if the consumer has placed a [data-dc-portal-root] element on
-    // the page (a position:fixed overlay outside any scroll container), use it
-    // instead.  This avoids the Radix viewport's overflow:hidden/scroll clipping
-    // the popover when it extends beyond the scroll area's bounds (e.g. above a
-    // sticky/fixed header).  Coordinate calculation still works because the fixed
-    // root has getBoundingClientRect() == {top:0,left:0}, so trigger coords are
-    // passed through unchanged as viewport-relative values.
     const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
     React.useLayoutEffect(() => {
       if (typeof window === "undefined") return;
       const trigger = triggerRef.current;
       if (!trigger) return;
       let cleanupPosition: (() => void) | undefined;
-      // Prefer an explicit portal root provided by the consumer to escape overflow clipping.
-      const dedicatedPortal = document.querySelector("[data-dc-portal-root]") as HTMLElement | null;
-      if (dedicatedPortal) {
-        setPortalContainer(dedicatedPortal);
-        return;
-      }
       // Prefer the Radix ScrollArea viewport
       const radixVP = trigger.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null;
       if (radixVP) {
@@ -283,19 +269,6 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
     // via its own desktop mousedown and mobile touchstart handlers. These provide
     // richer context (overlay awareness, tap-vs-scroll detection) that a generic
     // handler here cannot replicate.
-
-    // Close the popover when the page scroll container scrolls.
-    // When the consumer provides a [data-dc-portal-root] element (a position:fixed
-    // full-viewport overlay), the popover is effectively viewport-pinned — the trigger
-    // scrolls away but the popover stays put. Dismissing on scroll is the correct
-    // behavior (used by Linear, Notion, GitHub): the trigger has moved, so close.
-    React.useEffect(() => {
-      if (!open || !isMounted) return;
-      const pageEl = findPageScrollEl(triggerRef.current);
-      const dismiss = () => onOpenChangeRef.current?.(false);
-      pageEl.addEventListener("scroll", dismiss, { passive: true });
-      return () => pageEl.removeEventListener("scroll", dismiss);
-    }, [open, isMounted, triggerRef]);
 
     React.useEffect(() => {
       if (!open || !isMounted) return;
