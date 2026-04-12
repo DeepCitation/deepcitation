@@ -1,6 +1,7 @@
 import type React from "react";
 import { useLayoutEffect, useState } from "react";
 import { lockSide } from "../../shared/popoverGeometry.js";
+import { findPageScrollEl } from "../../shared/scroll.js";
 
 /**
  * Computes the optimal popover side (top or bottom) once when the popover
@@ -25,7 +26,12 @@ export function useLockedPopoverSide(
   useLayoutEffect(() => {
     if (!isOpen || !triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    setSide(lockSide(rect.bottom, rect.top, window.innerHeight, preferredSide));
+    // Compute the scroll container's top edge so lockSide knows how much space
+    // above the trigger is actually usable (excluding any fixed header above
+    // the scroll area).
+    const scrollEl = findPageScrollEl(triggerRef.current);
+    const containerTop = Math.max(0, scrollEl.getBoundingClientRect().top);
+    setSide(lockSide(rect.bottom, rect.top, window.innerHeight, preferredSide, undefined, containerTop));
   }, [isOpen, preferredSide]);
 
   return side;

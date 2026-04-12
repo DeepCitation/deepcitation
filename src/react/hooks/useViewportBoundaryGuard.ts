@@ -1,6 +1,7 @@
 import type React from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { guardClamp } from "../../shared/popoverGeometry.js";
+import { findPageScrollEl } from "../../shared/scroll.js";
 import { BLINK_ENTER_TOTAL_MS, GUARD_MAX_WIDTH_VAR, VIEWPORT_MARGIN_PX } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "../scrollLock.js";
@@ -30,11 +31,26 @@ export function useViewportBoundaryGuard(
   isOpen: boolean,
   popoverViewState: PopoverViewState,
   popoverContentRef: React.RefObject<HTMLElement | null>,
+  triggerRef: React.RefObject<HTMLElement | null>,
 ): void {
   const prevViewStateRef = useRef<PopoverViewState | null>(null);
   const rafIdRef = useRef<number>(0);
   const timerIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const transitionEndsAtRef = useRef(0);
+  // Top edge of the scroll container (e.g. header height). Cached when the
+  // popover opens so all clamp calls use the same reference point.
+  const containerTopRef = useRef(0);
+
+  // Cache the scroll container's top edge (= header height) when the popover
+  // opens. Stable for the duration of the open session; re-read on re-open.
+  useLayoutEffect(() => {
+    if (!isOpen || !triggerRef.current) {
+      containerTopRef.current = 0;
+      return;
+    }
+    const scrollEl = findPageScrollEl(triggerRef.current);
+    containerTopRef.current = Math.max(0, scrollEl.getBoundingClientRect().top);
+  }, [isOpen, triggerRef]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity
   useLayoutEffect(() => {
@@ -59,7 +75,7 @@ export function useViewportBoundaryGuard(
       // Skip vertical on view-state transitions: vertical correction during the
       // FLIP animation causes oscillation. The safety timer applies full clamping
       // (including vertical) after SETTLE_MS once the animation has finished.
-      clamp(el, true);
+      clamp(el, true, containerTopRef.current);
       return;
     }
 
@@ -70,7 +86,7 @@ export function useViewportBoundaryGuard(
       return;
     }
 
-    clamp(el);
+    clamp(el, false, containerTopRef.current);
   }, [isOpen, popoverViewState]);
 
   // Post-render re-clamp after sibling hooks settle.
@@ -85,13 +101,13 @@ export function useViewportBoundaryGuard(
     // Immediate rAF: horizontal-only to avoid vertical oscillation during animation.
     rafIdRef.current = requestAnimationFrame(() => {
       const current = popoverContentRef.current;
-      if (current) clamp(current, true);
+      if (current) clamp(current, true, containerTopRef.current);
     });
 
     // Safety timer: full clamp (including vertical) after animation has settled.
     const safetyTimer = setTimeout(() => {
       const current = popoverContentRef.current;
-      if (current) clamp(current);
+      if (current) clamp(current, false, containerTopRef.current);
     }, SETTLE_MS);
 
     return () => {
@@ -110,7 +126,7 @@ export function useViewportBoundaryGuard(
     const debouncedClamp = () => {
       if (timerIdRef.current !== null) clearTimeout(timerIdRef.current);
       const delay = Date.now() < transitionEndsAtRef.current ? SETTLE_MS : 0;
-      timerIdRef.current = setTimeout(() => clamp(el), delay);
+      timerIdRef.current = setTimeout(() => clamp(el, false, containerTopRef.current), delay);
     };
     const ro = new ResizeObserver(debouncedClamp);
     ro.observe(el);
@@ -118,7 +134,7 @@ export function useViewportBoundaryGuard(
     let geometryRafId = 0;
     const onGeometryChange = () => {
       cancelAnimationFrame(geometryRafId);
-      geometryRafId = requestAnimationFrame(() => clamp(el));
+      geometryRafId = requestAnimationFrame(() => clamp(el, false, containerTopRef.current));
     };
     window.addEventListener("resize", onGeometryChange, { passive: true });
     window.addEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, onGeometryChange as EventListener);
@@ -145,19 +161,20 @@ export function useViewportBoundaryGuard(
  * @param skipVertical  When true, only horizontal (dx) is corrected.
  *   Pass true during live animation frames to prevent oscillation — the
  *   safety timer calls with skipVertical=false after animation settles.
+ * @param topInset  Minimum viewport Y the popover top may reach (e.g. the
+ *   scroll container's top edge when a fixed header sits above it). Defaults to 0.
  *
  * Horizontal uses VIEWPORT_MARGIN_PX (16px) to avoid page-chrome clipping.
- * Vertical uses 0px margin (flush): vertical overflow is far less common and
- * the popover's own max-height already keeps it within the viewport.
+ * Vertical top uses topInset (defaults to 0 = viewport top).
  */
-function clamp(el: HTMLElement, skipVertical = false): void {
+function clamp(el: HTMLElement, skipVertical = false, topInset = 0): void {
   const vw = getVisibleViewportWidth();
   applyGuardMaxWidth(el, vw);
 
   el.style.translate = "";
   const rect = el.getBoundingClientRect();
 
-  const { dx, dy } = guardClamp(rect, vw, window.innerHeight, skipVertical, VIEWPORT_MARGIN_PX);
+  const { dx, dy } = guardClamp(rect, vw, window.innerHeight, skipVertical, VIEWPORT_MARGIN_PX, topInset);
 
   if (dx !== 0 || dy !== 0) {
     el.style.translate = dy !== 0 ? `${dx}px ${dy}px` : `${dx}px`;
