@@ -363,6 +363,9 @@ async function runSingleSource(
   } else {
     console.log(`Found ${verifications.length} citation(s):\n`);
 
+    // verifiedMatchSnippet is the legacy field name (renamed to verifiedSourceContext)
+    type LegacyVerification = (typeof verifications)[number][1] & { verifiedMatchSnippet?: string };
+
     for (const [key, verification] of verifications) {
       const statusIndicator = getVerificationTextIndicator(verification);
 
@@ -377,8 +380,6 @@ async function runSingleSource(
         );
       }
 
-      // verifiedMatchSnippet is the legacy field name (renamed to verifiedSourceContext)
-      type LegacyVerification = typeof verification & { verifiedMatchSnippet?: string };
       const foundSnippet = verification.verifiedSourceContext
         || (verification as LegacyVerification).verifiedMatchSnippet;
       if (foundSnippet) {
@@ -482,18 +483,15 @@ export async function runWorkflow(providerName: string, streamLlm: StreamLlmFn) 
     sources = SOURCES;
   } else if (sourceArg != null) {
     const parsedUrl = (() => { try { return new URL(sourceArg); } catch { return null; } })();
+    const resolvedPath = resolve(sourceArg);
     if (parsedUrl?.protocol === "http:" || parsedUrl?.protocol === "https:") {
-      // Direct URL argument
       sources = [{ type: "url", url: sourceArg, label: sourceArg }];
-    } else if (existsSync(resolve(sourceArg))) {
-      // Local file path argument
-      const filePath = resolve(sourceArg);
-      const filename = basename(filePath);
+    } else if (existsSync(resolvedPath)) {
+      const filename = basename(resolvedPath);
       const ext = filename.split(".").pop()?.toLowerCase() ?? "";
       const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(ext);
-      sources = [{ type: isImage ? "image" : "pdf", path: filePath, filename, label: filename }];
+      sources = [{ type: isImage ? "image" : "pdf", path: resolvedPath, filename, label: filename }];
     } else {
-      // Numeric index into predefined SOURCES
       const idx = Number(sourceArg);
       const s = SOURCES[idx];
       if (!s) throw new Error(`Invalid source "${sourceArg}". Expected: a URL, a file path, a number 0-${SOURCES.length - 1}, or "all"`);
