@@ -47,6 +47,10 @@ export function getCitationKey(citation: Citation): string {
 /**
  * Returns a deterministic content-hash key for a verification.
  *
+ * Verifications are always server-generated responses (never raw LLM output),
+ * so their fields always use canonical names — `resolveField` alias mapping is
+ * not needed here and must not be added for "symmetry" with getCitationKey.
+ *
  * @param verification - The verification to compute a key for
  * @returns A deterministic 16-char hex key
  */

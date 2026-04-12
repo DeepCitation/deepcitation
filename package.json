@@ -185,10 +185,7 @@
       "default": "./lib/react/index.js"
     },
     "./types": {
-      "types": "./lib/types/index.d.ts",
-      "import": "./lib/types/index.js",
-      "require": "./lib/types/index.cjs",
-      "default": "./lib/types/index.js"
+      "types": "./lib/types/index.d.ts"
     },
     "./terminal": {
       "types": "./lib/rendering/terminal/terminalRenderer.d.ts",
