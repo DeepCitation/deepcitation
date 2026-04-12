@@ -43,6 +43,18 @@ def _result_for(html: str, n: int = 1, anchor: str = "label", full_phrase: str =
     return results[0]
 
 
+def _new_format_cit(n: int, anchor: str, full_phrase: str = "", status: str = "found") -> dict:
+    """Build a citation entry using the post-#977 field names (sourceMatch/sourceContext)."""
+    return {
+        "citation": {
+            "citationNumber": n,
+            "sourceMatch": anchor,
+            "sourceContext": full_phrase,
+        },
+        "status": status,
+    }
+
+
 # ── Pattern 3: List-item PLACEMENT false positives ────────────────────────────
 
 class TestListItemPlacementFP:
@@ -187,22 +199,12 @@ class TestFieldNameRename:
       - HTML produced after #977   (sourceMatch/sourceContext) still grades correctly
     """
 
-    def _new_format_cit(self, n: int, anchor: str, full_phrase: str = "", status: str = "found") -> dict:
-        return {
-            "citation": {
-                "citationNumber": n,
-                "sourceMatch": anchor,
-                "sourceContext": full_phrase,
-            },
-            "status": status,
-        }
-
     def test_new_field_names_read_anchor_correctly(self):
         """sourceMatch must be used as the anchor, not fall back to empty string."""
         anchor = "alignment cycle"
         full_phrase = "The alignment cycle consists of forward and backward phases"
         html = f'<p>The alignment cycle is <span data-citation-key="{KEY}">{anchor}</span>.</p>'
-        cit_data = {KEY: self._new_format_cit(1, anchor, full_phrase)}
+        cit_data = {KEY: _new_format_cit(1, anchor, full_phrase)}
         results = extract_citations(html, cit_data)
         assert len(results) == 1
         r = results[0]
@@ -214,7 +216,7 @@ class TestFieldNameRename:
         anchor = "alignment cycle"
         full_phrase = "The alignment cycle consists of forward and backward phases"
         html = f'<p>The alignment cycle is <span data-citation-key="{KEY}">{anchor}</span>.</p>'
-        cit_data = {KEY: self._new_format_cit(1, anchor, full_phrase)}
+        cit_data = {KEY: _new_format_cit(1, anchor, full_phrase)}
         results = extract_citations(html, cit_data)
         r = results[0]
         assert r["is_substring"] is True, f"Expected is_substring=True, got {r['is_substring']}"
@@ -225,7 +227,7 @@ class TestFieldNameRename:
         anchor = "behave in line with human intentions"  # 6 words
         full_phrase = "AI systems behave in line with human intentions and values"
         html = f'<p>AI systems <span data-citation-key="{KEY}">{anchor}</span>.</p>'
-        cit_data = {KEY: self._new_format_cit(1, anchor, full_phrase)}
+        cit_data = {KEY: _new_format_cit(1, anchor, full_phrase)}
         results = extract_citations(html, cit_data)
         r = results[0]
         assert r["anchor_words"] == 6, f"Expected 6 words, got {r['anchor_words']}"
@@ -251,7 +253,7 @@ class TestFieldNameRename:
             f'<p>The alignment cycle is '
             f'<span data-dc-display-label="{anchor}" data-citation-key="{KEY}">{anchor}</span>.</p>'
         )
-        cit_data = {KEY: self._new_format_cit(1, anchor, full_phrase)}
+        cit_data = {KEY: _new_format_cit(1, anchor, full_phrase)}
         results = extract_citations(html, cit_data)
         assert len(results) == 1
         r = results[0]
