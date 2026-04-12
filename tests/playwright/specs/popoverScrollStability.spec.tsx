@@ -1,7 +1,7 @@
 /**
- * Regression test: popover should stay at its document position when the page
- * scrolls — it scrolls with the content (position:absolute inside the scroll
- * container), NOT fixed to the viewport.
+ * Regression test: popover should scroll with the page content — it moves with
+ * the trigger element (position:absolute inside the scroll container), NOT
+ * pinned to the viewport.
  *
  * Uses a fixed-height scrollable container (NOT window.scrollBy) so the test
  * is immune to parallel-test pollution from other specs that scroll the window.
