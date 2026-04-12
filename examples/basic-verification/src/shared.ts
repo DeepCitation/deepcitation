@@ -377,8 +377,10 @@ async function runSingleSource(
         );
       }
 
+      // verifiedMatchSnippet is the legacy field name (renamed to verifiedSourceContext)
+      type LegacyVerification = typeof verification & { verifiedMatchSnippet?: string };
       const foundSnippet = verification.verifiedSourceContext
-        || (verification as any).verifiedMatchSnippet;
+        || (verification as LegacyVerification).verifiedMatchSnippet;
       if (foundSnippet) {
         console.log(
           `  🔍 Found: "${foundSnippet.slice(0, 100)}${foundSnippet.length > 100 ? "..." : ""}"`,
@@ -479,7 +481,8 @@ export async function runWorkflow(providerName: string, streamLlm: StreamLlmFn) 
     // Run all pre-filled sources
     sources = SOURCES;
   } else if (sourceArg != null) {
-    if (sourceArg.startsWith("http://") || sourceArg.startsWith("https://")) {
+    const parsedUrl = (() => { try { return new URL(sourceArg); } catch { return null; } })();
+    if (parsedUrl?.protocol === "http:" || parsedUrl?.protocol === "https:") {
       // Direct URL argument
       sources = [{ type: "url", url: sourceArg, label: sourceArg }];
     } else if (existsSync(resolve(sourceArg))) {

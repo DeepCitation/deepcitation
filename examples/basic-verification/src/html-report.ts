@@ -17,6 +17,7 @@ import type { AttachmentAssets } from "../../../src/types/verification.js";
 
 // CLI internals -- direct source imports (monorepo-only, not public API)
 import { markdownToHtml } from "../../../src/cli/markdownToHtml.js";
+import { safeReplace } from "../../../src/utils/regexSafety.js";
 import {
   buildCitationMaps,
   injectCdnRuntime,
@@ -47,7 +48,7 @@ export interface GenerateHtmlReportOptions {
  */
 function deduplicateCloseMarkers(text: string, window = 150): string {
   const lastSeen = new Map<string, number>();
-  return text.replace(/\[(\d+)\]/g, (match, n, offset: number) => {
+  return safeReplace(text, /\[(\d+)\]/g, (match, n, offset: number) => {
     const prev = lastSeen.get(n);
     if (prev !== undefined && offset - prev <= window) return "";
     lastSeen.set(n, offset);

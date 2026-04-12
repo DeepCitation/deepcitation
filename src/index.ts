@@ -4,15 +4,16 @@
  * Exports are organized by use case. See INTEGRATION.md "Quick Reference"
  * for recipe-based guidance on which functions to use.
  *
- * - Core API: DeepCitation client, getAllCitationsFromLlmOutput, stripCitations, getCitationKey
+ * - Core API: getAllCitationsFromLlmOutput, stripCitations, getCitationKey, formatters
  * - Display Helpers: replaceCitationMarkers, extractVisibleText, parseCitationResponse
- * - Prompts: wrapCitationPrompt, wrapSystemCitationPrompt, format constants
+ * - Client: DeepCitation class — use `deepcitation/client`
+ * - Prompts: wrapCitationPrompt, format constants — use `deepcitation/prompts`
  * - Advanced: groupCitationsBy*, field normalization, LLM workarounds
  *
  * @packageDocumentation
  */
 
-// Client Errors (value exports; DeepCitation class is in deepcitation/client)
+// Client errors — DeepCitation class itself is in deepcitation/client
 export {
   AuthenticationError,
   DeepCitationError,
