@@ -1,9 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import {
-  CITATION_X_PADDING,
-  CITATION_Y_PADDING,
-  sha1Hash,
-} from "../index.js";
+import { CITATION_X_PADDING, CITATION_Y_PADDING, sha1Hash } from "../index.js";
 import {
   CITATION_DATA_END_DELIMITER,
   CITATION_DATA_START_DELIMITER,

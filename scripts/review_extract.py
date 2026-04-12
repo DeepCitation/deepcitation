@@ -129,8 +129,8 @@ def extract_citations(html: str, cit_data: dict | None = None) -> list[dict]:
 
     for key, cit in cit_data.items():
         c = cit.get("citation", {})
-        anchor = c.get("anchorText", "")
-        full_phrase = c.get("fullPhrase", "")
+        anchor = c.get("sourceMatch", "") or c.get("anchorText", "")
+        full_phrase = c.get("sourceContext", "") or c.get("fullPhrase", "")
         status = cit.get("status", "unknown")
         n = c.get("citationNumber", "?")
         span = span_map.get(key, {})
