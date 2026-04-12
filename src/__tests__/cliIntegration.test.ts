@@ -338,7 +338,22 @@ describe("verify command", () => {
     }
     // If spec file doesn't exist in built output, that's also acceptable (exit 1 with message)
   });
+});
 
+// ── removed / deprecated commands ────────────────────────────────
+
+describe("removed commands", () => {
+  it("cite prints unknown command and exits 1", () => {
+    const r = run(["cite"]);
+    expect(r.exitCode).toBe(1);
+    expect(r.stderr).toContain("Unknown command");
+  });
+
+  it("top-level env prints unknown command and exits 1", () => {
+    const r = run(["env"]);
+    expect(r.exitCode).toBe(1);
+    expect(r.stderr).toContain("Unknown command");
+  });
 });
 
 // ── inject command ────────────────────────────────────────────────
