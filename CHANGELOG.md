@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-04-12
+
+### Performance
+
+- **~45% main-entry bundle reduction** — `DeepCitationClient` and all prompt helpers are no longer bundled into `deepcitation` (the main entry). Import from `deepcitation/client` and `deepcitation/prompts` directly; the main entry now covers only core parsing/verification. (#420)
+
+### Fixed
+
+- **`getCitationKey` field aliases** — resolves old-CLI field names (`anchorText`, `fullPhrase`) so citations produced by older CLI versions are keyed correctly without manual migration. (#419)
+
 ### Removed ⚠️ Breaking CLI changes
 
 - **`deepcitation cite`** removed — use `deepcitation verify --html <file>` instead.
