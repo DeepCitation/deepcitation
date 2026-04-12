@@ -284,6 +284,19 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
     // richer context (overlay awareness, tap-vs-scroll detection) that a generic
     // handler here cannot replicate.
 
+    // Close the popover when the page scroll container scrolls.
+    // When the consumer provides a [data-dc-portal-root] element (a position:fixed
+    // full-viewport overlay), the popover is effectively viewport-pinned — the trigger
+    // scrolls away but the popover stays put. Dismissing on scroll is the correct
+    // behavior (used by Linear, Notion, GitHub): the trigger has moved, so close.
+    React.useEffect(() => {
+      if (!open || !isMounted) return;
+      const pageEl = findPageScrollEl(triggerRef.current);
+      const dismiss = () => onOpenChangeRef.current?.(false);
+      pageEl.addEventListener("scroll", dismiss, { passive: true });
+      return () => pageEl.removeEventListener("scroll", dismiss);
+    }, [open, isMounted, triggerRef]);
+
     React.useEffect(() => {
       if (!open || !isMounted) return;
 
