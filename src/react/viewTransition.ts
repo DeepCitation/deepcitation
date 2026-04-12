@@ -1102,17 +1102,17 @@ function runPageCollapseGhostAnimation(
     fill: "both",
   });
 
-  // Content reveal: stays dim until the ghost has almost landed, then cross-fades
-  // with the departing ghost. Ghost arrives at GHOST_OFFSET_COLLAPSE_PEAK (0.88);
-  // content reaches 0.35 at that same offset, then finishes to 1.0 as ghost fades.
-  // Revealing earlier caused jank: large vertical travel (e.g. spotlight in a tall
-  // page → expanded-keyhole container near the top) meant the destination content
-  // became visible before the ghost had covered it.
+  // Content reveal: holds at floor through GHOST_OFFSET_COLLAPSE_MID (0.65) while
+  // the ghost covers vertical travel, then ramps 0.03→0.35 by GHOST_OFFSET_COLLAPSE_PEAK
+  // (0.88) as the ghost fades to GHOST_OPACITY_COLLAPSE_PEAK (0.3), then finishes 0.35→1.0
+  // after the ghost exits. Revealing earlier caused jank: large vertical travel (e.g.
+  // spotlight in a tall page → expanded-keyhole container near the top) meant the
+  // destination content became visible before the ghost had covered it.
   if (popoverRoot) {
     const contentAnim = popoverRoot.animate(
       [
         { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR },
-        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: 0.65 },
+        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: GHOST_OFFSET_COLLAPSE_MID },
         { opacity: 0.35, offset: GHOST_OFFSET_COLLAPSE_PEAK },
         { opacity: 1 },
       ],

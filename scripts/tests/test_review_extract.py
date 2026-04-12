@@ -243,6 +243,22 @@ class TestFieldNameRename:
         assert r["anchor"] == anchor
         assert r["is_substring"] is True
 
+    def test_new_field_names_placement_ok(self):
+        """PLACEMENT must not fire when claimText precedes the span with new-format citations."""
+        anchor = "alignment cycle"
+        full_phrase = "The alignment cycle consists of forward and backward phases"
+        html = (
+            f'<p>The alignment cycle is '
+            f'<span data-dc-display-label="{anchor}" data-citation-key="{KEY}">{anchor}</span>.</p>'
+        )
+        cit_data = {KEY: self._new_format_cit(1, anchor, full_phrase)}
+        results = extract_citations(html, cit_data)
+        assert len(results) == 1
+        r = results[0]
+        assert "PLACEMENT" not in r["issues"], (
+            f"Expected no PLACEMENT for new-format citation with preceding claimText, got issues={r['issues']}"
+        )
+
 
 # ── Sanity: unfixed patterns remain correctly handled ────────────────────────
 
