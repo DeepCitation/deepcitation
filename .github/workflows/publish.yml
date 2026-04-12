@@ -53,32 +53,11 @@ jobs:
       - name: Build package
         run: bun run build
 
-      - name: Debug npm auth state
-        run: |
-          echo "=== npm version ==="
-          npm --version
-          echo "=== NPM_CONFIG_USERCONFIG ==="
-          echo "$NPM_CONFIG_USERCONFIG"
-          echo "=== userconfig contents ==="
-          cat "$NPM_CONFIG_USERCONFIG" 2>/dev/null || echo "(no file)"
-          echo "=== _authToken value ==="
-          npm config get "//registry.npmjs.org/:_authToken" 2>&1 || true
-          echo "=== OIDC env ==="
-          echo "GITHUB_ACTIONS=$GITHUB_ACTIONS"
-          echo "ACTIONS_ID_TOKEN_REQUEST_URL present: $([[ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]] && echo yes || echo no)"
-
       - name: Clear npm token (use OIDC trusted publishing)
         run: npm config delete "//registry.npmjs.org/:_authToken"
 
-      - name: Debug npm auth state after clear
-        run: |
-          echo "=== userconfig contents after delete ==="
-          cat "$NPM_CONFIG_USERCONFIG" 2>/dev/null || echo "(no file)"
-          echo "=== _authToken value after delete ==="
-          npm config get "//registry.npmjs.org/:_authToken" 2>&1 || true
-
       - name: Publish to npm
-        run: npm publish --access public --provenance --loglevel=verbose
+        run: npm publish --access public --provenance
 
       - name: Update release description
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
