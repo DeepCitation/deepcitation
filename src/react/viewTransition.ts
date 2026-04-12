@@ -142,7 +142,8 @@ export function startEvidenceViewTransition(
   transition.finished.then(cleanup).catch(cleanup);
 }
 
-type GhostSnapshot = {
+/** @internal — exported for unit testing only, not part of the public API */
+export type GhostSnapshot = {
   viewportRect: DOMRect;
   imageSrc: string;
   imageOffsetLeft: number;
@@ -334,8 +335,10 @@ function buildGhostTarget(
  * Fallback ghost target for miss/not_found states where no annotation marker
  * exists. Maps the keyhole's visible viewport onto the expanded page's visible
  * image area — the ghost lands on whatever region the user was already viewing.
+ *
+ * @internal — exported for unit testing only, not part of the public API
  */
-function buildGhostTargetFromViewport(root: ParentNode, snapshot: GhostSnapshot): PageExpandTarget | null {
+export function buildGhostTargetFromViewport(root: ParentNode, snapshot: GhostSnapshot): PageExpandTarget | null {
   // Only match containers that have no annotation data (miss/not_found).
   // data-dc-no-annotation is set by InlineExpandedImage when fill=true and
   // scrollTarget is null — derived from props, not layout measurements, so

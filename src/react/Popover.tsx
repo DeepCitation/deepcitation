@@ -120,6 +120,11 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
     // overlay provided by the consumer to guarantee stacking above page chrome
     // (sticky headers, drawers, etc.) — use it when available. Otherwise body.
     // Coordinate calculation is always viewport-relative (no container offset).
+    //
+    // History: a91a344 switched to position:absolute + scroll-ancestor portal to
+    // fix wheel-scroll passthrough in overflow:hidden consumer apps. That root
+    // cause is now handled by the overflow:clip + JS wheel-passthrough approach
+    // (see the wheel handler below), so position:fixed is correct again.
     const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
     React.useLayoutEffect(() => {
       if (typeof window === "undefined") return;
