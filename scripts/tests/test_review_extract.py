@@ -175,6 +175,75 @@ class TestSmartQuoteNotSubstringFP:
         assert _normalize_quotes("plain") == "plain"
 
 
+# ── Regression: #977 field rename (anchorText→sourceMatch, fullPhrase→sourceContext) ──
+
+class TestFieldNameRename:
+    """
+    Regression for commit #977 which renamed anchorText→sourceMatch and
+    fullPhrase→sourceContext in the citation data format.
+
+    review_extract.py must read both old and new field names so that:
+      - HTML produced before #977  (anchorText/fullPhrase) still grades correctly
+      - HTML produced after #977   (sourceMatch/sourceContext) still grades correctly
+    """
+
+    def _new_format_cit(self, n: int, anchor: str, full_phrase: str = "", status: str = "found") -> dict:
+        return {
+            "citation": {
+                "citationNumber": n,
+                "sourceMatch": anchor,
+                "sourceContext": full_phrase,
+            },
+            "status": status,
+        }
+
+    def test_new_field_names_read_anchor_correctly(self):
+        """sourceMatch must be used as the anchor, not fall back to empty string."""
+        anchor = "alignment cycle"
+        full_phrase = "The alignment cycle consists of forward and backward phases"
+        html = f'<p>The alignment cycle is <span data-citation-key="{KEY}">{anchor}</span>.</p>'
+        cit_data = {KEY: self._new_format_cit(1, anchor, full_phrase)}
+        results = extract_citations(html, cit_data)
+        assert len(results) == 1
+        r = results[0]
+        assert r["anchor"] == anchor, f"Expected anchor '{anchor}', got '{r['anchor']}'"
+        assert r["anchor_words"] == 2, f"Expected 2 words, got {r['anchor_words']}"
+
+    def test_new_field_names_substring_check_works(self):
+        """is_substring must be computed from sourceMatch ⊆ sourceContext, not return None."""
+        anchor = "alignment cycle"
+        full_phrase = "The alignment cycle consists of forward and backward phases"
+        html = f'<p>The alignment cycle is <span data-citation-key="{KEY}">{anchor}</span>.</p>'
+        cit_data = {KEY: self._new_format_cit(1, anchor, full_phrase)}
+        results = extract_citations(html, cit_data)
+        r = results[0]
+        assert r["is_substring"] is True, f"Expected is_substring=True, got {r['is_substring']}"
+        assert "NOT_SUBSTRING" not in r["issues"]
+
+    def test_new_field_names_long_anchor_detected(self):
+        """LONG_ANCHOR must fire on a 6-word sourceMatch, not silently pass."""
+        anchor = "behave in line with human intentions"  # 6 words
+        full_phrase = "AI systems behave in line with human intentions and values"
+        html = f'<p>AI systems <span data-citation-key="{KEY}">{anchor}</span>.</p>'
+        cit_data = {KEY: self._new_format_cit(1, anchor, full_phrase)}
+        results = extract_citations(html, cit_data)
+        r = results[0]
+        assert r["anchor_words"] == 6, f"Expected 6 words, got {r['anchor_words']}"
+        assert "LONG_ANCHOR" in r["issues"]
+
+    def test_old_field_names_still_work(self):
+        """Backward compat: HTML from before #977 (anchorText/fullPhrase) must still grade."""
+        anchor = "alignment cycle"
+        full_phrase = "The alignment cycle consists of forward and backward phases"
+        html = f'<p>The alignment cycle is <span data-citation-key="{KEY}">{anchor}</span>.</p>'
+        # Use old-format helper (anchorText/fullPhrase)
+        cit_data = {KEY: _minimal_cit(1, anchor, full_phrase)}
+        results = extract_citations(html, cit_data)
+        r = results[0]
+        assert r["anchor"] == anchor
+        assert r["is_substring"] is True
+
+
 # ── Sanity: unfixed patterns remain correctly handled ────────────────────────
 
 class TestUnchangedBehavior:
