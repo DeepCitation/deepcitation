@@ -40,6 +40,9 @@ export function useViewportBoundaryGuard(
   // Top edge of the scroll container (e.g. header height). Cached when the
   // popover opens so all clamp calls use the same reference point.
   const containerTopRef = useRef(0);
+  // Written by useLayoutEffect, read by the sibling useEffect on the same deps.
+  // True when this render cycle is a view-state transition (not initial open).
+  const isViewStateTransitionRef = useRef(false);
 
   // Cache the scroll container's top edge (= header height) when the popover
   // opens. Stable for the duration of the open session; re-read on re-open.
@@ -70,12 +73,23 @@ export function useViewportBoundaryGuard(
     const isInitialOpen = prevViewStateRef.current === null;
     const isViewStateChange = !isInitialOpen && prevViewStateRef.current !== popoverViewState;
     prevViewStateRef.current = popoverViewState;
+    // Signal to the sibling useEffect (which runs after this) whether this cycle
+    // is a view-state transition. useEffect cannot compute this itself because
+    // prevViewStateRef has already been updated by this point.
+    isViewStateTransitionRef.current = isViewStateChange;
 
     if (isViewStateChange) {
-      // Skip vertical on view-state transitions: vertical correction during the
-      // FLIP animation causes oscillation. The safety timer applies full clamping
-      // (including vertical) after SETTLE_MS once the animation has finished.
-      clamp(el, true, containerTopRef.current);
+      // Apply full vertical clamping immediately on view-state change. The
+      // original skipVertical=true guard predated View Transitions: when CSS
+      // transitions animated the popover position directly, continuous vertical
+      // corrections in layout effects would oscillate against the running
+      // animation. Now View Transitions capture before/after DOM snapshots and
+      // animate between them independently, so the live element's `translate`
+      // during VT playback is invisible to the user. The one-time clamp here
+      // fires once (not in a loop), preventing the expanded-keyhole popover from
+      // overshooting above the viewport when content height exceeds the space
+      // above a top-side trigger.
+      clamp(el, false, containerTopRef.current);
       return;
     }
 
@@ -104,10 +118,18 @@ export function useViewportBoundaryGuard(
       if (current) clamp(current, true, containerTopRef.current);
     });
 
-    // Safety timer: full clamp (including vertical) after animation has settled.
+    // Safety timer: horizontal-only for view-state transitions, full clamp on initial open.
+    // Vertical correction is intentionally skipped on view-state transitions — the user may
+    // have deliberately scrolled the popover out of the viewport (e.g. page→focus collapse
+    // after scrolling away), and applying dy would pull it back into view unexpectedly.
+    // The ResizeObserver / window-resize path in the sibling useEffect([isOpen]) handles
+    // ongoing repositioning when the popover *should* stay visible.
+    // isViewStateTransitionRef is written by the sibling useLayoutEffect on the same deps
+    // and is readable here because layout effects flush before passive effects.
+    const skipVerticalInTimer = isViewStateTransitionRef.current;
     const safetyTimer = setTimeout(() => {
       const current = popoverContentRef.current;
-      if (current) clamp(current, false, containerTopRef.current);
+      if (current) clamp(current, skipVerticalInTimer, containerTopRef.current);
     }, SETTLE_MS);
 
     return () => {
