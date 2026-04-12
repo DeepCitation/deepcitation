@@ -115,3 +115,13 @@ Use this if you need more control over the changelog or release notes.
 - The `publish.yml` workflow triggers on `release` events where `prerelease == false`. Creating a pre-release first and then promoting to a full release also works.
 - The `prepublishOnly` script in `package.json` runs `npm run build` automatically, but the workflow builds with `bun run build` explicitly.
 - npm provenance is enabled via `publishConfig.provenance: true` — the workflow needs `id-token: write` permission (already configured).
+
+### npm OIDC Trusted Publishing
+
+The package uses npm Trusted Publishers (configured on npmjs.com) with "disallow tokens" — no `NPM_TOKEN` secret is needed. The workflow authenticates via OIDC. Key details:
+
+- **npm must be upgraded before publishing.** npm 10.8.2 (bundled with Node 20 on ubuntu-latest) throws `ENEEDAUTH` without attempting OIDC. The workflow runs `npm install -g npm@latest` to get a version that has the OIDC auth path in `publish.js`.
+- **`NODE_AUTH_TOKEN` must be cleared.** `setup-node` injects the GitHub token as `NODE_AUTH_TOKEN` into `$GITHUB_ENV`, which gets written into `.npmrc` as `_authToken`. The workflow runs `npm config delete "//registry.npmjs.org/:_authToken"` to remove it before publishing — otherwise npm uses the GitHub token (which is not a valid npm token) instead of OIDC.
+- **`gh run rerun` uses the release tag's workflow, not `main`.** If `publish.yml` fails and you push a fix to `main`, `gh run rerun` will NOT pick it up — it replays the workflow at the original release commit. Use `gh workflow run publish.yml -f tag_name=vX.Y.Z -f release_id=<id>` to trigger a fresh run from the latest `main`.
+
+To get the numeric release ID: `gh api repos/DeepCitation/deepcitation/releases/tags/vX.Y.Z --jq '.id'`
