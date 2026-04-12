@@ -17,15 +17,14 @@ import { getCitationPageNumber } from "./textCleanup.js";
  * @returns A deterministic 16-char hex key
  */
 export function getCitationKey(citation: Citation): string {
-  // LLMs sometimes emit `pageId` instead of `startPageId` — resolve via fieldAliases
-  const resolvedStartPageId = resolveField(citation as unknown as Record<string, unknown>, "startPageId") as
-    | string
-    | undefined;
+  // Cast once — LLMs sometimes emit old-CLI field names (pageId, fullPhrase, anchorText) that aren't on the Citation type
+  const rawCitation = citation as unknown as Record<string, unknown>;
+  const resolvedStartPageId = resolveField(rawCitation, "startPageId") as string | undefined;
   const pageNumber = citation.pageNumber || getCitationPageNumber(resolvedStartPageId);
-  // Common key parts
+  // Resolve via fieldAliases so old-CLI names (fullPhrase/anchorText) hash identically to canonical names
   const keyParts = [
-    citation.sourceContext || "",
-    citation.sourceMatch || "",
+    (resolveField(rawCitation, "sourceContext") as string) || "",
+    (resolveField(rawCitation, "sourceMatch") as string) || "",
     pageNumber?.toString() || "",
     citation.lineIds?.join(",") || "",
   ];
