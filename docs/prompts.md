@@ -71,7 +71,7 @@ The JSON is grouped by `attachment_id` (the key returned from `prepareAttachment
 The recommended function for most integrations. Wraps both the system and user prompts.
 
 ```typescript
-import { wrapCitationPrompt } from "deepcitation";
+import { wrapCitationPrompt } from "deepcitation/prompts";
 
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a helpful assistant.",

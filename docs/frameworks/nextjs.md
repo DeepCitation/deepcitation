@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
-import { wrapCitationPrompt } from "deepcitation";
+import { wrapCitationPrompt } from "deepcitation/prompts";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 export const maxDuration = 60;

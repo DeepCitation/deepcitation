@@ -46,11 +46,8 @@ The key insight: AG-UI's `STATE_DELTA` events let you push verification results 
 
 ```typescript
 import { EventType } from "@ag-ui/core";
-import {
-  DeepCitation,
-  wrapCitationPrompt,
-  extractVisibleText,
-} from "deepcitation";
+import { DeepCitation, extractVisibleText } from "deepcitation";
+import { wrapCitationPrompt } from "deepcitation/prompts";
 
 const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
@@ -109,6 +106,9 @@ export async function POST(req: Request) {
 ---
 
 ## Client-Side: Consuming Verification Results
+
+{: .note }
+Import the DeepCitation stylesheet in your client entry point: `import "deepcitation/styles.css"` (or `deepcitation/tailwind.css` for Tailwind projects).
 
 On the client, listen for `STATE_DELTA` events to receive verification results and render `CitationComponent`:
 
