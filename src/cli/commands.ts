@@ -63,13 +63,7 @@ import { findSummaryForMarkdown, hydrateCitations, parseSummaryToLineMap } from 
 export { HYDRATE_HELP, hydrate } from "./hydrate.js";
 export { MERGE_HELP, merge } from "./merge.js";
 
-import {
-  AUDIENCE_PRESETS,
-  type AudiencePreset,
-  buildCdnComparisonShowcaseHtml,
-  markdownToHtml,
-  type ReportStyle,
-} from "./markdownToHtml.js";
+import { AUDIENCE_PRESETS, type AudiencePreset, markdownToHtml, type ReportStyle } from "./markdownToHtml.js";
 import { createCoworkFetch, createProxyFetch } from "./proxy.js";
 
 // ── help strings ──────────────────────────────────────────────────
@@ -110,20 +104,6 @@ The injected assets are:
 Examples:
   deepcitation inject --html dashboard.html --verify-response verify.json
   deepcitation inject --html report.html --verify-response verify.json --out report-verified.html
-`;
-
-export const SHOWCASE_HELP = `Usage: deepcitation showcase [options]
-
-Build a local CDN comparison demo page from the markdownToHtml fixture used by
-the repo's smoke tests.
-
-Options:
-  --out <file>   Output HTML path (default: .deepcitation/cdn-comparison-showcase.html)
-  -h, --help     Show this help message
-
-Examples:
-  deepcitation showcase
-  deepcitation showcase --out /tmp/cdn-comparison-showcase.html
 `;
 
 export const PREPARE_HELP = `Usage: deepcitation prepare <file-or-url> [options]
@@ -672,22 +652,6 @@ export function inject(argv: string[]) {
     outPath = resolve(dirname(htmlPath), `${stem}-verified.html`);
   }
   writeVerifiedOutput(outPath, output);
-}
-
-export function showcase(argv: string[]) {
-  if (argv.includes("-h") || argv.includes("--help")) {
-    console.log(SHOWCASE_HELP);
-    return;
-  }
-
-  const args = parseArgs(argv, SHOWCASE_HELP);
-  const outPath = resolve(args.out ?? ".deepcitation/cdn-comparison-showcase.html");
-  const outputDir = dirname(outPath);
-  if (!existsSync(outputDir)) mkdirSync(outputDir, { recursive: true });
-
-  writeFileSync(outPath, buildCdnComparisonShowcaseHtml());
-  console.error(`Showcase saved to: ${outPath}`);
-  console.log(outPath);
 }
 
 export function keygen(argv: string[]) {
