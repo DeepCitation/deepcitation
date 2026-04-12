@@ -35,7 +35,8 @@
  */
 
 import "dotenv/config";
-import { DeepCitation, type SearchStatus, type Verification } from "deepcitation";
+import { DeepCitation } from "deepcitation/client";
+import type { SearchStatus, Verification } from "deepcitation";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { basename, extname, resolve } from "path";
 import { execFileSync } from "child_process";
@@ -296,7 +297,7 @@ if (from <= 1 && to >= 1) {
 // ── Step 2: Wrap Prompts ────────────────────────────────────────────────
 if (from <= 2 && to >= 2) {
   console.log("━━━ Step 2: Wrap Prompts ━━━");
-  s2 = stepWrapPrompts(s1!.deepTextPages);
+  s2 = stepWrapPrompts(s1!);
   console.log(`   System prompt: ${s2.systemPrompt.slice(0, 80)}...`);
   console.log(`   User prompt: ${s2.userPrompt.slice(0, 80)}...`);
   saveStep(cacheDir, safeName, 2, s2);
