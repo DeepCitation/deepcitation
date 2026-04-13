@@ -31,8 +31,10 @@ import type {
   PrepareAttachmentsResult,
   PrepareConvertedFileOptions,
   PrepareUrlOptions,
+  PublishVerificationReportOptions,
   UploadFileOptions,
   UploadFileResponse,
+  VerificationReport,
   VerifyBatchOptions,
   VerifyCitationsOptions,
   VerifyCitationsResponse,
@@ -1322,6 +1324,91 @@ export class DeepCitation {
 
     const result = (await response.json()) as AttachmentResponse;
     this.logger.info?.("Get attachment complete", { attachmentId: result.id, status: result.status });
+    return result;
+  }
+
+  /**
+   * Publish a verified HTML report and its companion `verify-response.json`
+   * to the DeepCitation hosted reports endpoint. HTML and JSON are stored
+   * as independent artifacts under a single report ID so consumers can
+   * fetch each half on its own (e.g. browsers pull HTML, third-party
+   * verifiers pull JSON).
+   *
+   * This is an opt-in path — the CLI never calls it implicitly. Default
+   * visibility is `"unlisted"` (random ID acts as the secret); `"public"`
+   * must be explicit.
+   *
+   * @param html - The merged verified HTML produced by `deepcitation verify`
+   * @param verifyResponseJson - The `verify-response.json` string produced by the same run
+   * @param options - Visibility, title, and optional source attachment link
+   * @returns The hosted `VerificationReport` with `shareUrl`, `htmlUrl`, `jsonUrl`
+   *
+   * @example
+   * ```typescript
+   * const html = readFileSync("report-verified.html", "utf-8");
+   * const json = readFileSync("report-verify-response.json", "utf-8");
+   * const report = await deepcitation.publishVerificationReport(html, json, {
+   *   visibility: "unlisted",
+   *   title: "Q2 verification summary",
+   * });
+   * console.log(report.shareUrl);
+   * ```
+   */
+  async publishVerificationReport(
+    html: string,
+    verifyResponseJson: string,
+    options?: PublishVerificationReportOptions,
+  ): Promise<VerificationReport> {
+    if (typeof html !== "string" || html.length === 0) {
+      throw new ValidationError("html must be a non-empty string");
+    }
+    if (typeof verifyResponseJson !== "string" || verifyResponseJson.length === 0) {
+      throw new ValidationError("verifyResponseJson must be a non-empty string");
+    }
+    // Parse guard — fail fast on the client instead of forcing a 400 round-trip.
+    try {
+      JSON.parse(verifyResponseJson);
+    } catch (err) {
+      throw new ValidationError(
+        `verifyResponseJson is not valid JSON: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    const formData = new FormData();
+    formData.append("html", new Blob([html], { type: "text/html" }), "verified.html");
+    formData.append(
+      "verify_response_json",
+      new Blob([verifyResponseJson], { type: "application/json" }),
+      "verify-response.json",
+    );
+    if (options?.visibility) formData.append("visibility", options.visibility);
+    if (options?.title) formData.append("title", options.title);
+    if (options?.attachmentId) formData.append("attachmentId", options.attachmentId);
+
+    this.logger.info?.("Publishing verification report", {
+      visibility: options?.visibility ?? "unlisted",
+      htmlBytes: html.length,
+      jsonBytes: verifyResponseJson.length,
+    });
+
+    const response = await this._fetch(`${this.apiUrl}/v1/verification-reports`, {
+      method: "POST",
+      headers: { ...this.baseHeaders() },
+      body: formData,
+    });
+    this.checkLatestVersion(response);
+    this.checkUsageWarning(response);
+
+    if (!response.ok) {
+      this.logger.error?.("Publish verification report failed", { status: response.status });
+      throw await createApiError(response, "Publish verification report");
+    }
+
+    const result = (await response.json()) as VerificationReport;
+    this.logger.info?.("Publish verification report complete", {
+      id: result.id,
+      shareUrl: result.shareUrl,
+    });
     return result;
   }
 }

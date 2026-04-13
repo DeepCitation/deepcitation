@@ -11,7 +11,6 @@ import { basename, dirname, extname, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import {
   type CallbackPayload,
-  CREDENTIALS_PATH,
   deleteCredentials,
   generateNonce,
   IS_COWORK,
@@ -56,14 +55,34 @@ import {
   stripExistingInjection,
 } from "../vanilla/reportUtils.js";
 import { extractMarkersFromBody, findAnchorWithFallback, getAllLines, toCompactPageId } from "./cite.js";
-import { die, extractApiKey, isValidApiKeyFormat, parseArgs } from "./cliUtils.js";
+import { die, extractApiKey, isValidApiKeyFormat, normalizeShortFlags, parseArgs } from "./cliUtils.js";
 import { findSummaryForMarkdown, hydrateCitations, parseSummaryToLineMap } from "./hydrate.js";
 
 // Re-export so cli.ts and tests can import from the single commands module
 export { HYDRATE_HELP, hydrate } from "./hydrate.js";
+export { LINT_HELP, lint } from "./lint.js";
 export { MERGE_HELP, merge } from "./merge.js";
+export { PUBLISH_HELP, publish } from "./publish.js";
 
-import { AUDIENCE_PRESETS, type AudiencePreset, markdownToHtml, type ReportStyle } from "./markdownToHtml.js";
+import { publishInMemory, resolveVisibility } from "./publish.js";
+
+export { SLICE_HELP, slice } from "./slice.js";
+export { TEXT_HELP, text } from "./text.js";
+export type { LineIdsMode, TextFormat } from "./textRender.js";
+
+import type { TextFormat } from "./textRender.js";
+import { applyLineIds, parseFormatMode, parseLineIdsMode, renderTextStream, resolvePageSpec } from "./textRender.js";
+
+// Re-export the parsers so existing tests can import them from the commands module.
+export { applyLineIds, parseFormatMode, parseLineIdsMode, renderTextStream, resolvePageSpec };
+
+import {
+  AUDIENCE_PRESETS,
+  type AudiencePreset,
+  generateReviewVariants,
+  markdownToHtml,
+  type ReportStyle,
+} from "./markdownToHtml.js";
 import { createCoworkFetch, createProxyFetch } from "./proxy.js";
 
 // ── help strings ──────────────────────────────────────────────────
@@ -73,7 +92,11 @@ export const HELP = `deepcitation CLI
 Commands:
   auth      Authenticate (or show current status if already logged in)
   prepare   Prepare a file or URL for citation verification
-  verify    Verify citations (--markdown, --html, or --citations)
+  slice     Split a prepared JSON file into N overlapping tagged-text chunks
+  text      Re-render a prepared JSON file as txt/plain (no network)
+  verify    Verify citations (--md, --html, or --citations)
+  lint      Pre-flight citation-syntax validator (no network)
+  publish   Upload verified HTML + verify-response.json to hosted reports (opt-in)
   billing   Open the billing dashboard
 
 Run "deepcitation <command> --help" for command-specific options.
@@ -110,31 +133,49 @@ export const PREPARE_HELP = `Usage: deepcitation prepare <file-or-url> [options]
 
 Prepare a file or URL for citation verification. Uploads the source to the
 DeepCitation API and saves the response JSON (attachmentId + deepTextPages).
-The response now also includes deepTextPages as the canonical raw page array.
 
 Arguments:
   <file-or-url>             Local file path or URL to prepare
 
 Options:
-  --out <file>              Output JSON path (default: .deepcitation/prepare-{name}.json)
-  --text                    Print attachmentId and deepTextPages to stdout
+  --out, -o <file>          Output path (default: .deepcitation/prepare-{name}.json
+                            for JSON mode, .deepcitation/{name}.txt for --txt mode)
+  --text                    Print cleaned {attachmentId, deepTextPages} JSON to stdout.
+                            Backward-compatible default: strips <line id> / <page_number>
+                            tags unless --line-ids is also passed.
+  --txt                     Write tagged text to .deepcitation/{name}.txt (LLM default).
+                            Equivalent to --format txt with default line-id sampling.
+  --format, -f <fmt>        Output format override: "json" | "txt" | "plain"
+                            - json:  {attachmentId, deepTextPages} JSON
+                            - txt:   raw deepTextPages with <page_number_N_index_I> and
+                                     <line id="K"> tags (what citation authoring wants)
+                            - plain: page text with all tags stripped, pages joined by "\\n\\n"
+  --line-ids, -l <mode>     Line-ID tag sampling: "default" | "none" | "every=N"
+                            - default: every-5 + first/last (server default)
+                            - none:    strip all <line id> tags
+                            - every=5: same as default
+                            - every=N for N<5 or N>5: reserved for phase 2
+  --pages, -p <spec>        Page spec: "all" | "1-5" | "1-5,10,15-20" | "first=N" | "last=N"
+                            (1-based inclusive). Page indices inside <page_number_...> tags
+                            are preserved from the original document.
   --unsafe-fast             Use fast mode for URLs (skips rendering, vulnerable to hidden text)
   --skip-cache              Force a fresh fetch/conversion, bypassing the URL cache
   -h, --help                Show this help message
 
 Examples:
   deepcitation prepare report.pdf
-  deepcitation prepare report.pdf --text
-  deepcitation prepare https://example.com/article --out .deepcitation/prepare-article.json
-  deepcitation prepare scan.jpg
-  deepcitation prepare https://example.com/article --skip-cache
+  deepcitation prepare report.pdf --txt                   # LLM default: tagged text to .txt file
+  deepcitation prepare report.pdf --txt -p 1-10           # only first 10 pages
+  deepcitation prepare report.pdf --text                  # back-compat: cleaned JSON to stdout
+  deepcitation prepare report.pdf --text -f txt           # stdout: tagged text instead of JSON
+  deepcitation prepare https://example.com/article --txt
 `;
 
 export const VERIFY_HELP = `Usage: deepcitation verify [options]
 
 Verify citations against prepared attachments.
 
-Mode 1 — Markdown (--markdown):
+Mode 1 — Markdown (--md):
   Convert markdown with [N] markers and <<<CITATION_DATA>>> block to a styled
   verification report. Handles markdown→HTML, data-cite wrapping, keygen,
   annotation, API verification, and CDN runtime injection in one shot.
@@ -148,7 +189,7 @@ Mode 3 — Citations only (--citations):
   responses into a single output file.
 
 Options:
-  --markdown <file>         Path to markdown file with citations (recommended)
+  --md, --markdown <file>   Path to markdown file with citations (recommended)
   --html <file>             Path to HTML file with citations
   --citations <file>        Path to citations JSON (citations-only mode)
   --style <plain|report>    HTML output style (default: "report", --markdown only)
@@ -156,6 +197,10 @@ Options:
   --title <text>            Report title (default: first H1 in markdown, or "Verification Report")
   --summary <file>          Summary file for auto-hydrating compact citations (--markdown only)
   --out <file>              Output path (default: {stem}-verified.html in CWD)
+  --output-dir <dir>        Save HTML and verify-response.json to this directory with stable names
+  --json, --keep-json       Also write {stem}-verify-response.json next to the HTML (debug/publish)
+  --pub, --publish          Upload the verified HTML + JSON to the hosted reports endpoint (opt-in)
+  --vis, --visibility <v>   Visibility for --pub: private | unlisted | public (default: unlisted)
   --theme <auto|light|dark> Popover color theme (default: "auto")
   --indicator <indicator>   Indicator variant: icon, dot, none (default: "icon")
   --image-format <format>   Evidence image format: avif, png, jpeg, webp (default: avif)
@@ -163,9 +208,11 @@ Options:
   -h, --help                Show this help message
 
 Examples:
-  deepcitation verify --markdown .deepcitation/draft-report.md
-  deepcitation verify --markdown report.md --style plain
-  deepcitation verify --markdown report.md --audience executive --theme dark
+  deepcitation verify --md .deepcitation/draft-report.md
+  deepcitation verify --md report.md --style plain
+  deepcitation verify --md report.md --audience executive --theme dark
+  deepcitation verify --md report.md --pub               # one-shot: verify + upload
+  deepcitation verify --md report.md --pub --vis public  # explicit public share
   deepcitation verify --html report.html --out verified.html
   deepcitation verify --prompt
   deepcitation verify --citations .deepcitation/citations-keyed.json
@@ -332,8 +379,8 @@ export function saveApiKey(key: string, source: string): void {
       HELP,
     );
   }
-  writeCredentials({ version: 1, apiKey: key, createdAt: new Date().toISOString() });
-  console.error(`Credentials saved to ${CREDENTIALS_PATH}`);
+  const writtenTo = writeCredentials({ version: 1, apiKey: key, createdAt: new Date().toISOString() });
+  console.error(`Credentials saved to ${writtenTo}`);
 }
 
 /**
@@ -387,26 +434,35 @@ export function readKeyFromStdin(): { promise: Promise<string | null>; close: ()
 // ── command handlers ──────────────────────────────────────────────
 
 export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => string) {
+  const normalized = normalizeShortFlags(argv);
+
   // Extract boolean flags before parseArgs (which only handles --key value pairs)
-  const unsafeFast = argv.includes("--unsafe-fast");
-  const text = argv.includes("--text") || argv.includes("--summary");
-  const skipCache = argv.includes("--skip-cache");
-  const filteredArgv = argv.filter(
-    a => a !== "--unsafe-fast" && a !== "--text" && a !== "--summary" && a !== "--skip-cache",
-  );
+  const unsafeFast = normalized.includes("--unsafe-fast");
+  const textFlag = normalized.includes("--text") || normalized.includes("--summary");
+  const txtFlag = normalized.includes("--txt");
+  const skipCache = normalized.includes("--skip-cache");
+  const booleans = new Set(["--unsafe-fast", "--text", "--summary", "--skip-cache", "--txt"]);
+  const filteredArgv = normalized.filter(a => !booleans.has(a));
 
   const args = parseArgs(filteredArgv, PREPARE_HELP);
 
-  // The positional argument is the first non-flag arg
+  // Positional argument: first non-flag token.
   const positional = filteredArgv.find(a => !a.startsWith("--"));
   if (!positional) die("A file path or URL is required", PREPARE_HELP);
 
-  const { apiKey } = await requireAuth();
+  // Validate format + line-id flags up-front so bad input fails before the API call.
+  const lineIdsMode = parseLineIdsMode(args["line-ids"], PREPARE_HELP);
+  const fallbackFormat: TextFormat = txtFlag ? "txt" : "json";
+  const format = parseFormatMode(args.format, fallbackFormat, PREPARE_HELP);
 
+  if (txtFlag && format === "json") {
+    die("--txt conflicts with --format json; drop --txt or pass --format txt/plain", PREPARE_HELP);
+  }
+
+  const { apiKey } = await requireAuth();
   const dc = await createClient(apiKey);
 
   const isUrl = positional.startsWith("http://") || positional.startsWith("https://");
-
   if (isUrl && positional.startsWith("http://") && !positional.startsWith("http://localhost")) {
     console.error("Warning: using http:// URL — content will be fetched over plaintext.");
   }
@@ -427,9 +483,31 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
     result = await dc.uploadFile(buffer, { filename: basename(filePath) });
   }
 
+  const pickedIndices = resolvePageSpec(args.pages, result.deepTextPages.length, PREPARE_HELP);
+  const selectedPages = pickedIndices.map(i => result.deepTextPages[i] as string);
+
   const outDir = resolve(".deepcitation");
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
 
+  // --txt mode: write tagged text to a .txt file (LLM default).
+  if (txtFlag) {
+    const txtPath = resolve(args.out ?? `.deepcitation/${label}.txt`);
+    const body = renderTextStream(selectedPages, format === "json" ? "txt" : format, lineIdsMode);
+    writeFileSync(txtPath, body);
+    console.error(`  Attachment ID: ${sanitizeForLog(result.attachmentId)}`);
+    console.error(
+      `  Pages: ${pickedIndices.length}${pickedIndices.length !== result.metadata.pageCount ? ` / ${result.metadata.pageCount}` : ""}`,
+    );
+    console.error(`  Text: ${Math.round(result.metadata.textByteSize / 1024)}KB`);
+    if (result.processingTimeMs) {
+      console.error(`  Time: ${(result.processingTimeMs / 1000).toFixed(1)}s`);
+    }
+    console.error(`  Saved: ${txtPath}`);
+    console.log(txtPath);
+    return;
+  }
+
+  // Default path: write the full prepare response as JSON to disk.
   const outPath = resolve(args.out ?? `.deepcitation/prepare-${label}.json`);
   writeFileSync(outPath, JSON.stringify(result, null, 2));
 
@@ -441,13 +519,23 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   }
   console.error(`  Saved: ${outPath}`);
 
-  if (text) {
-    // Print attachmentId and clean deepTextPages (no <line id> / <page_number> tags)
-    // as JSON to stdout so agents can consume with jq or JSON.parse.
+  if (textFlag) {
+    if (format === "txt" || format === "plain") {
+      // Stream tagged or plain text to stdout instead of JSON.
+      process.stdout.write(renderTextStream(selectedPages, format, lineIdsMode));
+      process.stdout.write("\n");
+      return;
+    }
+    // json format — back-compat path. When no --line-ids flag is passed, strip tags
+    // (current behavior). When --line-ids is explicit, honor it.
+    const pagesForJson =
+      args["line-ids"] === undefined
+        ? selectedPages.map(cleanDeepTextPage)
+        : selectedPages.map(p => applyLineIds(p, lineIdsMode));
     console.log(
       JSON.stringify({
         attachmentId: result.attachmentId,
-        deepTextPages: result.deepTextPages.map(cleanDeepTextPage),
+        deepTextPages: pagesForJson,
       }),
     );
   } else {
@@ -460,6 +548,7 @@ export async function verify(
   fmtNetErr: (err: unknown) => string,
   resolveSpecPath?: () => string | null,
 ) {
+  argv = normalizeShortFlags(argv);
   // Handle --prompt before parseArgs (it's a boolean flag, not a key-value pair)
   if (argv.includes("--prompt")) {
     if (resolveSpecPath) {
@@ -727,10 +816,21 @@ function defaultVerifiedOutPath(sourceFilePath: string): string {
   return resolve(isDraftDir ? process.cwd() : sourceDir, `${stem}-verified.html`);
 }
 
+/**
+ * Derive the companion `{stem}-verify-response.json` path for the `--json`
+ * (`--keep-json`) flag. Strips a trailing `-verified` from the HTML stem so
+ * the sidecar reads `draft-verify-response.json` rather than
+ * `draft-verified-verify-response.json`. Exported for testability.
+ */
+export function deriveVerifyResponseSidecarPath(htmlOutPath: string): string {
+  const stem = basename(htmlOutPath, extname(htmlOutPath)).replace(/-verified$/, "");
+  return resolve(dirname(htmlOutPath), `${stem}-verify-response.json`);
+}
+
 export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) => string) {
-  const args = parseArgs(argv, VERIFY_HELP);
+  const args = parseArgs(normalizeShortFlags(argv), VERIFY_HELP);
   const mdPath = args.markdown;
-  if (!mdPath) die("--markdown is required", VERIFY_HELP);
+  if (!mdPath) die("--md is required", VERIFY_HELP);
 
   const resolved = resolve(mdPath);
   if (!existsSync(resolved)) die(`File not found: ${sanitizeForLog(mdPath)}`, VERIFY_HELP);
@@ -956,8 +1056,10 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   const citationJson = JSON.stringify(parsed.citations);
   const htmlWithCitations = `${html}\n\n${CITATION_DATA_START_DELIMITER}\n${citationJson}\n${CITATION_DATA_END_DELIMITER}`;
 
-  // Forward to verifyHtml with pre-loaded content — no temp file needed
-  const stripFlags = new Set(["--markdown", "--style", "--audience", "--title", "--citations", "--summary"]);
+  // Forward to verifyHtml with pre-loaded content — no temp file needed.
+  // Note: --title is NOT stripped so verifyHtml can forward it to publishInMemory
+  // when --pub is set. The HTML shell already baked in the title above.
+  const stripFlags = new Set(["--markdown", "--style", "--audience", "--citations", "--summary"]);
   const forwardArgs: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (stripFlags.has(argv[i])) {
@@ -968,14 +1070,27 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     forwardArgs.push(argv[i]);
   }
   if (!args.out) {
-    forwardArgs.push("--out", defaultVerifiedOutPath(resolved));
+    if (args["output-dir"]) {
+      const stem = basename(resolved, extname(resolved)).replace(/-draft$/, "");
+      forwardArgs.push("--out", resolve(args["output-dir"], `${stem}-verified.html`));
+    } else {
+      forwardArgs.push("--out", defaultVerifiedOutPath(resolved));
+    }
   }
 
   return verifyHtml(forwardArgs, fmtNetErr, htmlWithCitations);
 }
 
 export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => string, preloadedContent?: string) {
-  const args = parseArgs(argv, VERIFY_HELP);
+  // Resolve short aliases (--pub → --publish, --vis → --visibility) before any flag lookup.
+  const normalized = normalizeShortFlags(argv);
+
+  // Boolean flags — filter out before parseArgs (which only handles --key value pairs).
+  const keepJson = normalized.includes("--json") || normalized.includes("--keep-json");
+  const publishAfter = normalized.includes("--publish");
+  const booleanFlags = new Set(["--json", "--keep-json", "--publish"]);
+  const filteredArgv = normalized.filter(a => !booleanFlags.has(a));
+  const args = parseArgs(filteredArgv, VERIFY_HELP);
   const htmlPath = args.html;
   if (!htmlPath && !preloadedContent) die("--html is required", VERIFY_HELP);
 
@@ -1110,10 +1225,17 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   const outDir = resolve(".deepcitation");
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
 
+  const outputDir = args["output-dir"] ? resolve(args["output-dir"]) : null;
+  if (outputDir && !existsSync(outputDir)) mkdirSync(outputDir, { recursive: true });
+
+  // Intermediate artifacts always go to .deepcitation/ (internal, safe to delete)
   const citationsPath = resolve(`.deepcitation/citations-keyed-${ts}.json`);
   const keyMapPath = resolve(`.deepcitation/key-map-${ts}.json`);
   const annotatedPath = resolve(`.deepcitation/annotated-${ts}.html`);
-  const verifyResponsePath = resolve(`.deepcitation/verify-response-${ts}.json`);
+  // User-facing artifact: stable name in output-dir if set, timestamped in .deepcitation/ otherwise
+  const verifyResponsePath = outputDir
+    ? resolve(outputDir, "verify-response.json")
+    : resolve(`.deepcitation/verify-response-${ts}.json`);
 
   // Build citations JSON in the format verify expects (keyed by hash, with attachmentId)
   const citationsForVerify: Record<string, Record<string, unknown>> = {};
@@ -1257,10 +1379,32 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   const outPath = resolve(args.out ?? defaultOut);
   writeVerifiedOutput(outPath, output);
 
+  // --json (--keep-json): drop a sidecar verify-response.json next to the HTML so
+  // the LLM can re-run lint on it, hand the pair to `publish`, or debug without
+  // digging into `.deepcitation/`.
+  if (keepJson) {
+    const sidecarPath = deriveVerifyResponseSidecarPath(outPath);
+    writeFileSync(sidecarPath, JSON.stringify(verifyOutput, null, 2));
+    console.error(`  Kept verify-response.json → ${sidecarPath}`);
+  }
+
+  // Design-review variants: four CSS-swapped copies next to the main file
+  // (numbered-outline, reviewer-console, briefing-card, marginalia). Body
+  // markup and CDN runtime injection are preserved, so popovers still
+  // function in each variant for visual comparison.
+  const variants = generateReviewVariants(output);
+  const variantDir = dirname(outPath);
+  const variantStem = basename(outPath, extname(outPath));
+  for (const v of variants) {
+    const variantPath = resolve(variantDir, `${variantStem}-review-${v.slug}.html`);
+    writeFileSync(variantPath, v.html);
+    console.error(`  Review variant → ${variantPath}`);
+  }
+
   // Write run-metadata for iteration tracking (duration, counts, output path).
   // Token counts and tool-call counts are agent-level metrics captured by the
   // orchestrating session; this file captures what the CLI can measure itself.
-  const metaPath = resolve(".deepcitation/run-metadata.json");
+  const metaPath = outputDir ? resolve(outputDir, "run-metadata.json") : resolve(".deepcitation/run-metadata.json");
   writeFileSync(
     metaPath,
     JSON.stringify(
@@ -1276,6 +1420,27 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     ),
   );
   console.error(`Run metadata → ${metaPath}`);
+
+  // --pub (--publish): one-shot upload of the freshly verified HTML + JSON to the
+  // hosted reports endpoint. Opt-in only — never runs unless the flag is set.
+  // The HTML body `output` and JSON body `verifyOutput` are already in memory,
+  // so no disk round-trip is required beyond the receipt that publishInMemory writes.
+  if (publishAfter) {
+    const visibility = resolveVisibility(args.visibility, VERIFY_HELP);
+    console.error(`Publishing verification report (${visibility})...`);
+    try {
+      await publishInMemory({
+        html: output,
+        verifyResponseJson: JSON.stringify(verifyOutput),
+        visibility,
+        title: args.title,
+        attachmentId: args["attachment-id"],
+        htmlSourcePath: outPath,
+      });
+    } catch (err) {
+      die(err instanceof Error ? err.message : String(err), VERIFY_HELP);
+    }
+  }
 }
 
 export const AUTH_HELP = `Usage: deepcitation auth [subcommand] [options]
@@ -1422,7 +1587,7 @@ export async function login(argv: string[], baseUrl: string) {
     );
 
     if (winner.from === "browser") {
-      writeCredentials({
+      const writtenTo = writeCredentials({
         version: 1,
         apiKey: winner.payload.apiKey,
         email: winner.payload.email,
@@ -1432,7 +1597,7 @@ export async function login(argv: string[], baseUrl: string) {
       console.error(
         `\nLogged in as ${sanitizeForLog(winner.payload.displayName ?? winner.payload.email ?? "unknown")}.`,
       );
-      console.error(`Credentials saved to ${CREDENTIALS_PATH}`);
+      console.error(`Credentials saved to ${writtenTo}`);
       console.error(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
       process.stdin.destroy();
     } else {
@@ -1455,7 +1620,7 @@ export function logout() {
   }
   switch (auth.source.kind) {
     case "credentials":
-      if (deleteCredentials()) console.log(`Logged out. Credentials removed from ${CREDENTIALS_PATH}`);
+      if (deleteCredentials()) console.log(`Logged out. Credentials removed from ${auth.source.path}`);
       break;
     case "dotenv":
       console.log(`API key is stored in ${auth.source.path}.`);

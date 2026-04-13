@@ -284,6 +284,121 @@ describe("credential file edge cases", () => {
   });
 });
 
+// ── Dual-location credential storage ──────────────────────────────
+
+describe("dual-location credentials", () => {
+  it("project-local credentials.json is preferred over home when both exist", () => {
+    const home = freshHome();
+    const cwd = join(BASE_DIR, `dual-project-wins-${Date.now()}`);
+    mkdirSync(cwd, { recursive: true });
+
+    // Home has one key
+    const homeCredDir = join(home, ".deepcitation");
+    mkdirSync(homeCredDir, { recursive: true });
+    writeFileSync(
+      join(homeCredDir, "credentials.json"),
+      JSON.stringify({ version: 1, apiKey: "sk-dc-from-home-credsfile", createdAt: new Date().toISOString() }),
+    );
+
+    // Project has a different key
+    const projectCredDir = join(cwd, ".deepcitation");
+    mkdirSync(projectCredDir, { recursive: true });
+    writeFileSync(
+      join(projectCredDir, "credentials.json"),
+      JSON.stringify({ version: 1, apiKey: "sk-dc-from-project-credfil", createdAt: new Date().toISOString() }),
+    );
+
+    const r = run(["whoami"], { env: noAuthEnv(home), cwd });
+    expect(r.exitCode).toBe(0);
+    // Project path should be named as the source
+    expect(r.stdout).toContain(join(cwd, ".deepcitation", "credentials.json"));
+    expect(r.stdout).not.toContain(join(home, ".deepcitation", "credentials.json"));
+  });
+
+  it("falls back to project-local when home directory is not writable", () => {
+    const home = join(BASE_DIR, `readonly-home-${Date.now()}`);
+    mkdirSync(home, { recursive: true });
+    // Make home read-only so ~/.deepcitation can't be created
+    chmodSync(home, 0o500);
+    const cwd = join(BASE_DIR, `fallback-cwd-${Date.now()}`);
+    mkdirSync(cwd, { recursive: true });
+
+    try {
+      const r = run(["login", "--key", "sk-dc-fallbackwritekey0123"], { env: noAuthEnv(home), cwd });
+      expect(r.exitCode).toBe(0);
+      // Credentials should have landed in the project dir, not home
+      const projectPath = join(cwd, ".deepcitation", "credentials.json");
+      expect(existsSync(projectPath)).toBe(true);
+      const creds = JSON.parse(readFileSync(projectPath, "utf-8"));
+      expect(creds.apiKey).toBe("sk-dc-fallbackwritekey0123");
+      // And the success message names the project path
+      expect(r.stderr).toContain(projectPath);
+    } finally {
+      // Restore write perm so cleanup in afterAll works
+      chmodSync(home, 0o700);
+    }
+  });
+
+  it("fallback write drops a self-ignoring .gitignore next to project credentials", () => {
+    const home = join(BASE_DIR, `gitignore-home-${Date.now()}`);
+    mkdirSync(home, { recursive: true });
+    chmodSync(home, 0o500);
+    const cwd = join(BASE_DIR, `gitignore-cwd-${Date.now()}`);
+    mkdirSync(cwd, { recursive: true });
+
+    try {
+      run(["login", "--key", "sk-dc-gitignoredropkey01234"], { env: noAuthEnv(home), cwd });
+      const gitignorePath = join(cwd, ".deepcitation", ".gitignore");
+      expect(existsSync(gitignorePath)).toBe(true);
+      expect(readFileSync(gitignorePath, "utf-8")).toContain("*");
+    } finally {
+      chmodSync(home, 0o700);
+    }
+  });
+
+  it("Cowork environment writes project-local even when home is writable", () => {
+    const home = freshHome();
+    const cwd = join(BASE_DIR, `cowork-writes-project-${Date.now()}`);
+    mkdirSync(cwd, { recursive: true });
+
+    const r = run(["login", "--key", "sk-dc-coworkwritetestkey01"], {
+      env: { ...noAuthEnv(home), CLAUDE_CODE_REMOTE: "true" },
+      cwd,
+    });
+    expect(r.exitCode).toBe(0);
+
+    const projectPath = join(cwd, ".deepcitation", "credentials.json");
+    const homePath = join(home, ".deepcitation", "credentials.json");
+    expect(existsSync(projectPath)).toBe(true);
+    expect(existsSync(homePath)).toBe(false);
+  });
+
+  it("logout clears both home and project credentials", () => {
+    const home = freshHome();
+    const cwd = join(BASE_DIR, `logout-both-${Date.now()}`);
+    mkdirSync(cwd, { recursive: true });
+
+    // Seed both locations with credentials
+    const homeCredDir = join(home, ".deepcitation");
+    mkdirSync(homeCredDir, { recursive: true });
+    writeFileSync(
+      join(homeCredDir, "credentials.json"),
+      JSON.stringify({ version: 1, apiKey: "sk-dc-home-logout-key12345", createdAt: new Date().toISOString() }),
+    );
+    const projectCredDir = join(cwd, ".deepcitation");
+    mkdirSync(projectCredDir, { recursive: true });
+    writeFileSync(
+      join(projectCredDir, "credentials.json"),
+      JSON.stringify({ version: 1, apiKey: "sk-dc-proj-logout-key12345", createdAt: new Date().toISOString() }),
+    );
+
+    const r = run(["logout"], { env: noAuthEnv(home), cwd });
+    expect(r.exitCode).toBe(0);
+    expect(existsSync(join(homeCredDir, "credentials.json"))).toBe(false);
+    expect(existsSync(join(projectCredDir, "credentials.json"))).toBe(false);
+  });
+});
+
 // ── login --key validation ────────────────────────────────────────
 
 describe("login --key validation", () => {

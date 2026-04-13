@@ -48,6 +48,36 @@ export function parseArgs(argv: string[], help: string): Record<string, string> 
   return args;
 }
 
+// ── short-flag aliases ────────────────────────────────────────────
+
+/**
+ * Canonical shorthand map for flags the primary user (an LLM) types most
+ * often. Applied by `normalizeShortFlags` before `parseArgs` so every
+ * command sees the same long-form keys regardless of which alias the
+ * caller used. Keeping the table in one place prevents per-command drift.
+ */
+const SHORT_FLAG_ALIASES: Readonly<Record<string, string>> = {
+  "-o": "--out",
+  "-p": "--pages",
+  "-n": "--parts",
+  "-f": "--format",
+  "-l": "--line-ids",
+  "-d": "--dry-run",
+  "--md": "--markdown",
+  "--vr": "--verify-response",
+  "--vis": "--visibility",
+  "--pub": "--publish",
+};
+
+/**
+ * Rewrites short aliases (`-o`, `--md`, …) to their canonical long forms.
+ * Preserves argument order and non-flag values. Does not touch `-h`/`--help`
+ * because `parseArgs` already handles those at its own call site.
+ */
+export function normalizeShortFlags(argv: string[]): string[] {
+  return argv.map(a => SHORT_FLAG_ALIASES[a] ?? a);
+}
+
 // ── formatNetworkError ────────────────────────────────────────────
 
 /**

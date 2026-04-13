@@ -1183,7 +1183,7 @@ function OpenCitationDrawer({
       <div
         ref={drawerRef}
         className={cn(
-          "fixed bg-dc-background flex flex-col",
+          "fixed bg-dc-background flex flex-col font-dc text-dc-foreground",
           position === "bottom" && "inset-x-0 bottom-0",
           position === "bottom" && (isFullPage ? "max-h-[100dvh]" : "max-h-[80dvh] rounded-t-2xl"),
           position === "right" && "inset-y-0 right-0 w-full max-w-md",

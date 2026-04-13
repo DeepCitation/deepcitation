@@ -7,7 +7,7 @@ import { randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { escapeHtml } from "./utils/htmlEscape.js";
 import { isDomainMatch } from "./utils/urlSafety.js";
 
@@ -38,35 +38,70 @@ export const IS_AI_AGENT =
   !!process.env.AIDER ||
   !!process.env.CLINE_TASK_ID;
 
-// In Cowork, the homedir may not be writable — the project directory is the
-// guaranteed writable area. .deepcitation/ is already gitignored.
+// Credentials live in one of two locations:
+//   1. ~/.deepcitation/credentials.json  — standard per-user store
+//   2. ./.deepcitation/credentials.json  — project-local fallback, used in
+//      Claude Cowork and any other sandbox where $HOME is ephemeral/unwritable
+//
+// Read: project-local wins if present (most recent intentional login in this
+// context); else home. Write: try preferred first (Cowork → project; else →
+// home), fall back to the other on error. Delete: clear both.
 // Note: process.cwd() is evaluated at module load, before any command runs.
-const CREDENTIALS_DIR = IS_COWORK ? join(process.cwd(), ".deepcitation") : join(homedir(), ".deepcitation");
-export const CREDENTIALS_PATH = join(CREDENTIALS_DIR, "credentials.json");
+export const HOME_CREDENTIALS_PATH = join(homedir(), ".deepcitation", "credentials.json");
+export const PROJECT_CREDENTIALS_PATH = join(process.cwd(), ".deepcitation", "credentials.json");
 
-export function readCredentials(): Credentials | null {
-  try {
-    const raw = readFileSync(CREDENTIALS_PATH, "utf-8");
-    return JSON.parse(raw) as Credentials;
-  } catch {
-    return null;
+export function readCredentials(): { creds: Credentials; path: string } | null {
+  for (const path of [PROJECT_CREDENTIALS_PATH, HOME_CREDENTIALS_PATH]) {
+    try {
+      const raw = readFileSync(path, "utf-8");
+      return { creds: JSON.parse(raw) as Credentials, path };
+    } catch {
+      /* try next */
+    }
   }
+  return null;
 }
 
-export function writeCredentials(creds: Credentials): void {
-  mkdirSync(CREDENTIALS_DIR, { recursive: true, mode: 0o700 });
-  writeFileSync(CREDENTIALS_PATH, JSON.stringify(creds, null, 2), {
-    mode: 0o600,
-  });
+export function writeCredentials(creds: Credentials): string {
+  const order = IS_COWORK
+    ? [PROJECT_CREDENTIALS_PATH, HOME_CREDENTIALS_PATH]
+    : [HOME_CREDENTIALS_PATH, PROJECT_CREDENTIALS_PATH];
+
+  let lastErr: unknown;
+  for (const path of order) {
+    try {
+      const dir = dirname(path);
+      mkdirSync(dir, { recursive: true, mode: 0o700 });
+      writeFileSync(path, JSON.stringify(creds, null, 2), { mode: 0o600 });
+      // Defense-in-depth: drop a self-ignoring .gitignore next to any
+      // project-local credentials so they can't be committed even if the
+      // repo's root .gitignore doesn't mention .deepcitation/.
+      if (path === PROJECT_CREDENTIALS_PATH) {
+        try {
+          writeFileSync(join(dir, ".gitignore"), "*\n");
+        } catch {
+          /* best effort */
+        }
+      }
+      return path;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr ?? new Error("Failed to write credentials to any location");
 }
 
 export function deleteCredentials(): boolean {
-  try {
-    unlinkSync(CREDENTIALS_PATH);
-    return true;
-  } catch {
-    return false;
+  let any = false;
+  for (const path of [HOME_CREDENTIALS_PATH, PROJECT_CREDENTIALS_PATH]) {
+    try {
+      unlinkSync(path);
+      any = true;
+    } catch {
+      /* not present */
+    }
   }
+  return any;
 }
 
 export function maskKey(key: string): string {
@@ -118,9 +153,13 @@ export function resolveAuth(): ResolvedAuth | null {
     }
   }
 
-  const creds = readCredentials();
-  if (creds) {
-    return { apiKey: creds.apiKey, source: { kind: "credentials", path: CREDENTIALS_PATH }, credentials: creds };
+  const found = readCredentials();
+  if (found) {
+    return {
+      apiKey: found.creds.apiKey,
+      source: { kind: "credentials", path: found.path },
+      credentials: found.creds,
+    };
   }
 
   return null;
