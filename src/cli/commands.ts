@@ -1092,7 +1092,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   // Forward to verifyHtml with pre-loaded content — no temp file needed.
   // Note: --title is NOT stripped so verifyHtml can forward it to publishInMemory
   // on auto-publish. The HTML shell already baked in the title above.
-  const stripFlags = new Set(["--markdown", "--style", "--audience", "--citations", "--summary", "--claim", "--model"]);
+  const stripFlags = new Set(["--markdown", "--style", "--citations", "--summary", "--claim", "--model"]);
   const forwardArgs: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (stripFlags.has(argv[i])) {
@@ -1833,3 +1833,4 @@ export async function report(argv: string[], fmtNetErr: (err: unknown) => string
     die(fmtNetErr(err), REPORT_HELP);
   }
 }
+
