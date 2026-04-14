@@ -26,7 +26,7 @@ export type {
   PrepareConvertedFileOptions,
   PreparedAttachment,
   PrepareUrlOptions,
-  PublishVerificationReportOptions,
+  CreateReportOptions,
   UploadFileOptions,
   UploadFileResponse,
   UrlCacheInfo,

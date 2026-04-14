@@ -29,7 +29,7 @@ import {
   merge,
   openBillingDashboard,
   prepare,
-  publish,
+  report,
   resolveBaseUrl,
   slice,
   status,
@@ -111,8 +111,8 @@ switch (command) {
   case "text":
     text(rest);
     break;
-  case "publish":
-    publish(rest).catch(err => {
+  case "report":
+    report(rest, fmtNetErr).catch(err => {
       console.error(`Error: ${fmtNetErr(err)}`);
       process.exit(1);
     });

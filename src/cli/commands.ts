@@ -65,7 +65,6 @@ import {
   type ReportStyle,
 } from "./markdownToHtml.js";
 import { createCoworkFetch, createProxyFetch } from "./proxy.js";
-import { publishInMemory, resolveVisibility } from "./publish.js";
 import type { TextFormat } from "./textRender.js";
 import { applyLineIds, parseFormatMode, parseLineIdsMode, renderTextStream, resolvePageSpec } from "./textRender.js";
 
@@ -73,7 +72,6 @@ import { applyLineIds, parseFormatMode, parseLineIdsMode, renderTextStream, reso
 export { HYDRATE_HELP, hydrate } from "./hydrate.js";
 export { LINT_HELP, lint } from "./lint.js";
 export { MERGE_HELP, merge } from "./merge.js";
-export { PUBLISH_HELP, publish } from "./publish.js";
 export { SLICE_HELP, slice } from "./slice.js";
 export { TEXT_HELP, text } from "./text.js";
 export type { LineIdsMode, TextFormat } from "./textRender.js";
@@ -188,6 +186,8 @@ Options:
   --style <plain|report>    HTML output style (default: "report", --markdown only)
   --audience <preset>       Audience preset: general, executive, technical, legal, medical (default: "general")
   --title <text>            Report title (default: first H1 in markdown, or "Verification Report")
+  --claim <text>            Claim or question being verified (rendered in header card)
+  --model <name>            Model that performed verification (e.g. "Claude Haiku 4.5")
   --summary <file>          Summary file for auto-hydrating compact citations (--markdown only)
   --out <file>              Output path (default: {stem}-verified.html in CWD)
   --output-dir <dir>        Save HTML and verify-response.json to this directory with stable names
@@ -202,6 +202,7 @@ Options:
 
 Examples:
   deepcitation verify --md .deepcitation/draft-report.md          # auto-publishes as private
+  deepcitation verify --md report.md --claim "Did Q1 revenue exceed $4B?" --model "Claude Haiku 4.5"
   deepcitation verify --md report.md --style plain
   deepcitation verify --md report.md --audience executive --theme dark
   deepcitation verify --md report.md --vis unlisted               # shareable by link
@@ -1028,6 +1029,8 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   }
 
   const title = args.title as string | undefined;
+  const claim = args.claim as string | undefined;
+  const model = args.model as string | undefined;
 
   // Resolve source URL from prepare JSONs (URL-sourced documents only)
   const urlSourceMap = loadUrlSourceMap();
@@ -1040,6 +1043,8 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     style,
     audience,
     title,
+    claim,
+    model,
     sourceMatchMap,
     citationCount: parsed.citations.length,
     cowork: IS_COWORK,
@@ -1053,7 +1058,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   // Forward to verifyHtml with pre-loaded content — no temp file needed.
   // Note: --title is NOT stripped so verifyHtml can forward it to publishInMemory
   // on auto-publish. The HTML shell already baked in the title above.
-  const stripFlags = new Set(["--markdown", "--style", "--audience", "--citations", "--summary"]);
+  const stripFlags = new Set(["--markdown", "--style", "--audience", "--citations", "--summary", "--claim", "--model"]);
   const forwardArgs: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (stripFlags.has(argv[i])) {
@@ -1083,8 +1088,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   // --publish / --pub are no-op opt-ins kept for backwards-compat: auto-publish
   // is now the default and only needs to be suppressed with --no-publish.
   const keepJson = normalized.includes("--json") || normalized.includes("--keep-json");
-  const publishAfter = !normalized.includes("--no-publish");
-  const booleanFlags = new Set(["--json", "--keep-json", "--publish", "--no-publish"]);
+  const booleanFlags = new Set(["--json", "--keep-json"]);
   const filteredArgv = normalized.filter(a => !booleanFlags.has(a));
   const args = parseArgs(filteredArgv, VERIFY_HELP);
   const htmlPath = args.html;
@@ -1419,33 +1423,6 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   );
   console.error(`Run metadata → ${metaPath}`);
 
-  // Auto-publish the freshly verified HTML + JSON to the hosted reports
-  // endpoint so it shows up on the user's "My Verifications" page. Default
-  // visibility is `private` (owner-only); `--no-publish` suppresses the
-  // upload for local-only runs. The HTML body `output` and JSON body
-  // `verifyOutput` are already in memory, so the upload is a single POST.
-  //
-  // A publish failure is NOT fatal — the verified artifact already exists
-  // on disk, so we emit a warning and continue instead of exiting non-zero.
-  if (publishAfter) {
-    const visibility = resolveVisibility(args.visibility, VERIFY_HELP);
-    console.error(`Publishing to My Verifications (${visibility})...`);
-    try {
-      await publishInMemory({
-        html: output,
-        verifyResponseJson: JSON.stringify(verifyOutput),
-        visibility,
-        title: args.title,
-        attachmentId: args["attachment-id"],
-        htmlSourcePath: outPath,
-      });
-    } catch (err) {
-      const msg = sanitizeForLog(err instanceof Error ? err.message : String(err));
-      console.error(`Warning: publish failed — report saved locally only. ${msg}`);
-      console.error(`  Local artifact: ${outPath}`);
-      console.error(`  Retry manually: deepcitation publish --html <file> --vr <file>`);
-    }
-  }
 }
 
 export const AUTH_HELP = `Usage: deepcitation auth [subcommand] [options]
@@ -1747,5 +1724,58 @@ export async function getAttachment(argv: string[]) {
     console.log(outPath);
   } else {
     process.stdout.write(json + "\n");
+  }
+}
+
+export const REPORT_HELP = `Usage: deepcitation report --attachment-id <id> [options]
+
+Submit raw LLM output (piped from stdin or --input) to generate a hosted
+verification report. The server parses citations, verifies them, renders
+HTML, and returns the report URL.
+
+Options:
+  --attachment-id <id>      attachmentId from the prepare step (required)
+  --input <file>            Path to a file containing the LLM output
+                            (reads from stdin if omitted)
+  --vis, --visibility <v>   private | unlisted | public (default: private)
+  --title <text>            Optional human-readable title
+  -h, --help                Show this help message
+`;
+
+export async function report(argv: string[], fmtNetErr: (err: unknown) => string): Promise<void> {
+  const normalized = normalizeShortFlags(argv);
+  const args = parseArgs(normalized, REPORT_HELP);
+
+  const attachmentId = args["attachment-id"];
+  if (!attachmentId) die("--attachment-id is required", REPORT_HELP);
+
+  let llmOutput: string;
+  if (args.input) {
+    const inputPath = resolve(args.input);
+    if (!existsSync(inputPath)) die(`Input file not found: ${sanitizeForLog(args.input)}`, REPORT_HELP);
+    llmOutput = readFileSync(inputPath, "utf-8");
+  } else {
+    // Read from stdin
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+    llmOutput = Buffer.concat(chunks).toString("utf-8");
+  }
+
+  if (!llmOutput.trim()) die("No LLM output provided (empty stdin or file)", REPORT_HELP);
+
+  const { apiKey } = await requireAuth();
+  const dc = await createClient(apiKey);
+
+  const visibility = args.visibility as import("../client/types.js").CreateReportOptions["visibility"] | undefined;
+  const title = args.title;
+
+  console.error("Submitting to DeepCitation...");
+  try {
+    const result = await dc.createReport(attachmentId, llmOutput, { visibility, title });
+    console.error(`  id:       ${result.id}`);
+    console.error(`  shareUrl: ${result.shareUrl}`);
+    console.log(result.shareUrl);
+  } catch (err) {
+    die(fmtNetErr(err), REPORT_HELP);
   }
 }

@@ -31,7 +31,7 @@ import type {
   PrepareAttachmentsResult,
   PrepareConvertedFileOptions,
   PrepareUrlOptions,
-  PublishVerificationReportOptions,
+  CreateReportOptions,
   UploadFileOptions,
   UploadFileResponse,
   VerificationReport,
@@ -1328,89 +1328,55 @@ export class DeepCitation {
   }
 
   /**
-   * Publish a verified HTML report and its companion `verify-response.json`
-   * to the DeepCitation hosted reports endpoint. HTML and JSON are stored
-   * as independent artifacts under a single report ID so consumers can
-   * fetch each half on its own (e.g. browsers pull HTML, third-party
-   * verifiers pull JSON).
+   * Submit raw LLM output to the DeepCitation server, which parses citations,
+   * verifies them against the source attachment, renders a self-contained HTML
+   * report, and stores it. Returns the hosted `VerificationReport` immediately.
    *
-   * The `deepcitation verify` CLI calls this automatically for every
-   * successful run so reports show up on "My Verifications". Default
-   * server-side visibility is `"private"` (owner-only); callers opt
-   * into `"unlisted"` (shareable by link) or `"public"` (listed,
-   * Firebase-session only) explicitly.
-   *
-   * @param html - The merged verified HTML produced by `deepcitation verify`
-   * @param verifyResponseJson - The `verify-response.json` string produced by the same run
-   * @param options - Visibility, title, and optional source attachment link
+   * @param attachmentId - The attachment ID returned by `prepareAttachments` or `prepareUrl`
+   * @param llmOutput - Raw LLM response string including the `<<<CITATION_DATA>>>` block
+   * @param options - Visibility and optional title
    * @returns The hosted `VerificationReport` with `shareUrl`, `htmlUrl`, `jsonUrl`
    *
    * @example
    * ```typescript
-   * const html = readFileSync("report-verified.html", "utf-8");
-   * const json = readFileSync("report-verify-response.json", "utf-8");
-   * const report = await deepcitation.publishVerificationReport(html, json, {
+   * const report = await deepcitation.createReport(attachmentId, llmOutput, {
    *   visibility: "unlisted",
    *   title: "Q2 verification summary",
    * });
    * console.log(report.shareUrl);
    * ```
    */
-  async publishVerificationReport(
-    html: string,
-    verifyResponseJson: string,
-    options?: PublishVerificationReportOptions,
+  async createReport(
+    attachmentId: string,
+    llmOutput: string,
+    options?: CreateReportOptions,
   ): Promise<VerificationReport> {
-    if (typeof html !== "string" || html.length === 0) {
-      throw new ValidationError("html must be a non-empty string");
+    if (!attachmentId || typeof attachmentId !== "string") {
+      throw new ValidationError("attachmentId must be a non-empty string");
     }
-    if (typeof verifyResponseJson !== "string" || verifyResponseJson.length === 0) {
-      throw new ValidationError("verifyResponseJson must be a non-empty string");
-    }
-    // Parse guard — fail fast on the client instead of forcing a 400 round-trip.
-    try {
-      JSON.parse(verifyResponseJson);
-    } catch (err) {
-      throw new ValidationError(
-        `verifyResponseJson is not valid JSON: ${err instanceof Error ? err.message : String(err)}`,
-      );
+    if (!llmOutput || typeof llmOutput !== "string") {
+      throw new ValidationError("llmOutput must be a non-empty string");
     }
 
-    const formData = new FormData();
-    formData.append("html", new Blob([html], { type: "text/html" }), "verified.html");
-    formData.append(
-      "verify_response_json",
-      new Blob([verifyResponseJson], { type: "application/json" }),
-      "verify-response.json",
-    );
-    if (options?.visibility) formData.append("visibility", options.visibility);
-    if (options?.title) formData.append("title", options.title);
-    if (options?.attachmentId) formData.append("attachmentId", options.attachmentId);
+    const body: Record<string, string> = { attachmentId, llmOutput };
+    if (options?.visibility) body.visibility = options.visibility;
+    if (options?.title) body.title = options.title;
 
-    this.logger.info?.("Publishing verification report", {
-      visibility: options?.visibility ?? "private",
-      htmlBytes: html.length,
-      jsonBytes: verifyResponseJson.length,
-    });
-
-    const response = await this._fetch(`${this.apiUrl}/v1/verification-reports`, {
+    const response = await this._fetch(`${this.apiUrl}/v1/reports`, {
       method: "POST",
-      headers: { ...this.baseHeaders() },
-      body: formData,
+      headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
     this.checkLatestVersion(response);
     this.checkUsageWarning(response);
 
     if (!response.ok) {
-      this.logger.error?.("Publish verification report failed", { status: response.status });
-      throw await createApiError(response, "Publish verification report");
+      this.logger.error?.("Create report failed", { attachmentId, status: response.status });
+      throw await createApiError(response, "Create report");
     }
 
     const result = (await response.json()) as VerificationReport;
-    this.logger.info?.("Publish verification report complete", {
-      id: result.id,
-      shareUrl: result.shareUrl,
-    });
+    this.logger.info?.("Create report complete", { id: result.id, shareUrl: result.shareUrl });
     return result;
   }
 }
