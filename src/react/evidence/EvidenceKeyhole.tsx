@@ -19,7 +19,7 @@ import { computeAnnotationScrollTarget } from "../overlayGeometry.js";
 import { cn, isImageSource } from "../utils.js";
 import { DC_EVIDENCE_VT_NAME } from "../viewTransition.js";
 import { animateScrollLeft } from "./animateScrollLeft.js";
-import { IDENTITY_RENDER_SCALE } from "./resolvers.js";
+import { IDENTITY_RENDER_SCALE, resolveEvidenceSourceAnchorRatio } from "./resolvers.js";
 
 /**
  * Displays a verification image as a "keyhole" strip — a fixed-height horizontal
@@ -70,6 +70,10 @@ export function EvidenceKeyhole({
     const phraseItem = verification.document?.sourceContextDeepItem;
     return { anchorItem, renderScale, viewBoxOriginY, phraseItem };
   }, [verification]);
+  // Annotation anchor ratio in image space (0–1 on each axis), used by the
+  // page-expand ghost animation to align the ghost over the annotation on the
+  // expanded page. Mirrors InlineExpandedImage's sourceAnchorRatio logic.
+  const sourceAnchorRatio = useMemo(() => resolveEvidenceSourceAnchorRatio(verification), [verification]);
   // Drag-to-pan hook for mouse interaction (xy enables vertical pan for width-fit tall images;
   // when no vertical overflow exists, scrollTop stays 0 — no visible effect on normal crops).
   const { containerRef, isDragging, handlers, scrollState, wasDraggingRef } = useDragToPan({ direction: "xy" });
@@ -324,6 +328,10 @@ export function EvidenceKeyhole({
             data-dc-keyhole=""
             data-dc-page-expand-source=""
             data-dc-page-expand-source-kind="summary-keyhole"
+            {...(sourceAnchorRatio && {
+              "data-dc-source-anchor-x": sourceAnchorRatio.x.toFixed(4),
+              "data-dc-source-anchor-y": sourceAnchorRatio.y.toFixed(4),
+            })}
             className={cn(DOCUMENT_CANVAS_BG_CLASSES, "overflow-x-auto overflow-y-hidden")}
             style={{
               viewTransitionName: DC_EVIDENCE_VT_NAME,

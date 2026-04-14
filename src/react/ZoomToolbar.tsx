@@ -168,10 +168,11 @@ export function ZoomToolbar({
               CARD_CLASSES,
               "w-10 h-10 flex items-center justify-center transition-all duration-180",
               locateDirty ? "text-dc-primary opacity-90 hover:bg-dc-muted" : "opacity-45 hover:opacity-65",
-            )}
+            )} 
+            style={locateIconStyle}
             aria-label={locateDirty ? t("zoom.reCenter") : t("zoom.centered")}
           >
-            <span className="size-4 transform-gpu" style={locateIconStyle}>
+            <span className="size-4 transform-gpu" >
               <LocateIcon />
             </span>
           </button>

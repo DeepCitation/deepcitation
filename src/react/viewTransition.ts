@@ -303,13 +303,21 @@ function buildGhostTarget(
   const srcH = snapshot.viewportRect.height;
 
   // Annotation center within the ghost element.
-  // EvidenceKeyhole's centering scroll puts the annotation at the VISIBLE
-  // CENTER of the strip: scrollLeft = annotationX − srcW/2, so
-  // imageOffsetLeft + annotationX = srcW/2.  The viewport center is therefore
-  // the correct anchor — works for any annotation position in the image, not
-  // just when the annotation happens to be at the image center.
-  const anchorInGhostX = srcW / 2;
-  const anchorInGhostY = srcH / 2;
+  // Formula: imageOffsetLeft + sourceAnchorX × imageWidth = annotation X in ghost-local coords.
+  //
+  // Why this works in both cases:
+  //   Scrolled (non-clamped): imageOffsetLeft = −scrollLeft = srcW/2 − annX·zoom,
+  //     so imageOffsetLeft + annX·zoom = srcW/2.  The annotation ends up at the
+  //     viewport center because EvidenceKeyhole's centering scroll placed it there.
+  //   Width-filling (scrollLeft=0): imageOffsetLeft = 0, so anchor = annX·zoom =
+  //     sourceAnchorX × imageWidth — the annotation's actual pixel position in
+  //     the displayed image.  Using srcW/2 here is wrong when annX ≠ imageW/2.
+  //
+  // sourceAnchorX/Y is set by EvidenceKeyhole (summary-keyhole) and
+  // InlineExpandedImage (expanded-keyhole) via data-dc-source-anchor-x/y.
+  // Falls back to 0.5 when no attribute is set (legacy or non-annotated sources).
+  const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.sourceAnchorX * snapshot.imageWidth;
+  const anchorInGhostY = snapshot.imageOffsetTop + snapshot.sourceAnchorY * snapshot.imageHeight;
 
   // Annotation center on the expanded page — use spotlight center (annotation
   // center with symmetric padding) or marker center.
@@ -361,8 +369,13 @@ export function buildGhostTargetFromViewport(root: ParentNode, snapshot: GhostSn
     if (right <= left || bottom <= top) continue;
     const visibleRect = new DOMRect(left, top, right - left, bottom - top);
     // Keep ghost at source keyhole dimensions — no scale-up for miss/not_found.
-    // Mirror buildGhostTarget: use the visible viewport center as the anchor
-    // (annotation is centered in the strip by EvidenceKeyhole's scroll logic).
+    // Anchor = visible viewport center (srcW/2, srcH/2).
+    // Unlike buildGhostTarget, we use the viewport center here rather than
+    // the annotation position, because miss/not_found has no annotation:
+    //   • No scroll applied → imageOffsetLeft/Top = 0
+    //   • sourceAnchorX/Y defaults to 0.5, but imageWidth may exceed srcW
+    //     (tall image, width-fill zoom), making imageHeight/2 >> srcH
+    // Using srcW/2, srcH/2 keeps the visible center of the ghost on the target.
     const srcW = snapshot.viewportRect.width;
     const srcH = snapshot.viewportRect.height;
     const anchorInGhostX = srcW / 2;
@@ -411,7 +424,10 @@ function createPageExpandGhost(snapshot: GhostSnapshot): HTMLDivElement | null {
   ghost.style.zIndex = "2147483646";
   ghost.style.borderRadius = snapshot.borderRadius;
   ghost.style.transformOrigin = "0 0";
-  ghost.style.willChange = "transform, opacity";
+  // Include filter in will-change: blur() animation needs a compositor layer
+  // hint; without it the GPU can't promote the element ahead of time and the
+  // first blur frame causes a synchronous paint that produces a visible stutter.
+  ghost.style.willChange = "transform, opacity, filter";
   const debugPhase = getPageExpandDebugPhase();
   if (debugPhase && debugPhase !== "both") {
     ghost.style.outline =
@@ -433,6 +449,9 @@ function createPageExpandGhost(snapshot: GhostSnapshot): HTMLDivElement | null {
   img.style.maxWidth = "none";
   img.style.userSelect = "none";
   img.style.pointerEvents = "none";
+  // Promote the image to its own compositor layer so the parent's overflow clip
+  // and border-radius don't trigger repaints each frame.
+  img.style.willChange = "transform";
   ghost.appendChild(img);
   document.body.appendChild(ghost);
   return ghost;

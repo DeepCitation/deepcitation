@@ -79,9 +79,11 @@ describe("buildGhostTargetFromViewport — ghost dimensions invariant", () => {
     expect(result?.ghostRect.height).toBe(120);
   });
 
-  test("ghostRect image center-of-mass lands on the visible page center", () => {
+  test("ghostRect visible viewport center lands on the visible page center", () => {
     // Keyhole: 300×120, image at offset (30, 10) within ghost, size 240×100.
-    // Image center-of-mass within ghost: (30 + 240/2, 10 + 100/2) = (150, 60).
+    // In this test the image happens to be centered in the viewport:
+    // (30 + 240/2, 10 + 100/2) = (150, 60) = (300/2, 120/2). The anchor is
+    // the viewport center (srcW/2, srcH/2) = (150, 60).
     const snapshot = makeSnapshot({
       viewportW: 300,
       viewportH: 120,
@@ -106,16 +108,59 @@ describe("buildGhostTargetFromViewport — ghost dimensions invariant", () => {
     // Page center: (200 + 600/2, 150 + 400/2) = (500, 350)
     const pageCX = 500;
     const pageCY = 350;
-    const anchorInGhostX = 30 + 240 / 2; // 150
-    const anchorInGhostY = 10 + 100 / 2; // 60
+    // Anchor = viewport center
+    const anchorInGhostX = 300 / 2; // 150
+    const anchorInGhostY = 120 / 2; // 60
 
     // Ghost top-left should be (pageCX - anchorX, pageCY - anchorY) = (350, 290)
     expect(ghostRect.left).toBeCloseTo(pageCX - anchorInGhostX);
     expect(ghostRect.top).toBeCloseTo(pageCY - anchorInGhostY);
 
-    // Image center in viewport space at ghost position = ghost.left + anchorX = pageCX
+    // Viewport center in viewport space at ghost position = ghost.left + anchorX = pageCX
     expect(ghostRect.left + anchorInGhostX).toBeCloseTo(pageCX);
     expect(ghostRect.top + anchorInGhostY).toBeCloseTo(pageCY);
+  });
+
+  test("ghostRect anchor uses viewport center, not image center (scrolled image)", () => {
+    // Regression for the anchor-overshoot bug: a tall image scrolled so its
+    // center is NOT at the viewport center.
+    // Keyhole: 400×120. Tall image 400×600, scrolled down 300px:
+    //   imageOffsetTop = -300, imageHeight = 600
+    //   image center-of-mass in ghost: -300 + 600/2 = 0 (at ghost top edge)
+    //   viewport center in ghost: 120/2 = 60 (correct — annotation is centered)
+    const snapshot = makeSnapshot({
+      viewportW: 400,
+      viewportH: 120,
+      imageOffsetLeft: 0,
+      imageOffsetTop: -300,
+      imageWidth: 400,
+      imageHeight: 600,
+    });
+    const containerRect = new DOMRect(100, 200, 400, 600);
+    const imgRect = new DOMRect(100, 200, 400, 600);
+    const { root, cleanup } = makeRoot(containerRect, imgRect);
+
+    const result = buildGhostTargetFromViewport(root, snapshot);
+    cleanup();
+
+    expect(result).not.toBeNull();
+    if (result == null) return;
+
+    const { ghostRect } = result;
+
+    // Page center: (100 + 400/2, 200 + 600/2) = (300, 500)
+    const pageCX = 300;
+    const pageCY = 500;
+    // Anchor = viewport center (NOT image center, which would be 0)
+    const anchorX = 400 / 2; // 200
+    const anchorY = 120 / 2; // 60
+
+    expect(ghostRect.left).toBeCloseTo(pageCX - anchorX); // 100
+    expect(ghostRect.top).toBeCloseTo(pageCY - anchorY); // 440
+
+    // OLD (wrong) behavior would have used image center anchor = (200, 0),
+    // giving ghostRect.top = pageCY - 0 = 500. Assert it's NOT that.
+    expect(ghostRect.top).not.toBeCloseTo(500);
   });
 
   test("markerRect is the visible intersection of container and img", () => {
