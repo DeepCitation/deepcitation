@@ -325,7 +325,13 @@ function deferReposition(retriesLeft: number, gen: number): void {
 function scheduleReposition(): void {
   repositionGen++;
   cancelAnimationFrame(positionRafId);
-  deferReposition(30, repositionGen);
+  positionRafId = requestAnimationFrame(() => {
+    if (isViewTransitioning()) {
+      scheduleReposition();
+      return;
+    }
+    reposition();
+  });
 }
 function startPositionTracking(): void {
   stopPositionTracking();
