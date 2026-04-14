@@ -284,15 +284,18 @@ function reposition(): void {
     contentEl.style.translate = `${dx}px ${dy}px`;
   }
 }
-function scheduleReposition(retriesLeft = 30): void {
-  cancelAnimationFrame(positionRafId);
+function deferReposition(retriesLeft: number): void {
   positionRafId = requestAnimationFrame(() => {
     if (isViewTransitioning() && retriesLeft > 0) {
-      scheduleReposition(retriesLeft - 1);
+      deferReposition(retriesLeft - 1);
       return;
     }
     reposition();
   });
+}
+function scheduleReposition(): void {
+  cancelAnimationFrame(positionRafId);
+  deferReposition(30);
 }
 function startPositionTracking(): void {
   stopPositionTracking();

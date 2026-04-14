@@ -1,9 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import {
-  buildCdnComparisonShowcaseHtml,
-  markdownToHtml,
-  wrapCitationMarkers,
-} from "../cli/markdownToHtml.js";
+import { buildCdnComparisonShowcaseHtml, markdownToHtml, wrapCitationMarkers } from "../cli/markdownToHtml.js";
 
 // ── wrapCitationMarkers ───────────────────────────────────────────
 
@@ -522,7 +518,7 @@ describe("markdownToHtml header — claim & model", () => {
     const result = markdownToHtml("# T\nbody", { model: "Claude Haiku 4.5", citationCount: 5 });
     expect(result).toContain(">MODEL<");
     expect(result).toContain("Claude Haiku 4.5");
-    // Order: ANALYZED → MODEL → CITATIONS (AUDIENCE hidden on default "general")
+    // Order: ANALYZED → MODEL → CITATIONS
     expect(result).toMatch(/ANALYZED[\s\S]*MODEL[\s\S]*CITATIONS/);
   });
 

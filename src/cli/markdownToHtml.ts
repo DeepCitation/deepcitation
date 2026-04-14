@@ -499,20 +499,16 @@ function buildMetaStrip(opts: {
   return `<div class="dc-meta">${items.join(sep)}</div>`;
 }
 
-function reportShell(
-  title: string,
-  bodyHtml: string,
-  options: MarkdownToHtmlOptions,
-): string {
-  const cfg = { width: "960px", tier2Open: true as boolean };
+function reportShell(title: string, bodyHtml: string, options: MarkdownToHtmlOptions): string {
+  const cfg = { width: "960px", tier2Open: true };
   const metaStrip = buildMetaStrip(options);
 
   const claimText = options.claim?.trim();
   const claimCard = claimText
     ? `<div class="dc-claim" role="note" aria-label="Claim under verification">
-       <span class="dc-claim-label">CLAIM</span>
-       <blockquote class="dc-claim-text">${inlineFormat(claimText)}</blockquote>
-     </div>`
+<span class="dc-claim-label">CLAIM</span>
+<blockquote class="dc-claim-text">${inlineFormat(claimText)}</blockquote>
+</div>`
     : "";
 
   return `<!DOCTYPE html>
