@@ -5,14 +5,6 @@ import type { CitationDrawerItem, SourceCitationGroup } from "../../react/Citati
 import { groupCitationsBySource } from "../../react/CitationDrawer.utils.js";
 import { CitationDrawerTrigger } from "../../react/CitationDrawerTrigger.js";
 import { getStatusFromVerification } from "../../react/citationStatus.js";
-import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
-import { usePopoverViewState } from "../../react/hooks/usePopoverViewState.js";
-import { usePrefersReducedMotion } from "../../react/hooks/usePrefersReducedMotion.js";
-import { sanitizeUrl } from "../../react/urlUtils.js";
-import { isViewTransitioning } from "../../react/viewTransition.js";
-import { canChildScrollVertically, findPageScrollEl } from "../../shared/scroll.js";
-import type { Citation } from "../../types/citation.js";
-import type { PageImage, Verification } from "../../types/verification.js";
 import {
   BLINK_ENTER_EASING,
   BLINK_ENTER_OPACITY_A,
@@ -26,6 +18,14 @@ import {
   BLINK_EXIT_SCALE,
   BLINK_EXIT_TOTAL_MS,
 } from "../../react/constants.js";
+import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
+import { usePopoverViewState } from "../../react/hooks/usePopoverViewState.js";
+import { usePrefersReducedMotion } from "../../react/hooks/usePrefersReducedMotion.js";
+import { sanitizeUrl } from "../../react/urlUtils.js";
+import { isViewTransitioning } from "../../react/viewTransition.js";
+import { canChildScrollVertically, findPageScrollEl } from "../../shared/scroll.js";
+import type { Citation } from "../../types/citation.js";
+import type { PageImage, Verification } from "../../types/verification.js";
 import { resolveKeyMap } from "./cdn-keymap.js";
 import { mapToCitation, mapToVerification } from "./cdn-mappers.js";
 import { computePosition } from "./positioning.js";
@@ -107,7 +107,7 @@ let coastRafId: number | null = null;
 const boundTriggers = new WeakSet<HTMLElement>();
 
 // ── Blink animation state ─────────────────────────────────────────────────
-let blinkRafId = 0;
+let blinkRafId: number | null = null;
 let blinkSettleTimer: ReturnType<typeof setTimeout> | null = null;
 let blinkFinalTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -488,10 +488,23 @@ function teardownScrollPassthrough(): void {
 // Three-stage enter: enter-a (instant) → enter-b (BLINK_SETTLE_MS) → steady (BLINK_FINAL_MS).
 // All timing/easing values imported from constants.ts — do not redefine locally.
 
+function blinkTransition(durationMs: number, easing: string): string {
+  return `opacity ${durationMs}ms ${easing}, transform ${durationMs}ms ${easing}`;
+}
+
 function cancelBlink(): void {
-  cancelAnimationFrame(blinkRafId);
-  if (blinkSettleTimer !== null) { clearTimeout(blinkSettleTimer); blinkSettleTimer = null; }
-  if (blinkFinalTimer !== null) { clearTimeout(blinkFinalTimer); blinkFinalTimer = null; }
+  if (blinkRafId !== null) {
+    cancelAnimationFrame(blinkRafId);
+    blinkRafId = null;
+  }
+  if (blinkSettleTimer !== null) {
+    clearTimeout(blinkSettleTimer);
+    blinkSettleTimer = null;
+  }
+  if (blinkFinalTimer !== null) {
+    clearTimeout(blinkFinalTimer);
+    blinkFinalTimer = null;
+  }
 }
 
 function animateOpen(): void {
@@ -507,20 +520,20 @@ function animateOpen(): void {
   // enter-b: BLINK_SETTLE_MS settle toward near-final values
   blinkRafId = requestAnimationFrame(() => {
     if (!contentEl) return;
-    contentEl.style.transition = `opacity ${BLINK_SETTLE_MS}ms ${BLINK_ENTER_EASING}, transform ${BLINK_SETTLE_MS}ms ${BLINK_ENTER_EASING}`;
+    contentEl.style.transition = blinkTransition(BLINK_SETTLE_MS, BLINK_ENTER_EASING);
     contentEl.style.opacity = String(BLINK_ENTER_OPACITY_B);
     contentEl.style.transform = `translate3d(0, 0, 0) scale(${BLINK_ENTER_SCALE_B})`;
     // steady: BLINK_FINAL_MS settle to fully visible
     blinkSettleTimer = setTimeout(() => {
       if (!contentEl) return;
-      contentEl.style.transition = `opacity ${BLINK_FINAL_MS}ms ${BLINK_ENTER_EASING}, transform ${BLINK_FINAL_MS}ms ${BLINK_ENTER_EASING}`;
+      contentEl.style.transition = blinkTransition(BLINK_FINAL_MS, BLINK_ENTER_EASING);
       contentEl.style.opacity = "1";
       contentEl.style.transform = "translate3d(0, 0, 0) scale(1)";
+      blinkSettleTimer = null;
       blinkFinalTimer = setTimeout(() => {
         if (contentEl) contentEl.style.willChange = "";
         blinkFinalTimer = null;
       }, BLINK_FINAL_MS);
-      blinkSettleTimer = null;
     }, BLINK_SETTLE_MS);
   });
 }
@@ -531,7 +544,7 @@ function animateClose(onDone: () => void): void {
     return;
   }
   cancelBlink();
-  contentEl.style.transition = `opacity ${BLINK_EXIT_TOTAL_MS}ms ${BLINK_EXIT_EASING}, transform ${BLINK_EXIT_TOTAL_MS}ms ${BLINK_EXIT_EASING}`;
+  contentEl.style.transition = blinkTransition(BLINK_EXIT_TOTAL_MS, BLINK_EXIT_EASING);
   contentEl.style.opacity = String(BLINK_EXIT_OPACITY);
   contentEl.style.transform = `translate3d(0, 0, 0) scale(${BLINK_EXIT_SCALE})`;
   blinkFinalTimer = setTimeout(() => {
@@ -636,6 +649,7 @@ function hidePopoverCleanup(): void {
     contentEl.style.transition = "none";
     contentEl.style.opacity = "";
     contentEl.style.transform = "";
+    contentEl.style.willChange = "";
   }
   radixVPPositionCleanup?.();
   radixVPPositionCleanup = null;
