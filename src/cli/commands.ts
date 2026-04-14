@@ -1652,9 +1652,9 @@ export function status() {
 export async function openBillingDashboard(billingUrl: string) {
   console.error(`Opening billing dashboard: ${billingUrl}`);
   console.error(`\nHere you can:`);
-  console.error(`  • Add a credit card to unlock usage beyond the free tier`);
-  console.error(`  • Set a custom monthly spend cap for cost control`);
-  console.error(`  • View your usage breakdown and billing history`);
+  console.error(`  • Upgrade to Standard (20/week) or Pro (unlimited)`);
+  console.error(`  • View your usage and subscription status`);
+  console.error(`  • Manage your subscription or cancel anytime`);
   if (!process.env.DC_NO_BROWSER) await openBrowser(billingUrl);
 }
 
