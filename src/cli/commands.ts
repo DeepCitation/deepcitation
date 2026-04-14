@@ -70,12 +70,6 @@ export { SLICE_HELP, slice } from "./slice.js";
 export { TEXT_HELP, text } from "./text.js";
 export type { LineIdsMode, TextFormat } from "./textRender.js";
 
-import type { TextFormat } from "./textRender.js";
-import { applyLineIds, parseFormatMode, parseLineIdsMode, renderTextStream, resolvePageSpec } from "./textRender.js";
-
-// Re-export the parsers so existing tests can import them from the commands module.
-export { applyLineIds, parseFormatMode, parseLineIdsMode, renderTextStream, resolvePageSpec };
-
 import {
   AUDIENCE_PRESETS,
   type AudiencePreset,
@@ -84,6 +78,8 @@ import {
   type ReportStyle,
 } from "./markdownToHtml.js";
 import { createCoworkFetch, createProxyFetch } from "./proxy.js";
+import type { TextFormat } from "./textRender.js";
+import { applyLineIds, parseFormatMode, parseLineIdsMode, renderTextStream, resolvePageSpec } from "./textRender.js";
 
 // ── help strings ──────────────────────────────────────────────────
 
@@ -96,7 +92,7 @@ Commands:
   text      Re-render a prepared JSON file as txt/plain (no network)
   verify    Verify citations (--md, --html, or --citations)
   lint      Pre-flight citation-syntax validator (no network)
-  publish   Upload verified HTML + verify-response.json to hosted reports (opt-in)
+  publish   Re-upload a verified HTML + verify-response.json pair (verify auto-publishes by default)
   billing   Open the billing dashboard
 
 Run "deepcitation <command> --help" for command-specific options.
@@ -199,8 +195,8 @@ Options:
   --out <file>              Output path (default: {stem}-verified.html in CWD)
   --output-dir <dir>        Save HTML and verify-response.json to this directory with stable names
   --json, --keep-json       Also write {stem}-verify-response.json next to the HTML (debug/publish)
-  --pub, --publish          Upload the verified HTML + JSON to the hosted reports endpoint (opt-in)
-  --vis, --visibility <v>   Visibility for --pub: private | unlisted | public (default: unlisted)
+  --no-publish              Skip the auto-upload to My Verifications. Default is to publish as private.
+  --vis, --visibility <v>   Published visibility: private | unlisted | public (default: private)
   --theme <auto|light|dark> Popover color theme (default: "auto")
   --indicator <indicator>   Indicator variant: icon, dot, none (default: "icon")
   --image-format <format>   Evidence image format: avif, png, jpeg, webp (default: avif)
@@ -208,11 +204,12 @@ Options:
   -h, --help                Show this help message
 
 Examples:
-  deepcitation verify --md .deepcitation/draft-report.md
+  deepcitation verify --md .deepcitation/draft-report.md          # auto-publishes as private
   deepcitation verify --md report.md --style plain
   deepcitation verify --md report.md --audience executive --theme dark
-  deepcitation verify --md report.md --pub               # one-shot: verify + upload
-  deepcitation verify --md report.md --pub --vis public  # explicit public share
+  deepcitation verify --md report.md --vis unlisted               # shareable by link
+  deepcitation verify --md report.md --vis public                 # (Portal session only)
+  deepcitation verify --md report.md --no-publish                 # local-only, don't upload
   deepcitation verify --html report.html --out verified.html
   deepcitation verify --prompt
   deepcitation verify --citations .deepcitation/citations-keyed.json
@@ -1058,7 +1055,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
 
   // Forward to verifyHtml with pre-loaded content — no temp file needed.
   // Note: --title is NOT stripped so verifyHtml can forward it to publishInMemory
-  // when --pub is set. The HTML shell already baked in the title above.
+  // on auto-publish. The HTML shell already baked in the title above.
   const stripFlags = new Set(["--markdown", "--style", "--audience", "--citations", "--summary"]);
   const forwardArgs: string[] = [];
   for (let i = 0; i < argv.length; i++) {
@@ -1082,13 +1079,15 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
 }
 
 export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => string, preloadedContent?: string) {
-  // Resolve short aliases (--pub → --publish, --vis → --visibility) before any flag lookup.
+  // Resolve short aliases (--pub → --publish, --vr → --verify-response) before any flag lookup.
   const normalized = normalizeShortFlags(argv);
 
   // Boolean flags — filter out before parseArgs (which only handles --key value pairs).
+  // --publish / --pub are no-op opt-ins kept for backwards-compat: auto-publish
+  // is now the default and only needs to be suppressed with --no-publish.
   const keepJson = normalized.includes("--json") || normalized.includes("--keep-json");
-  const publishAfter = normalized.includes("--publish");
-  const booleanFlags = new Set(["--json", "--keep-json", "--publish"]);
+  const publishAfter = !normalized.includes("--no-publish");
+  const booleanFlags = new Set(["--json", "--keep-json", "--publish", "--no-publish"]);
   const filteredArgv = normalized.filter(a => !booleanFlags.has(a));
   const args = parseArgs(filteredArgv, VERIFY_HELP);
   const htmlPath = args.html;
@@ -1389,16 +1388,18 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   }
 
   // Design-review variants: four CSS-swapped copies next to the main file
-  // (numbered-outline, reviewer-console, briefing-card, marginalia). Body
-  // markup and CDN runtime injection are preserved, so popovers still
-  // function in each variant for visual comparison.
-  const variants = generateReviewVariants(output);
-  const variantDir = dirname(outPath);
-  const variantStem = basename(outPath, extname(outPath));
-  for (const v of variants) {
-    const variantPath = resolve(variantDir, `${variantStem}-review-${v.slug}.html`);
-    writeFileSync(variantPath, v.html);
-    console.error(`  Review variant → ${variantPath}`);
+  // (numbered-outline, reviewer-console, briefing-card, marginalia). Only
+  // written when --json (--keep-json) is set, since they are extra artifacts
+  // intended for design review alongside the sidecar verify-response.json.
+  if (keepJson) {
+    const variants = generateReviewVariants(output);
+    const variantDir = dirname(outPath);
+    const variantStem = basename(outPath, extname(outPath));
+    for (const v of variants) {
+      const variantPath = resolve(variantDir, `${variantStem}-review-${v.slug}.html`);
+      writeFileSync(variantPath, v.html);
+      console.error(`  Review variant → ${variantPath}`);
+    }
   }
 
   // Write run-metadata for iteration tracking (duration, counts, output path).
@@ -1421,13 +1422,17 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   );
   console.error(`Run metadata → ${metaPath}`);
 
-  // --pub (--publish): one-shot upload of the freshly verified HTML + JSON to the
-  // hosted reports endpoint. Opt-in only — never runs unless the flag is set.
-  // The HTML body `output` and JSON body `verifyOutput` are already in memory,
-  // so no disk round-trip is required beyond the receipt that publishInMemory writes.
+  // Auto-publish the freshly verified HTML + JSON to the hosted reports
+  // endpoint so it shows up on the user's "My Verifications" page. Default
+  // visibility is `private` (owner-only); `--no-publish` suppresses the
+  // upload for local-only runs. The HTML body `output` and JSON body
+  // `verifyOutput` are already in memory, so the upload is a single POST.
+  //
+  // A publish failure is NOT fatal — the verified artifact already exists
+  // on disk, so we emit a warning and continue instead of exiting non-zero.
   if (publishAfter) {
     const visibility = resolveVisibility(args.visibility, VERIFY_HELP);
-    console.error(`Publishing verification report (${visibility})...`);
+    console.error(`Publishing to My Verifications (${visibility})...`);
     try {
       await publishInMemory({
         html: output,
@@ -1438,7 +1443,10 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
         htmlSourcePath: outPath,
       });
     } catch (err) {
-      die(err instanceof Error ? err.message : String(err), VERIFY_HELP);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`Warning: publish failed — report saved locally only. ${msg}`);
+      console.error(`  Local artifact: ${outPath}`);
+      console.error(`  Retry manually: deepcitation publish --html <file> --vr <file>`);
     }
   }
 }

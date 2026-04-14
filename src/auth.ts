@@ -91,6 +91,10 @@ export function writeCredentials(creds: Credentials): string {
   throw lastErr ?? new Error("Failed to write credentials to any location");
 }
 
+// Note: PROJECT_CREDENTIALS_PATH is evaluated at module load from process.cwd(). If the
+// user runs `logout` from a directory different from where they logged in (Cowork case),
+// the project-local path won't match the one that holds the credentials, and only the
+// home path will be cleared. This is an intentional limitation of the cwd-snapshot design.
 export function deleteCredentials(): boolean {
   let any = false;
   for (const path of [HOME_CREDENTIALS_PATH, PROJECT_CREDENTIALS_PATH]) {

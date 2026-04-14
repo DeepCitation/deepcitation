@@ -102,7 +102,7 @@ describe("publish", () => {
     expect(parsed.dryRun).toBe(true);
     expect(parsed.htmlPath).toBe(htmlPath);
     expect(parsed.verifyResponsePath).toBe(jsonPath);
-    expect(parsed.visibility).toBe("unlisted");
+    expect(parsed.visibility).toBe("private");
     expect(parsed.htmlBytes).toBeGreaterThan(0);
     expect(parsed.jsonBytes).toBeGreaterThan(0);
   });

@@ -5,11 +5,12 @@
  * Two entry points share the guards in `publishInMemory`:
  *   - The standalone `publish` subcommand (this file's default export),
  *     which reads the two files from disk.
- *   - The `verify --pub` one-shot flag in `commands.ts`, which hands the
+ *   - The `verify` auto-publish path in `commands.ts`, which hands the
  *     freshly verified HTML + JSON straight from memory.
  *
- * Opt-in only. Default visibility is `unlisted` (the random ID is the
- * secret). `public` must be explicit.
+ * Default visibility is `private` (owner-only — shows up on My
+ * Verifications but has no shareable link). Callers opt into `unlisted`
+ * (shareable by link) or `public` (listed, Portal-only) explicitly.
  */
 
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -29,15 +30,15 @@ export const PUBLISH_HELP = `Usage: deepcitation publish --html <file> --vr <fil
 Upload an already-verified HTML report and its companion verify-response.json
 to the DeepCitation hosted reports endpoint. Returns a share URL.
 
-This is opt-in only: publish never runs implicitly from any other command.
-Default visibility is "unlisted" (random ID acts as the secret). "public"
-requires --vis public.
+Default visibility is "private" — the report shows up on My Verifications
+but has no shareable link. Pass "--vis unlisted" for a share-by-link URL,
+or "--vis public" to list it (Portal session required for public).
 
 Options:
   --html <file>             Path to the verified HTML produced by \`verify\`
   --vr, --verify-response <file>
                             Path to verify-response.json (sibling of the HTML)
-  --vis, --visibility <v>   private | unlisted | public (default: unlisted)
+  --vis, --visibility <v>   private | unlisted | public (default: private)
   --title <text>            Optional human-readable title
   --attachment-id <id>      Optional source attachmentId to link back
   --lint                    Run citation-syntax lint on the HTML before upload
@@ -149,7 +150,7 @@ export async function publishInMemory(params: {
 }
 
 export function resolveVisibility(value: string | undefined, helpText: string): VerificationReportVisibility {
-  if (!value) return "unlisted";
+  if (!value) return "private";
   if (!ALLOWED_VISIBILITIES.includes(value as VerificationReportVisibility)) {
     die(`Invalid --vis "${sanitizeForLog(value)}". Allowed: ${ALLOWED_VISIBILITIES.join(", ")}`, helpText);
   }

@@ -381,7 +381,7 @@ function checkFormat2Mismatch(visibleText: string, citations: CitationData[]): F
 // ── helpers ──────────────────────────────────────────────────────
 
 function hasAnyMarker(content: string): boolean {
-  return BARE_MARKER_RE.test(content);
+  return /\[\d+\]/.test(content);
 }
 
 function countCitations(content: string): number {

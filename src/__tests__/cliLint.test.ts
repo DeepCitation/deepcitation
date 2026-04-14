@@ -112,6 +112,27 @@ describe("lint", () => {
     expect(parsed.warnings).toHaveLength(0);
   });
 
+  it("emits structured JSON with populated errors array on a file with errors", () => {
+    const content = sectionWithBlock(
+      "Body **foo** [1] and **bar** [1].",
+      JSON.stringify({
+        doc1: [
+          { n: 1, k: "foo", p: "1_0", l: [1], f: "sentence with foo in it." },
+          { n: 1, k: "bar", p: "1_0", l: [2], f: "sentence with bar." },
+        ],
+      }),
+    );
+    const path = write("dup-json.md", content);
+    const code = lintAndCatchExit([path, "--json"]);
+    expect(code).toBe(1);
+    const parsed = JSON.parse(logLines.join("\n")) as {
+      errors: Array<{ rule: string }>;
+      warnings: unknown[];
+    };
+    expect(parsed.errors.length).toBeGreaterThan(0);
+    expect(parsed.errors.some(e => e.rule === "unique-n")).toBe(true);
+  });
+
   // ── rule 2: duplicate n ──────────────────────────────────────────
 
   it("flags duplicate citation ids as ERR", () => {

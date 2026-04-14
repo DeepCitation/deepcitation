@@ -1,12 +1,14 @@
 /**
- * Tests for the `verify --pub` one-shot publish flag.
+ * Tests for `verify`'s auto-publish path.
  *
- * `verify --pub` hands its freshly-verified HTML + verify-response.json
- * straight to `publishInMemory`, the shared helper also used by the
- * standalone `publish` subcommand. Most of the upload semantics are
- * covered by cliPublish.test.ts via the disk path. This file focuses on:
+ * Successful `verify` runs hand their freshly-verified HTML +
+ * verify-response.json straight to `publishInMemory`, the shared helper
+ * also used by the standalone `publish` subcommand. Most of the upload
+ * semantics are covered by cliPublish.test.ts via the disk path. This
+ * file focuses on:
  *
- *   1. VERIFY_HELP documents the new flag so agents can discover it.
+ *   1. VERIFY_HELP documents the auto-publish defaults + escape hatch
+ *      so agents can discover them.
  *   2. The shared guards (size cap, API-key leak scan, JSON validate)
  *      reject bad payloads **before** any network call — i.e. the same
  *      fail-closed posture used by `publish`, but reached via the
@@ -17,17 +19,16 @@
  *
  *     if (publishAfter) { await publishInMemory(...); }
  *
- * — and its correctness follows from publishInMemory being correct.
+ * — where `publishAfter` is true unless --no-publish is passed.
  */
 
 import { describe, expect, it } from "@jest/globals";
 import { VERIFY_HELP } from "../cli/commands.js";
 import { API_KEY_LEAK_RE, MAX_HTML_BYTES, MAX_JSON_BYTES, publishInMemory } from "../cli/publish.js";
 
-describe("verify --pub help surface", () => {
-  it("VERIFY_HELP lists --pub / --publish", () => {
-    expect(VERIFY_HELP).toContain("--pub");
-    expect(VERIFY_HELP).toContain("--publish");
+describe("verify auto-publish help surface", () => {
+  it("VERIFY_HELP documents the --no-publish opt-out", () => {
+    expect(VERIFY_HELP).toContain("--no-publish");
   });
 
   it("VERIFY_HELP lists --vis for the publish visibility knob", () => {
@@ -35,8 +36,12 @@ describe("verify --pub help surface", () => {
     expect(VERIFY_HELP).toContain("--visibility");
   });
 
-  it("VERIFY_HELP shows a one-shot publish example so agents can copy it", () => {
-    expect(VERIFY_HELP).toMatch(/verify --md .*--pub/);
+  it("VERIFY_HELP advertises private as the default visibility", () => {
+    expect(VERIFY_HELP).toMatch(/default: private/);
+  });
+
+  it("VERIFY_HELP shows a --no-publish example so agents can copy it", () => {
+    expect(VERIFY_HELP).toMatch(/verify --md .*--no-publish/);
   });
 });
 

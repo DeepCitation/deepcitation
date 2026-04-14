@@ -1334,9 +1334,11 @@ export class DeepCitation {
    * fetch each half on its own (e.g. browsers pull HTML, third-party
    * verifiers pull JSON).
    *
-   * This is an opt-in path — the CLI never calls it implicitly. Default
-   * visibility is `"unlisted"` (random ID acts as the secret); `"public"`
-   * must be explicit.
+   * The `deepcitation verify` CLI calls this automatically for every
+   * successful run so reports show up on "My Verifications". Default
+   * server-side visibility is `"private"` (owner-only); callers opt
+   * into `"unlisted"` (shareable by link) or `"public"` (listed,
+   * Firebase-session only) explicitly.
    *
    * @param html - The merged verified HTML produced by `deepcitation verify`
    * @param verifyResponseJson - The `verify-response.json` string produced by the same run
@@ -1386,7 +1388,7 @@ export class DeepCitation {
     if (options?.attachmentId) formData.append("attachmentId", options.attachmentId);
 
     this.logger.info?.("Publishing verification report", {
-      visibility: options?.visibility ?? "unlisted",
+      visibility: options?.visibility ?? "private",
       htmlBytes: html.length,
       jsonBytes: verifyResponseJson.length,
     });
