@@ -21,7 +21,8 @@ const mockOpenBrowser = jest.fn();
 const mockStartCallbackServer = jest.fn();
 
 jest.mock("../auth.js", () => ({
-  CREDENTIALS_PATH: "/tmp/credentials.json",
+  HOME_CREDENTIALS_PATH: "/tmp/home/credentials.json",
+  PROJECT_CREDENTIALS_PATH: "/tmp/project/credentials.json",
   IS_COWORK: false,
   generateNonce: () => "nonce",
   maskKey: (key: string) => key,
@@ -195,10 +196,10 @@ describe("resolveBaseUrl", () => {
 
 describe("saveApiKey", () => {
   it("saves valid key", async () => {
-    mockWriteCredentials.mockReturnValue(undefined);
+    mockWriteCredentials.mockReturnValue("/tmp/home/credentials.json");
     const { stderr } = await captureOutput(() => saveApiKey(TEST_KEY, "--key flag"));
     expect(mockWriteCredentials).toHaveBeenCalledWith(expect.objectContaining({ version: 1, apiKey: TEST_KEY }));
-    expect(stderr).toContain("Credentials saved");
+    expect(stderr).toContain("Credentials saved to /tmp/home/credentials.json");
   });
 
   it("rejects key without sk-dc- prefix", () => {
@@ -1071,10 +1072,14 @@ describe("hydrate CLI command", () => {
 });
 
 describe("login command", () => {
+  beforeEach(() => {
+    mockWriteCredentials.mockReturnValue("/tmp/home/credentials.json");
+  });
+
   it("saves key from --key flag", async () => {
     const { stderr } = await captureOutput(() => login(["--key", TEST_KEY], TEST_BASE_URL));
     expect(mockWriteCredentials).toHaveBeenCalledWith(expect.objectContaining({ apiKey: TEST_KEY }));
-    expect(stderr).toContain("Credentials saved");
+    expect(stderr).toContain("Credentials saved to /tmp/home/credentials.json");
   });
 
   it("exits when --key has no value", async () => {

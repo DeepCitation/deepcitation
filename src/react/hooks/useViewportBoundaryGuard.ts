@@ -32,6 +32,7 @@ export function useViewportBoundaryGuard(
   popoverViewState: PopoverViewState,
   popoverContentRef: React.RefObject<HTMLElement | null>,
   triggerRef: React.RefObject<HTMLElement | null>,
+  sideOffset?: number,
 ): void {
   const prevViewStateRef = useRef<PopoverViewState | null>(null);
   const rafIdRef = useRef<number>(0);
@@ -101,7 +102,7 @@ export function useViewportBoundaryGuard(
     }
 
     clamp(el, false, containerTopRef.current);
-  }, [isOpen, popoverViewState]);
+  }, [isOpen, popoverViewState, sideOffset]);
 
   // Post-render re-clamp after sibling hooks settle.
   // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity

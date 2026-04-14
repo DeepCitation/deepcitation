@@ -14,6 +14,8 @@
 import "dotenv/config";
 import { DeepCitation } from "deepcitation/client";
 import {
+  type AttachmentAssets,
+  type CitationRecord,
   extractVisibleText,
   getAllCitationsFromLlmOutput,
   getCitationStatus,
@@ -21,8 +23,6 @@ import {
   replaceCitationMarkers,
 } from "deepcitation";
 import { wrapCitationPrompt } from "deepcitation/prompts";
-import type { CitationRecord } from "../../../src/types/citation.js";
-import type { AttachmentAssets } from "../../../src/types/verification.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { basename, dirname, resolve } from "path";
 import { createInterface } from "readline";
@@ -424,7 +424,9 @@ async function runSingleSource(
   console.log("\n📄 Step 6: Generating HTML report...\n");
 
   const sourceLabel = s1.sourceLabel;
-  const outDir = DEFAULT_OUT_DIR;
+  // Use a provider-specific subdirectory so concurrent runs don't clobber each other
+  const providerSlug = providerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const outDir = resolve(DEFAULT_OUT_DIR, providerSlug);
   const s6 = stepGenerateHtml(s4, s5, sourceLabel, outDir);
 
   // Overwrite snapshot with llmResponse included

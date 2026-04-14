@@ -23,13 +23,17 @@ import {
   hydrate,
   inject,
   keygen,
+  lint,
   login,
   logout,
   merge,
   openBillingDashboard,
   prepare,
+  publish,
   resolveBaseUrl,
+  slice,
   status,
+  text,
   verify,
   whoami,
 } from "./cli/commands.js";
@@ -97,6 +101,21 @@ switch (command) {
     break;
   case "merge":
     merge(rest);
+    break;
+  case "lint":
+    lint(rest);
+    break;
+  case "slice":
+    slice(rest);
+    break;
+  case "text":
+    text(rest);
+    break;
+  case "publish":
+    publish(rest).catch(err => {
+      console.error(`Error: ${fmtNetErr(err)}`);
+      process.exit(1);
+    });
     break;
   case "inject":
     inject(rest);

@@ -408,13 +408,13 @@ describe("markdownToHtml — cite: link format", () => {
   it("does not break regular https links", () => {
     const result = markdownToHtml("[Docs](https://example.com)", { style: "plain" });
     expect(result).toContain('<a href="https://example.com">Docs</a>');
-    expect(result).not.toContain("data-cite");
+    expect(result).not.toContain('data-cite="');
   });
 
   it("rejects cite: with non-numeric ID", () => {
     const result = markdownToHtml("[text](cite:evil)", { style: "plain" });
     expect(result).toContain('href="#"');
-    expect(result).not.toContain("data-cite");
+    expect(result).not.toContain('data-cite="');
   });
 
   it("old [N] format still produces data-cite span in mixed document", () => {

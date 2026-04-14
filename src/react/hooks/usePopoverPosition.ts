@@ -172,7 +172,7 @@ export function usePopoverPosition(config: UsePopoverPositionConfig): PopoverPos
   );
 
   // 6. Viewport boundary guard (imperative DOM side-effect, no return value)
-  useViewportBoundaryGuard(isOpen, viewStateHandle.current, popoverContentRef, triggerRef);
+  useViewportBoundaryGuard(isOpen, viewStateHandle.current, popoverContentRef, triggerRef, sideOffset);
 
   return useMemo(
     (): PopoverPositionResult => ({
