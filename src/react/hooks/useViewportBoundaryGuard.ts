@@ -74,10 +74,13 @@ export function useViewportBoundaryGuard(
     const isInitialOpen = prevViewStateRef.current === null;
     const isViewStateChange = !isInitialOpen && prevViewStateRef.current !== popoverViewState;
     prevViewStateRef.current = popoverViewState;
-    // Signal to the sibling useEffect (which runs after this) whether this cycle
-    // is a view-state transition. useEffect cannot compute this itself because
-    // prevViewStateRef has already been updated by this point.
-    isViewStateTransitionRef.current = isViewStateChange;
+    // Signal to the sibling useEffect whether this cycle is a view-state transition.
+    // Only set to true — never reset here. The useEffect consumes and resets the flag
+    // after reading so the next transition starts clean. This prevents a subsequent
+    // layout-effect run (e.g. triggered by sideOffset changing in the same flushSync
+    // batch when leaving expanded-page) from overwriting true with false before the
+    // useEffect has had a chance to read it.
+    if (isViewStateChange) isViewStateTransitionRef.current = true;
 
     if (isViewStateChange) {
       // Apply full vertical clamping immediately on view-state change. The
@@ -128,6 +131,7 @@ export function useViewportBoundaryGuard(
     // isViewStateTransitionRef is written by the sibling useLayoutEffect on the same deps
     // and is readable here because layout effects flush before passive effects.
     const skipVerticalInTimer = isViewStateTransitionRef.current;
+    isViewStateTransitionRef.current = false; // consumed; reset for next transition
     const safetyTimer = setTimeout(() => {
       const current = popoverContentRef.current;
       if (current) clamp(current, skipVerticalInTimer, containerTopRef.current);
