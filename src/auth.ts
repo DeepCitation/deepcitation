@@ -80,7 +80,9 @@ export function writeCredentials(creds: Credentials): string {
         try {
           writeFileSync(join(dir, ".gitignore"), "*\n");
         } catch {
-          /* best effort */
+          console.error(
+            "Warning: could not write .deepcitation/.gitignore — add it to your repo's .gitignore manually to avoid committing credentials.",
+          );
         }
       }
       return path;

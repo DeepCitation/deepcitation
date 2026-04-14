@@ -391,7 +391,7 @@ function countCitations(content: string): number {
 }
 
 function quote(s: string): string {
-  return `"${s.replace(/"/g, '\\"')}"`;
+  return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 function truncate(s: string, max: number): string {

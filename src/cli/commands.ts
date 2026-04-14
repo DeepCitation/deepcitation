@@ -1462,6 +1462,11 @@ Options:
   --stdin       Read API key from stdin (CI/agents)
   -h, --help    Show this help message
 
+Notes:
+  logout clears credentials from ~/.deepcitation/ and from .deepcitation/ in
+  the current directory. Run logout from the same directory you logged in from
+  so the project-local credentials are found and removed.
+
 Examples:
   deepcitation auth                   # Check status or log in
   deepcitation auth --key sk-dc-...   # Save a key directly

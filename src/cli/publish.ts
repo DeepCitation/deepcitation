@@ -65,6 +65,10 @@ export const ALLOWED_VISIBILITIES: readonly VerificationReportVisibility[] = ["p
  * Reject HTML that contains a literal DeepCitation API key. Uploading a
  * key — even to an unlisted share URL — is a one-way leak: anyone who
  * guesses the ID can pull the key out. Fail closed before the POST.
+ *
+ * Minimum: 6-char prefix ("sk-dc-") + 14 alphanum chars = 20 chars total.
+ * Keep in sync with VALID_API_KEY_RE in cliUtils.ts which anchors the same
+ * minimum for format validation.
  */
 export const API_KEY_LEAK_RE = /sk-dc-[a-zA-Z0-9]{14,}/;
 
@@ -120,32 +124,39 @@ export async function publishInMemory(params: {
 
   const report = await dc.publishVerificationReport(params.html, params.verifyResponseJson, options);
 
-  const receiptDir = resolve(".deepcitation");
-  if (!existsSync(receiptDir)) mkdirSync(receiptDir, { recursive: true });
-  const receiptPath = resolve(receiptDir, `publish-${report.id}.json`);
-  writeFileSync(
-    receiptPath,
-    JSON.stringify(
-      {
-        id: report.id,
-        shareUrl: report.shareUrl,
-        htmlUrl: report.htmlUrl,
-        jsonUrl: report.jsonUrl,
-        visibility: report.visibility,
-        title: report.title,
-        createdAt: report.createdAt,
-        sources: params.htmlSourcePath
-          ? { html: params.htmlSourcePath, htmlName: basename(params.htmlSourcePath) }
-          : undefined,
-      },
-      null,
-      2,
-    ),
-  );
-
   console.error(`  id:        ${report.id}`);
   console.error(`  shareUrl:  ${report.shareUrl}`);
-  console.error(`  receipt:   ${receiptPath}`);
+
+  // Write a local receipt for audit / re-publish tooling. The upload already
+  // succeeded at this point, so a disk error here must not surface as a
+  // publish failure — emit a warning and continue.
+  try {
+    const receiptDir = resolve(".deepcitation");
+    if (!existsSync(receiptDir)) mkdirSync(receiptDir, { recursive: true });
+    const receiptPath = resolve(receiptDir, `publish-${report.id}.json`);
+    writeFileSync(
+      receiptPath,
+      JSON.stringify(
+        {
+          id: report.id,
+          shareUrl: report.shareUrl,
+          htmlUrl: report.htmlUrl,
+          jsonUrl: report.jsonUrl,
+          visibility: report.visibility,
+          title: report.title,
+          createdAt: report.createdAt,
+          sources: params.htmlSourcePath
+            ? { html: params.htmlSourcePath, htmlName: basename(params.htmlSourcePath) }
+            : undefined,
+        },
+        null,
+        2,
+      ),
+    );
+    console.error(`  receipt:   ${receiptPath}`);
+  } catch {
+    console.error("  Warning: could not write publish receipt to .deepcitation/ — report was uploaded successfully.");
+  }
   return report;
 }
 
