@@ -60,9 +60,7 @@ export function stripExistingInjection(html: string): { html: string; hadExistin
   // Regex with multiple [^>]* groups on uncontrolled input is polynomial.
   for (const id of ["dc-data", "dc-key-map"]) {
     const idMarker = `id="${id}"`;
-    let changed = true;
-    while (changed) {
-      changed = false;
+    while (true) {
       const idIdx = result.indexOf(idMarker);
       if (idIdx === -1) break;
       const tagStart = result.lastIndexOf("<script", idIdx);
@@ -79,7 +77,6 @@ export function stripExistingInjection(html: string): { html: string; hadExistin
         ws++;
       result = result.slice(0, tagStart) + result.slice(ws);
       hadExisting = true;
-      changed = true;
     }
   }
 
