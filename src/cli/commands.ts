@@ -57,11 +57,7 @@ import {
 import { extractMarkersFromBody, findAnchorWithFallback, getAllLines, toCompactPageId } from "./cite.js";
 import { die, extractApiKey, isValidApiKeyFormat, normalizeShortFlags, parseArgs } from "./cliUtils.js";
 import { findSummaryForMarkdown, hydrateCitations, parseSummaryToLineMap } from "./hydrate.js";
-import {
-  generateReviewVariants,
-  markdownToHtml,
-  type ReportStyle,
-} from "./markdownToHtml.js";
+import { generateReviewVariants, markdownToHtml, type ReportStyle } from "./markdownToHtml.js";
 import { createCoworkFetch, createProxyFetch } from "./proxy.js";
 import type { TextFormat } from "./textRender.js";
 import { applyLineIds, parseFormatMode, parseLineIdsMode, renderTextStream, resolvePageSpec } from "./textRender.js";
@@ -1413,7 +1409,6 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     ),
   );
   console.error(`Run metadata → ${metaPath}`);
-
 }
 
 export const AUTH_HELP = `Usage: deepcitation auth [subcommand] [options]
@@ -1770,4 +1765,3 @@ export async function report(argv: string[], fmtNetErr: (err: unknown) => string
     die(fmtNetErr(err), REPORT_HELP);
   }
 }
-

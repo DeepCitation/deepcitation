@@ -864,5 +864,4 @@ describe("verify --markdown output naming", () => {
     // Should parse the citation before failing at API
     expect(r.stderr).toContain("1 citation");
   });
-
 });

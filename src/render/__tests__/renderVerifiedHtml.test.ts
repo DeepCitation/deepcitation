@@ -3,7 +3,7 @@ import { describe, expect, it } from "bun:test";
 import { renderVerifiedHtml } from "../renderVerifiedHtml.js";
 
 const fakeCitations = {
-  "abc123": {
+  abc123: {
     sourceMatch: "blood pressure",
     sourceContext: "The patient's blood pressure was 120/80.",
     pageNumber: 1,
@@ -12,7 +12,7 @@ const fakeCitations = {
 };
 
 const fakeVerifications = {
-  "abc123": {
+  abc123: {
     status: "found" as const,
     verifiedPageNumber: 1,
     verifiedSourceContext: "blood pressure was 120/80",
@@ -40,9 +40,7 @@ describe("renderVerifiedHtml", () => {
   });
 
   it("accepts empty attachments without throwing", () => {
-    expect(() =>
-      renderVerifiedHtml("Hello [1].", fakeCitations, fakeVerifications, {})
-    ).not.toThrow();
+    expect(() => renderVerifiedHtml("Hello [1].", fakeCitations, fakeVerifications, {})).not.toThrow();
   });
 
   it("uses the title option in the HTML output", () => {

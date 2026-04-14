@@ -33,6 +33,14 @@ Do **not** flag these shared fields as "semantically document-only" in code revi
 
 > All citations are potentially verifiable against a page-indexed document. The `type` discriminator indicates the *source* of the citation, not whether page/line fields will be populated.
 
+## Test Failure Policy
+
+When tests fail, fix them. Do not investigate attribution.
+
+- **Never use `git stash` to check whether a failure is "pre-existing"** — stashing is unsafe in shared workspaces where multiple developers and agents operate on the same working tree.
+- **"I think those failures were pre-existing" is not acceptable** without an actual fix. It signals time spent on blame instead of solutions.
+- If a failing test is genuinely out of scope for your current PR, note it explicitly in the PR description and open a separate tracking issue — but do not leave the suite red.
+
 ## Testing Rules
 
 - Tests must validate implemented behavior, not aspirational behavior.

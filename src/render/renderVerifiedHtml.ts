@@ -7,9 +7,9 @@
  * available for any other consumer that needs to render a verified report.
  */
 
+import { markdownToHtml } from "../cli/markdownToHtml.js";
 import type { CitationRecord } from "../types/citation.js";
 import type { AttachmentAssets, Verification } from "../types/verification.js";
-import { markdownToHtml } from "../cli/markdownToHtml.js";
 import {
   buildCitationMaps,
   injectCdnRuntime,
