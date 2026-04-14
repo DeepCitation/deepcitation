@@ -575,6 +575,9 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
         aria-label={t("aria.citationsSummary", { claimText })}
         data-testid="citation-drawer-trigger"
       >
+        {/* Label */}
+        <span className="text-xs text-dc-foreground truncate min-w-0 flex-1">{claimText}</span>
+
         {/* Per-citation status icons */}
         <StackedStatusIcons
           flatCitations={flatCitations}
@@ -587,9 +590,6 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
           onSourceClick={onSourceClick}
           indicatorVariant={indicatorVariant}
         />
-
-        {/* Label */}
-        <span className="text-xs text-dc-foreground truncate max-w-[200px]">{claimText}</span>
 
         {/* Aggregate TtC — shows average user review time when metrics are available */}
         {timingMetrics && timingMetrics.resolvedCount > 0 && (

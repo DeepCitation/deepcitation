@@ -16,6 +16,8 @@ bun.lock
 skills-lock.json
 
 /scratch/
+/output/
+/plans/
 /playwright/.cache/
 /test-results/
 /playwright-report/

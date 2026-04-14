@@ -518,3 +518,58 @@ export interface AttachmentResponse {
   /** Raw per-page text array extracted from the document. */
   pageTexts?: string[];
 }
+
+// ==========================================================================
+// Verification reports (hosted publish)
+// ==========================================================================
+
+/**
+ * Visibility level for a hosted verification report.
+ * - `private`: owner-only; only the authenticated publisher can fetch
+ * - `unlisted`: no auth required, but the random ID acts as the secret
+ * - `public`: no auth required and surfaced in listings
+ */
+export type VerificationReportVisibility = "private" | "unlisted" | "public";
+
+/**
+ * Options when publishing a verification report via
+ * `DeepCitation.publishVerificationReport`.
+ */
+export interface PublishVerificationReportOptions {
+  /** Visibility of the hosted report. Defaults to `"unlisted"` server-side. */
+  visibility?: VerificationReportVisibility;
+  /** Optional human-readable title to surface in lists and metadata. */
+  title?: string;
+  /** Optional link back to the source attachment. */
+  attachmentId?: string;
+}
+
+/**
+ * Server response when publishing or fetching a hosted verification report.
+ * HTML and JSON are stored as independent blobs so the HTML can be re-rendered
+ * from the JSON and third-party verifiers can pull the JSON on its own.
+ */
+export interface VerificationReport {
+  /** Opaque, URL-safe identifier (random 16-char base32). */
+  id: string;
+  /** Canonical share URL (HTML view, serves under the reports subdomain). */
+  shareUrl: string;
+  /** Direct URL to the stored HTML blob. */
+  htmlUrl: string;
+  /** Direct URL to the stored `verify-response.json` blob. */
+  jsonUrl: string;
+  visibility: VerificationReportVisibility;
+  title?: string;
+  /** ISO 8601 creation timestamp. */
+  createdAt: string;
+  /** ISO 8601 optional auto-expiry timestamp. */
+  expiresAt?: string;
+  /** Total citations encoded in the published verify-response.json. */
+  citationCount?: number;
+  /** Citations whose verification status was `found`. */
+  verifiedCount?: number;
+  /** Citations whose verification status was `partial`. */
+  partialCount?: number;
+  /** Citations whose verification status was `not_found`. */
+  notFoundCount?: number;
+}

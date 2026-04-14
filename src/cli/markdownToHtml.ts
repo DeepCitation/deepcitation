@@ -386,6 +386,7 @@ const BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-box; }
   h2 { font-size: 18px; font-weight: 600; margin: 2rem 0 0.75rem; border-bottom: 1px solid #E4E4E7; padding-bottom: 0.4rem; }
   h3 { font-size: 16px; font-weight: 600; margin: 1.5rem 0 0.5rem; }
   p { margin: 0.5rem 0; }
+  [data-cite] strong { font-weight: 600; }
   a { color: #0284C7; }
   table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 14px; }
   th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #E4E4E7; }
@@ -627,6 +628,797 @@ ${bodyHtml}
 <div data-dc-drawer-trigger></div>
 </body>
 </html>`;
+}
+
+// ── Review variants (layout exploration) ─────────────────────────
+//
+// Four alternate LAYOUTS applied over the main report HTML as a post-
+// processing step. Each variant fully replaces the author-controlled
+// <style>…</style> block in the output HTML, preserving body markup and
+// the CDN runtime injection so citation popovers still work for review.
+//
+// All variants share the numbered-outline counter system (CSS counters
+// in a left gutter) as their structural backbone — the most literal
+// expression of FileLasso v2.1 "structure without walls". They diverge
+// on the property each one optimizes for:
+//
+//   numbered-outline → the structural baseline, kept as-is
+//   reviewer-console → USABILITY (active review: sticky verdict, scan affordances)
+//   briefing-card    → SHAREABILITY (screenshot/PDF/social: self-contained hero)
+//   marginalia       → MEMORABILITY (distinctive bracket + spine motif)
+//
+// All four restrict themselves to Inter + Source Code Pro and the
+// zinc/blue palette from deepcitation-web/BRANDING.md.
+
+interface ReviewVariant {
+  slug: string;
+  label: string;
+  description: string;
+  css: string;
+}
+
+const REVIEW_FONT_LINKS = `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">`;
+
+// Structural defaults shared by every variant: reset, citation rule, table
+// primitives, code, horizontal rules, details/summary, verdict colors, and
+// the cowork notice SVG positioning. Each variant appends its own layout-
+// specific rules after this block, so the cascade lets variants override
+// anything they need without repeating the basics.
+const REVIEW_SHARED_BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-box; }
+  h1, h2, h3 { color: #09090B; }
+  p { margin: 0.65rem 0; }
+  a { color: #005595; text-decoration: underline; text-decoration-color: rgba(0,85,149,0.35); text-underline-offset: 2px; }
+  a:hover { text-decoration-color: #005595; }
+  [data-cite] strong { font-weight: 500; color: #005595; }
+  ul, ol { margin: 0.6rem 0 0.6rem 1.5rem; }
+  li { margin: 0.3rem 0; }
+  pre { background: #F4F4F5; color: #18181B; padding: 1rem 1.15rem; overflow-x: auto; margin: 1rem 0; font-size: 13px; line-height: 1.7; border: 1px solid #E4E4E7; border-left: 3px solid #09090B; font-family: 'Source Code Pro', monospace; }
+  code { font-family: 'Source Code Pro', monospace; font-size: 0.88em; background: #F4F4F5; color: #09090B; padding: 1px 5px; border: 1px solid #E4E4E7; border-radius: 0; }
+  pre code { background: none; border: none; padding: 0; }
+  hr { border: none; border-top: 1px solid #E4E4E7; margin: 2rem 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 14px; }
+  th, td { padding: 0.55rem 0.75rem; text-align: left; border-bottom: 1px solid #E4E4E7; }
+  th { font-family: 'Source Code Pro', monospace; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #71717A; background: transparent; border-bottom: 2px solid #09090B; }
+  tbody tr:hover { background: #F9FAFB; }
+  details { margin: 0.75rem 0; }
+  summary { cursor: pointer; font-weight: 500; font-size: 13px; color: #52525B; padding: 0.5rem 0; user-select: none; font-family: 'Source Code Pro', monospace; text-transform: uppercase; letter-spacing: 0.05em; }
+  summary:hover { color: #09090B; }
+  .dc-section { background: #FFFFFF; border: 1px solid #E4E4E7; padding: 1.25rem 1.5rem; margin: 1rem 0; }
+  .mono { font-family: 'Source Code Pro', monospace; font-size: 14px; font-weight: 500; }
+  .dc-verdict .v-found  { color: #10B981; }
+  .dc-verdict .v-partial { color: #D97706; }
+  .dc-verdict .v-miss   { color: #EF4444; }
+  .dc-meta-sep { display: none; }
+  .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }`;
+
+const REVIEW_VARIANTS: ReviewVariant[] = [
+  {
+    slug: "numbered-outline",
+    label: "Numbered Outline",
+    description:
+      "Single column with a 5rem left gutter holding CSS-counter section numbers (01, 01.1, 01.2) aligned to each H2 and H3. Reviewers can reference sections by number, and the gutter gives an at-a-glance sense of structural depth while scrolling.",
+    css: `  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #18181B;
+    background: #FFFFFF;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem 6.5rem;
+    counter-reset: h2section;
+  }
+  body > header { margin-bottom: 2rem; position: relative; }
+  body > header::before {
+    content: "00";
+    position: absolute;
+    left: -5rem;
+    top: 0.4rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: #CBD5E1;
+    letter-spacing: 0.05em;
+  }
+  body > header h1 {
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin-bottom: 0.75rem;
+  }
+  body > header .dc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.5rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    color: #71717A;
+    margin: 0.75rem 0 0;
+    padding-top: 0.85rem;
+    border-top: 1px solid #E4E4E7;
+  }
+  .dc-meta-item { display: inline-flex; align-items: baseline; gap: 0.4rem; }
+  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.08em; color: #A1A1AA; font-size: 10px; font-weight: 500; }
+  .dc-meta-val { color: #09090B; font-weight: 500; }
+  .dc-meta-link { color: #005595; text-decoration: none; font-weight: 500; }
+  .dc-meta-link:hover { text-decoration: underline; }
+  .dc-verdict {
+    display: flex;
+    gap: 1.5rem;
+    padding: 0.85rem 1rem;
+    margin-bottom: 2.25rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 12px;
+    border: 1px solid #E4E4E7;
+    background: #FAFAFA;
+  }
+  h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; }
+  h2 {
+    counter-increment: h2section;
+    counter-reset: h3section;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 2.75rem 0 0.85rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #E4E4E7;
+    letter-spacing: -0.01em;
+    position: relative;
+  }
+  h2::before {
+    content: counter(h2section, decimal-leading-zero);
+    position: absolute;
+    left: -5rem;
+    top: 0.35rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: #005595;
+    letter-spacing: 0.05em;
+  }
+  h3 {
+    counter-increment: h3section;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 1.75rem 0 0.5rem;
+    position: relative;
+  }
+  h3::before {
+    content: counter(h2section, decimal-leading-zero) "." counter(h3section);
+    position: absolute;
+    left: -5rem;
+    top: 0.2rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: #94A3B8;
+  }
+  .dc-footer {
+    margin: 3.5rem 0 0 -5rem;
+    padding: 1.25rem 0 0 5rem;
+    border-top: 1px solid #E4E4E7;
+    font-size: 11px;
+    color: #A1A1AA;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Source Code Pro', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .dc-footer a { color: #A1A1AA; text-decoration: none; }
+  .dc-footer a:hover { color: #52525B; text-decoration: underline; }
+  .dc-cowork-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.65rem 0.9rem;
+    background: #F0F9FF;
+    border: 1px solid #BAE6FD;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #005595;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 720px) {
+    body { padding: 2rem 1.25rem 3rem; }
+    body > header::before, h2::before, h3::before { position: static; display: block; margin-bottom: 0.2rem; }
+    .dc-footer { margin-left: 0; padding-left: 0; }
+  }`,
+  },
+  {
+    slug: "reviewer-console",
+    label: "Reviewer's Console",
+    description:
+      "Numbered-outline gutter plus a sticky verdict console that pins FOUND / PARTIAL / MISS counts to the viewport while the reviewer scrolls. Citation triggers are larger and more obviously interactive; jumping to a section via anchor scrolls it under the verdict bar with a soft :target highlight. Optimized for the active review moment — every affordance speeds the cite-by-cite walkthrough.",
+    css: `  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #18181B;
+    background: #FFFFFF;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem 6.5rem;
+    counter-reset: h2section;
+    scroll-padding-top: 5rem;
+  }
+  body > header { margin-bottom: 1.25rem; position: relative; }
+  body > header::before {
+    content: "00";
+    position: absolute;
+    left: -5rem;
+    top: 0.65rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: #CBD5E1;
+    letter-spacing: 0.05em;
+  }
+  body > header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin-bottom: 0.85rem;
+  }
+  body > header .dc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.5rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    color: #71717A;
+    margin: 0;
+    padding-top: 0.85rem;
+    border-top: 1px solid #E4E4E7;
+  }
+  .dc-meta-item { display: inline-flex; align-items: baseline; gap: 0.4rem; }
+  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.08em; color: #A1A1AA; font-size: 10px; font-weight: 500; }
+  .dc-meta-val { color: #09090B; font-weight: 500; }
+  .dc-meta-link { color: #005595; text-decoration: none; font-weight: 500; }
+  .dc-meta-link:hover { text-decoration: underline; }
+  .dc-verdict {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    gap: 1.25rem;
+    padding: 0.7rem 1.5rem 0.7rem 6.5rem;
+    margin: 0 -1.5rem 2.25rem -6.5rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.96);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid #E4E4E7;
+  }
+  .dc-verdict:empty { display: none; }
+  .dc-verdict .v-found,
+  .dc-verdict .v-partial,
+  .dc-verdict .v-miss {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 600;
+  }
+  .dc-verdict .v-found::before,
+  .dc-verdict .v-partial::before,
+  .dc-verdict .v-miss::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: currentColor;
+    border-radius: 50%;
+  }
+  h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+  h2 {
+    counter-increment: h2section;
+    counter-reset: h3section;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 2.75rem 0 0.85rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #E4E4E7;
+    letter-spacing: -0.01em;
+    position: relative;
+    scroll-margin-top: 5rem;
+  }
+  h2::before {
+    content: counter(h2section, decimal-leading-zero);
+    position: absolute;
+    left: -5rem;
+    top: 0.35rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: #005595;
+    letter-spacing: 0.05em;
+  }
+  h3 {
+    counter-increment: h3section;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 1.75rem 0 0.5rem;
+    position: relative;
+    scroll-margin-top: 5rem;
+  }
+  h3::before {
+    content: counter(h2section, decimal-leading-zero) "." counter(h3section);
+    position: absolute;
+    left: -5rem;
+    top: 0.2rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: #94A3B8;
+  }
+  h2:target, h3:target {
+    background: linear-gradient(to right, rgba(0,85,149,0.07), transparent 60%);
+    padding-left: 0.5rem;
+    margin-left: -0.5rem;
+    transition: background-color 0.3s ease;
+  }
+  [data-cite] strong {
+    cursor: pointer;
+    padding: 1px 4px;
+    margin: 0 -1px;
+    border-bottom: 1px dotted rgba(0,85,149,0.4);
+    transition: background-color 0.12s ease, border-color 0.12s ease;
+  }
+  [data-cite]:hover strong {
+    background: rgba(0,85,149,0.08);
+    border-bottom-color: #005595;
+  }
+  .dc-section {
+    background: #FFFFFF;
+    border: 1px solid #E4E4E7;
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0;
+    transition: border-color 0.12s ease;
+  }
+  .dc-section:hover { border-color: #94A3B8; }
+  .dc-footer {
+    margin: 3.5rem 0 0 -5rem;
+    padding: 1.25rem 0 0 5rem;
+    border-top: 1px solid #E4E4E7;
+    font-size: 11px;
+    color: #A1A1AA;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Source Code Pro', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .dc-footer a { color: #A1A1AA; text-decoration: none; }
+  .dc-footer a:hover { color: #52525B; text-decoration: underline; }
+  .dc-cowork-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.65rem 0.9rem;
+    background: #F0F9FF;
+    border: 1px solid #BAE6FD;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #005595;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 720px) {
+    body { padding: 2rem 1.25rem 3rem; }
+    body > header::before, h2::before, h3::before { position: static; display: block; margin-bottom: 0.2rem; }
+    .dc-verdict { padding: 0.7rem 1.25rem; margin: 0 -1.25rem 1.75rem; }
+    .dc-footer { margin-left: 0; padding-left: 0; }
+  }`,
+  },
+  {
+    slug: "briefing-card",
+    label: "Briefing Card",
+    description:
+      "A self-contained hero panel (title + meta + verdict) sits in the first viewport so a screenshot of the top of the report conveys the entire status at a glance. Verdict counts render as full-width tinted chips for thumbnail legibility. Title is framed with FileLasso's bracket motif. A print stylesheet keeps headings and tables intact when exported to PDF. Optimized for the handoff moment — the report has to survive being cropped, screenshotted, and pasted into Slack.",
+    css: `  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #18181B;
+    background: #FFFFFF;
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2.25rem 1.5rem 4rem;
+    counter-reset: h2section;
+  }
+  body > header {
+    position: relative;
+    padding: 1.85rem 2rem 1.5rem;
+    margin-bottom: 0;
+    background: #FAFAFA;
+    border: 1px solid #E4E4E7;
+    border-bottom: none;
+  }
+  body > header::before,
+  body > header::after {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #005595;
+    pointer-events: none;
+  }
+  body > header::before {
+    top: -1px;
+    left: -1px;
+    border-right: none;
+    border-bottom: none;
+  }
+  body > header::after {
+    top: -1px;
+    right: -1px;
+    border-left: none;
+    border-bottom: none;
+  }
+  body > header h1 {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.18;
+    margin-bottom: 1rem;
+    color: #09090B;
+  }
+  body > header .dc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.5rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    margin: 0;
+    padding-top: 0.85rem;
+    border-top: 1px solid #E4E4E7;
+  }
+  .dc-meta-item { display: inline-flex; align-items: baseline; gap: 0.4rem; }
+  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.1em; color: #A1A1AA; font-size: 10px; font-weight: 500; }
+  .dc-meta-val { color: #09090B; font-weight: 600; }
+  .dc-meta-link { color: #005595; text-decoration: none; font-weight: 600; }
+  .dc-meta-link:hover { text-decoration: underline; }
+  .dc-verdict {
+    display: flex;
+    gap: 0;
+    padding: 0;
+    margin: 0 0 2.25rem;
+    background: #FFFFFF;
+    border: 1px solid #E4E4E7;
+    border-top: none;
+    font-family: 'Source Code Pro', monospace;
+    position: relative;
+  }
+  .dc-verdict::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #005595;
+    border-left: none;
+    border-top: none;
+    pointer-events: none;
+  }
+  .dc-verdict:empty { display: none; }
+  .dc-verdict .v-found,
+  .dc-verdict .v-partial,
+  .dc-verdict .v-miss {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.95rem 1rem;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    border-right: 1px solid #E4E4E7;
+  }
+  .dc-verdict .v-miss { border-right: none; }
+  .dc-verdict .v-found  { color: #047857; background: #F0FDF4; }
+  .dc-verdict .v-partial { color: #B45309; background: #FFFBEB; }
+  .dc-verdict .v-miss   { color: #B91C1C; background: #FEF2F2; }
+  h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; margin: 2rem 0 0.5rem; }
+  h2 {
+    counter-increment: h2section;
+    counter-reset: h3section;
+    font-size: 19px;
+    font-weight: 600;
+    margin: 2.5rem 0 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #E4E4E7;
+    letter-spacing: -0.01em;
+    page-break-after: avoid;
+    break-after: avoid-page;
+  }
+  h2::before {
+    content: counter(h2section, decimal-leading-zero) "  ";
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: #005595;
+    letter-spacing: 0.06em;
+    margin-right: 0.5rem;
+    vertical-align: 0.18em;
+  }
+  h3 { font-size: 15px; font-weight: 600; margin: 1.75rem 0 0.5rem; page-break-after: avoid; break-after: avoid-page; }
+  .dc-cowork-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.65rem 0.9rem;
+    margin: -0.5rem 0 1.5rem;
+    background: #F0F9FF;
+    border: 1px solid #BAE6FD;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #005595;
+  }
+  .dc-footer {
+    margin: 3.5rem 0 0;
+    padding: 1.25rem 0 0;
+    border-top: 1px solid #E4E4E7;
+    font-size: 11px;
+    color: #A1A1AA;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Source Code Pro', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .dc-footer a { color: #A1A1AA; text-decoration: none; }
+  .dc-footer a:hover { color: #52525B; text-decoration: underline; }
+  @media print {
+    body { max-width: none; padding: 0.5in; font-size: 11pt; }
+    body > header { background: transparent; }
+    body > header::before, body > header::after, .dc-verdict::after { border-color: #09090B; }
+    .dc-verdict .v-found,
+    .dc-verdict .v-partial,
+    .dc-verdict .v-miss {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    h2, h3 { page-break-after: avoid; break-after: avoid-page; }
+    .dc-section, table, pre, figure { page-break-inside: avoid; break-inside: avoid; }
+    .dc-footer { page-break-before: avoid; }
+  }`,
+  },
+  {
+    slug: "marginalia",
+    label: "Marginalia",
+    description:
+      "Bracket-framed title, a §-marginalia gutter for every section, and a thin two-tone spine running the full document height along the left edge. Custom selection color in brand blue, corner brackets on the verdict box, and a bracketed footer. The signature element is the spine: any screenshot taken from inside the document will carry FileLasso's blue ledger line. Optimized for the months-later recognition moment — when a colleague spots a thumbnail and instantly knows what tool produced it.",
+    css: `  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #18181B;
+    background: #FFFFFF;
+    font-size: 16px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 3.25rem 2rem 4rem 7rem;
+    counter-reset: h2section;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: absolute;
+    left: 1.85rem;
+    top: 3.25rem;
+    bottom: 4rem;
+    width: 2px;
+    background: #005595;
+    pointer-events: none;
+  }
+  body::after {
+    content: "";
+    position: absolute;
+    left: 2.05rem;
+    top: 3.25rem;
+    bottom: 4rem;
+    width: 1px;
+    background: #E4E4E7;
+    pointer-events: none;
+  }
+  ::selection { background: rgba(0,85,149,0.18); color: #09090B; }
+  body > header { margin-bottom: 2.5rem; position: relative; }
+  body > header::before {
+    content: "\\00a7";
+    position: absolute;
+    left: -5.15rem;
+    top: 0.45rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    color: #005595;
+    line-height: 1;
+  }
+  body > header h1 {
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.12;
+    color: #09090B;
+  }
+  body > header h1::before {
+    content: "[";
+    font-family: 'Source Code Pro', monospace;
+    color: #005595;
+    font-weight: 400;
+    margin-right: 0.55rem;
+    font-size: 0.85em;
+    vertical-align: 0.05em;
+  }
+  body > header h1::after {
+    content: "]";
+    font-family: 'Source Code Pro', monospace;
+    color: #005595;
+    font-weight: 400;
+    margin-left: 0.55rem;
+    font-size: 0.85em;
+    vertical-align: 0.05em;
+  }
+  body > header .dc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.5rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    color: #71717A;
+    margin: 1.25rem 0 0;
+    padding-top: 1rem;
+    border-top: 1px solid #E4E4E7;
+  }
+  .dc-meta-item { display: inline-flex; align-items: baseline; gap: 0.45rem; }
+  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.1em; color: #A1A1AA; font-size: 10px; font-weight: 500; }
+  .dc-meta-val { color: #09090B; font-weight: 500; }
+  .dc-meta-link { color: #005595; text-decoration: none; font-weight: 500; }
+  .dc-meta-link:hover { text-decoration: underline; }
+  .dc-verdict {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1rem 1.25rem;
+    margin: 0 0 2.5rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 12px;
+    background: #FAFAFA;
+    border: 1px solid #E4E4E7;
+    position: relative;
+  }
+  .dc-verdict:empty { display: none; }
+  .dc-verdict::before,
+  .dc-verdict::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid #005595;
+    pointer-events: none;
+  }
+  .dc-verdict::before {
+    top: -2px;
+    left: -2px;
+    border-right: none;
+    border-bottom: none;
+  }
+  .dc-verdict::after {
+    bottom: -2px;
+    right: -2px;
+    border-left: none;
+    border-top: none;
+  }
+  h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.025em; }
+  h2 {
+    counter-increment: h2section;
+    counter-reset: h3section;
+    font-size: 21px;
+    font-weight: 600;
+    margin: 3rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #E4E4E7;
+    letter-spacing: -0.015em;
+    position: relative;
+  }
+  h2::before {
+    content: "\\00a7 " counter(h2section, decimal-leading-zero);
+    position: absolute;
+    left: -5.5rem;
+    top: 0.5rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: #005595;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+  }
+  h3 {
+    counter-increment: h3section;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 1.85rem 0 0.5rem;
+    position: relative;
+  }
+  h3::before {
+    content: counter(h2section, decimal-leading-zero) "\\00b7" counter(h3section);
+    position: absolute;
+    left: -5rem;
+    top: 0.25rem;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: #94A3B8;
+    font-variant-numeric: tabular-nums;
+  }
+  .dc-cowork-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.7rem 0.95rem;
+    background: #F0F9FF;
+    border: 1px solid #BAE6FD;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #005595;
+    margin-bottom: 1.5rem;
+  }
+  .dc-footer {
+    margin: 4rem 0 0 -5rem;
+    padding: 1.5rem 0 0 5rem;
+    border-top: 1px solid #E4E4E7;
+    font-size: 11px;
+    color: #A1A1AA;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Source Code Pro', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .dc-footer::before { content: "[\\00a0"; color: #CBD5E1; }
+  .dc-footer::after { content: "\\00a0]"; color: #CBD5E1; }
+  .dc-footer a { color: #A1A1AA; text-decoration: none; }
+  .dc-footer a:hover { color: #52525B; text-decoration: underline; }
+  @media (max-width: 720px) {
+    body { padding: 2.25rem 1.25rem 3rem; }
+    body::before, body::after { display: none; }
+    body > header::before, h2::before, h3::before { position: static; display: block; margin-bottom: 0.25rem; }
+    .dc-footer { margin-left: 0; padding-left: 0; }
+  }`,
+  },
+];
+
+/**
+ * Produce design-review variants of an already-rendered report HTML.
+ *
+ * Each variant is the same body markup — same meta strip, same verdict
+ * banner, same citation spans — with a fully replaced `<style>` block and
+ * the shared font `<link>` tags injected into `<head>`. The CDN runtime
+ * script and `<<<CITATION_DATA>>>` block are left intact, so popovers still
+ * function for design review.
+ *
+ * Callers typically run this AFTER `verifyHtml` has written the main file,
+ * so variants get the same runtime injection and verification payload.
+ */
+export function generateReviewVariants(
+  mainHtml: string,
+): Array<{ slug: string; label: string; description: string; html: string }> {
+  return REVIEW_VARIANTS.map(v => {
+    const fullCss = `${REVIEW_SHARED_BASE_CSS}\n${v.css}`;
+    let html = mainHtml.replace(/<style>[\s\S]*?<\/style>/, `<style>\n${fullCss}\n</style>`);
+    html = html.replace(/<\/head>/, `${REVIEW_FONT_LINKS}\n</head>`);
+    return { slug: v.slug, label: v.label, description: v.description, html };
+  });
 }
 
 // ── Main conversion ────────────────────────────────────────────────

@@ -23,8 +23,8 @@ import {
   getCitationStatus,
   getVerificationTextIndicator,
   replaceCitationMarkers,
-  wrapCitationPrompt,
 } from "deepcitation";
+import { wrapCitationPrompt } from "deepcitation/prompts";
 import { readFileSync } from "fs";
 import OpenAI from "openai";
 import { dirname, resolve } from "path";
