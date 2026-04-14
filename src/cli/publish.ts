@@ -13,7 +13,7 @@
  * (shareable by link) or `public` (listed, Portal-only) explicitly.
  */
 
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import type {
   PublishVerificationReportOptions,
@@ -189,17 +189,22 @@ export async function publish(argv: string[]): Promise<void> {
   if (!existsSync(htmlResolved)) die(`HTML file not found: ${sanitizeForLog(htmlPath)}`, PUBLISH_HELP);
   if (!existsSync(jsonResolved)) die(`verify-response.json not found: ${sanitizeForLog(jsonPath)}`, PUBLISH_HELP);
 
-  const htmlBytes = statSync(htmlResolved).size;
-  const jsonBytes = statSync(jsonResolved).size;
-  if (htmlBytes > MAX_HTML_BYTES) {
-    die(`HTML exceeds ${MAX_HTML_BYTES} bytes (got ${htmlBytes}). Cannot publish.`, PUBLISH_HELP);
+  // Read into buffers first so the size check uses the same bytes that will
+  // be uploaded — no TOCTOU window between stat and read.
+  const htmlBuf = readFileSync(htmlResolved);
+  const jsonBuf = readFileSync(jsonResolved);
+  if (htmlBuf.byteLength > MAX_HTML_BYTES) {
+    die(`HTML exceeds ${MAX_HTML_BYTES} bytes (got ${htmlBuf.byteLength}). Cannot publish.`, PUBLISH_HELP);
   }
-  if (jsonBytes > MAX_JSON_BYTES) {
-    die(`verify-response.json exceeds ${MAX_JSON_BYTES} bytes (got ${jsonBytes}). Cannot publish.`, PUBLISH_HELP);
+  if (jsonBuf.byteLength > MAX_JSON_BYTES) {
+    die(
+      `verify-response.json exceeds ${MAX_JSON_BYTES} bytes (got ${jsonBuf.byteLength}). Cannot publish.`,
+      PUBLISH_HELP,
+    );
   }
 
-  const html = readFileSync(htmlResolved, "utf-8");
-  const verifyResponseJson = readFileSync(jsonResolved, "utf-8");
+  const html = htmlBuf.toString("utf-8");
+  const verifyResponseJson = jsonBuf.toString("utf-8");
 
   // Fail-closed: never upload an HTML body that has an API key in it.
   if (API_KEY_LEAK_RE.test(html)) {
@@ -244,8 +249,8 @@ export async function publish(argv: string[]): Promise<void> {
 
   if (dryRun) {
     console.error(`Dry run — not uploading.`);
-    console.error(`  html:       ${htmlResolved} (${htmlBytes} bytes)`);
-    console.error(`  vr:         ${jsonResolved} (${jsonBytes} bytes)`);
+    console.error(`  html:       ${htmlResolved} (${htmlBuf.byteLength} bytes)`);
+    console.error(`  vr:         ${jsonResolved} (${jsonBuf.byteLength} bytes)`);
     console.error(`  visibility: ${visibility}`);
     if (title) console.error(`  title:      ${title}`);
     if (attachmentId) console.error(`  attachment: ${attachmentId}`);
@@ -256,8 +261,8 @@ export async function publish(argv: string[]): Promise<void> {
           dryRun: true,
           htmlPath: htmlResolved,
           verifyResponsePath: jsonResolved,
-          htmlBytes,
-          jsonBytes,
+          htmlBytes: htmlBuf.byteLength,
+          jsonBytes: jsonBuf.byteLength,
           visibility,
           title,
           attachmentId,
