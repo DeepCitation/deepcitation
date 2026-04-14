@@ -23,8 +23,9 @@
  */
 
 import { describe, expect, it } from "@jest/globals";
+import { normalizeShortFlags } from "../cli/cliUtils.js";
 import { VERIFY_HELP } from "../cli/commands.js";
-import { API_KEY_LEAK_RE, MAX_HTML_BYTES, MAX_JSON_BYTES, publishInMemory } from "../cli/publish.js";
+import { API_KEY_LEAK_RE, MAX_HTML_BYTES, MAX_JSON_BYTES, publishInMemory, resolveVisibility } from "../cli/publish.js";
 
 describe("verify auto-publish help surface", () => {
   it("VERIFY_HELP documents the --no-publish opt-out", () => {
@@ -90,6 +91,16 @@ describe("publishInMemory fail-closed guards (shared by verify --pub and publish
         visibility: "unlisted",
       }),
     ).rejects.toThrow(/not valid JSON/);
+  });
+});
+
+describe("verify backward compat: --pub / --publish are no-op aliases", () => {
+  it("normalizeShortFlags still maps --pub → --publish (alias preserved)", () => {
+    expect(normalizeShortFlags(["--pub"])).toEqual(["--publish"]);
+  });
+
+  it("resolveVisibility with no value returns private (auto-publish default)", () => {
+    expect(resolveVisibility(undefined, VERIFY_HELP)).toBe("private");
   });
 });
 

@@ -57,19 +57,6 @@ import {
 import { extractMarkersFromBody, findAnchorWithFallback, getAllLines, toCompactPageId } from "./cite.js";
 import { die, extractApiKey, isValidApiKeyFormat, normalizeShortFlags, parseArgs } from "./cliUtils.js";
 import { findSummaryForMarkdown, hydrateCitations, parseSummaryToLineMap } from "./hydrate.js";
-
-// Re-export so cli.ts and tests can import from the single commands module
-export { HYDRATE_HELP, hydrate } from "./hydrate.js";
-export { LINT_HELP, lint } from "./lint.js";
-export { MERGE_HELP, merge } from "./merge.js";
-export { PUBLISH_HELP, publish } from "./publish.js";
-
-import { publishInMemory, resolveVisibility } from "./publish.js";
-
-export { SLICE_HELP, slice } from "./slice.js";
-export { TEXT_HELP, text } from "./text.js";
-export type { LineIdsMode, TextFormat } from "./textRender.js";
-
 import {
   AUDIENCE_PRESETS,
   type AudiencePreset,
@@ -78,8 +65,18 @@ import {
   type ReportStyle,
 } from "./markdownToHtml.js";
 import { createCoworkFetch, createProxyFetch } from "./proxy.js";
+import { publishInMemory, resolveVisibility } from "./publish.js";
 import type { TextFormat } from "./textRender.js";
 import { applyLineIds, parseFormatMode, parseLineIdsMode, renderTextStream, resolvePageSpec } from "./textRender.js";
+
+// Re-export so cli.ts and tests can import from the single commands module
+export { HYDRATE_HELP, hydrate } from "./hydrate.js";
+export { LINT_HELP, lint } from "./lint.js";
+export { MERGE_HELP, merge } from "./merge.js";
+export { PUBLISH_HELP, publish } from "./publish.js";
+export { SLICE_HELP, slice } from "./slice.js";
+export { TEXT_HELP, text } from "./text.js";
+export type { LineIdsMode, TextFormat } from "./textRender.js";
 
 // ── help strings ──────────────────────────────────────────────────
 
@@ -1443,7 +1440,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
         htmlSourcePath: outPath,
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = sanitizeForLog(err instanceof Error ? err.message : String(err));
       console.error(`Warning: publish failed — report saved locally only. ${msg}`);
       console.error(`  Local artifact: ${outPath}`);
       console.error(`  Retry manually: deepcitation publish --html <file> --vr <file>`);
