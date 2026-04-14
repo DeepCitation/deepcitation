@@ -296,18 +296,20 @@ function buildGhostTarget(
   // like a key into a keyhole. No scale = no squash/stretch.
   //
   // The keyhole viewport may be scrolled so only part of the evidence crop is
-  // visible (e.g. right half when the match is on the right). We find the
-  // annotation center WITHIN the ghost (imageOffset + imageSize/2) and align
-  // that point with the annotation center on the expanded page. This ensures
-  // content alignment regardless of keyhole scroll position.
+  // visible (e.g. right half when the match is on the right). We align the
+  // annotation center WITHIN the ghost with the annotation center on the
+  // expanded page.
   const srcW = snapshot.viewportRect.width;
   const srcH = snapshot.viewportRect.height;
 
-  // Annotation center within the ghost element: the evidence crop image is
-  // centered on the annotation, so the image center ≈ annotation center.
-  // imageOffset accounts for keyhole scroll position.
-  const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.imageWidth / 2;
-  const anchorInGhostY = snapshot.imageOffsetTop + snapshot.imageHeight / 2;
+  // Annotation center within the ghost element.
+  // EvidenceKeyhole's centering scroll puts the annotation at the VISIBLE
+  // CENTER of the strip: scrollLeft = annotationX − srcW/2, so
+  // imageOffsetLeft + annotationX = srcW/2.  The viewport center is therefore
+  // the correct anchor — works for any annotation position in the image, not
+  // just when the annotation happens to be at the image center.
+  const anchorInGhostX = srcW / 2;
+  const anchorInGhostY = srcH / 2;
 
   // Annotation center on the expanded page — use spotlight center (annotation
   // center with symmetric padding) or marker center.
@@ -359,12 +361,12 @@ export function buildGhostTargetFromViewport(root: ParentNode, snapshot: GhostSn
     if (right <= left || bottom <= top) continue;
     const visibleRect = new DOMRect(left, top, right - left, bottom - top);
     // Keep ghost at source keyhole dimensions — no scale-up for miss/not_found.
-    // Mirror buildGhostTarget: align the image center-of-mass in the ghost to
-    // the center of the visible page area, so the ghost slides without scaling.
+    // Mirror buildGhostTarget: use the visible viewport center as the anchor
+    // (annotation is centered in the strip by EvidenceKeyhole's scroll logic).
     const srcW = snapshot.viewportRect.width;
     const srcH = snapshot.viewportRect.height;
-    const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.imageWidth / 2;
-    const anchorInGhostY = snapshot.imageOffsetTop + snapshot.imageHeight / 2;
+    const anchorInGhostX = srcW / 2;
+    const anchorInGhostY = srcH / 2;
     const pageCX = visibleRect.left + visibleRect.width / 2;
     const pageCY = visibleRect.top + visibleRect.height / 2;
     const ghostRect = new DOMRect(pageCX - anchorInGhostX, pageCY - anchorInGhostY, srcW, srcH);

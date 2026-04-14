@@ -21,7 +21,6 @@ import {
   extractVisibleText,
   getAllCitationsFromLlmOutput,
   getCitationStatus,
-  getVerificationTextIndicator,
   groupCitationsByAttachmentId,
   replaceCitationMarkers,
 } from "deepcitation";
@@ -48,6 +47,9 @@ const SAMPLE_QUESTIONS = [
   "How does Raft guarantee that committed log entries survive leader changes?",
   "What languages and images were included on the Voyager Golden Record?",
   "Why does cold proofing make sourdough taste more sour?",
+  // Hallucination bait: the corpus has facts on this, but the LLM will almost always
+  // over-claim (wrong count, wrong attribution). DeepCitation will flag the miss.
+  "How many distinct languages and greetings appear on the Voyager Golden Record, and who chose them?",
 ];
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -304,36 +306,35 @@ export async function runWorkflow(providerName: string, streamLlm: StreamLlmFn):
   }
 
   const verifications = Object.entries(mergedVerifications) as [string, any][];
-  const wideSep = "═".repeat(60);
 
-  console.log(`Found ${verifications.length} verification(s):\n`);
-  for (const [key, verification] of verifications) {
-    const indicator = getVerificationTextIndicator(verification);
-    const page = verification.document?.verifiedPageNumber ?? "N/A";
-    console.log(wideSep);
-    console.log(`Citation [${key}]: ${indicator} ${verification.status} | Page: ${page}`);
-    const claimed = parsedCitations[key]?.fullPhrase;
-    if (claimed) {
-      console.log(`  📝 Claimed: "${claimed.slice(0, 100)}${claimed.length > 100 ? "…" : ""}"`);
-    }
-    const found = verification.verifiedSourceContext as string | undefined;
-    if (found) {
-      console.log(`  🔍 Found:   "${found.slice(0, 100)}${found.length > 100 ? "…" : ""}"`);
-    }
-    console.log();
+  // ── Verification table ─────────────────────────────────────────────────
+  // One row per citation: sequential index, truncated claim, status, page.
+  // Emoji chars are wide (2 display cols) so we use a fixed label width and
+  // a trailing newline to keep the separator clean regardless of terminal.
+  const CLAIM_W = 54;
+  const rule = `  ${"─".repeat(4)} ${"─".repeat(CLAIM_W)} ${"─".repeat(12)} ${"─".repeat(5)}`;
+
+  console.log(`\n  Verifying ${verifications.length} citation(s):\n`);
+  console.log(rule);
+
+  for (let i = 0; i < verifications.length; i++) {
+    const [key, verification] = verifications[i];
+    const s = getCitationStatus(verification);
+    const label = s.isVerified ? "✅ verified " : s.isPartialMatch ? "⚠️  partial " : "❌ not found";
+    const page = String(verification.document?.verifiedPageNumber ?? "—").padEnd(5);
+    const claimed = parsedCitations[key]?.sourceContext ?? "";
+    const claimCol = claimed.length > CLAIM_W ? `${claimed.slice(0, CLAIM_W - 1)}…` : claimed.padEnd(CLAIM_W);
+    console.log(`  [${String(i + 1).padStart(2)}] ${claimCol} ${label} p.${page}`);
   }
-  console.log(`${wideSep}\n`);
+
+  console.log(rule);
 
   // ── Step 7: Summary ───────────────────────────────────────────────────
   const verified = verifications.filter(([, v]) => getCitationStatus(v).isVerified).length;
   const partial = verifications.filter(([, v]) => getCitationStatus(v).isPartialMatch).length;
   const missed = verifications.filter(([, v]) => getCitationStatus(v).isMiss).length;
 
-  console.log("📊 Summary:");
-  console.log(`   Total: ${verifications.length}`);
-  console.log(`   Verified: ${verified}`);
-  console.log(`   Partial: ${partial}`);
-  console.log(`   Not found: ${missed}`);
+  console.log(`\n  ✅ ${verified} verified  ⚠️  ${partial} partial  ❌ ${missed} not found\n`);
 
   console.log("\n📖 Clean response:");
   console.log(separator);

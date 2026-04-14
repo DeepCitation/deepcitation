@@ -19,6 +19,7 @@ import {
   type Verification,
   extractVisibleText,
   getAllCitationsFromLlmOutput,
+  renderVerifiedHtml,
 } from "deepcitation";
 import { wrapCitationPrompt } from "deepcitation/prompts";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -174,7 +175,8 @@ export function stepGenerateHtml(
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
   const safeName = toSafeName(sourceLabel);
   const htmlPath = resolve(outDir, `${safeName}-verified.html`);
-  writeFileSync(htmlPath, "");
+  const html = renderVerifiedHtml(step4.visibleText, step4.parsedCitations, step5.verifications, step5.attachments, { title: sourceLabel });
+  writeFileSync(htmlPath, html);
   const snapshotPath = resolve(outDir, `${safeName}-snapshot.json`);
   writeFileSync(snapshotPath, JSON.stringify({ verifications: step5.verifications, title: sourceLabel }, null, 2));
   return { htmlPath, snapshotPath };
