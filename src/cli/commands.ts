@@ -1833,4 +1833,3 @@ export async function report(argv: string[], fmtNetErr: (err: unknown) => string
     die(fmtNetErr(err), REPORT_HELP);
   }
 }
-

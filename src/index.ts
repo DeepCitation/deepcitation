@@ -222,6 +222,3 @@ export {
   isSafeDomain,
 } from "./utils/urlSafety.js";
 export { getVerificationTextIndicator } from "./utils/verificationIndicator.js";
-
-export { renderVerifiedHtml } from "./render/renderVerifiedHtml.js";
-export type { RenderVerifiedHtmlOptions } from "./render/renderVerifiedHtml.js";
