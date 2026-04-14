@@ -187,8 +187,8 @@ Options:
   -h, --help                Show this help message
 
 Examples:
-  deepcitation verify --md .deepcitation/draft-report.md 
-  deepcitation verify --md report.md --claim "Did Q1 revenue exceed $4B?" 
+  deepcitation verify --md .deepcitation/draft-report.md
+  deepcitation verify --md report.md --claim "Did Q1 revenue exceed $4B?"
   deepcitation verify --md report.md --style plain
   deepcitation verify --md report.md --vis unlisted               # shareable by link
   deepcitation verify --md report.md --vis public                 # (Portal session only)
@@ -1092,7 +1092,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   // Forward to verifyHtml with pre-loaded content — no temp file needed.
   // Note: --title is NOT stripped so verifyHtml can forward it to publishInMemory
   // on auto-publish. The HTML shell already baked in the title above.
-  const stripFlags = new Set(["--markdown", "--style", "--citations", "--summary", "--claim", "--model"]);
+  const stripFlags = new Set(["--markdown", "--style", "--audience", "--citations", "--summary", "--claim", "--model"]);
   const forwardArgs: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (stripFlags.has(argv[i])) {
