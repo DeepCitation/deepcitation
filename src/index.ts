@@ -112,6 +112,8 @@ export {
   CITATION_Y_PADDING,
   generateCitationInstanceId,
 } from "./react/utils.js";
+export type { RenderVerifiedHtmlOptions } from "./render/renderVerifiedHtml.js";
+export { renderVerifiedHtml } from "./render/renderVerifiedHtml.js";
 // Rendering port (prepare-once, render-many pattern)
 export {
   type CitationAdapter,
@@ -120,7 +122,6 @@ export {
   prepareCitations,
   type ResolvedCitation,
 } from "./rendering/prepareCitations.js";
-
 // Types
 export type { DeepTextItem, ScreenBox } from "./types/boxes.js";
 export type {
@@ -169,7 +170,6 @@ export type {
   UrlVerificationResult,
   Verification,
 } from "./types/verification.js";
-
 // Utilities
 export { getCitationKey, getVerificationKey } from "./utils/citationKey.js";
 export {

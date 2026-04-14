@@ -296,18 +296,28 @@ function buildGhostTarget(
   // like a key into a keyhole. No scale = no squash/stretch.
   //
   // The keyhole viewport may be scrolled so only part of the evidence crop is
-  // visible (e.g. right half when the match is on the right). We find the
-  // annotation center WITHIN the ghost (imageOffset + imageSize/2) and align
-  // that point with the annotation center on the expanded page. This ensures
-  // content alignment regardless of keyhole scroll position.
+  // visible (e.g. right half when the match is on the right). We align the
+  // annotation center WITHIN the ghost with the annotation center on the
+  // expanded page.
   const srcW = snapshot.viewportRect.width;
   const srcH = snapshot.viewportRect.height;
 
-  // Annotation center within the ghost element: the evidence crop image is
-  // centered on the annotation, so the image center ≈ annotation center.
-  // imageOffset accounts for keyhole scroll position.
-  const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.imageWidth / 2;
-  const anchorInGhostY = snapshot.imageOffsetTop + snapshot.imageHeight / 2;
+  // Annotation center within the ghost element.
+  // Formula: imageOffsetLeft + sourceAnchorX × imageWidth = annotation X in ghost-local coords.
+  //
+  // Why this works in both cases:
+  //   Scrolled (non-clamped): imageOffsetLeft = −scrollLeft = srcW/2 − annX·zoom,
+  //     so imageOffsetLeft + annX·zoom = srcW/2.  The annotation ends up at the
+  //     viewport center because EvidenceKeyhole's centering scroll placed it there.
+  //   Width-filling (scrollLeft=0): imageOffsetLeft = 0, so anchor = annX·zoom =
+  //     sourceAnchorX × imageWidth — the annotation's actual pixel position in
+  //     the displayed image.  Using srcW/2 here is wrong when annX ≠ imageW/2.
+  //
+  // sourceAnchorX/Y is set by EvidenceKeyhole (summary-keyhole) and
+  // InlineExpandedImage (expanded-keyhole) via data-dc-source-anchor-x/y.
+  // Falls back to 0.5 when no attribute is set (legacy or non-annotated sources).
+  const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.sourceAnchorX * snapshot.imageWidth;
+  const anchorInGhostY = snapshot.imageOffsetTop + snapshot.sourceAnchorY * snapshot.imageHeight;
 
   // Annotation center on the expanded page — use spotlight center (annotation
   // center with symmetric padding) or marker center.
@@ -359,12 +369,17 @@ export function buildGhostTargetFromViewport(root: ParentNode, snapshot: GhostSn
     if (right <= left || bottom <= top) continue;
     const visibleRect = new DOMRect(left, top, right - left, bottom - top);
     // Keep ghost at source keyhole dimensions — no scale-up for miss/not_found.
-    // Mirror buildGhostTarget: align the image center-of-mass in the ghost to
-    // the center of the visible page area, so the ghost slides without scaling.
+    // Anchor = visible viewport center (srcW/2, srcH/2).
+    // Unlike buildGhostTarget, we use the viewport center here rather than
+    // the annotation position, because miss/not_found has no annotation:
+    //   • No scroll applied → imageOffsetLeft/Top = 0
+    //   • sourceAnchorX/Y defaults to 0.5, but imageWidth may exceed srcW
+    //     (tall image, width-fill zoom), making imageHeight/2 >> srcH
+    // Using srcW/2, srcH/2 keeps the visible center of the ghost on the target.
     const srcW = snapshot.viewportRect.width;
     const srcH = snapshot.viewportRect.height;
-    const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.imageWidth / 2;
-    const anchorInGhostY = snapshot.imageOffsetTop + snapshot.imageHeight / 2;
+    const anchorInGhostX = srcW / 2;
+    const anchorInGhostY = srcH / 2;
     const pageCX = visibleRect.left + visibleRect.width / 2;
     const pageCY = visibleRect.top + visibleRect.height / 2;
     const ghostRect = new DOMRect(pageCX - anchorInGhostX, pageCY - anchorInGhostY, srcW, srcH);
@@ -409,7 +424,10 @@ function createPageExpandGhost(snapshot: GhostSnapshot): HTMLDivElement | null {
   ghost.style.zIndex = "2147483646";
   ghost.style.borderRadius = snapshot.borderRadius;
   ghost.style.transformOrigin = "0 0";
-  ghost.style.willChange = "transform, opacity";
+  // Include filter in will-change: blur() animation needs a compositor layer
+  // hint; without it the GPU can't promote the element ahead of time and the
+  // first blur frame causes a synchronous paint that produces a visible stutter.
+  ghost.style.willChange = "transform, opacity, filter";
   const debugPhase = getPageExpandDebugPhase();
   if (debugPhase && debugPhase !== "both") {
     ghost.style.outline =
@@ -431,6 +449,9 @@ function createPageExpandGhost(snapshot: GhostSnapshot): HTMLDivElement | null {
   img.style.maxWidth = "none";
   img.style.userSelect = "none";
   img.style.pointerEvents = "none";
+  // Promote the image to its own compositor layer so the parent's overflow clip
+  // and border-radius don't trigger repaints each frame.
+  img.style.willChange = "transform";
   ghost.appendChild(img);
   document.body.appendChild(ghost);
   return ghost;
@@ -1047,6 +1068,7 @@ function runPageCollapseGhostAnimation(
   snapshot: GhostSnapshot,
   keyholeRect: DOMRect,
   popoverRoot: HTMLElement | null,
+  onDone: () => void,
 ): void {
   const src = snapshot.viewportRect;
 
@@ -1102,6 +1124,12 @@ function runPageCollapseGhostAnimation(
     fill: "both",
   });
 
+  let pendingAnimations = popoverRoot ? 2 : 1;
+  const markAnimationDone = () => {
+    pendingAnimations -= 1;
+    if (pendingAnimations === 0) onDone();
+  };
+
   // Content reveal: holds at floor through GHOST_OFFSET_COLLAPSE_MID (0.65) while
   // the ghost covers vertical travel, then ramps 0.03→0.35 by GHOST_OFFSET_COLLAPSE_PEAK
   // (0.88) as the ghost fades to GHOST_OPACITY_COLLAPSE_PEAK (0.3), then finishes 0.35→1.0
@@ -1123,6 +1151,7 @@ function runPageCollapseGhostAnimation(
       .finally(() => {
         contentAnim.cancel();
         cleanupPageExpandScrim(popoverRoot);
+        markAnimationDone();
       });
   }
 
@@ -1130,6 +1159,7 @@ function runPageCollapseGhostAnimation(
     .catch(() => {})
     .finally(() => {
       ghost.remove();
+      markAnimationDone();
     });
 }
 
@@ -1211,13 +1241,15 @@ export function startEvidencePageCollapseTransition(
     }
 
     waitForPageCollapseTarget(root, keyholeRect => {
-      _transitionDepth = Math.max(0, _transitionDepth - 1);
       if (!keyholeRect) {
         ghost.remove();
         cleanupPageExpandScrim(rootEl);
+        _transitionDepth = Math.max(0, _transitionDepth - 1);
         return;
       }
-      runPageCollapseGhostAnimation(ghost, snapshot, keyholeRect, rootEl);
+      runPageCollapseGhostAnimation(ghost, snapshot, keyholeRect, rootEl, () => {
+        _transitionDepth = Math.max(0, _transitionDepth - 1);
+      });
     });
   };
 

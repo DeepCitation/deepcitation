@@ -1,0 +1,7 @@
+node_modules
+.env
+.env.local
+.qmd-index.sqlite
+.qmd-index.sqlite-*
+output/
+corpus/pdf/

@@ -313,16 +313,6 @@ describe("verify command", () => {
     expect(r.stderr).toContain("--style");
   });
 
-  it("verify --markdown errors with invalid --audience", () => {
-    const mdFile = join(TEST_DIR, "audience-test.md");
-    writeFileSync(mdFile, "test\n<<<CITATION_DATA>>>\n[]\n<<<END_CITATION_DATA>>>");
-    const r = run(["verify", "--markdown", mdFile, "--audience", "casual"], {
-      env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" },
-    });
-    expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("--audience");
-  });
-
   it("verify --html errors on nonexistent file", () => {
     const r = run(["verify", "--html", "/nonexistent.html"], {
       env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" },
@@ -872,22 +862,6 @@ describe("verify --markdown output naming", () => {
       env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" },
     });
     // Should parse the citation before failing at API
-    expect(r.stderr).toContain("1 citation");
-  });
-
-  it("--style and --audience are forwarded through markdown pipeline", () => {
-    const mdDir = join(TEST_DIR, "md-style-fwd");
-    mkdirSync(mdDir, { recursive: true });
-    const mdFile = join(mdDir, "styled.md");
-    writeFileSync(
-      mdFile,
-      `Claim [1].\n\n<<<CITATION_DATA>>>\n[{"n":1,"a":"att-1","r":"t","f":"claim","k":"Claim","p":"page_number_1_index_0","l":[1]}]\n<<<END_CITATION_DATA>>>`,
-    );
-
-    // plain style + executive audience should not error at parse stage
-    const r = run(["verify", "--markdown", mdFile, "--style", "plain", "--audience", "executive"], {
-      env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" },
-    });
     expect(r.stderr).toContain("1 citation");
   });
 });

@@ -232,6 +232,11 @@ describe("cdn.ts source invariants", () => {
     expect(cdnSource).toContain("viewState.current");
     expect(cdnSource).toContain("viewState.transition");
   });
+  it("defers CDN repositioning during evidence view transitions", () => {
+    expect(cdnSource).toContain('from "../../react/viewTransition.js"');
+    expect(cdnSource).toContain("isViewTransitioning()");
+    expect(cdnSource).toMatch(/if\s*\(\s*isViewTransitioning\(\).*\)\s*{\s*deferReposition\(/s);
+  });
   it("imports from cdn-mappers", () => {
     expect(cdnSource).toContain('from "./cdn-mappers.js"');
   });

@@ -9,6 +9,7 @@ import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
 import { usePopoverViewState } from "../../react/hooks/usePopoverViewState.js";
 import { usePrefersReducedMotion } from "../../react/hooks/usePrefersReducedMotion.js";
 import { sanitizeUrl } from "../../react/urlUtils.js";
+import { isViewTransitioning } from "../../react/viewTransition.js";
 import { canChildScrollVertically, findPageScrollEl } from "../../shared/scroll.js";
 import type { Citation } from "../../types/citation.js";
 import type { PageImage, Verification } from "../../types/verification.js";
@@ -84,6 +85,7 @@ let activeSelector = "[data-citation-key]";
 let activeIndicatorVariant: CdnIndicatorVariant = "icon";
 let dismissController: AbortController | null = null;
 let positionRafId = 0;
+let repositionGen = 0;
 let resizeObserver: ResizeObserver | null = null;
 let lastCoords = { x: NaN, y: NaN };
 let scrollPassthroughController: AbortController | null = null;
@@ -283,9 +285,20 @@ function reposition(): void {
     contentEl.style.translate = `${dx}px ${dy}px`;
   }
 }
+function deferReposition(retriesLeft: number, gen: number): void {
+  positionRafId = requestAnimationFrame(() => {
+    if (gen !== repositionGen) return; // stale chain — a newer scheduleReposition fired
+    if (isViewTransitioning() && retriesLeft > 0) {
+      deferReposition(retriesLeft - 1, gen);
+      return;
+    }
+    reposition();
+  });
+}
 function scheduleReposition(): void {
+  repositionGen++;
   cancelAnimationFrame(positionRafId);
-  positionRafId = requestAnimationFrame(reposition);
+  deferReposition(30, repositionGen);
 }
 function startPositionTracking(): void {
   stopPositionTracking();

@@ -532,16 +532,13 @@ export interface AttachmentResponse {
 export type VerificationReportVisibility = "private" | "unlisted" | "public";
 
 /**
- * Options when publishing a verification report via
- * `DeepCitation.publishVerificationReport`.
+ * Options for `DeepCitation.createReport`.
  */
-export interface PublishVerificationReportOptions {
-  /** Visibility of the hosted report. Defaults to `"unlisted"` server-side. */
+export interface CreateReportOptions {
+  /** Visibility of the report. Defaults to `"private"` (owner-only). */
   visibility?: VerificationReportVisibility;
-  /** Optional human-readable title to surface in lists and metadata. */
+  /** Optional human-readable title shown in the My Reports list. */
   title?: string;
-  /** Optional link back to the source attachment. */
-  attachmentId?: string;
 }
 
 /**

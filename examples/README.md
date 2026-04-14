@@ -9,6 +9,7 @@ Complete, runnable examples demonstrating DeepCitation integration patterns.
 | [**basic-verification**](./basic-verification) | Core 3-step workflow with OpenAI/Anthropic | Learning the basics, quick integration | — |
 | [**langchain-rag-chat**](./langchain-rag-chat) | Next.js + LangChain.js RAG app with DeepCitation verification | RAG pipelines, retrieval + proof UI | [Live Demo](https://langchain-rag-chat-deepcitation.vercel.app/) |
 | [**mastra-rag-chat**](./mastra-rag-chat) | Next.js + Mastra RAG app with DeepCitation verification | Mastra framework, TypeScript-native RAG | [Live Demo](https://mastra-rag-deepcitation.vercel.app/) |
+| [**qmd-local-search**](./qmd-local-search) | CLI example using [qmd](https://github.com/tobi/qmd) as an on-device markdown index with DeepCitation verification | Local-first RAG, privacy-sensitive corpora, offline retrieval | — |
 | [**nextjs-ai-sdk**](./nextjs-ai-sdk) | Next.js chat app with Vercel AI SDK | Full-stack apps, streaming UI | [Live Demo](https://nextjs-ai-sdk-deepcitation.vercel.app/) |
 | [**agui-chat**](./agui-chat) | AG-UI protocol chat with SSE streaming | AG-UI integration, protocol-level control | [Live Demo](https://agui-chat-deepcitation.vercel.app/) |
 | [**static-html**](./static-html) | CDN popover in plain HTML, no build step | Static sites, CDN integration | — |
@@ -135,6 +136,42 @@ cd mastra-rag-chat
 npm install
 npm run dev
 # Open http://localhost:3000
+```
+
+### qmd Local Search
+
+CLI example using [qmd](https://github.com/tobi/qmd) as an on-device markdown
+index. Retrieval is local (BM25 + vector + LLM rerank); DeepCitation verifies
+the resulting citations against a parallel PDF corpus keyed by filename stem.
+
+```typescript
+import { createStore } from "@tobilu/qmd";
+
+const store = await createStore({
+  dbPath: "./.qmd-index.sqlite",
+  config: { collections: { corpus: { path: "./corpus/md", pattern: "**/*.md" } } },
+});
+
+await store.update();
+await store.embed(); // first run downloads a GGUF embedding model
+
+const hits = await store.search({ query: question, collection: "corpus", limit: 6 });
+
+// Bridge: each hit.file → corpus/pdf/<stem>.pdf
+const pdfUploads = [...new Set(hits.map(h => h.file))].map(mdFile => {
+  const pdfPath = mdFileToPdfPath(mdFile);
+  return { file: readFileSync(pdfPath), filename: basename(pdfPath) };
+});
+
+const { fileDataParts, deepTextPagesByAttachmentId } = await dc.prepareAttachments(pdfUploads);
+```
+
+```bash
+# Run the qmd example
+cd qmd-local-search
+bun install          # auto-builds corpus/pdf from corpus/md
+cp .env.example .env # add DEEPCITATION_API_KEY + OPENAI_API_KEY
+bun run start        # interactive picker
 ```
 
 ## More Resources

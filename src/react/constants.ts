@@ -831,13 +831,15 @@ export const GHOST_BLUR_COLLAPSE_LATE_PX = 2;
 export const EASE_CONTENT_REVEAL = "ease-in";
 
 /** Locate icon pulse grow duration (ms) after annotation overlay dismiss. */
-export const LOCATE_ICON_PULSE_GROW_MS = 70;
+export const LOCATE_ICON_PULSE_GROW_MS = 120;
 /** Locate icon pulse settle duration (ms) after grow stage completes. */
-export const LOCATE_ICON_PULSE_SETTLE_MS = 50;
+export const LOCATE_ICON_PULSE_SETTLE_MS = 80;
 /** Locate icon pulse peak scale (1 = baseline size). */
-export const LOCATE_ICON_PULSE_SCALE = 1.18;
-/** Locate icon pulse accent color used during temporary highlight. */
-export const LOCATE_ICON_PULSE_COLOR = "rgb(56 189 248)";
+export const LOCATE_ICON_PULSE_SCALE = 1.12;
+/** Locate icon pulse accent color used during temporary highlight.
+ *  Uses the muted-foreground design token (neutral zinc) so the cue reads
+ *  as the same quiet grey as the dismiss button that triggered it. */
+export const LOCATE_ICON_PULSE_COLOR = "var(--dc-muted-foreground)";
 
 /** Stagger delay before expanded-page content animates in. Container morph starts first.
  * 30ms is tight enough to avoid an empty-container flash while still letting the shell

@@ -14,11 +14,27 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
-    "types": ["node", "react", "react-dom", "jest", "@testing-library/jest-dom"],
+    "types": [
+      "node",
+      "react",
+      "react-dom",
+      "jest",
+      "@testing-library/jest-dom"
+    ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "lib", "src/__tests__", "src/react/testing", "tests"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "lib",
+    "src/**/__tests__",
+    "src/react/testing",
+    "tests"
+  ]
 }

@@ -19,14 +19,9 @@ import type { VerificationData } from "../vanilla/runtime/types.js";
 
 export type ReportStyle = "plain" | "report";
 
-export const AUDIENCE_PRESETS = ["general", "executive", "technical", "legal", "medical"] as const;
-export type AudiencePreset = (typeof AUDIENCE_PRESETS)[number];
-
 export interface MarkdownToHtmlOptions {
   /** Output style: "plain" (simple HTML) or "report" (progressive disclosure) */
   style?: ReportStyle;
-  /** Audience preset — affects width, tier visibility, tone tokens */
-  audience?: AudiencePreset;
   /** Optional title override (extracted from first H1 if not provided) */
   title?: string;
   /** Human-readable source label (document name, filename, etc.) */
@@ -45,6 +40,14 @@ export interface MarkdownToHtmlOptions {
   /** When true, adds an info banner noting that interactive features require
    *  opening the file in a local browser (CDN blocked in Cowork sandbox). */
   cowork?: boolean;
+  /** The claim or question being verified. Rendered as a quoted card
+   *  between the H1 and the meta strip. Supports inline markdown
+   *  (bold/italic/code). Whitespace-only values are ignored. */
+  claim?: string;
+  /** Human-readable name of the model that performed the verification
+   *  (e.g. "Claude Haiku 4.5"). Surfaced as a MODEL item in the meta
+   *  strip, ordered between ANALYZED and CITATIONS. */
+  model?: string;
 }
 
 // ── Inline formatting ──────────────────────────────────────────────
@@ -370,39 +373,55 @@ const BRAND_LOGO_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="no
 
 const FAVICON_DATA_URI = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-linecap="square" stroke-linejoin="miter" shape-rendering="crispEdges" width="24" height="24"><path d="M4 1 L1 1 L1 23 L4 23" stroke="#A1A1AA" stroke-width="1"/><path d="M20 1 L23 1 L23 23 L20 23" stroke="#A1A1AA" stroke-width="1"/><path d="M5.5 12 L18.5 12" stroke="#3B82F6" stroke-width="1.8"/><path d="M12 5.5 L12 18.5" stroke="#3B82F6" stroke-width="1.8"/><path d="M6.5 6.5 L17.5 17.5 M17.5 6.5 L6.5 17.5" stroke="#3B82F6" stroke-width="2.35"/></svg>')}`;
 
-const AUDIENCE_CONFIG: Record<AudiencePreset, { width: string; tier2Open: boolean }> = {
-  general: { width: "960px", tier2Open: true },
-  executive: { width: "720px", tier2Open: false },
-  technical: { width: "960px", tier2Open: true },
-  legal: { width: "840px", tier2Open: true },
-  medical: { width: "840px", tier2Open: true },
-};
-
 const MONO_FONT = `"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace`;
 const SANS_FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
 
+// CSS custom-property defaults injected into every <style> block.
+// Generated HTML is self-contained; hosts can override via :root {}.
+const DC_ROOT_TOKENS = `  :root {
+    --dc-background: #ffffff;
+    --dc-muted: #f4f4f5;
+    --dc-foreground: #18181b;
+    --dc-muted-foreground: #71717a;
+    --dc-subtle-foreground: #a1a1aa;
+    --dc-border: #e4e4e7;
+    --dc-primary: #3b82f6;
+    --dc-primary-foreground: #ffffff;
+    --dc-verified: #10b981;
+    --dc-partial: #f59e0b;
+    --dc-destructive: #ef4444;
+    --dc-verified-bg: #f0fdf4;
+    --dc-partial-bg: #fffbeb;
+    --dc-destructive-bg: #fef2f2;
+    --dc-radius-sm: 0.25rem;
+    --dc-radius-md: 0.375rem;
+    --dc-radius-lg: 0.5rem;
+    --dc-font-family: ${SANS_FONT};
+    --dc-font-family-mono: ${MONO_FONT};
+  }`;
+
 const BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-box; }
   h1 { font-size: 24px; font-weight: 600; }
-  h2 { font-size: 18px; font-weight: 600; margin: 2rem 0 0.75rem; border-bottom: 1px solid #E4E4E7; padding-bottom: 0.4rem; }
+  h2 { font-size: 18px; font-weight: 600; margin: 2rem 0 0.75rem; border-bottom: 1px solid var(--dc-border); padding-bottom: 0.4rem; }
   h3 { font-size: 16px; font-weight: 600; margin: 1.5rem 0 0.5rem; }
   p { margin: 0.5rem 0; }
   [data-cite] strong { font-weight: 600; }
-  a { color: #0284C7; }
+  a { color: var(--dc-primary); }
   table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 14px; }
-  th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #E4E4E7; }
-  th { font-weight: 600; background: #F4F4F5; }
+  th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--dc-border); }
+  th { font-weight: 600; background: var(--dc-muted); }
   ul, ol { margin: 0.5rem 0 0.5rem 1.5rem; }
   li { margin: 0.25rem 0; }
-  pre { background: #18181B; color: #E4E4E7; padding: 1rem; overflow-x: auto; margin: 0.75rem 0; font-size: 13px; }
-  code { font-family: ${MONO_FONT}; font-size: 0.9em; background: #F4F4F5; padding: 1px 4px; }
+  pre { background: var(--dc-foreground); color: var(--dc-border); padding: 1rem; overflow-x: auto; margin: 0.75rem 0; font-size: 13px; }
+  code { font-family: var(--dc-font-family-mono); font-size: 0.9em; background: var(--dc-muted); padding: 1px 4px; }
   pre code { background: none; padding: 0; }
-  hr { border: none; border-top: 1px solid #E4E4E7; margin: 1.5rem 0; }
-  .meta { color: #52525B; font-size: 14px; margin-bottom: 1.5rem; }
+  hr { border: none; border-top: 1px solid var(--dc-border); margin: 1.5rem 0; }
+  .meta { color: var(--dc-muted-foreground); font-size: 14px; margin-bottom: 1.5rem; }
   .dc-cowork-notice {
     display: flex; align-items: flex-start; gap: 0.6rem;
     padding: 0.65rem 0.9rem; margin-bottom: 1rem;
-    background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px;
-    font-size: 13px; line-height: 1.5; color: #1E40AF;
+    background: var(--dc-muted); border: 1px solid var(--dc-border); border-radius: var(--dc-radius-lg);
+    font-size: 13px; line-height: 1.5; color: var(--dc-foreground);
   }
   .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }`;
 
@@ -421,8 +440,9 @@ function plainShell(title: string, bodyHtml: string, options?: { cowork?: boolea
 <link rel="icon" type="image/svg+xml" href="${FAVICON_DATA_URI}">
 <title>${escapeHtml(title)}</title>
 <style>
+${DC_ROOT_TOKENS}
 ${BASE_CSS}
-  body { font-family: ${SANS_FONT}; max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; line-height: 1.6; color: #18181B; background: #fff; }
+  body { font-family: var(--dc-font-family); max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; line-height: 1.6; color: var(--dc-foreground); background: var(--dc-background); }
   h1 { margin-bottom: 0.5rem; }
 </style>
 </head>
@@ -448,7 +468,7 @@ function formatSourceUrl(url: string): string {
 }
 
 /**
- * Build the header meta strip: SOURCE · ANALYZED · AUDIENCE · CITATIONS · PAGES.
+ * Build the header meta strip: SOURCE · ANALYZED · CITATIONS · PAGES.
  * Only renders items that have data. Date always renders (defaults to today).
  */
 function buildMetaStrip(opts: {
@@ -457,7 +477,7 @@ function buildMetaStrip(opts: {
   reportDate?: string;
   citationCount?: number;
   pageCount?: number;
-  audience: AudiencePreset;
+  model?: string;
 }): string {
   const items: string[] = [];
 
@@ -479,11 +499,10 @@ function buildMetaStrip(opts: {
     `<span class="dc-meta-item"><span class="dc-meta-key">ANALYZED</span><span class="dc-meta-val">${escapeHtml(date)}</span></span>`,
   );
 
-  // AUDIENCE — only shown when non-default
-  if (opts.audience !== "general") {
-    const label = opts.audience.charAt(0).toUpperCase() + opts.audience.slice(1);
+  // MODEL — only shown when provided
+  if (opts.model) {
     items.push(
-      `<span class="dc-meta-item"><span class="dc-meta-key">AUDIENCE</span><span class="dc-meta-val">${escapeHtml(label)}</span></span>`,
+      `<span class="dc-meta-item"><span class="dc-meta-key">MODEL</span><span class="dc-meta-val">${escapeHtml(opts.model)}</span></span>`,
     );
   }
 
@@ -505,14 +524,17 @@ function buildMetaStrip(opts: {
   return `<div class="dc-meta">${items.join(sep)}</div>`;
 }
 
-function reportShell(
-  title: string,
-  bodyHtml: string,
-  audience: AudiencePreset,
-  options: MarkdownToHtmlOptions,
-): string {
-  const cfg = AUDIENCE_CONFIG[audience];
-  const metaStrip = buildMetaStrip({ ...options, audience });
+function reportShell(title: string, bodyHtml: string, options: MarkdownToHtmlOptions): string {
+  const cfg = { width: "960px", tier2Open: true };
+  const metaStrip = buildMetaStrip(options);
+
+  const claimText = options.claim?.trim();
+  const claimCard = claimText
+    ? `<div class="dc-claim" role="note" aria-label="Claim under verification">
+<span class="dc-claim-label">CLAIM</span>
+<blockquote class="dc-claim-text">${inlineFormat(claimText)}</blockquote>
+</div>`
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -522,15 +544,16 @@ function reportShell(
 <link rel="icon" type="image/svg+xml" href="${FAVICON_DATA_URI}">
 <title>${escapeHtml(title)}</title>
 <style>
+${DC_ROOT_TOKENS}
 ${BASE_CSS}
   body {
-    font-family: ${SANS_FONT};
+    font-family: var(--dc-font-family);
     max-width: ${cfg.width};
     margin: 0 auto;
     padding: 2rem 1.5rem 4rem;
     line-height: 1.6;
-    color: #18181B;
-    background: #F8FAFC;
+    color: var(--dc-foreground);
+    background: var(--dc-muted);
     font-size: 16px;
   }
   h1 { margin-bottom: 0.25rem; }
@@ -541,30 +564,30 @@ ${BASE_CSS}
   .dc-meta {
     display: flex; flex-wrap: wrap; align-items: center; gap: 0.1rem 0;
     margin: 0.5rem 0 1.5rem;
-    font-family: ${MONO_FONT}; font-size: 12px; color: #52525B;
+    font-family: var(--dc-font-family-mono); font-size: 12px; color: var(--dc-muted-foreground);
   }
   .dc-meta-item { display: inline-flex; align-items: center; gap: 0.5rem; }
-  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.06em; color: #94A3B8; font-size: 11px; }
-  .dc-meta-val { color: #334155; }
-  .dc-meta-link { color: #0284C7; text-decoration: none; }
+  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.06em; color: var(--dc-subtle-foreground); font-size: 11px; }
+  .dc-meta-val { color: var(--dc-foreground); }
+  .dc-meta-link { color: var(--dc-primary); text-decoration: none; }
   .dc-meta-link:hover { text-decoration: underline; }
-  .dc-meta-sep { color: #CBD5E1; margin: 0 0.4rem; }
+  .dc-meta-sep { color: var(--dc-border); margin: 0 0.4rem; }
 
   /* Verdict banner */
   .dc-verdict {
     display: flex; gap: 1.5rem; padding: 1rem 0;
-    border-top: 1px solid #E4E4E7; border-bottom: 1px solid #E4E4E7;
-    font-family: ${MONO_FONT}; font-size: 14px;
+    border-top: 1px solid var(--dc-border); border-bottom: 1px solid var(--dc-border);
+    font-family: var(--dc-font-family-mono); font-size: 14px;
     margin-bottom: 1.5rem;
   }
-  .dc-verdict .v-found  { color: #10B981; }
-  .dc-verdict .v-partial { color: #D97706; }
-  .dc-verdict .v-miss   { color: #EF4444; }
+  .dc-verdict .v-found  { color: var(--dc-verified); }
+  .dc-verdict .v-partial { color: var(--dc-partial); }
+  .dc-verdict .v-miss   { color: var(--dc-destructive); }
 
   /* Table overrides — §6.1 Anti-Grid: no header fill, heavier separators, blue row hover */
-  th, td { border-bottom: 1px solid #94A3B8; }
-  th { font-size: 12px; font-weight: 500; background: none; color: #52525B; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #94A3B8; }
-  tbody tr:hover { background: #EFF6FF; }
+  th, td { border-bottom: 1px solid var(--dc-subtle-foreground); }
+  th { font-size: 12px; font-weight: 500; background: none; color: var(--dc-muted-foreground); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid var(--dc-subtle-foreground); }
+  tbody tr:hover { background: var(--dc-muted); }
 
   /* Code overrides */
   pre { line-height: 1.7; }
@@ -573,26 +596,26 @@ ${BASE_CSS}
   /* Progressive disclosure */
   details { margin: 0.75rem 0; }
   summary {
-    cursor: pointer; font-weight: 500; font-size: 14px; color: #52525B;
+    cursor: pointer; font-weight: 500; font-size: 14px; color: var(--dc-muted-foreground);
     padding: 0.5rem 0; user-select: none;
   }
-  summary:hover { color: #18181B; }
+  summary:hover { color: var(--dc-foreground); }
 
   /* Cards */
-  .dc-section { background: #fff; border: 1px solid #E4E4E7; padding: 1.25rem; margin: 1rem 0; }
+  .dc-section { background: var(--dc-background); border: 1px solid var(--dc-border); padding: 1.25rem; margin: 1rem 0; }
 
   /* Mono metrics */
-  .mono { font-family: ${MONO_FONT}; font-size: 14px; font-weight: 500; }
+  .mono { font-family: var(--dc-font-family-mono); font-size: 14px; font-weight: 500; }
 
   /* Branding footer */
   .dc-footer {
     margin-top: 3rem; padding-top: 1rem;
-    border-top: 1px solid #E4E4E7;
-    font-size: 12px; color: #A1A1AA;
+    border-top: 1px solid var(--dc-border);
+    font-size: 12px; color: var(--dc-subtle-foreground);
     display: flex; align-items: center; gap: 0.5rem;
   }
-  .dc-footer a { color: #A1A1AA; text-decoration: none; }
-  .dc-footer a:hover { color: #52525B; text-decoration: underline; }
+  .dc-footer a { color: var(--dc-subtle-foreground); text-decoration: none; }
+  .dc-footer a:hover { color: var(--dc-muted-foreground); text-decoration: underline; }
   .dc-footer svg { flex-shrink: 0; }
 
   /* Cowork environment notice */
@@ -600,15 +623,52 @@ ${BASE_CSS}
     display: flex; align-items: flex-start; gap: 0.6rem;
     padding: 0.65rem 0.9rem;
     margin-bottom: 1rem;
-    background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px;
-    font-size: 13px; line-height: 1.5; color: #1E40AF;
+    background: var(--dc-muted); border: 1px solid var(--dc-border); border-radius: var(--dc-radius-lg);
+    font-size: 13px; line-height: 1.5; color: var(--dc-foreground);
   }
   .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }
+
+  /* Claim card — eyebrow label + quoted thesis */
+  .dc-claim {
+    margin: 0.75rem 0 1rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--dc-muted);
+    border: 1px solid var(--dc-border);
+    border-left: 3px solid var(--dc-primary);
+    border-radius: var(--dc-radius-lg);
+  }
+  .dc-claim-label {
+    display: block;
+    font-family: var(--dc-font-family-mono);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--dc-primary);
+    margin-bottom: 0.35rem;
+  }
+  .dc-claim-text {
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-family: inherit;
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--dc-foreground);
+    font-weight: 450;
+    max-width: 65ch;
+  }
+  .dc-claim-text strong { font-weight: 600; }
+  .dc-claim-text em { font-style: italic; }
+  @media print {
+    .dc-claim { background: var(--dc-background); border-color: var(--dc-border); border-left-color: var(--dc-primary); }
+  }
 </style>
 </head>
 <body>
 <header>
   <h1>${escapeHtml(title)}</h1>
+  ${claimCard}
   ${metaStrip}
 </header>
 ${
@@ -647,8 +707,7 @@ ${bodyHtml}
 //   briefing-card    → SHAREABILITY (screenshot/PDF/social: self-contained hero)
 //   marginalia       → MEMORABILITY (distinctive bracket + spine motif)
 //
-// All four restrict themselves to Inter + Source Code Pro and the
-// zinc/blue palette from deepcitation-web/BRANDING.md.
+// All four use the --dc-* token system and system font stack per SDK BRANDING.md.
 
 interface ReviewVariant {
   slug: string;
@@ -657,39 +716,35 @@ interface ReviewVariant {
   css: string;
 }
 
-const REVIEW_FONT_LINKS = `<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">`;
-
 // Structural defaults shared by every variant: reset, citation rule, table
 // primitives, code, horizontal rules, details/summary, verdict colors, and
 // the cowork notice SVG positioning. Each variant appends its own layout-
 // specific rules after this block, so the cascade lets variants override
 // anything they need without repeating the basics.
 const REVIEW_SHARED_BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-box; }
-  h1, h2, h3 { color: #09090B; }
+  h1, h2, h3 { color: var(--dc-foreground); }
   p { margin: 0.65rem 0; }
-  a { color: #005595; text-decoration: underline; text-decoration-color: rgba(0,85,149,0.35); text-underline-offset: 2px; }
-  a:hover { text-decoration-color: #005595; }
-  [data-cite] strong { font-weight: 500; color: #005595; }
+  a { color: var(--dc-primary); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--dc-primary) 35%, transparent); text-underline-offset: 2px; }
+  a:hover { text-decoration-color: var(--dc-primary); }
+  [data-cite] strong { font-weight: 500; color: var(--dc-primary); }
   ul, ol { margin: 0.6rem 0 0.6rem 1.5rem; }
   li { margin: 0.3rem 0; }
-  pre { background: #F4F4F5; color: #18181B; padding: 1rem 1.15rem; overflow-x: auto; margin: 1rem 0; font-size: 13px; line-height: 1.7; border: 1px solid #E4E4E7; border-left: 3px solid #09090B; font-family: 'Source Code Pro', monospace; }
-  code { font-family: 'Source Code Pro', monospace; font-size: 0.88em; background: #F4F4F5; color: #09090B; padding: 1px 5px; border: 1px solid #E4E4E7; border-radius: 0; }
+  pre { background: var(--dc-muted); color: var(--dc-foreground); padding: 1rem 1.15rem; overflow-x: auto; margin: 1rem 0; font-size: 13px; line-height: 1.7; border: 1px solid var(--dc-border); border-left: 3px solid var(--dc-foreground); font-family: var(--dc-font-family-mono); }
+  code { font-family: var(--dc-font-family-mono); font-size: 0.88em; background: var(--dc-muted); color: var(--dc-foreground); padding: 1px 5px; border: 1px solid var(--dc-border); border-radius: 0; }
   pre code { background: none; border: none; padding: 0; }
-  hr { border: none; border-top: 1px solid #E4E4E7; margin: 2rem 0; }
+  hr { border: none; border-top: 1px solid var(--dc-border); margin: 2rem 0; }
   table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 14px; }
-  th, td { padding: 0.55rem 0.75rem; text-align: left; border-bottom: 1px solid #E4E4E7; }
-  th { font-family: 'Source Code Pro', monospace; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #71717A; background: transparent; border-bottom: 2px solid #09090B; }
-  tbody tr:hover { background: #F9FAFB; }
+  th, td { padding: 0.55rem 0.75rem; text-align: left; border-bottom: 1px solid var(--dc-border); }
+  th { font-family: var(--dc-font-family-mono); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dc-muted-foreground); background: transparent; border-bottom: 2px solid var(--dc-foreground); }
+  tbody tr:hover { background: var(--dc-muted); }
   details { margin: 0.75rem 0; }
-  summary { cursor: pointer; font-weight: 500; font-size: 13px; color: #52525B; padding: 0.5rem 0; user-select: none; font-family: 'Source Code Pro', monospace; text-transform: uppercase; letter-spacing: 0.05em; }
-  summary:hover { color: #09090B; }
-  .dc-section { background: #FFFFFF; border: 1px solid #E4E4E7; padding: 1.25rem 1.5rem; margin: 1rem 0; }
-  .mono { font-family: 'Source Code Pro', monospace; font-size: 14px; font-weight: 500; }
-  .dc-verdict .v-found  { color: #10B981; }
-  .dc-verdict .v-partial { color: #D97706; }
-  .dc-verdict .v-miss   { color: #EF4444; }
+  summary { cursor: pointer; font-weight: 500; font-size: 13px; color: var(--dc-muted-foreground); padding: 0.5rem 0; user-select: none; font-family: var(--dc-font-family-mono); text-transform: uppercase; letter-spacing: 0.05em; }
+  summary:hover { color: var(--dc-foreground); }
+  .dc-section { background: var(--dc-background); border: 1px solid var(--dc-border); padding: 1.25rem 1.5rem; margin: 1rem 0; }
+  .mono { font-family: var(--dc-font-family-mono); font-size: 14px; font-weight: 500; }
+  .dc-verdict .v-found  { color: var(--dc-verified); }
+  .dc-verdict .v-partial { color: var(--dc-partial); }
+  .dc-verdict .v-miss   { color: var(--dc-destructive); }
   .dc-meta-sep { display: none; }
   .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }`;
 
@@ -700,9 +755,9 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     description:
       "Single column with a 5rem left gutter holding CSS-counter section numbers (01, 01.1, 01.2) aligned to each H2 and H3. Reviewers can reference sections by number, and the gutter gives an at-a-glance sense of structural depth while scrolling.",
     css: `  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #18181B;
-    background: #FFFFFF;
+    font-family: var(--dc-font-family);
+    color: var(--dc-foreground);
+    background: var(--dc-background);
     font-size: 16px;
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
@@ -717,10 +772,10 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     position: absolute;
     left: -5rem;
     top: 0.4rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 12px;
     font-weight: 500;
-    color: #CBD5E1;
+    color: var(--dc-border);
     letter-spacing: 0.05em;
   }
   body > header h1 {
@@ -734,27 +789,27 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem 1.5rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 11px;
-    color: #71717A;
+    color: var(--dc-muted-foreground);
     margin: 0.75rem 0 0;
     padding-top: 0.85rem;
-    border-top: 1px solid #E4E4E7;
+    border-top: 1px solid var(--dc-border);
   }
   .dc-meta-item { display: inline-flex; align-items: baseline; gap: 0.4rem; }
-  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.08em; color: #A1A1AA; font-size: 10px; font-weight: 500; }
-  .dc-meta-val { color: #09090B; font-weight: 500; }
-  .dc-meta-link { color: #005595; text-decoration: none; font-weight: 500; }
+  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.08em; color: var(--dc-subtle-foreground); font-size: 10px; font-weight: 500; }
+  .dc-meta-val { color: var(--dc-foreground); font-weight: 500; }
+  .dc-meta-link { color: var(--dc-primary); text-decoration: none; font-weight: 500; }
   .dc-meta-link:hover { text-decoration: underline; }
   .dc-verdict {
     display: flex;
     gap: 1.5rem;
     padding: 0.85rem 1rem;
     margin-bottom: 2.25rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 12px;
-    border: 1px solid #E4E4E7;
-    background: #FAFAFA;
+    border: 1px solid var(--dc-border);
+    background: var(--dc-muted);
   }
   h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; }
   h2 {
@@ -764,7 +819,7 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     font-weight: 600;
     margin: 2.75rem 0 0.85rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #E4E4E7;
+    border-bottom: 1px solid var(--dc-border);
     letter-spacing: -0.01em;
     position: relative;
   }
@@ -773,10 +828,10 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     position: absolute;
     left: -5rem;
     top: 0.35rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 12px;
     font-weight: 500;
-    color: #005595;
+    color: var(--dc-primary);
     letter-spacing: 0.05em;
   }
   h3 {
@@ -791,36 +846,36 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     position: absolute;
     left: -5rem;
     top: 0.2rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 11px;
     font-weight: 500;
-    color: #94A3B8;
+    color: var(--dc-subtle-foreground);
   }
   .dc-footer {
     margin: 3.5rem 0 0 -5rem;
     padding: 1.25rem 0 0 5rem;
-    border-top: 1px solid #E4E4E7;
+    border-top: 1px solid var(--dc-border);
     font-size: 11px;
-    color: #A1A1AA;
+    color: var(--dc-subtle-foreground);
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
-  .dc-footer a { color: #A1A1AA; text-decoration: none; }
-  .dc-footer a:hover { color: #52525B; text-decoration: underline; }
+  .dc-footer a { color: var(--dc-subtle-foreground); text-decoration: none; }
+  .dc-footer a:hover { color: var(--dc-muted-foreground); text-decoration: underline; }
   .dc-cowork-notice {
     display: flex;
     align-items: flex-start;
     gap: 0.6rem;
     padding: 0.65rem 0.9rem;
-    background: #F0F9FF;
-    border: 1px solid #BAE6FD;
+    background: var(--dc-muted);
+    border: 1px solid var(--dc-border);
     font-size: 13px;
     line-height: 1.5;
-    color: #005595;
+    color: var(--dc-foreground);
     margin-bottom: 1.5rem;
   }
   @media (max-width: 720px) {
@@ -835,9 +890,9 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     description:
       "Numbered-outline gutter plus a sticky verdict console that pins FOUND / PARTIAL / MISS counts to the viewport while the reviewer scrolls. Citation triggers are larger and more obviously interactive; jumping to a section via anchor scrolls it under the verdict bar with a soft :target highlight. Optimized for the active review moment — every affordance speeds the cite-by-cite walkthrough.",
     css: `  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #18181B;
-    background: #FFFFFF;
+    font-family: var(--dc-font-family);
+    color: var(--dc-foreground);
+    background: var(--dc-background);
     font-size: 16px;
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
@@ -853,10 +908,10 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     position: absolute;
     left: -5rem;
     top: 0.65rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 11px;
     font-weight: 500;
-    color: #CBD5E1;
+    color: var(--dc-border);
     letter-spacing: 0.05em;
   }
   body > header h1 {
@@ -870,17 +925,17 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem 1.5rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 11px;
-    color: #71717A;
+    color: var(--dc-muted-foreground);
     margin: 0;
     padding-top: 0.85rem;
-    border-top: 1px solid #E4E4E7;
+    border-top: 1px solid var(--dc-border);
   }
   .dc-meta-item { display: inline-flex; align-items: baseline; gap: 0.4rem; }
-  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.08em; color: #A1A1AA; font-size: 10px; font-weight: 500; }
-  .dc-meta-val { color: #09090B; font-weight: 500; }
-  .dc-meta-link { color: #005595; text-decoration: none; font-weight: 500; }
+  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.08em; color: var(--dc-subtle-foreground); font-size: 10px; font-weight: 500; }
+  .dc-meta-val { color: var(--dc-foreground); font-weight: 500; }
+  .dc-meta-link { color: var(--dc-primary); text-decoration: none; font-weight: 500; }
   .dc-meta-link:hover { text-decoration: underline; }
   .dc-verdict {
     position: sticky;
@@ -890,12 +945,12 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     gap: 1.25rem;
     padding: 0.7rem 1.5rem 0.7rem 6.5rem;
     margin: 0 -1.5rem 2.25rem -6.5rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 12px;
     background: rgba(255, 255, 255, 0.96);
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
-    border-bottom: 1px solid #E4E4E7;
+    border-bottom: 1px solid var(--dc-border);
   }
   .dc-verdict:empty { display: none; }
   .dc-verdict .v-found,
@@ -923,7 +978,7 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     font-weight: 600;
     margin: 2.75rem 0 0.85rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #E4E4E7;
+    border-bottom: 1px solid var(--dc-border);
     letter-spacing: -0.01em;
     position: relative;
     scroll-margin-top: 5rem;
@@ -933,10 +988,10 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     position: absolute;
     left: -5rem;
     top: 0.35rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 12px;
     font-weight: 500;
-    color: #005595;
+    color: var(--dc-primary);
     letter-spacing: 0.05em;
   }
   h3 {
@@ -952,13 +1007,13 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     position: absolute;
     left: -5rem;
     top: 0.2rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 11px;
     font-weight: 500;
-    color: #94A3B8;
+    color: var(--dc-subtle-foreground);
   }
   h2:target, h3:target {
-    background: linear-gradient(to right, rgba(0,85,149,0.07), transparent 60%);
+    background: linear-gradient(to right, color-mix(in srgb, var(--dc-primary) 7%, transparent), transparent 60%);
     padding-left: 0.5rem;
     margin-left: -0.5rem;
     transition: background-color 0.3s ease;
@@ -967,46 +1022,46 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     cursor: pointer;
     padding: 1px 4px;
     margin: 0 -1px;
-    border-bottom: 1px dotted rgba(0,85,149,0.4);
+    border-bottom: 1px dotted color-mix(in srgb, var(--dc-primary) 40%, transparent);
     transition: background-color 0.12s ease, border-color 0.12s ease;
   }
   [data-cite]:hover strong {
-    background: rgba(0,85,149,0.08);
-    border-bottom-color: #005595;
+    background: color-mix(in srgb, var(--dc-primary) 8%, transparent);
+    border-bottom-color: var(--dc-primary);
   }
   .dc-section {
-    background: #FFFFFF;
-    border: 1px solid #E4E4E7;
+    background: var(--dc-background);
+    border: 1px solid var(--dc-border);
     padding: 1.25rem 1.5rem;
     margin: 1rem 0;
     transition: border-color 0.12s ease;
   }
-  .dc-section:hover { border-color: #94A3B8; }
+  .dc-section:hover { border-color: var(--dc-subtle-foreground); }
   .dc-footer {
     margin: 3.5rem 0 0 -5rem;
     padding: 1.25rem 0 0 5rem;
-    border-top: 1px solid #E4E4E7;
+    border-top: 1px solid var(--dc-border);
     font-size: 11px;
-    color: #A1A1AA;
+    color: var(--dc-subtle-foreground);
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
-  .dc-footer a { color: #A1A1AA; text-decoration: none; }
-  .dc-footer a:hover { color: #52525B; text-decoration: underline; }
+  .dc-footer a { color: var(--dc-subtle-foreground); text-decoration: none; }
+  .dc-footer a:hover { color: var(--dc-muted-foreground); text-decoration: underline; }
   .dc-cowork-notice {
     display: flex;
     align-items: flex-start;
     gap: 0.6rem;
     padding: 0.65rem 0.9rem;
-    background: #F0F9FF;
-    border: 1px solid #BAE6FD;
+    background: var(--dc-muted);
+    border: 1px solid var(--dc-border);
     font-size: 13px;
     line-height: 1.5;
-    color: #005595;
+    color: var(--dc-foreground);
     margin-bottom: 1.5rem;
   }
   @media (max-width: 720px) {
@@ -1022,9 +1077,9 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     description:
       "A self-contained hero panel (title + meta + verdict) sits in the first viewport so a screenshot of the top of the report conveys the entire status at a glance. Verdict counts render as full-width tinted chips for thumbnail legibility. Title is framed with FileLasso's bracket motif. A print stylesheet keeps headings and tables intact when exported to PDF. Optimized for the handoff moment — the report has to survive being cropped, screenshotted, and pasted into Slack.",
     css: `  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #18181B;
-    background: #FFFFFF;
+    font-family: var(--dc-font-family);
+    color: var(--dc-foreground);
+    background: var(--dc-background);
     font-size: 15px;
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
@@ -1037,8 +1092,8 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     position: relative;
     padding: 1.85rem 2rem 1.5rem;
     margin-bottom: 0;
-    background: #FAFAFA;
-    border: 1px solid #E4E4E7;
+    background: var(--dc-muted);
+    border: 1px solid var(--dc-border);
     border-bottom: none;
   }
   body > header::before,
@@ -1047,7 +1102,7 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     position: absolute;
     width: 18px;
     height: 18px;
-    border: 2px solid #005595;
+    border: 2px solid var(--dc-primary);
     pointer-events: none;
   }
   body > header::before {
@@ -1068,32 +1123,32 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     letter-spacing: -0.02em;
     line-height: 1.18;
     margin-bottom: 1rem;
-    color: #09090B;
+    color: var(--dc-foreground);
   }
   body > header .dc-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem 1.5rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 11px;
     margin: 0;
     padding-top: 0.85rem;
-    border-top: 1px solid #E4E4E7;
+    border-top: 1px solid var(--dc-border);
   }
   .dc-meta-item { display: inline-flex; align-items: baseline; gap: 0.4rem; }
-  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.1em; color: #A1A1AA; font-size: 10px; font-weight: 500; }
-  .dc-meta-val { color: #09090B; font-weight: 600; }
-  .dc-meta-link { color: #005595; text-decoration: none; font-weight: 600; }
+  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.1em; color: var(--dc-subtle-foreground); font-size: 10px; font-weight: 500; }
+  .dc-meta-val { color: var(--dc-foreground); font-weight: 600; }
+  .dc-meta-link { color: var(--dc-primary); text-decoration: none; font-weight: 600; }
   .dc-meta-link:hover { text-decoration: underline; }
   .dc-verdict {
     display: flex;
     gap: 0;
     padding: 0;
     margin: 0 0 2.25rem;
-    background: #FFFFFF;
-    border: 1px solid #E4E4E7;
+    background: var(--dc-background);
+    border: 1px solid var(--dc-border);
     border-top: none;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     position: relative;
   }
   .dc-verdict::after {
@@ -1103,7 +1158,7 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     right: -1px;
     width: 18px;
     height: 18px;
-    border: 2px solid #005595;
+    border: 2px solid var(--dc-primary);
     border-left: none;
     border-top: none;
     pointer-events: none;
@@ -1121,12 +1176,12 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-weight: 600;
-    border-right: 1px solid #E4E4E7;
+    border-right: 1px solid var(--dc-border);
   }
   .dc-verdict .v-miss { border-right: none; }
-  .dc-verdict .v-found  { color: #047857; background: #F0FDF4; }
-  .dc-verdict .v-partial { color: #B45309; background: #FFFBEB; }
-  .dc-verdict .v-miss   { color: #B91C1C; background: #FEF2F2; }
+  .dc-verdict .v-found  { color: var(--dc-verified); background: var(--dc-verified-bg); }
+  .dc-verdict .v-partial { color: var(--dc-partial); background: var(--dc-partial-bg); }
+  .dc-verdict .v-miss   { color: var(--dc-destructive); background: var(--dc-destructive-bg); }
   h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; margin: 2rem 0 0.5rem; }
   h2 {
     counter-increment: h2section;
@@ -1135,17 +1190,17 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     font-weight: 600;
     margin: 2.5rem 0 0.75rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #E4E4E7;
+    border-bottom: 1px solid var(--dc-border);
     letter-spacing: -0.01em;
     page-break-after: avoid;
     break-after: avoid-page;
   }
   h2::before {
     content: counter(h2section, decimal-leading-zero) "  ";
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 11px;
     font-weight: 500;
-    color: #005595;
+    color: var(--dc-primary);
     letter-spacing: 0.06em;
     margin-right: 0.5rem;
     vertical-align: 0.18em;
@@ -1157,31 +1212,31 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     gap: 0.6rem;
     padding: 0.65rem 0.9rem;
     margin: -0.5rem 0 1.5rem;
-    background: #F0F9FF;
-    border: 1px solid #BAE6FD;
+    background: var(--dc-muted);
+    border: 1px solid var(--dc-border);
     font-size: 13px;
     line-height: 1.5;
-    color: #005595;
+    color: var(--dc-foreground);
   }
   .dc-footer {
     margin: 3.5rem 0 0;
     padding: 1.25rem 0 0;
-    border-top: 1px solid #E4E4E7;
+    border-top: 1px solid var(--dc-border);
     font-size: 11px;
-    color: #A1A1AA;
+    color: var(--dc-subtle-foreground);
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
-  .dc-footer a { color: #A1A1AA; text-decoration: none; }
-  .dc-footer a:hover { color: #52525B; text-decoration: underline; }
+  .dc-footer a { color: var(--dc-subtle-foreground); text-decoration: none; }
+  .dc-footer a:hover { color: var(--dc-muted-foreground); text-decoration: underline; }
   @media print {
     body { max-width: none; padding: 0.5in; font-size: 11pt; }
     body > header { background: transparent; }
-    body > header::before, body > header::after, .dc-verdict::after { border-color: #09090B; }
+    body > header::before, body > header::after, .dc-verdict::after { border-color: var(--dc-foreground); }
     .dc-verdict .v-found,
     .dc-verdict .v-partial,
     .dc-verdict .v-miss {
@@ -1199,9 +1254,9 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     description:
       "Bracket-framed title, a §-marginalia gutter for every section, and a thin two-tone spine running the full document height along the left edge. Custom selection color in brand blue, corner brackets on the verdict box, and a bracketed footer. The signature element is the spine: any screenshot taken from inside the document will carry FileLasso's blue ledger line. Optimized for the months-later recognition moment — when a colleague spots a thumbnail and instantly knows what tool produced it.",
     css: `  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #18181B;
-    background: #FFFFFF;
+    font-family: var(--dc-font-family);
+    color: var(--dc-foreground);
+    background: var(--dc-background);
     font-size: 16px;
     line-height: 1.7;
     -webkit-font-smoothing: antialiased;
@@ -1218,7 +1273,7 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     top: 3.25rem;
     bottom: 4rem;
     width: 2px;
-    background: #005595;
+    background: var(--dc-primary);
     pointer-events: none;
   }
   body::after {
@@ -1228,20 +1283,20 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     top: 3.25rem;
     bottom: 4rem;
     width: 1px;
-    background: #E4E4E7;
+    background: var(--dc-border);
     pointer-events: none;
   }
-  ::selection { background: rgba(0,85,149,0.18); color: #09090B; }
+  ::selection { background: color-mix(in srgb, var(--dc-primary) 18%, transparent); color: var(--dc-foreground); }
   body > header { margin-bottom: 2.5rem; position: relative; }
   body > header::before {
     content: "\\00a7";
     position: absolute;
     left: -5.15rem;
     top: 0.45rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 18px;
     font-weight: 500;
-    color: #005595;
+    color: var(--dc-primary);
     line-height: 1;
   }
   body > header h1 {
@@ -1249,12 +1304,12 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     font-weight: 600;
     letter-spacing: -0.025em;
     line-height: 1.12;
-    color: #09090B;
+    color: var(--dc-foreground);
   }
   body > header h1::before {
     content: "[";
-    font-family: 'Source Code Pro', monospace;
-    color: #005595;
+    font-family: var(--dc-font-family-mono);
+    color: var(--dc-primary);
     font-weight: 400;
     margin-right: 0.55rem;
     font-size: 0.85em;
@@ -1262,8 +1317,8 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
   }
   body > header h1::after {
     content: "]";
-    font-family: 'Source Code Pro', monospace;
-    color: #005595;
+    font-family: var(--dc-font-family-mono);
+    color: var(--dc-primary);
     font-weight: 400;
     margin-left: 0.55rem;
     font-size: 0.85em;
@@ -1273,27 +1328,27 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem 1.5rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 11px;
-    color: #71717A;
+    color: var(--dc-muted-foreground);
     margin: 1.25rem 0 0;
     padding-top: 1rem;
-    border-top: 1px solid #E4E4E7;
+    border-top: 1px solid var(--dc-border);
   }
   .dc-meta-item { display: inline-flex; align-items: baseline; gap: 0.45rem; }
-  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.1em; color: #A1A1AA; font-size: 10px; font-weight: 500; }
-  .dc-meta-val { color: #09090B; font-weight: 500; }
-  .dc-meta-link { color: #005595; text-decoration: none; font-weight: 500; }
+  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.1em; color: var(--dc-subtle-foreground); font-size: 10px; font-weight: 500; }
+  .dc-meta-val { color: var(--dc-foreground); font-weight: 500; }
+  .dc-meta-link { color: var(--dc-primary); text-decoration: none; font-weight: 500; }
   .dc-meta-link:hover { text-decoration: underline; }
   .dc-verdict {
     display: flex;
     gap: 1.5rem;
     padding: 1rem 1.25rem;
     margin: 0 0 2.5rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 12px;
-    background: #FAFAFA;
-    border: 1px solid #E4E4E7;
+    background: var(--dc-muted);
+    border: 1px solid var(--dc-border);
     position: relative;
   }
   .dc-verdict:empty { display: none; }
@@ -1303,7 +1358,7 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     position: absolute;
     width: 12px;
     height: 12px;
-    border: 1.5px solid #005595;
+    border: 1.5px solid var(--dc-primary);
     pointer-events: none;
   }
   .dc-verdict::before {
@@ -1326,7 +1381,7 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     font-weight: 600;
     margin: 3rem 0 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #E4E4E7;
+    border-bottom: 1px solid var(--dc-border);
     letter-spacing: -0.015em;
     position: relative;
   }
@@ -1335,10 +1390,10 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     position: absolute;
     left: -5.5rem;
     top: 0.5rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 11px;
     font-weight: 500;
-    color: #005595;
+    color: var(--dc-primary);
     letter-spacing: 0.06em;
     font-variant-numeric: tabular-nums;
   }
@@ -1354,10 +1409,10 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     position: absolute;
     left: -5rem;
     top: 0.25rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     font-size: 10px;
     font-weight: 500;
-    color: #94A3B8;
+    color: var(--dc-subtle-foreground);
     font-variant-numeric: tabular-nums;
   }
   .dc-cowork-notice {
@@ -1365,30 +1420,30 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
     align-items: flex-start;
     gap: 0.6rem;
     padding: 0.7rem 0.95rem;
-    background: #F0F9FF;
-    border: 1px solid #BAE6FD;
+    background: var(--dc-muted);
+    border: 1px solid var(--dc-border);
     font-size: 13px;
     line-height: 1.5;
-    color: #005595;
+    color: var(--dc-foreground);
     margin-bottom: 1.5rem;
   }
   .dc-footer {
     margin: 4rem 0 0 -5rem;
     padding: 1.5rem 0 0 5rem;
-    border-top: 1px solid #E4E4E7;
+    border-top: 1px solid var(--dc-border);
     font-size: 11px;
-    color: #A1A1AA;
+    color: var(--dc-subtle-foreground);
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-family: 'Source Code Pro', monospace;
+    font-family: var(--dc-font-family-mono);
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
-  .dc-footer::before { content: "[\\00a0"; color: #CBD5E1; }
-  .dc-footer::after { content: "\\00a0]"; color: #CBD5E1; }
-  .dc-footer a { color: #A1A1AA; text-decoration: none; }
-  .dc-footer a:hover { color: #52525B; text-decoration: underline; }
+  .dc-footer::before { content: "[\\00a0"; color: var(--dc-border); }
+  .dc-footer::after { content: "\\00a0]"; color: var(--dc-border); }
+  .dc-footer a { color: var(--dc-subtle-foreground); text-decoration: none; }
+  .dc-footer a:hover { color: var(--dc-muted-foreground); text-decoration: underline; }
   @media (max-width: 720px) {
     body { padding: 2.25rem 1.25rem 3rem; }
     body::before, body::after { display: none; }
@@ -1402,10 +1457,9 @@ const REVIEW_VARIANTS: ReviewVariant[] = [
  * Produce design-review variants of an already-rendered report HTML.
  *
  * Each variant is the same body markup — same meta strip, same verdict
- * banner, same citation spans — with a fully replaced `<style>` block and
- * the shared font `<link>` tags injected into `<head>`. The CDN runtime
- * script and `<<<CITATION_DATA>>>` block are left intact, so popovers still
- * function for design review.
+ * banner, same citation spans — with a fully replaced `<style>` block.
+ * The CDN runtime script and `<<<CITATION_DATA>>>` block are left intact,
+ * so popovers still function for design review.
  *
  * Callers typically run this AFTER `verifyHtml` has written the main file,
  * so variants get the same runtime injection and verification payload.
@@ -1414,9 +1468,8 @@ export function generateReviewVariants(
   mainHtml: string,
 ): Array<{ slug: string; label: string; description: string; html: string }> {
   return REVIEW_VARIANTS.map(v => {
-    const fullCss = `${REVIEW_SHARED_BASE_CSS}\n${v.css}`;
-    let html = mainHtml.replace(/<style>[\s\S]*?<\/style>/, `<style>\n${fullCss}\n</style>`);
-    html = html.replace(/<\/head>/, `${REVIEW_FONT_LINKS}\n</head>`);
+    const fullCss = `${DC_ROOT_TOKENS}\n${REVIEW_SHARED_BASE_CSS}\n${v.css}`;
+    const html = mainHtml.replace(/<style>[\s\S]*?<\/style>/, `<style>\n${fullCss}\n</style>`);
     return { slug: v.slug, label: v.label, description: v.description, html };
   });
 }
@@ -1428,7 +1481,7 @@ export function generateReviewVariants(
  * Returns a full HTML document with the chosen style shell.
  */
 export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions = {}): string {
-  const { style = "report", audience = "general" } = options;
+  const { style = "report" } = options;
 
   const blocks = parseBlocks(markdown);
 
@@ -1440,7 +1493,7 @@ export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions 
   let bodyParts: string[];
 
   if (style === "report") {
-    bodyParts = buildReportBody(blocks, audience);
+    bodyParts = buildReportBody(blocks);
   } else {
     bodyParts = blocks.map(renderBlock);
   }
@@ -1453,15 +1506,15 @@ export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions 
   bodyHtml = wrapCitationMarkers(bodyHtml, options.sourceMatchMap);
 
   if (style === "report") {
-    return reportShell(title, bodyHtml, audience, options);
+    return reportShell(title, bodyHtml, options);
   }
   return plainShell(title, bodyHtml, { cowork: options.cowork });
 }
 
 // ── Report body builder (progressive disclosure) ───────────────────
 
-function buildReportBody(blocks: Block[], audience: AudiencePreset): string[] {
-  const cfg = AUDIENCE_CONFIG[audience];
+function buildReportBody(blocks: Block[]): string[] {
+  const cfg = { tier2Open: true };
   const parts: string[] = [];
 
   // Split blocks into sections by H2

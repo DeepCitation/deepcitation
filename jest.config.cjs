@@ -8,6 +8,10 @@ module.exports = {
   // The .unref() guard in auth.ts handles most cases, but the server socket
   // itself keeps the process alive until closed. forceExit prevents CI hangs.
   forceExit: true,
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "src/render/__tests__/",  // bun-only tests, not run with Jest
+  ],
   transform: {
     "^.+\\.(ts|tsx)$": ["ts-jest", { tsconfig: "tsconfig.jest.json" }],
   },

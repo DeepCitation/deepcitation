@@ -1,0 +1,27 @@
+{
+  "name": "deepcitation-qmd-local-search-example",
+  "version": "0.1.0",
+  "description": "CLI example pairing @tobilu/qmd on-device markdown search with DeepCitation verification",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/openai.ts",
+    "start:openai": "bun run src/openai.ts",
+    "build:corpus": "bun run scripts/build-corpus.ts"
+  },
+  "dependencies": {
+    "@tobilu/qmd": "^2.1.0",
+    "deepcitation": "file:../../",
+    "openai": "^4.104.0",
+    "pdfkit": "^0.15.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.37",
+    "@types/pdfkit": "^0.13.4",
+    "dotenv": "^16.6.1",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

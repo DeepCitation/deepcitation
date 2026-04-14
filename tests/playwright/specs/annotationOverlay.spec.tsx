@@ -220,7 +220,7 @@ test.describe("Annotation Overlay — dismiss", () => {
     await overlayDismiss.click();
     await expect(popover.locator("[data-dc-annotation-overlay]").filter({ visible: true })).toHaveCount(0);
 
-    await expect.poll(async () => scrollToBtn.getAttribute("data-dc-locate-pulse-stage")).toMatch(/grow|settle/);
+    await expect.poll(async () => scrollToBtn.getAttribute("data-dc-locate-pulse-stage")).toMatch(/flash|settle/);
     await expect.poll(async () => scrollToBtn.getAttribute("data-dc-locate-pulse-stage")).toBeNull();
   });
 
@@ -248,7 +248,7 @@ test.describe("Annotation Overlay — dismiss", () => {
 
     await popover.locator("[data-dc-overlay-dismiss]").filter({ visible: true }).click();
     await expect(overlay).toHaveCount(0);
-    await expect.poll(async () => scrollToBtn.getAttribute("data-dc-locate-pulse-stage")).toMatch(/grow|settle/);
+    await expect.poll(async () => scrollToBtn.getAttribute("data-dc-locate-pulse-stage")).toMatch(/flash|settle/);
   });
 });
 
