@@ -13,6 +13,19 @@ import { isViewTransitioning } from "../../react/viewTransition.js";
 import { canChildScrollVertically, findPageScrollEl } from "../../shared/scroll.js";
 import type { Citation } from "../../types/citation.js";
 import type { PageImage, Verification } from "../../types/verification.js";
+import {
+  BLINK_ENTER_EASING,
+  BLINK_ENTER_OPACITY_A,
+  BLINK_ENTER_OPACITY_B,
+  BLINK_ENTER_SCALE_A,
+  BLINK_ENTER_SCALE_B,
+  BLINK_ENTER_STEP_MS,
+  BLINK_ENTER_TOTAL_MS,
+  BLINK_EXIT_EASING,
+  BLINK_EXIT_OPACITY,
+  BLINK_EXIT_SCALE,
+  BLINK_EXIT_TOTAL_MS,
+} from "../../react/constants.js";
 import { resolveKeyMap } from "./cdn-keymap.js";
 import { mapToCitation, mapToVerification } from "./cdn-mappers.js";
 import { computePosition } from "./positioning.js";
@@ -40,12 +53,11 @@ const SIDE_OFFSET = 8;
 
 // ── Scroll passthrough helpers — imported from shared/scroll.ts ──────────
 
-// ── Blink animation constants ─────────────────────────────────────────────
-
-const BLINK_ENTER_DURATION_MS = 180;
-const BLINK_ENTER_EASING = "cubic-bezier(0.16, 1, 0.3, 1)";
-const BLINK_EXIT_DURATION_MS = 120;
-const BLINK_EXIT_EASING = "cubic-bezier(0.4, 0, 1, 1)";
+// ── Blink animation constants — imported from constants.ts, NOT redefined here.
+// CDN and React must use identical timing/easing; see animation-transition-rules.md.
+// BLINK_ENTER_STEP_MS = 60ms (enter-b settle), BLINK_ENTER_TOTAL_MS = 120ms (full enter)
+const BLINK_SETTLE_MS = Math.max(16, Math.min(BLINK_ENTER_STEP_MS, BLINK_ENTER_TOTAL_MS));
+const BLINK_FINAL_MS = Math.max(16, BLINK_ENTER_TOTAL_MS - BLINK_ENTER_STEP_MS);
 
 // ── Types & globals ───────────────────────────────────────────────────────
 
@@ -93,6 +105,11 @@ let pageScrollEl: Element | null = null;
 let radixVPPositionCleanup: (() => void) | null = null;
 let coastRafId: number | null = null;
 const boundTriggers = new WeakSet<HTMLElement>();
+
+// ── Blink animation state ─────────────────────────────────────────────────
+let blinkRafId = 0;
+let blinkSettleTimer: ReturnType<typeof setTimeout> | null = null;
+let blinkFinalTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ── Drawer state ─────────────────────────────────────────────────────
 let drawerContainerEl: HTMLDivElement | null = null;
@@ -467,19 +484,45 @@ function teardownScrollPassthrough(): void {
 }
 
 // ── Blink animation helpers ───────────────────────────────────────────────
+// Imperative equivalent of useBlinkMotionStage + getBlinkContainerMotionStyle.
+// Three-stage enter: enter-a (instant) → enter-b (BLINK_SETTLE_MS) → steady (BLINK_FINAL_MS).
+// All timing/easing values imported from constants.ts — do not redefine locally.
+
+function cancelBlink(): void {
+  cancelAnimationFrame(blinkRafId);
+  if (blinkSettleTimer !== null) { clearTimeout(blinkSettleTimer); blinkSettleTimer = null; }
+  if (blinkFinalTimer !== null) { clearTimeout(blinkFinalTimer); blinkFinalTimer = null; }
+}
 
 function animateOpen(): void {
   if (!contentEl || prefersReducedMotion) return;
-  // Start state: slightly scaled down + transparent
-  contentEl.style.opacity = "0";
-  contentEl.style.transform = "translateY(4px) scale(0.96)";
+  cancelBlink();
+  // enter-a: instant (no transition) — commit start opacity/scale before paint
   contentEl.style.transition = "none";
-  // Force reflow so the start state is committed before the transition
+  contentEl.style.opacity = String(BLINK_ENTER_OPACITY_A);
+  contentEl.style.transform = `translate3d(0, 0, 0) scale(${BLINK_ENTER_SCALE_A})`;
+  contentEl.style.willChange = "transform, opacity";
+  // Force reflow so enter-a is painted before transition starts
   contentEl.offsetHeight; // eslint-disable-line @typescript-eslint/no-unused-expressions
-  // End state: fully visible
-  contentEl.style.transition = `opacity ${BLINK_ENTER_DURATION_MS}ms ${BLINK_ENTER_EASING}, transform ${BLINK_ENTER_DURATION_MS}ms ${BLINK_ENTER_EASING}`;
-  contentEl.style.opacity = "1";
-  contentEl.style.transform = "translateY(0) scale(1)";
+  // enter-b: BLINK_SETTLE_MS settle toward near-final values
+  blinkRafId = requestAnimationFrame(() => {
+    if (!contentEl) return;
+    contentEl.style.transition = `opacity ${BLINK_SETTLE_MS}ms ${BLINK_ENTER_EASING}, transform ${BLINK_SETTLE_MS}ms ${BLINK_ENTER_EASING}`;
+    contentEl.style.opacity = String(BLINK_ENTER_OPACITY_B);
+    contentEl.style.transform = `translate3d(0, 0, 0) scale(${BLINK_ENTER_SCALE_B})`;
+    // steady: BLINK_FINAL_MS settle to fully visible
+    blinkSettleTimer = setTimeout(() => {
+      if (!contentEl) return;
+      contentEl.style.transition = `opacity ${BLINK_FINAL_MS}ms ${BLINK_ENTER_EASING}, transform ${BLINK_FINAL_MS}ms ${BLINK_ENTER_EASING}`;
+      contentEl.style.opacity = "1";
+      contentEl.style.transform = "translate3d(0, 0, 0) scale(1)";
+      blinkFinalTimer = setTimeout(() => {
+        if (contentEl) contentEl.style.willChange = "";
+        blinkFinalTimer = null;
+      }, BLINK_FINAL_MS);
+      blinkSettleTimer = null;
+    }, BLINK_SETTLE_MS);
+  });
 }
 
 function animateClose(onDone: () => void): void {
@@ -487,10 +530,14 @@ function animateClose(onDone: () => void): void {
     onDone();
     return;
   }
-  contentEl.style.transition = `opacity ${BLINK_EXIT_DURATION_MS}ms ${BLINK_EXIT_EASING}, transform ${BLINK_EXIT_DURATION_MS}ms ${BLINK_EXIT_EASING}`;
-  contentEl.style.opacity = "0";
-  contentEl.style.transform = "translateY(4px) scale(0.98)";
-  setTimeout(onDone, BLINK_EXIT_DURATION_MS);
+  cancelBlink();
+  contentEl.style.transition = `opacity ${BLINK_EXIT_TOTAL_MS}ms ${BLINK_EXIT_EASING}, transform ${BLINK_EXIT_TOTAL_MS}ms ${BLINK_EXIT_EASING}`;
+  contentEl.style.opacity = String(BLINK_EXIT_OPACITY);
+  contentEl.style.transform = `translate3d(0, 0, 0) scale(${BLINK_EXIT_SCALE})`;
+  blinkFinalTimer = setTimeout(() => {
+    onDone();
+    blinkFinalTimer = null;
+  }, BLINK_EXIT_TOTAL_MS);
 }
 
 // ── Show / Hide ───────────────────────────────────────────────────────────
@@ -577,6 +624,7 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
 }
 
 function hidePopoverCleanup(): void {
+  cancelBlink();
   stopPositionTracking();
   teardownScrollPassthrough();
   if (wrapperEl) {
