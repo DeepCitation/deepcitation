@@ -284,11 +284,11 @@ function reposition(): void {
     contentEl.style.translate = `${dx}px ${dy}px`;
   }
 }
-function scheduleReposition(): void {
+function scheduleReposition(retriesLeft = 30): void {
   cancelAnimationFrame(positionRafId);
   positionRafId = requestAnimationFrame(() => {
-    if (isViewTransitioning()) {
-      scheduleReposition();
+    if (isViewTransitioning() && retriesLeft > 0) {
+      scheduleReposition(retriesLeft - 1);
       return;
     }
     reposition();
