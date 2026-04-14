@@ -19,14 +19,9 @@ import type { VerificationData } from "../vanilla/runtime/types.js";
 
 export type ReportStyle = "plain" | "report";
 
-export const AUDIENCE_PRESETS = ["general", "executive", "technical", "legal", "medical"] as const;
-export type AudiencePreset = (typeof AUDIENCE_PRESETS)[number];
-
 export interface MarkdownToHtmlOptions {
   /** Output style: "plain" (simple HTML) or "report" (progressive disclosure) */
   style?: ReportStyle;
-  /** Audience preset — affects width, tier visibility, tone tokens */
-  audience?: AudiencePreset;
   /** Optional title override (extracted from first H1 if not provided) */
   title?: string;
   /** Human-readable source label (document name, filename, etc.) */
@@ -45,6 +40,14 @@ export interface MarkdownToHtmlOptions {
   /** When true, adds an info banner noting that interactive features require
    *  opening the file in a local browser (CDN blocked in Cowork sandbox). */
   cowork?: boolean;
+  /** The claim or question being verified. Rendered as a quoted card
+   *  between the H1 and the meta strip. Supports inline markdown
+   *  (bold/italic/code). Whitespace-only values are ignored. */
+  claim?: string;
+  /** Human-readable name of the model that performed the verification
+   *  (e.g. "Claude Haiku 4.5"). Surfaced as a MODEL item in the meta
+   *  strip, ordered between ANALYZED and AUDIENCE. */
+  model?: string;
 }
 
 // ── Inline formatting ──────────────────────────────────────────────
@@ -370,14 +373,6 @@ const BRAND_LOGO_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="no
 
 const FAVICON_DATA_URI = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-linecap="square" stroke-linejoin="miter" shape-rendering="crispEdges" width="24" height="24"><path d="M4 1 L1 1 L1 23 L4 23" stroke="#A1A1AA" stroke-width="1"/><path d="M20 1 L23 1 L23 23 L20 23" stroke="#A1A1AA" stroke-width="1"/><path d="M5.5 12 L18.5 12" stroke="#3B82F6" stroke-width="1.8"/><path d="M12 5.5 L12 18.5" stroke="#3B82F6" stroke-width="1.8"/><path d="M6.5 6.5 L17.5 17.5 M17.5 6.5 L6.5 17.5" stroke="#3B82F6" stroke-width="2.35"/></svg>')}`;
 
-const AUDIENCE_CONFIG: Record<AudiencePreset, { width: string; tier2Open: boolean }> = {
-  general: { width: "960px", tier2Open: true },
-  executive: { width: "720px", tier2Open: false },
-  technical: { width: "960px", tier2Open: true },
-  legal: { width: "840px", tier2Open: true },
-  medical: { width: "840px", tier2Open: true },
-};
-
 const MONO_FONT = `"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace`;
 const SANS_FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
 
@@ -448,7 +443,7 @@ function formatSourceUrl(url: string): string {
 }
 
 /**
- * Build the header meta strip: SOURCE · ANALYZED · AUDIENCE · CITATIONS · PAGES.
+ * Build the header meta strip: SOURCE · ANALYZED · CITATIONS · PAGES.
  * Only renders items that have data. Date always renders (defaults to today).
  */
 function buildMetaStrip(opts: {
@@ -457,7 +452,7 @@ function buildMetaStrip(opts: {
   reportDate?: string;
   citationCount?: number;
   pageCount?: number;
-  audience: AudiencePreset;
+  model?: string;
 }): string {
   const items: string[] = [];
 
@@ -479,11 +474,10 @@ function buildMetaStrip(opts: {
     `<span class="dc-meta-item"><span class="dc-meta-key">ANALYZED</span><span class="dc-meta-val">${escapeHtml(date)}</span></span>`,
   );
 
-  // AUDIENCE — only shown when non-default
-  if (opts.audience !== "general") {
-    const label = opts.audience.charAt(0).toUpperCase() + opts.audience.slice(1);
+  // MODEL — only shown when provided
+  if (opts.model) {
     items.push(
-      `<span class="dc-meta-item"><span class="dc-meta-key">AUDIENCE</span><span class="dc-meta-val">${escapeHtml(label)}</span></span>`,
+      `<span class="dc-meta-item"><span class="dc-meta-key">MODEL</span><span class="dc-meta-val">${escapeHtml(opts.model)}</span></span>`,
     );
   }
 
@@ -508,11 +502,18 @@ function buildMetaStrip(opts: {
 function reportShell(
   title: string,
   bodyHtml: string,
-  audience: AudiencePreset,
   options: MarkdownToHtmlOptions,
 ): string {
-  const cfg = AUDIENCE_CONFIG[audience];
-  const metaStrip = buildMetaStrip({ ...options, audience });
+  const cfg = { width: "960px", tier2Open: true as boolean };
+  const metaStrip = buildMetaStrip(options);
+
+  const claimText = options.claim?.trim();
+  const claimCard = claimText
+    ? `<div class="dc-claim" role="note" aria-label="Claim under verification">
+       <span class="dc-claim-label">CLAIM</span>
+       <blockquote class="dc-claim-text">${inlineFormat(claimText)}</blockquote>
+     </div>`
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -604,11 +605,48 @@ ${BASE_CSS}
     font-size: 13px; line-height: 1.5; color: #1E40AF;
   }
   .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }
+
+  /* Claim card — eyebrow label + quoted thesis */
+  .dc-claim {
+    margin: 0.75rem 0 1rem;
+    padding: 0.9rem 1.1rem;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-left: 3px solid #0284C7;
+    border-radius: 6px;
+  }
+  .dc-claim-label {
+    display: block;
+    font-family: ${MONO_FONT};
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #0284C7;
+    margin-bottom: 0.35rem;
+  }
+  .dc-claim-text {
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-family: inherit;
+    font-size: 17px;
+    line-height: 1.55;
+    color: #18181B;
+    font-weight: 450;
+    max-width: 65ch;
+  }
+  .dc-claim-text strong { font-weight: 600; }
+  .dc-claim-text em { font-style: italic; }
+  @media print {
+    .dc-claim { background: #fff; border-color: #E4E4E7; border-left-color: #0284C7; }
+  }
 </style>
 </head>
 <body>
 <header>
   <h1>${escapeHtml(title)}</h1>
+  ${claimCard}
   ${metaStrip}
 </header>
 ${
@@ -1428,7 +1466,7 @@ export function generateReviewVariants(
  * Returns a full HTML document with the chosen style shell.
  */
 export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions = {}): string {
-  const { style = "report", audience = "general" } = options;
+  const { style = "report" } = options;
 
   const blocks = parseBlocks(markdown);
 
@@ -1440,7 +1478,7 @@ export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions 
   let bodyParts: string[];
 
   if (style === "report") {
-    bodyParts = buildReportBody(blocks, audience);
+    bodyParts = buildReportBody(blocks);
   } else {
     bodyParts = blocks.map(renderBlock);
   }
@@ -1453,15 +1491,15 @@ export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions 
   bodyHtml = wrapCitationMarkers(bodyHtml, options.sourceMatchMap);
 
   if (style === "report") {
-    return reportShell(title, bodyHtml, audience, options);
+    return reportShell(title, bodyHtml, options);
   }
   return plainShell(title, bodyHtml, { cowork: options.cowork });
 }
 
 // ── Report body builder (progressive disclosure) ───────────────────
 
-function buildReportBody(blocks: Block[], audience: AudiencePreset): string[] {
-  const cfg = AUDIENCE_CONFIG[audience];
+function buildReportBody(blocks: Block[]): string[] {
+  const cfg = { tier2Open: true };
   const parts: string[] = [];
 
   // Split blocks into sections by H2

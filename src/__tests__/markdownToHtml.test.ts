@@ -1,6 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
 import {
-  AUDIENCE_PRESETS,
   buildCdnComparisonShowcaseHtml,
   markdownToHtml,
   wrapCitationMarkers,
@@ -301,36 +300,6 @@ describe("buildCdnComparisonShowcaseHtml", () => {
   });
 });
 
-// ── markdownToHtml — audience presets ─────────────────────────────
-
-describe("markdownToHtml audience presets", () => {
-  it("exports all five audience presets", () => {
-    expect(AUDIENCE_PRESETS).toEqual(["general", "executive", "technical", "legal", "medical"]);
-  });
-
-  it("uses narrower width for executive audience", () => {
-    const md = "# Report\n\n## Section\n\nContent.";
-    const executive = markdownToHtml(md, { style: "report", audience: "executive" });
-    const general = markdownToHtml(md, { style: "report", audience: "general" });
-    expect(executive).toContain("720px");
-    expect(general).toContain("960px");
-  });
-
-  it("collapses details for executive audience", () => {
-    const md = "# Report\n\n## Key Findings\n\nImportant.\n\n## Details\n\nMore.";
-    const executive = markdownToHtml(md, { style: "report", audience: "executive" });
-    // executive tier2Open is false, so no "open" attribute
-    expect(executive).toContain("<details>");
-    expect(executive).not.toContain("<details open>");
-  });
-
-  it("expands details for general audience", () => {
-    const md = "# Report\n\n## Key Findings\n\nImportant.\n\n## Details\n\nMore.";
-    const general = markdownToHtml(md, { style: "report", audience: "general" });
-    expect(general).toContain("<details open>");
-  });
-});
-
 // ── markdownToHtml — report body structure ────────────────────────
 
 describe("markdownToHtml report body (progressive disclosure)", () => {
@@ -509,5 +478,85 @@ describe("markdownToHtml — §7 extraction-script structure regressions", () =>
     expect(result).toContain('<span data-cite="1"><strong>interest rate</strong></span>');
     // Confirm the <strong> is INSIDE the span (not a sibling) — that's what gives inner its HTML tags.
     expect(result).not.toMatch(/<strong>interest rate<\/strong>\s*<span data-cite="1">/);
+  });
+});
+
+// ── Header claim + model ──────────────────────────────────────────
+
+describe("markdownToHtml header — claim & model", () => {
+  it("renders a claim card when claim is provided", () => {
+    const result = markdownToHtml("# T\nbody", { claim: "Did revenue exceed $4B?" });
+    expect(result).toContain('class="dc-claim"');
+    expect(result).toContain(">CLAIM<");
+    expect(result).toContain("Did revenue exceed $4B?");
+  });
+
+  it("omits the claim card when claim is absent", () => {
+    const result = markdownToHtml("# T\nbody", {});
+    expect(result).not.toContain('<div class="dc-claim"');
+    expect(result).not.toContain(">CLAIM<");
+  });
+
+  it("suppresses a whitespace-only claim", () => {
+    const result = markdownToHtml("# T\nbody", { claim: "   " });
+    expect(result).not.toContain('<div class="dc-claim"');
+    expect(result).not.toContain(">CLAIM<");
+  });
+
+  it("escapes HTML in the claim", () => {
+    const result = markdownToHtml("# T\nbody", { claim: "<script>x</script>" });
+    expect(result).toContain("&lt;script&gt;");
+    expect(result).not.toContain("<script>x");
+  });
+
+  it("honors inline markdown in the claim", () => {
+    const result = markdownToHtml("# T\nbody", { claim: "Did **Acme** beat *Q1*?" });
+    const claimMatch = result.match(/<blockquote class="dc-claim-text">([\s\S]*?)<\/blockquote>/);
+    expect(claimMatch).not.toBeNull();
+    const claimInner = claimMatch?.[1] ?? "";
+    expect(claimInner).toContain("<strong>Acme</strong>");
+    expect(claimInner).toContain("<em>Q1</em>");
+  });
+
+  it("renders MODEL in the meta strip when provided", () => {
+    const result = markdownToHtml("# T\nbody", { model: "Claude Haiku 4.5", citationCount: 5 });
+    expect(result).toContain(">MODEL<");
+    expect(result).toContain("Claude Haiku 4.5");
+    // Order: ANALYZED → MODEL → CITATIONS (AUDIENCE hidden on default "general")
+    expect(result).toMatch(/ANALYZED[\s\S]*MODEL[\s\S]*CITATIONS/);
+  });
+
+  it("omits the MODEL meta item when model is absent", () => {
+    const result = markdownToHtml("# T\nbody", { citationCount: 3 });
+    expect(result).not.toContain(">MODEL<");
+  });
+
+  it("renders claim card + MODEL + cowork notice together in source order", () => {
+    const result = markdownToHtml("# T\nbody", {
+      claim: "Is X true?",
+      model: "Claude Haiku 4.5",
+      cowork: true,
+      citationCount: 2,
+    });
+    // Claim card appears before meta strip; meta strip appears before cowork notice.
+    // Anchor on element markup (not class names) so the <style> block doesn't pollute indexOf.
+    const claimIdx = result.indexOf('<div class="dc-claim"');
+    const metaIdx = result.indexOf('<div class="dc-meta"');
+    const coworkIdx = result.indexOf('<div class="dc-cowork-notice"');
+    expect(claimIdx).toBeGreaterThan(-1);
+    expect(metaIdx).toBeGreaterThan(-1);
+    expect(coworkIdx).toBeGreaterThan(-1);
+    expect(claimIdx).toBeLessThan(metaIdx);
+    expect(metaIdx).toBeLessThan(coworkIdx);
+    expect(result).toContain("Is X true?");
+    expect(result).toContain("Claude Haiku 4.5");
+  });
+
+  it("renders a long claim intact without truncation", () => {
+    const longClaim = `${"A".repeat(20)}${"m".repeat(760)}${"Z".repeat(20)}`;
+    expect(longClaim.length).toBe(800);
+    const result = markdownToHtml("# T\nbody", { claim: longClaim });
+    expect(result).toContain("A".repeat(20));
+    expect(result).toContain("Z".repeat(20));
   });
 });

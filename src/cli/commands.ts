@@ -58,8 +58,6 @@ import { extractMarkersFromBody, findAnchorWithFallback, getAllLines, toCompactP
 import { die, extractApiKey, isValidApiKeyFormat, normalizeShortFlags, parseArgs } from "./cliUtils.js";
 import { findSummaryForMarkdown, hydrateCitations, parseSummaryToLineMap } from "./hydrate.js";
 import {
-  AUDIENCE_PRESETS,
-  type AudiencePreset,
   generateReviewVariants,
   markdownToHtml,
   type ReportStyle,
@@ -184,7 +182,6 @@ Options:
   --html <file>             Path to HTML file with citations
   --citations <file>        Path to citations JSON (citations-only mode)
   --style <plain|report>    HTML output style (default: "report", --markdown only)
-  --audience <preset>       Audience preset: general, executive, technical, legal, medical (default: "general")
   --title <text>            Report title (default: first H1 in markdown, or "Verification Report")
   --claim <text>            Claim or question being verified (rendered in header card)
   --model <name>            Model that performed verification (e.g. "Claude Haiku 4.5")
@@ -204,7 +201,6 @@ Examples:
   deepcitation verify --md .deepcitation/draft-report.md          # auto-publishes as private
   deepcitation verify --md report.md --claim "Did Q1 revenue exceed $4B?" --model "Claude Haiku 4.5"
   deepcitation verify --md report.md --style plain
-  deepcitation verify --md report.md --audience executive --theme dark
   deepcitation verify --md report.md --vis unlisted               # shareable by link
   deepcitation verify --md report.md --vis public                 # (Portal session only)
   deepcitation verify --md report.md --no-publish                 # local-only, don't upload
@@ -834,10 +830,6 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   const style = (args.style ?? "report") as ReportStyle;
   if (!["plain", "report"].includes(style)) die('--style must be "plain" or "report"', VERIFY_HELP);
 
-  const audience = (args.audience ?? "general") as AudiencePreset;
-  if (!AUDIENCE_PRESETS.includes(audience))
-    die(`--audience must be one of: ${AUDIENCE_PRESETS.join(", ")}`, VERIFY_HELP);
-
   // --citations: load citation data from a separate JSON file.
   // Assemble a combined string and parse through existing parseCitationData
   // so all downstream logic (compact key expansion, hydration, validation) works unchanged.
@@ -1041,7 +1033,6 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
 
   const html = markdownToHtml(parsed.visibleText, {
     style,
-    audience,
     title,
     claim,
     model,
@@ -1058,7 +1049,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   // Forward to verifyHtml with pre-loaded content — no temp file needed.
   // Note: --title is NOT stripped so verifyHtml can forward it to publishInMemory
   // on auto-publish. The HTML shell already baked in the title above.
-  const stripFlags = new Set(["--markdown", "--style", "--audience", "--citations", "--summary", "--claim", "--model"]);
+  const stripFlags = new Set(["--markdown", "--style", "--citations", "--summary", "--claim", "--model"]);
   const forwardArgs: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (stripFlags.has(argv[i])) {
@@ -1779,3 +1770,4 @@ export async function report(argv: string[], fmtNetErr: (err: unknown) => string
     die(fmtNetErr(err), REPORT_HELP);
   }
 }
+
