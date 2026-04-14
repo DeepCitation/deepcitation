@@ -56,31 +56,70 @@ export function stripExistingInjection(html: string): { html: string; hadExistin
   let result = html;
   let hadExisting = false;
 
-  const patterns = [
-    // dc-data and dc-key-map JSON blocks
-    /<script[^>]*id="dc-data"[^>]*>[\s\S]*?<\/script>\s*/g,
-    /<script[^>]*id="dc-key-map"[^>]*>[\s\S]*?<\/script>\s*/g,
-    // Init call
-    /<script>\s*window\.DeepCitationPopover\s*&&[\s\S]*?<\/script>\s*/g,
-  ];
-
-  for (const pattern of patterns) {
-    if (pattern.test(result)) {
+  // Strip <script> blocks by ID using string search to avoid ReDoS.
+  // Regex with multiple [^>]* groups on uncontrolled input is polynomial.
+  for (const id of ["dc-data", "dc-key-map"]) {
+    const idMarker = `id="${id}"`;
+    let changed = true;
+    while (changed) {
+      changed = false;
+      const idIdx = result.indexOf(idMarker);
+      if (idIdx === -1) break;
+      const tagStart = result.lastIndexOf("<script", idIdx);
+      if (tagStart === -1) break;
+      const closeIdx = result.indexOf("</script>", idIdx);
+      if (closeIdx === -1) break;
+      const end = closeIdx + "</script>".length;
+      // Consume trailing whitespace
+      let ws = end;
+      while (
+        ws < result.length &&
+        (result[ws] === " " || result[ws] === "\t" || result[ws] === "\n" || result[ws] === "\r")
+      )
+        ws++;
+      result = result.slice(0, tagStart) + result.slice(ws);
       hadExisting = true;
-      // Reset lastIndex since we tested before replacing
-      pattern.lastIndex = 0;
-      result = result.replace(pattern, "");
+      changed = true;
     }
   }
 
+  // Strip plain <script> blocks (no attributes) that are DeepCitation-owned.
+  // Uses indexOf to scan structurally — regex on full HTML is polynomial here.
   // CDN bundle: large script without id that *defines* DeepCitationPopover.
   // Requires assignment (`window.DeepCitationPopover=` or `window.DeepCitationPopover =`)
   // to avoid stripping user scripts that merely reference the API.
-  const cdnBundlePattern = /<script>(?:(?!<\/script>)[\s\S])*?window\.DeepCitationPopover\s*=[\s\S]*?<\/script>\s*/g;
-  if (cdnBundlePattern.test(result)) {
-    hadExisting = true;
-    cdnBundlePattern.lastIndex = 0;
-    result = result.replace(cdnBundlePattern, "");
+  let pos = 0;
+  while (true) {
+    const scriptStart = result.indexOf("<script>", pos);
+    if (scriptStart === -1) break;
+    const contentStart = scriptStart + "<script>".length;
+    const closeIdx = result.indexOf("</script>", contentStart);
+    if (closeIdx === -1) break;
+    const content = result.slice(contentStart, closeIdx);
+
+    // Init call: bounded check on first 80 chars (trimStart + literal prefix)
+    const trimmed = content.trimStart();
+    const isInitCall =
+      trimmed.startsWith("window.DeepCitationPopover") &&
+      /^window\.DeepCitationPopover\s*&&/.test(trimmed.slice(0, 80));
+    // CDN bundle: linear regex applied only to bounded content string
+    const isCdnBundle =
+      content.includes("window.DeepCitationPopover") && /window\.DeepCitationPopover\s*=/.test(content);
+
+    if (isInitCall || isCdnBundle) {
+      hadExisting = true;
+      const end = closeIdx + "</script>".length;
+      let ws = end;
+      while (
+        ws < result.length &&
+        (result[ws] === " " || result[ws] === "\t" || result[ws] === "\n" || result[ws] === "\r")
+      )
+        ws++;
+      result = result.slice(0, scriptStart) + result.slice(ws);
+      // Don't advance pos — content was removed at this position
+    } else {
+      pos = contentStart;
+    }
   }
 
   return { html: result, hadExisting };
@@ -223,18 +262,79 @@ export function autoFixDisplayLabels(
   verifications: Record<string, unknown>,
 ): { html: string; log: string[] } {
   const log: string[] = [];
-  const elementRe = /<([a-zA-Z][a-zA-Z0-9]*)[^>]*\sdata-citation-key="([^"]+)"([^>]*)>([\s\S]*?)<\/\1>/g;
-  const fixedHtml = html.replace(elementRe, (fullMatch, _tag, hashedKey, rest, content) => {
-    // Skip if data-dc-display-label is already set on this element
-    if (/data-dc-display-label=/.test(rest) || /data-dc-display-label=/.test(fullMatch)) return fullMatch;
+  // Use string scanning instead of regex on the full HTML to avoid ReDoS.
+  // The pattern [^>]*\s...[^>]* applied to uncontrolled input is polynomial.
+  const attrMarker = ' data-citation-key="';
+  const parts: string[] = [];
+  let lastEnd = 0;
+  let searchPos = 0;
+
+  while (true) {
+    const attrIdx = html.indexOf(attrMarker, searchPos);
+    if (attrIdx === -1) break;
+
+    // Find the enclosing tag's opening < (must not be a closing tag)
+    const tagStart = html.lastIndexOf("<", attrIdx);
+    if (tagStart === -1 || tagStart < lastEnd || html[tagStart + 1] === "/") {
+      searchPos = attrIdx + 1;
+      continue;
+    }
+
+    // Find the end of the opening tag
+    const tagClose = html.indexOf(">", attrIdx);
+    if (tagClose === -1) {
+      searchPos = attrIdx + 1;
+      continue;
+    }
+
+    // Extract tag name from between < and first whitespace or >
+    const afterAngle = tagStart + 1;
+    const tagHeaderSlice = html.slice(afterAngle, tagClose);
+    const tagNameEnd = tagHeaderSlice.search(/[\s/>]/);
+    const tagName = tagNameEnd >= 0 ? tagHeaderSlice.slice(0, tagNameEnd) : tagHeaderSlice;
+    if (!/^[a-zA-Z][a-zA-Z0-9]*$/.test(tagName)) {
+      searchPos = tagClose + 1;
+      continue;
+    }
+
+    // Extract citation key (bounded between the attribute marker and the next quote)
+    const keyStart = attrIdx + attrMarker.length;
+    const keyEnd = html.indexOf('"', keyStart);
+    if (keyEnd === -1) {
+      searchPos = attrIdx + 1;
+      continue;
+    }
+    const hashedKey = html.slice(keyStart, keyEnd);
+
+    // Skip if opening tag already has data-dc-display-label
+    const openingTag = html.slice(tagStart, tagClose + 1);
+    if (openingTag.includes("data-dc-display-label=")) {
+      searchPos = tagClose + 1;
+      continue;
+    }
 
     const sourceMatch = (verifications[hashedKey] as { citation?: { sourceMatch?: string } } | undefined)?.citation
       ?.sourceMatch;
-    if (!sourceMatch) return fullMatch;
+    if (!sourceMatch) {
+      searchPos = tagClose + 1;
+      continue;
+    }
+
+    // Find closing tag (uses first occurrence — same behaviour as the original lazy regex)
+    const closeTag = `</${tagName}>`;
+    const contentStart = tagClose + 1;
+    const closeIdx = html.indexOf(closeTag, contentStart);
+    if (closeIdx === -1) {
+      searchPos = tagClose + 1;
+      continue;
+    }
+
+    const content = html.slice(contentStart, closeIdx);
 
     // Strip inner HTML tags to get approximate visible text.
     // Loop until stable to handle nested fragments like <scr<script>ipt>.
-    let visibleText = content as string;
+    // Applied to bounded content string — no ReDoS risk.
+    let visibleText = content;
     let prev: string;
     do {
       prev = visibleText;
@@ -242,19 +342,34 @@ export function autoFixDisplayLabels(
     } while (visibleText !== prev);
     visibleText = visibleText.replace(/\s+/g, " ").trim();
 
-    if (!visibleText || visibleText.length > 80) return fullMatch;
-    if (sourceMatch.toLowerCase().includes(visibleText.toLowerCase())) return fullMatch;
+    const matchEnd = closeIdx + closeTag.length;
+
+    if (!visibleText || visibleText.length > 80 || sourceMatch.toLowerCase().includes(visibleText.toLowerCase())) {
+      searchPos = tagClose + 1;
+      continue;
+    }
 
     const escaped = visibleText.replace(/"/g, "&quot;");
     log.push(
       `  [${hashedKey.slice(0, 8)}…] claimText="${visibleText}" sourceMatch="${sourceMatch.slice(0, 60)}${sourceMatch.length > 60 ? "…" : ""}"`,
     );
-    return fullMatch.replace(
-      `data-citation-key="${hashedKey}"`,
-      `data-citation-key="${hashedKey}" data-dc-display-label="${escaped}"`,
+
+    // Emit unchanged HTML up to this element, then the patched element
+    parts.push(html.slice(lastEnd, tagStart));
+    const fullMatch = html.slice(tagStart, matchEnd);
+    parts.push(
+      fullMatch.replace(
+        `data-citation-key="${hashedKey}"`,
+        `data-citation-key="${hashedKey}" data-dc-display-label="${escaped}"`,
+      ),
     );
-  });
-  return { html: fixedHtml, log };
+    lastEnd = matchEnd;
+    searchPos = matchEnd;
+  }
+
+  if (parts.length === 0) return { html, log };
+  parts.push(html.slice(lastEnd));
+  return { html: parts.join(""), log };
 }
 
 /** Options for {@link injectCdnRuntime}. */
