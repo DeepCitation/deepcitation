@@ -45,7 +45,7 @@ function convertFixture(provider: string) {
   // Debug: show what we got
   for (const [hash, citation] of Object.entries(parsedCitations)) {
     console.log(
-      `   [${citation.citationNumber}] hash=${hash.slice(0, 8)}… anchor="${citation.anchorText?.slice(0, 30)}"`,
+      `   [${citation.citationNumber}] hash=${hash.slice(0, 8)}… match="${citation.sourceMatch?.slice(0, 30)}"`,
     );
   }
 
@@ -56,16 +56,16 @@ function convertFixture(provider: string) {
   for (const [hash, citation] of Object.entries(parsedCitations)) {
     stubVerifications[hash] = {
       status: "found",
-      label: citation.anchorText || `Citation ${citation.citationNumber}`,
+      label: citation.sourceMatch || `Citation ${citation.citationNumber}`,
       attachmentId: citation.attachmentId || "fixture",
-      verifiedFullPhrase: citation.fullPhrase,
-      verifiedAnchorText: citation.anchorText,
-      verifiedMatchSnippet: citation.fullPhrase?.slice(0, 80),
+      verifiedSourceContext: citation.sourceContext,
+      verifiedSourceMatch: citation.sourceMatch,
+      verifiedMatchSnippet: citation.sourceContext?.slice(0, 80),
       citation: {
         pageNumber: citation.pageNumber,
         lineIds: citation.lineIds,
-        fullPhrase: citation.fullPhrase,
-        anchorText: citation.anchorText,
+        sourceContext: citation.sourceContext,
+        sourceMatch: citation.sourceMatch,
       },
       document: {
         verifiedPageNumber: citation.pageNumber,

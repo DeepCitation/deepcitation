@@ -336,7 +336,7 @@ if (from <= 4 && to >= 4) {
   console.log(`   Citations: ${s4.citationCount}`);
   console.log(`   Visible text: ${s4.visibleText.length} chars`);
   for (const [key, c] of Object.entries(s4.parsedCitations)) {
-    console.log(`   [${key}]: "${c.fullPhrase?.slice(0, 60)}..."`);
+    console.log(`   [${key}]: "${c.sourceContext?.slice(0, 60)}..."`);
   }
   saveStep(cacheDir, safeName, 4, s4);
   console.log();

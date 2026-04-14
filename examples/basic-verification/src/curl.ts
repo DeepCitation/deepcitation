@@ -119,7 +119,7 @@ async function prepareUrlAttachment(url: string): Promise<{
  */
 async function verifyCitations(
   attachmentId: string,
-  citations: Record<string, { fullPhrase?: string; pageNumber?: number }>,
+  citations: Record<string, { sourceContext?: string; pageNumber?: number }>,
 ): Promise<{
   verifications: Record<
     string,
@@ -275,7 +275,7 @@ provided documents accurately and cite your sources.`;
 
   console.log(`📋 Parsed ${citationCount} citation(s) from LLM output`);
   for (const [key, citation] of Object.entries(parsedCitations)) {
-    console.log(`   [${key}]: "${citation.fullPhrase?.slice(0, 50)}..."`);
+    console.log(`   [${key}]: "${citation.sourceContext?.slice(0, 50)}..."`);
   }
   console.log();
 
@@ -321,9 +321,9 @@ provided documents accurately and cite your sources.`;
       console.log(`${"─".repeat(60)}`);
 
       const originalCitation = parsedCitations[key];
-      if (originalCitation?.fullPhrase) {
+      if (originalCitation?.sourceContext) {
         console.log(
-          `  📝 Claimed: "${originalCitation.fullPhrase.slice(0, 100)}${originalCitation.fullPhrase.length > 100 ? "..." : ""}"`,
+          `  📝 Claimed: "${originalCitation.sourceContext.slice(0, 100)}${originalCitation.sourceContext.length > 100 ? "..." : ""}"`,
         );
       }
 
@@ -423,7 +423,7 @@ async function main() {
   console.log("  -d '{");
   console.log('    "data": {');
   console.log('      "attachmentId": "<ATTACHMENT_ID>",');
-  console.log('      "citations": { "1": { "fullPhrase": "...", "pageNumber": 1 } },');
+  console.log('      "citations": { "1": { "sourceContext": "...", "pageNumber": 1 } },');
   console.log('      "outputImageFormat": "avif"');
   console.log("    }");
   console.log("  }'");
