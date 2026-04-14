@@ -31,13 +31,21 @@ We believe AI citations should follow **show, don't tell**; they should prove th
 
 DeepCitation turns model citations into deterministic, inspectable proof.
 
-## Install
+## Agent Skills
+
+The fastest way to use DeepCitation — verify citations directly from your AI coding agent with the `/verify` skill. No app code, no API integration. Works with Claude Code, Cursor, Windsurf, and other agents that support skills.
+
+Install from [**DeepCitation/skills**](https://github.com/DeepCitation/skills).
+
+## Building your own integration?
+
+Install the package:
 
 ```sh
 npm install deepcitation  # or bun add / yarn add / pnpm add
 ```
 
-## Quick Start
+### Quick Start
 
 ```typescript
 import { DeepCitation, extractVisibleText, wrapCitationPrompt } from "deepcitation";
@@ -118,13 +126,6 @@ npm install && npm run dev
 - [Next.js AI SDK Chat App](./examples/nextjs-ai-sdk) — [Live Demo](https://nextjs-ai-sdk-deepcitation.vercel.app/)
 - [AG-UI Chat](./examples/agui-chat) — [Live Demo](https://agui-chat-deepcitation.vercel.app/)
 - [URL Citations](./examples/url-example)
-
-
-## Agent Skills
-
-Verify citations directly from your AI coding agent with the `/verify` skill — no app code needed. Works with Claude Code, Cursor, Windsurf, and other agents that support skills.
-
-Install from [**DeepCitation/skills**](https://github.com/DeepCitation/skills).
 
 ## Development
 
