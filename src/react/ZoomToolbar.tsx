@@ -55,7 +55,7 @@ export interface ZoomToolbarProps {
   locatePulseKey?: number;
 }
 
-type LocatePulseStage = "idle" | "grow" | "settle";
+type LocatePulseStage = "idle" | "flash" | "settle";
 
 /** Shared card style for both the zoom card and the standalone locate card. */
 const CARD_CLASSES = "rounded-dc-lg border border-dc-border bg-dc-background shadow-md text-dc-foreground";
@@ -98,7 +98,7 @@ export function ZoomToolbar({
     let settleTimer: ReturnType<typeof setTimeout> | null = null;
     let idleTimer: ReturnType<typeof setTimeout> | null = null;
     const startFrame = requestAnimationFrame(() => {
-      setLocatePulseStage("grow");
+      setLocatePulseStage("flash");
       settleTimer = setTimeout(() => {
         setLocatePulseStage("settle");
       }, LOCATE_ICON_PULSE_GROW_MS);
@@ -125,7 +125,7 @@ export function ZoomToolbar({
   }, []);
 
   const locateIconStyle: React.CSSProperties =
-    locatePulseStage === "grow"
+    locatePulseStage === "flash"
       ? {
           transform: `scale(${LOCATE_ICON_PULSE_SCALE})`,
           color: LOCATE_ICON_PULSE_COLOR,
@@ -168,11 +168,11 @@ export function ZoomToolbar({
               CARD_CLASSES,
               "w-10 h-10 flex items-center justify-center transition-all duration-180",
               locateDirty ? "text-dc-primary opacity-90 hover:bg-dc-muted" : "opacity-45 hover:opacity-65",
-            )} 
+            )}
             style={locateIconStyle}
             aria-label={locateDirty ? t("zoom.reCenter") : t("zoom.centered")}
           >
-            <span className="size-4 transform-gpu" >
+            <span className="size-4 transform-gpu">
               <LocateIcon />
             </span>
           </button>
