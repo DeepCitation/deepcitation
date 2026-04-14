@@ -9,6 +9,7 @@ import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
 import { usePopoverViewState } from "../../react/hooks/usePopoverViewState.js";
 import { usePrefersReducedMotion } from "../../react/hooks/usePrefersReducedMotion.js";
 import { sanitizeUrl } from "../../react/urlUtils.js";
+import { isViewTransitioning } from "../../react/viewTransition.js";
 import { canChildScrollVertically, findPageScrollEl } from "../../shared/scroll.js";
 import type { Citation } from "../../types/citation.js";
 import type { PageImage, Verification } from "../../types/verification.js";
@@ -285,7 +286,13 @@ function reposition(): void {
 }
 function scheduleReposition(): void {
   cancelAnimationFrame(positionRafId);
-  positionRafId = requestAnimationFrame(reposition);
+  positionRafId = requestAnimationFrame(() => {
+    if (isViewTransitioning()) {
+      scheduleReposition();
+      return;
+    }
+    reposition();
+  });
 }
 function startPositionTracking(): void {
   stopPositionTracking();

@@ -1047,6 +1047,7 @@ function runPageCollapseGhostAnimation(
   snapshot: GhostSnapshot,
   keyholeRect: DOMRect,
   popoverRoot: HTMLElement | null,
+  onDone?: () => void,
 ): void {
   const src = snapshot.viewportRect;
 
@@ -1102,6 +1103,12 @@ function runPageCollapseGhostAnimation(
     fill: "both",
   });
 
+  let pendingAnimations = popoverRoot ? 2 : 1;
+  const markAnimationDone = () => {
+    pendingAnimations -= 1;
+    if (pendingAnimations === 0) onDone?.();
+  };
+
   // Content reveal: holds at floor through GHOST_OFFSET_COLLAPSE_MID (0.65) while
   // the ghost covers vertical travel, then ramps 0.03→0.35 by GHOST_OFFSET_COLLAPSE_PEAK
   // (0.88) as the ghost fades to GHOST_OPACITY_COLLAPSE_PEAK (0.3), then finishes 0.35→1.0
@@ -1123,6 +1130,7 @@ function runPageCollapseGhostAnimation(
       .finally(() => {
         contentAnim.cancel();
         cleanupPageExpandScrim(popoverRoot);
+        markAnimationDone();
       });
   }
 
@@ -1130,6 +1138,7 @@ function runPageCollapseGhostAnimation(
     .catch(() => {})
     .finally(() => {
       ghost.remove();
+      markAnimationDone();
     });
 }
 
@@ -1211,13 +1220,15 @@ export function startEvidencePageCollapseTransition(
     }
 
     waitForPageCollapseTarget(root, keyholeRect => {
-      _transitionDepth = Math.max(0, _transitionDepth - 1);
       if (!keyholeRect) {
         ghost.remove();
         cleanupPageExpandScrim(rootEl);
+        _transitionDepth = Math.max(0, _transitionDepth - 1);
         return;
       }
-      runPageCollapseGhostAnimation(ghost, snapshot, keyholeRect, rootEl);
+      runPageCollapseGhostAnimation(ghost, snapshot, keyholeRect, rootEl, () => {
+        _transitionDepth = Math.max(0, _transitionDepth - 1);
+      });
     });
   };
 
