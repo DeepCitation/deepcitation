@@ -7,8 +7,7 @@
   "scripts": {
     "start": "bun run src/openai.ts",
     "start:openai": "bun run src/openai.ts",
-    "build:corpus": "bun run scripts/build-corpus.ts",
-    "postinstall": "bun run scripts/build-corpus.ts"
+    "build:corpus": "bun run scripts/build-corpus.ts"
   },
   "dependencies": {
     "@tobilu/qmd": "^2.1.0",

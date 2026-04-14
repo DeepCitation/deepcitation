@@ -18,6 +18,7 @@ import { createStore, type HybridQueryResult, type QMDStore } from "@tobilu/qmd"
 import { DeepCitation } from "deepcitation/client";
 import {
   type AttachmentAssets,
+  type Verification,
   extractVisibleText,
   getAllCitationsFromLlmOutput,
   getCitationStatus,
@@ -294,7 +295,7 @@ export async function runWorkflow(providerName: string, streamLlm: StreamLlmFn):
   // Group citations by attachmentId and verify each attachment independently.
   // Why: the service's verifyCitations endpoint takes one attachment per request.
   const grouped = groupCitationsByAttachmentId(parsedCitations);
-  const mergedVerifications: Record<string, any> = {};
+  const mergedVerifications: Record<string, Verification> = {};
   const mergedAttachments: Record<string, AttachmentAssets> = {};
   for (const [attachmentId, attachmentCitations] of grouped) {
     if (!attachmentId) continue;
@@ -305,7 +306,7 @@ export async function runWorkflow(providerName: string, streamLlm: StreamLlmFn):
     if (result.attachments) Object.assign(mergedAttachments, result.attachments);
   }
 
-  const verifications = Object.entries(mergedVerifications) as [string, any][];
+  const verifications = Object.entries(mergedVerifications);
 
   // ── Verification table ─────────────────────────────────────────────────
   // One row per citation: sequential index, truncated claim, status, page.

@@ -46,7 +46,7 @@ export interface MarkdownToHtmlOptions {
   claim?: string;
   /** Human-readable name of the model that performed the verification
    *  (e.g. "Claude Haiku 4.5"). Surfaced as a MODEL item in the meta
-   *  strip, ordered between ANALYZED and AUDIENCE. */
+   *  strip, ordered between ANALYZED and CITATIONS. */
   model?: string;
 }
 
