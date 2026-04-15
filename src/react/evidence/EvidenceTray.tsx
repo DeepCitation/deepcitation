@@ -422,8 +422,6 @@ export function EvidenceTray({
   // Shared inner content
   const content = (
     <>
-      {/* Content: keyhole image (verified/partial AND miss with page image) or search analysis.
-          Keys prevent React from reusing fibers across component-type swaps. */}
       {resolvedEvidenceSrc ? (
         <EvidenceKeyhole
           key={resolvedEvidenceSrc}

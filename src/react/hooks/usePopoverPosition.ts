@@ -112,7 +112,6 @@ export function usePopoverPosition(config: UsePopoverPositionConfig): PopoverPos
 
   // 1. View state management
   const viewStateHandle = usePopoverViewState({
-    isOpen,
     popoverContentRef,
     experimentalHaptics,
     isMobile,

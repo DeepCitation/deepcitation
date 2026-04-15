@@ -21,7 +21,6 @@ import { getBlinkContainerMotionStyle } from "./motion/blinkAnimation.js";
 import { PopoverPortal } from "./PopoverPrimitives.js";
 import { usePopoverContext } from "./popoverContext.js";
 import { assignRef } from "./refUtils.js";
-import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "./scrollLock.js";
 import { cn } from "./utils.js";
 import { isViewTransitioning } from "./viewTransition.js";
 
@@ -227,13 +226,11 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       // handles the legitimate trigger-resize case via the "resize" listener.
 
       window.addEventListener("resize", scheduleRecompute);
-      window.addEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, scheduleRecompute as EventListener);
 
       return () => {
         cancelAnimationFrame(rafId);
         ro.disconnect();
         window.removeEventListener("resize", scheduleRecompute);
-        window.removeEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, scheduleRecompute as EventListener);
       };
     }, [isMounted, open, recomputePosition]);
 
@@ -496,6 +493,10 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
                 // Static viewport cap — the popover renders at full size and stays there.
                 // No dynamic height clamping; overflow is handled by internal scrolling.
                 maxHeight: EXPANDED_POPOVER_HEIGHT,
+                // Block overscroll-chain to the underlying document so the popover
+                // absorbs any stray wheel/touch momentum at its edges instead of
+                // scrolling the host page (or, inside an iframe, the outer host).
+                overscrollBehavior: "contain",
                 ...getBlinkContainerMotionStyle(blinkStage, prefersReducedMotion),
                 overflowX: "clip",
                 ...styleWithoutOverflow,
