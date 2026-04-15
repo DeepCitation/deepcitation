@@ -12,7 +12,8 @@
     "steps": "bun run src/step-runner.ts",
     "steps:openai": "bun run src/step-runner.ts --provider=openai",
     "steps:anthropic": "bun run src/step-runner.ts --provider=anthropic",
-    "steps:gemini": "bun run src/step-runner.ts --provider=gemini"
+    "steps:gemini": "bun run src/step-runner.ts --provider=gemini",
+    "template": "bun run src/template.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.1",
