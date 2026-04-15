@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-04-15
+
 ### Added
 
 - **`deepcitation lint` command** — pre-flight citation-syntax validator (no network); `--json` output with `errors`/`warnings` arrays; 10+ rules covering duplicate IDs, format mismatches, and orphan markers. (#425)
