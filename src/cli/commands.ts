@@ -621,8 +621,8 @@ export async function verify(
       { outputImageFormat: imageFormat },
     );
     Object.assign(merged, result.verifications);
-    // Preserve the per-attachment assets map (pageImages, originalDownload) so
-    // callers like updateDemoVerifications.ts can enrich demo data with page images.
+    // Preserve per-attachment assets (pageImages, originalDownload) so downstream
+    // tooling can access page images alongside the verification results.
     if (result.attachments) Object.assign(mergedAttachments, result.attachments);
   }
 
