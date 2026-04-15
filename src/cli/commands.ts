@@ -610,7 +610,7 @@ export async function verify(
 
   // Verify each group and merge
   const merged: Record<string, unknown> = {};
-  const mergedAttachments: Record<string, unknown> = {};
+  const mergedAttachments: Record<string, AttachmentAssets> = {};
   for (const [attachmentId, groupCitations] of Array.from(groups.entries())) {
     console.error(`  ${sanitizeForLog(attachmentId)}: ${Object.keys(groupCitations).length} citations...`);
     const result = await dc.verifyAttachment(
