@@ -97,12 +97,7 @@ export function formatNetworkError(err: unknown, baseUrl: string): string {
     return [
       `\nQuota reached: ${sanitizeForLog(err.message)}`,
       ``,
-      `  Free tier includes 1 verification per 7-day trial window.`,
-      `  Upgrade to continue:`,
-      `    • Standard — 20 verifications/week ($20/mo)`,
-      `    • Pro      — Unlimited verifications ($200/mo)`,
-      ``,
-      `  Upgrade at: ${baseUrl}/billing`,
+      `  Manage your plan and usage at: ${baseUrl}/billing`,
       `    npx deepcitation billing`,
     ].join("\n");
   }

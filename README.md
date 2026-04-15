@@ -4,8 +4,8 @@
 <div align="center"><strong>DeepCitation</strong></div>
 
 <div align="center">
-Build Trusted AI Products. <br />
-Show proof for every AI citation.
+Stop hallucinations <br />
+/verify citations
 </div>
 
 

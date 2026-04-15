@@ -108,7 +108,7 @@ describe("formatNetworkError", () => {
     expect(result).toContain("Quota reached");
     expect(result).toContain("npx deepcitation billing");
     expect(result).toContain(`${BASE_URL}/billing`);
-    expect(result).toContain("Standard");
+    expect(result).toContain("Manage your plan");
   });
 
   it("formats ENOTFOUND without proxy env as network hint", () => {
@@ -198,8 +198,7 @@ describe("formatNetworkError", () => {
     const err = new PaymentRequiredError("Free tier exhausted", "billing_quota_exceeded");
     const result = formatNetworkError(err, "https://deepcitation.com");
     expect(result).toContain("npx deepcitation billing");
-    expect(result).toContain("Standard");
-    expect(result).toContain("Pro");
+    expect(result).toContain("Manage your plan");
   });
 
   it("proxy hint differs based on HTTP_PROXY (not just HTTPS_PROXY)", () => {

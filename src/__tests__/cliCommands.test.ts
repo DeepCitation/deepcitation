@@ -784,6 +784,74 @@ describe("verify command (--citations mode)", () => {
       process.chdir(origCwd);
     }
   });
+
+  it("writes attachments to output file when verifyAttachment returns assets", async () => {
+    const tmpDir = makeTmpDir();
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+    mkdirSync(join(tmpDir, ".deepcitation"), { recursive: true });
+    const citPath = join(tmpDir, "citations.json");
+    writeFileSync(
+      citPath,
+      JSON.stringify({
+        key1: { attachmentId: "att-1", sourceContext: "phrase 1", sourceMatch: "anchor 1", pageNumber: 1 },
+      }),
+    );
+
+    mockVerifyAttachment.mockResolvedValueOnce({
+      verifications: { key1: { status: "found" } },
+      attachments: {
+        "att-1": {
+          pageImages: [
+            {
+              pageNumber: 1,
+              dimensions: { width: 800, height: 1200 },
+              imageUrl: "https://example.com/p1.avif",
+              isMatchPage: true,
+            },
+          ],
+        },
+      },
+    });
+
+    try {
+      const { stdout } = await captureOutput(() => verify(["--citations", citPath], fmtNetErr));
+      const outPath = stdout.trim();
+      const output = JSON.parse(readFileSync(outPath, "utf-8"));
+      expect(output.attachments).toBeDefined();
+      expect(output.attachments["att-1"].pageImages).toHaveLength(1);
+    } finally {
+      process.chdir(origCwd);
+    }
+  });
+
+  it("omits attachments from output file when verifyAttachment returns no assets", async () => {
+    const tmpDir = makeTmpDir();
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+    mkdirSync(join(tmpDir, ".deepcitation"), { recursive: true });
+    const citPath = join(tmpDir, "citations.json");
+    writeFileSync(
+      citPath,
+      JSON.stringify({
+        key1: { attachmentId: "att-1", sourceContext: "phrase 1", sourceMatch: "anchor 1", pageNumber: 1 },
+      }),
+    );
+
+    mockVerifyAttachment.mockResolvedValueOnce({
+      verifications: { key1: { status: "found" } },
+      // no attachments field
+    });
+
+    try {
+      const { stdout } = await captureOutput(() => verify(["--citations", citPath], fmtNetErr));
+      const outPath = stdout.trim();
+      const output = JSON.parse(readFileSync(outPath, "utf-8"));
+      expect(output.attachments).toBeUndefined();
+    } finally {
+      process.chdir(origCwd);
+    }
+  });
 });
 
 describe("getAttachment command", () => {
