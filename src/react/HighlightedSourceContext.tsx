@@ -103,10 +103,7 @@ export function HighlightedSourceContext({
       {displayPhrase.slice(0, start)}
       <span className="group/anchor">
         {isApproximate && (
-          <span
-            className="mr-0.5 text-amber-500 dark:text-amber-400 motion-safe:transition-colors"
-            aria-hidden="true"
-          >
+          <span className="mr-0.5 text-amber-500 dark:text-amber-400 motion-safe:transition-colors" aria-hidden="true">
             ≈
           </span>
         )}

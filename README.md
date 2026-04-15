@@ -33,9 +33,19 @@ DeepCitation turns model citations into deterministic, inspectable proof.
 
 ## Agent Skills
 
-The fastest way to use DeepCitation — verify citations directly from your AI coding agent with the `/verify` skill. No app code, no API integration. Works with Claude Code, Cursor, Windsurf, and other agents that support skills.
+The fastest way to use DeepCitation is to install the `/verify` Agent Skill and ask Claude to verify your AI claims.
 
-Install from [**DeepCitation/skills**](https://github.com/DeepCitation/skills).
+```bash
+npx skills add DeepCitation/skills
+```
+
+Or
+
+1. Download [`verify.zip`](https://github.com/DeepCitation/skills/releases/download/verify-latest/verify.zip)
+2. Go to [claude.ai/customize/skills](https://claude.ai/customize/skills)
+3. Upload `verify.zip`
+
+Then ask Claude to `/verify`.
 
 ## Building your own integration?
 
