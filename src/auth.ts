@@ -180,7 +180,7 @@ export function openBrowser(url: string): void {
   if (platform === "darwin") {
     execFile("open", [url], noop);
   } else if (platform === "win32") {
-    execFile("cmd.exe", ["/c", "start", "", url], noop);
+    execFile("explorer.exe", [url], noop);
   } else {
     // Linux / WSL — try wslview first (WSL helper), fall back to xdg-open
     execFile("wslview", [url], err => {

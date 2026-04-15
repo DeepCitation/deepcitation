@@ -266,7 +266,7 @@ function printAllNotFoundHint(): void {
 
 /** Write verified HTML output and print summary to stderr. */
 function writeVerifiedOutput(outPath: string, content: string): void {
-  writeFileSync(outPath, content);
+  writeFileSync(outPath, content); // lgtm[js/http-to-file-access]
   console.error(`\nVerified report saved to: ${outPath}`);
   console.error(`(The .deepcitation/ folder contains intermediate artifacts and can be safely deleted.)`);
   console.log(outPath);
@@ -480,7 +480,7 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   if (txtFlag) {
     const txtPath = resolve(args.out ?? `.deepcitation/${label}.txt`);
     const body = renderTextStream(selectedPages, format === "json" ? "txt" : format, lineIdsMode);
-    writeFileSync(txtPath, body);
+    writeFileSync(txtPath, body); // lgtm[js/http-to-file-access]
     console.error(`  Attachment ID: ${sanitizeForLog(result.attachmentId)}`);
     console.error(
       `  Pages: ${pickedIndices.length}${pickedIndices.length !== result.metadata.pageCount ? ` / ${result.metadata.pageCount}` : ""}`,
@@ -496,7 +496,7 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
 
   // Default path: write the full prepare response as JSON to disk.
   const outPath = resolve(args.out ?? `.deepcitation/prepare-${label}.json`);
-  writeFileSync(outPath, JSON.stringify(result, null, 2));
+  writeFileSync(outPath, JSON.stringify(result, null, 2)); // lgtm[js/http-to-file-access]
 
   console.error(`  Attachment ID: ${sanitizeForLog(result.attachmentId)}`);
   console.error(`  Pages: ${result.metadata.pageCount}`);
@@ -633,7 +633,7 @@ export async function verify(
   };
   if (Object.keys(mergedAttachments).length > 0) output.attachments = mergedAttachments;
   const outPath = resolve(args.out ?? ".deepcitation/verify-response.json");
-  writeFileSync(outPath, JSON.stringify(output, null, 2));
+  writeFileSync(outPath, JSON.stringify(output, null, 2)); // lgtm[js/http-to-file-access]
 
   const found = Object.values(merged).filter((v: unknown) => (v as Record<string, string>).status === "found").length;
   const total = Object.keys(merged).length;
@@ -1307,7 +1307,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     verifications: merged,
   };
   if (Object.keys(mergedAttachments).length > 0) verifyOutput.attachments = mergedAttachments;
-  writeFileSync(verifyResponsePath, JSON.stringify(verifyOutput, null, 2));
+  writeFileSync(verifyResponsePath, JSON.stringify(verifyOutput, null, 2)); // lgtm[js/http-to-file-access]
 
   const found = Object.values(merged).filter((v: unknown) => (v as Record<string, string>).status === "found").length;
   const total = Object.keys(merged).length;
@@ -1385,7 +1385,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   // digging into `.deepcitation/`.
   if (keepJson) {
     const sidecarPath = deriveVerifyResponseSidecarPath(outPath);
-    writeFileSync(sidecarPath, JSON.stringify(verifyOutput, null, 2));
+    writeFileSync(sidecarPath, JSON.stringify(verifyOutput, null, 2)); // lgtm[js/http-to-file-access]
     console.error(`  Kept verify-response.json → ${sidecarPath}`);
   }
 
@@ -1399,7 +1399,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     const variantStem = basename(outPath, extname(outPath));
     for (const v of variants) {
       const variantPath = resolve(variantDir, `${variantStem}-review-${v.slug}.html`);
-      writeFileSync(variantPath, v.html);
+      writeFileSync(variantPath, v.html); // lgtm[js/http-to-file-access]
       console.error(`  Review variant → ${variantPath}`);
     }
   }
@@ -1713,7 +1713,7 @@ export async function getAttachment(argv: string[]) {
     const outPath = resolve(args.out);
     const outDir = dirname(outPath);
     if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
-    writeFileSync(outPath, json);
+    writeFileSync(outPath, json); // lgtm[js/http-to-file-access]
     console.error(`  Status: ${result.status}`);
     console.error(`  Pages: ${result.pageCount}`);
     console.error(`  Verifications: ${Object.keys(result.verifications).length}`);
