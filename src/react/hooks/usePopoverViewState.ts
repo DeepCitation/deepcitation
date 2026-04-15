@@ -51,14 +51,8 @@ export interface PopoverViewStateHandle {
 const ORDER: Record<PopoverViewState, number> = { summary: 0, "expanded-keyhole": 1, "expanded-page": 2 };
 
 export function usePopoverViewState(config: UsePopoverViewStateConfig): PopoverViewStateHandle {
-  const {
-    popoverContentRef,
-    experimentalHaptics,
-    isMobile,
-    prefersReducedMotion,
-    onDismiss,
-    onCollapseToSummary,
-  } = config;
+  const { popoverContentRef, experimentalHaptics, isMobile, prefersReducedMotion, onDismiss, onCollapseToSummary } =
+    config;
 
   const [viewState, setViewState] = useState<PopoverViewState>("summary");
   const [expandedNaturalWidth, setExpandedNaturalWidth] = useState<number | null>(null);
