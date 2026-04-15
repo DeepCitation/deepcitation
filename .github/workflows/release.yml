@@ -41,7 +41,14 @@ jobs:
           token: ''
 
       - name: Upgrade npm
-        run: npm install -g npm@latest
+        run: |
+          # Bundled npm on some runner images fails with MODULE_NOT_FOUND.
+          # Bootstrap via curl + tar to avoid invoking the broken binary.
+          NPM_LATEST=$(curl -fsSL https://registry.npmjs.org/npm/latest | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>process.stdout.write(JSON.parse(d).version))")
+          NPM_DIR=$(node -e "const p=require('path');process.stdout.write(p.resolve(p.dirname(process.execPath),'../lib/node_modules/npm'))")
+          echo "Upgrading to npm@${NPM_LATEST} at ${NPM_DIR}"
+          curl -fsSL "https://registry.npmjs.org/npm/-/npm-${NPM_LATEST}.tgz" | tar -xz --strip-components=1 -C "$NPM_DIR"
+          npm --version
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0

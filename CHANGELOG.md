@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`deepcitation lint` command** — pre-flight citation-syntax validator (no network); `--json` output with `errors`/`warnings` arrays; 10+ rules covering duplicate IDs, format mismatches, and orphan markers. (#425)
+- **`deepcitation publish` command** — re-uploads an already-verified HTML + `verify-response.json` pair; useful when auto-publish failed or to change visibility after the fact. (#425)
+- **`deepcitation slice` command** — extracts a page range from a prepared JSON verification file. (#425)
+- **`deepcitation text` command** — re-renders a prepared JSON file as plain text (no network). (#425)
+- **Claim card in reports** — `markdownToHtml` gains an optional `claim` field (and `--claim` CLI flag) that renders a quoted eyebrow card between the title and the meta strip; supports inline markdown. (#426)
+- **MODEL chip in reports** — `markdownToHtml` gains an optional `model` field rendered as a `MODEL` chip in the meta strip, ordered between ANALYZED and CITATIONS. (#426)
+- **`≈` approximate-match marker** — citation highlights, keyhole strips, and drawer items display `≈` when `claimText` differs from `sourceMatch`; a "claimed as …" annotation surfaces the variance inline. (#428)
+
+### Changed
+
+- **`verify` auto-publishes by default** — successful runs upload to My Verifications as `private`; opt-out with `--no-publish`; pass `--vis unlisted` or `--vis public` to widen visibility. (#425)
+- **Per-attachment assets in `verify` output** — `verify-response.json` now includes an `attachments` map (pageImages, originalDownload) alongside `verifications` when any attachment returned assets. (#430)
+- **CDN blink animation synced with React** — CDN now imports `BLINK_*` constants from the same source as the React component, fixing a 180 ms vs 120 ms enter-duration discrepancy; implements the full three-stage enter animation with a `cancelBlink()` guard. (#427)
+- **Billing copy** — quota-exceeded messages and the dashboard description now reflect subscription tiers (Standard 20/week at $20/mo, Pro unlimited at $200/mo). (#427)
+- **`popover.displayedAs` → `popover.claimedAs`** — i18n key renamed and copy updated to "claimed as …" across all locales (en, es, fr, vi). (#428)
+
+### Fixed
+
+- **CDN reposition race** — `scheduleReposition` defers repositioning until `isViewTransitioning()` is false, preventing a mid-animation position snap. (#426)
+- **View-transition depth counter** — `_transitionDepth` is decremented only after both the ghost and content-reveal animations complete, preventing a premature counter reset. (#426)
+- **Popover scroll passthrough** — scroll-lock RAF logic replaced with `overscroll-behavior: contain` in `EvidenceTray`, simplifying the scroll-containment path. (#428)
+
+### Removed
+
+- **`--audience` CLI flag** — audience presets removed; all reports use standard defaults (960 px width, tier-2 sections open). (#426)
+
 ## [0.4.1] - 2026-04-12
 
 ### Performance
