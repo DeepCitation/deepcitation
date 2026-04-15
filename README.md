@@ -5,7 +5,7 @@
 
 <div align="center">
 Stop hallucinations <br />
-Verify citations
+/verify citations
 </div>
 
 
