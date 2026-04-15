@@ -591,7 +591,7 @@ function PopoverFallbackView({
   const hasSnippet = verification?.sourceSnippet;
   const pageNumber = verification?.document?.verifiedPageNumber;
 
-  const isApproximate = !!claimText && claimText !== verification?.sourceSnippet;
+  const isApproximate = !!claimText && !!citation.sourceMatch && claimText !== citation.sourceMatch.toString();
 
   if (!hasSnippet && !statusLabel && !urlAccessExplanation) return null;
 
@@ -645,7 +645,7 @@ function PopoverFallbackView({
             />
           </q>
         )}
-        {claimText && claimText !== citation.sourceMatch?.toString() && (
+        {isApproximate && (
           <span className="text-[11px] text-dc-subtle-foreground">
             <span aria-hidden="true" className="mr-0.5">
               ≈
@@ -1065,11 +1065,11 @@ export function DefaultPopoverContent({
                 />
               )}
               {isApproximate && sourceContext && (
-                <div className="ml-4.75 mr-3 -mt-2 mb-3 text-[11px] text-dc-subtle-foreground">
-                  <span aria-hidden="true" className="mr-1 text-amber-500 dark:text-amber-400">
+                <div className="flex items-center ml-4 mr-3 -mt-3 mb-3 text-dc-subtle-foreground">
+                  <span aria-hidden="true" className="mr-1 text-amber-500 dark:text-amber-400 text-md">
                     ≈
                   </span>
-                  {t("popover.claimedAs", { label: claimText })}
+                  <span className="text-[11px]">{t("popover.claimedAs", { label: claimText })}</span>
                 </div>
               )}
             </AnimatedHeightWrapper>

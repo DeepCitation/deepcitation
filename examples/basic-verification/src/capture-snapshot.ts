@@ -26,7 +26,14 @@ const FIXTURES = resolve(__dirname, "../fixtures");
 const OUT = resolve(__dirname, "../output");
 const PDF = resolve(__dirname, "../../assets/PPT1.pdf");
 
-const provider = process.argv[2] ?? "openai";
+const ALLOWED_PROVIDERS = ["openai", "anthropic", "gemini"] as const;
+type Provider = (typeof ALLOWED_PROVIDERS)[number];
+const providerArg = process.argv[2] ?? "openai";
+if (!ALLOWED_PROVIDERS.includes(providerArg as Provider)) {
+  console.error(`❌ Unknown provider "${providerArg}". Allowed: ${ALLOWED_PROVIDERS.join(", ")}`);
+  process.exit(1);
+}
+const provider = providerArg as Provider;
 const fixturePath = resolve(FIXTURES, `${provider}-raw-llm-output.txt`);
 if (!existsSync(fixturePath)) {
   console.error(`❌ Fixture not found: ${fixturePath}`);
