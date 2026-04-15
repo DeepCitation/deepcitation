@@ -1554,20 +1554,12 @@ function buildReportBody(blocks: Block[]): string[] {
     }
   }
 
-  // Tier 2: remaining main sections
-  if (sections.length > 0) {
-    const tier2Open = cfg.tier2Open ? " open" : "";
-    parts.push(`<details${tier2Open}>`);
-    parts.push(`<summary>Full Report (${sections.length} sections)</summary>`);
-
-    for (const section of sections) {
-      if (section.heading) parts.push(renderBlock(section.heading));
-      for (const b of section.blocks) {
-        parts.push(renderBlock(b));
-      }
+  // Remaining sections — rendered flat (no progressive disclosure)
+  for (const section of sections) {
+    if (section.heading) parts.push(renderBlock(section.heading));
+    for (const b of section.blocks) {
+      parts.push(renderBlock(b));
     }
-
-    parts.push("</details>");
   }
 
   return parts;
