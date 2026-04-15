@@ -154,26 +154,5 @@ jobs:
       - name: Verify README in tarball
         run: |
           npm pack --dry-run 2>&1 | grep -q 'README.md' || { echo "ERROR: README.md missing from npm tarball"; exit 1; }
-
-      - name: Clear npm token (use OIDC trusted publishing)
-        run: npm config delete "//registry.npmjs.org/:_authToken"
-
-      - name: Publish to npm
-        run: npm publish --access public --provenance
-
-      - name: Append publish status to release
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            const releaseId = ${{ steps.create_release.outputs.release_id }};
-            const release = await github.rest.repos.getRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: releaseId,
-            });
-            await github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: releaseId,
-              body: release.data.body + '\n\n✅ **Published to npm registry**',
-            });
+      # npm publish is handled by publish.yml which triggers on the release event above.
+      # publish.yml uses OIDC Trusted Publishing configured on npmjs.com for that workflow.
