@@ -1,4 +1,4 @@
-import { createElement, useCallback, useRef, useState } from "react";
+import { createElement, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { render, unmountComponentAtNode } from "react-dom";
 import { CitationDrawer } from "../../react/CitationDrawer.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "../../react/CitationDrawer.types.js";
@@ -206,6 +206,17 @@ function CdnPopoverWrapper(props: {
     prefersReducedMotion,
     onDismiss: props.onDismiss,
   });
+
+  // Synchronously reposition the CDN wrapper when view state changes.
+  // This fires inside flushSync (before it returns), so page-expand/collapse ghost
+  // transitions read correct target rects — the wrapper is already at the new
+  // position before waitForPage*Target polls for the first stable rect.
+  // Without this, isViewTransitioning()=true defers CDN reposition until after
+  // the ghost animation, causing it to target the wrong (stale) position.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — reposition on view state change only
+  useLayoutEffect(() => {
+    reposition();
+  }, [viewState.current]);
 
   // Convert downloadUrl string to DownloadInfo object expected by DefaultPopoverContent.
   // Only construct `download` when the URL passes sanitizeUrl (http/https only) — otherwise
