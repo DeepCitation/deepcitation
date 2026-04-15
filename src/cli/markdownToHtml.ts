@@ -420,7 +420,7 @@ const BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-box; }
   .dc-cowork-notice {
     display: flex; align-items: flex-start; gap: 0.6rem;
     padding: 0.65rem 0.9rem; margin-bottom: 1rem;
-    background: var(--dc-muted); border: 1px solid var(--dc-border); border-radius: var(--dc-radius-lg);
+    background: var(--dc-muted); border: 1px solid var(--dc-border);
     font-size: 13px; line-height: 1.5; color: var(--dc-foreground);
   }
   .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }`;
@@ -623,7 +623,7 @@ ${BASE_CSS}
     display: flex; align-items: flex-start; gap: 0.6rem;
     padding: 0.65rem 0.9rem;
     margin-bottom: 1rem;
-    background: var(--dc-muted); border: 1px solid var(--dc-border); border-radius: var(--dc-radius-lg);
+    background: var(--dc-muted); border: 1px solid var(--dc-border);
     font-size: 13px; line-height: 1.5; color: var(--dc-foreground);
   }
   .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }
@@ -634,8 +634,7 @@ ${BASE_CSS}
     padding: 0.9rem 1.1rem;
     background: var(--dc-muted);
     border: 1px solid var(--dc-border);
-    border-left: 3px solid var(--dc-primary);
-    border-radius: var(--dc-radius-lg);
+    border-left: 3px solid var(--dc-foreground);
   }
   .dc-claim-label {
     display: block;
@@ -644,7 +643,7 @@ ${BASE_CSS}
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--dc-primary);
+    color: var(--dc-muted-foreground);
     margin-bottom: 0.35rem;
   }
   .dc-claim-text {
@@ -661,7 +660,7 @@ ${BASE_CSS}
   .dc-claim-text strong { font-weight: 600; }
   .dc-claim-text em { font-style: italic; }
   @media print {
-    .dc-claim { background: var(--dc-background); border-color: var(--dc-border); border-left-color: var(--dc-primary); }
+    .dc-claim { background: var(--dc-background); border-color: var(--dc-border); border-left-color: var(--dc-foreground); }
   }
 </style>
 </head>
