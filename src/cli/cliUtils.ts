@@ -95,16 +95,15 @@ export function formatNetworkError(err: unknown, baseUrl: string): string {
   }
   if (err instanceof PaymentRequiredError) {
     return [
-      `\nPayment required: ${sanitizeForLog(err.message)}`,
+      `\nQuota reached: ${sanitizeForLog(err.message)}`,
       ``,
-      `  To add a credit card and unlock usage beyond the free tier:`,
+      `  Free tier includes 1 verification per 7-day trial window.`,
+      `  Upgrade to continue:`,
+      `    • Standard — 20 verifications/week ($20/mo)`,
+      `    • Pro      — Unlimited verifications ($200/mo)`,
+      ``,
+      `  Upgrade at: ${baseUrl}/billing`,
       `    npx deepcitation billing`,
-      `  Or visit: ${baseUrl}/billing`,
-      ``,
-      `  Benefits of adding a card:`,
-      `    • Continue using DeepCitation without interruption`,
-      `    • Pay-as-you-go: $0.05/doc, $0.01/verification`,
-      `    • Set a custom monthly spend cap for cost control`,
     ].join("\n");
   }
   const msg = err instanceof Error ? err.message : String(err);
