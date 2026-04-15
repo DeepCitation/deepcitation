@@ -298,20 +298,24 @@ describe("buildCdnComparisonShowcaseHtml", () => {
 
 // ── markdownToHtml — report body structure ────────────────────────
 
-describe("markdownToHtml report body (progressive disclosure)", () => {
-  it("places key findings before the disclosure fold", () => {
+describe("markdownToHtml report body (flat rendering)", () => {
+  it("places key findings before remaining sections", () => {
     const md =
       "# Report\n\n## Methodology\n\nHow we did it.\n\n## Key Findings\n\nThe results.\n\n## Appendix\n\nExtra.";
     const result = markdownToHtml(md, { style: "report" });
     const findingsPos = result.indexOf("The results.");
-    const detailsPos = result.indexOf("<details");
-    expect(findingsPos).toBeLessThan(detailsPos);
+    const appendixPos = result.indexOf("Extra.");
+    expect(findingsPos).toBeLessThan(appendixPos);
+    expect(result).not.toContain("<details");
   });
 
-  it("groups remaining sections under a single details element", () => {
+  it("renders all remaining sections flat without a details wrapper", () => {
     const md = "# Report\n\n## Key Findings\n\nResults.\n\n## A\n\nA.\n\n## B\n\nB.\n\n## C\n\nC.";
     const result = markdownToHtml(md, { style: "report" });
-    expect(result).toContain("Full Report (3 sections)");
+    expect(result).toContain("A.");
+    expect(result).toContain("B.");
+    expect(result).toContain("C.");
+    expect(result).not.toContain("<details");
   });
 
   it("renders preamble content before sections", () => {
