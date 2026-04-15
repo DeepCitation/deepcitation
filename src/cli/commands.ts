@@ -610,6 +610,7 @@ export async function verify(
 
   // Verify each group and merge
   const merged: Record<string, unknown> = {};
+  const mergedAttachments: Record<string, unknown> = {};
   for (const [attachmentId, groupCitations] of Array.from(groups.entries())) {
     console.error(`  ${sanitizeForLog(attachmentId)}: ${Object.keys(groupCitations).length} citations...`);
     const result = await dc.verifyAttachment(
@@ -620,9 +621,13 @@ export async function verify(
       { outputImageFormat: imageFormat },
     );
     Object.assign(merged, result.verifications);
+    // Preserve the per-attachment assets map (pageImages, originalDownload) so
+    // callers like updateDemoVerifications.ts can enrich demo data with page images.
+    if (result.attachments) Object.assign(mergedAttachments, result.attachments);
   }
 
-  const output = { verifications: merged };
+  const output: Record<string, unknown> = { verifications: merged };
+  if (Object.keys(mergedAttachments).length > 0) output.attachments = mergedAttachments;
   const outPath = resolve(args.out ?? ".deepcitation/verify-response.json");
   writeFileSync(outPath, JSON.stringify(output, null, 2));
 
