@@ -623,10 +623,14 @@ export async function verify(
     Object.assign(merged, result.verifications);
     // Preserve per-attachment assets (pageImages, originalDownload) so downstream
     // tooling can access page images alongside the verification results.
+    // Invariant: each attachmentId belongs to exactly one group, so result.attachments
+    // contains only keys not yet in mergedAttachments — no silent collision is possible.
     if (result.attachments) Object.assign(mergedAttachments, result.attachments);
   }
 
-  const output: Record<string, unknown> = { verifications: merged };
+  const output: { verifications: Record<string, unknown>; attachments?: Record<string, AttachmentAssets> } = {
+    verifications: merged,
+  };
   if (Object.keys(mergedAttachments).length > 0) output.attachments = mergedAttachments;
   const outPath = resolve(args.out ?? ".deepcitation/verify-response.json");
   writeFileSync(outPath, JSON.stringify(output, null, 2));
@@ -1269,6 +1273,8 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       { outputImageFormat: imageFormat },
     );
     Object.assign(merged, result.verifications);
+    // Invariant: each attachmentId belongs to exactly one group, so result.attachments
+    // contains only keys not yet in mergedAttachments — no silent collision is possible.
     if (result.attachments) Object.assign(mergedAttachments, result.attachments);
   }
 
@@ -1297,7 +1303,10 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     }
   }
 
-  const verifyOutput = { verifications: merged };
+  const verifyOutput: { verifications: Record<string, unknown>; attachments?: Record<string, AttachmentAssets> } = {
+    verifications: merged,
+  };
+  if (Object.keys(mergedAttachments).length > 0) verifyOutput.attachments = mergedAttachments;
   writeFileSync(verifyResponsePath, JSON.stringify(verifyOutput, null, 2));
 
   const found = Object.values(merged).filter((v: unknown) => (v as Record<string, string>).status === "found").length;
