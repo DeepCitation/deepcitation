@@ -525,7 +525,7 @@ function buildMetaStrip(opts: {
 }
 
 function reportShell(title: string, bodyHtml: string, options: MarkdownToHtmlOptions): string {
-  const cfg = { width: "960px", tier2Open: true };
+  const cfg = { width: "960px" };
   const metaStrip = buildMetaStrip(options);
 
   const claimText = options.claim?.trim();
@@ -1510,10 +1510,9 @@ export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions 
   return plainShell(title, bodyHtml, { cowork: options.cowork });
 }
 
-// ── Report body builder (progressive disclosure) ───────────────────
+// ── Report body builder ─────────────────────────────────────────────
 
 function buildReportBody(blocks: Block[]): string[] {
-  const cfg = { tier2Open: true };
   const parts: string[] = [];
 
   // Split blocks into sections by H2
