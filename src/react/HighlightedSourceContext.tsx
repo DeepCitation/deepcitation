@@ -104,7 +104,7 @@ export function HighlightedSourceContext({
       <span className="group/anchor">
         {isApproximate && (
           <span
-            className="mr-0.5 text-dc-subtle-foreground group-hover/anchor:text-amber-500 dark:group-hover/anchor:text-amber-400 group-focus-within/anchor:text-amber-500 dark:group-focus-within/anchor:text-amber-400 motion-safe:transition-colors"
+            className="mr-0.5 text-amber-500 dark:text-amber-400 motion-safe:transition-colors"
             aria-hidden="true"
           >
             ≈

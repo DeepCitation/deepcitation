@@ -46,6 +46,9 @@
       ],
       "vanilla": [
         "./lib/vanilla/index.d.ts"
+      ],
+      "html-utils": [
+        "./lib/html-utils.d.ts"
       ]
     }
   },
@@ -192,6 +195,12 @@
       "import": "./lib/rendering/terminal/terminalRenderer.js",
       "require": "./lib/rendering/terminal/terminalRenderer.cjs",
       "default": "./lib/rendering/terminal/terminalRenderer.js"
+    },
+    "./html-utils": {
+      "types": "./lib/html-utils.d.ts",
+      "import": "./lib/html-utils.js",
+      "require": "./lib/html-utils.cjs",
+      "default": "./lib/html-utils.js"
     },
     "./tailwind.css": "./src/tailwind.css",
     "./styles.css": "./lib/styles.css",
