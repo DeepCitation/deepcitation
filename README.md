@@ -33,7 +33,7 @@ DeepCitation turns model citations into deterministic, inspectable proof.
 
 ## Agent Skills
 
-The fastest way to use DeepCitation is to install the Agent Skill /verify and ask Claude to `/verify`.
+The fastest way to use DeepCitation is to install the `/verify` Agent Skill and ask Claude to verify your AI claims.
 
 ```bash
 npx skills add DeepCitation/skills
@@ -45,7 +45,7 @@ Or
 2. Go to [claude.ai/customize/skills](https://claude.ai/customize/skills)
 3. Upload `verify.zip`
 
-Ask to `/verify` to verify AI claims
+Then ask Claude to `/verify`.
 
 ## Building your own integration?
 
