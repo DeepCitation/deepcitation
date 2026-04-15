@@ -211,12 +211,14 @@ function ClaimQuote({
   isMiss,
   borderColor,
   maxWidth,
+  isApproximate,
 }: {
   sourceContext: string;
   sourceMatch?: string;
   isMiss: boolean;
   borderColor: string;
   maxWidth?: string;
+  isApproximate?: boolean;
 }) {
   return (
     <div
@@ -226,7 +228,12 @@ function ClaimQuote({
       )}
       style={maxWidth ? { maxWidth } : undefined}
     >
-      <HighlightedSourceContext sourceContext={sourceContext} sourceMatch={sourceMatch} isMiss={isMiss} />
+      <HighlightedSourceContext
+        sourceContext={sourceContext}
+        sourceMatch={sourceMatch}
+        isMiss={isMiss}
+        isApproximate={isApproximate}
+      />
     </div>
   );
 }
@@ -584,6 +591,8 @@ function PopoverFallbackView({
   const hasSnippet = verification?.sourceSnippet;
   const pageNumber = verification?.document?.verifiedPageNumber;
 
+  const isApproximate = !!claimText && !!citation.sourceMatch && claimText !== citation.sourceMatch.toString();
+
   if (!hasSnippet && !statusLabel && !urlAccessExplanation) return null;
 
   return (
@@ -632,12 +641,16 @@ function PopoverFallbackView({
               )}
               sourceMatch={citation.sourceMatch}
               isMiss={status.isMiss}
+              isApproximate={isApproximate}
             />
           </q>
         )}
-        {claimText && claimText !== citation.sourceMatch?.toString() && (
+        {isApproximate && (
           <span className="text-[11px] text-dc-subtle-foreground">
-            {t("popover.displayedAs", { label: claimText })}
+            <span aria-hidden="true" className="mr-0.5">
+              ≈
+            </span>
+            {t("popover.claimedAs", { label: claimText })}
           </span>
         )}
         {pageNumber && pageNumber > 0 && (
@@ -910,8 +923,12 @@ export function DefaultPopoverContent({
 
   // Get humanizing message for partial/not-found states (URL citations only)
   const sourceMatch = citation.sourceMatch?.toString();
-  const showDisplayLabelAnnotation = claimText && claimText !== sourceMatch;
   const sourceContext = citation.sourceContext;
+
+  // Approximate = the model's inline display (`claimText`) differs from what was
+  // actually matched in the source (`sourceMatch`). Drives the ≈ marker shown
+  // beside the header highlight, on the keyhole, and in the "displayed as" row.
+  const isApproximate = !!claimText && !!sourceMatch && claimText !== sourceMatch;
 
   // Intent summary for document citations — snippet-based display for partial matches
   const intentSummary = useMemo(
@@ -1044,11 +1061,15 @@ export function DefaultPopoverContent({
                   isMiss={isMiss}
                   borderColor={claimBorderColor}
                   maxWidth={viewState === "summary" ? summaryWidth : undefined}
+                  isApproximate={isApproximate}
                 />
               )}
-              {showDisplayLabelAnnotation && sourceContext && (
-                <div className="ml-[1.34375rem] mr-3 -mt-2 mb-3 text-[11px] text-dc-subtle-foreground">
-                  {t("popover.displayedAs", { label: claimText })}
+              {isApproximate && sourceContext && (
+                <div className="flex items-center ml-4 mr-3 -mt-3 mb-3 text-dc-subtle-foreground">
+                  <span aria-hidden="true" className="mr-1 text-amber-500 dark:text-amber-400 text-md">
+                    ≈
+                  </span>
+                  <span className="text-[11px]">{t("popover.claimedAs", { label: claimText })}</span>
                 </div>
               )}
             </AnimatedHeightWrapper>

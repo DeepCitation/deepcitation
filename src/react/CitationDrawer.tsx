@@ -429,6 +429,11 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     [statusCategory],
   );
 
+  const isApproximate = useMemo(
+    () => !!item.claimText && !!sourceMatch && item.claimText !== sourceMatch,
+    [item.claimText, sourceMatch],
+  );
+
   // URL access explanation — colored banner for blocked/error states
   const urlAccessExplanation = useMemo(() => {
     if (!isUrlCitation(citation)) return null;
@@ -555,6 +560,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                 sourceContext={sourceContext || sourceMatch || ""}
                 sourceMatch={sourceMatch}
                 isMiss={isNotFound}
+                isApproximate={isApproximate}
               />
             </div>
           </div>
@@ -614,10 +620,12 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                   />
                 </div>
               )}
-              {/* Variance annotation — shown when claimText differs from sourceMatch */}
-              {item.claimText && sourceMatch && item.claimText !== sourceMatch && (
+              {item.claimText && sourceMatch && isApproximate && (
                 <div className="px-4 py-2 text-xs text-dc-subtle-foreground border-t border-dc-border">
-                  {t("popover.displayedAs", { label: item.claimText })}
+                  <span aria-hidden="true" className="mr-0.5">
+                    ≈
+                  </span>
+                  {t("popover.claimedAs", { label: item.claimText })}
                 </div>
               )}
             </div>

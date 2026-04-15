@@ -117,7 +117,7 @@ export const defaultMessages = {
   "popover.searching": "Searching\u2026",
   "popover.lookingOnPage": "Looking on p.\u202f{pageNumber}",
   "popover.searchingImage": "Searching image\u2026",
-  "popover.displayedAs": "(displayed as \u201c{label}\u201d)",
+  "popover.claimedAs": "claimed as \u201c{label}\u201d",
 
   // ── Tab labels ─────────────────────────────────────────────────
   "tab.expected": "Expected",

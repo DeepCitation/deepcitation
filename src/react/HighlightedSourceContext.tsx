@@ -13,15 +13,21 @@ import { ANCHOR_HIGHLIGHT_STYLE } from "./constants.js";
  *
  * Falls back to word-span fuzzy matching when the PDF text has extra inline
  * elements (e.g. section references) that break exact substring matching.
+ *
+ * When `isApproximate` is true, a small ≈ marker is rendered next to the highlight
+ * span and turns amber when the highlight itself is hovered, signalling that the
+ * cited text differs from what the model displayed inline.
  */
 export function HighlightedSourceContext({
   sourceContext,
   sourceMatch,
   isMiss,
+  isApproximate,
 }: {
   sourceContext: string;
   sourceMatch?: string;
   isMiss?: boolean;
+  isApproximate?: boolean;
 }) {
   // Compute once per (sourceContext, sourceMatch) pair — trimming does two toLowerCase scans on
   // potentially large strings (full page dumps), so avoid repeating it on every render.
@@ -95,8 +101,18 @@ export function HighlightedSourceContext({
     <span className="text-dc-muted-foreground">
       {prefixTrimmed && "..."}
       {displayPhrase.slice(0, start)}
-      <span style={ANCHOR_HIGHLIGHT_STYLE} className="text-dc-foreground">
-        {displayPhrase.slice(start, end)}
+      <span className="group/anchor">
+        {isApproximate && (
+          <span
+            className="mr-0.5 text-amber-500 dark:text-amber-400 motion-safe:transition-colors"
+            aria-hidden="true"
+          >
+            ≈
+          </span>
+        )}
+        <span style={ANCHOR_HIGHLIGHT_STYLE} className="text-dc-foreground">
+          {displayPhrase.slice(start, end)}
+        </span>
       </span>
       {displayPhrase.slice(end)}
       {suffixTrimmed && "..."}

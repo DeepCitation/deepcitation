@@ -11,6 +11,7 @@ export default defineConfig({
     "react/index": "src/react/index.ts",
     "rendering/terminal/terminalRenderer": "src/rendering/terminal/terminalRenderer.ts",
     "vanilla/index": "src/vanilla/index.ts",
+    "html-utils": "src/html-utils.ts",
     cli: "src/cli.ts",
   },
   format: ["esm", "cjs"],

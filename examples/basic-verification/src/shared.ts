@@ -132,6 +132,59 @@ export interface Step3Result {
 
 export const DEFAULT_OUT_DIR = resolve(__dirname, "../../output");
 
+// ─── Step functions ─────────────────────────────────────────────────────────
+
+const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant. Answer the user's question accurately and cite your sources.";
+const DEFAULT_USER_PROMPT = "Please summarize the key findings in this document and cite specific claims with evidence.";
+
+export async function stepUpload(dc: DeepCitation, source: Source): Promise<Step1Result> {
+  if (source.type === "url") {
+    const result = await dc.prepareUrl({ url: source.url });
+    return {
+      attachmentId: result.attachmentId,
+      deepTextPages: result.deepTextPages,
+      sourceLabel: source.label,
+    };
+  }
+  const buffer = readFileSync(source.path);
+  const result = await dc.uploadFile(buffer, { filename: source.filename });
+  const imageBase64 =
+    source.type === "image" ? buffer.toString("base64") : undefined;
+  return {
+    attachmentId: result.attachmentId,
+    deepTextPages: result.deepTextPages,
+    imageBase64,
+    sourceLabel: source.label,
+  };
+}
+
+export function stepWrapPrompts(s1: Step1Result): Step2Result {
+  const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
+    userPrompt: DEFAULT_USER_PROMPT,
+    deepTextPages: s1.deepTextPages,
+  });
+  return {
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
+    userPrompt: DEFAULT_USER_PROMPT,
+    enhancedSystemPrompt,
+    enhancedUserPrompt,
+  };
+}
+
+export async function stepCallLlm(
+  streamLlm: StreamLlmFn,
+  s2: Step2Result,
+  imageBase64?: string,
+): Promise<Step3Result> {
+  const llmResponse = await streamLlm({
+    enhancedSystemPrompt: s2.enhancedSystemPrompt,
+    enhancedUserPrompt: s2.enhancedUserPrompt,
+    imageBase64,
+  });
+  return { llmResponse };
+}
+
 // ─── Step types and functions (used by step-runner.ts) ─────────────────────
 
 
@@ -262,22 +315,24 @@ async function runSingleSource(
     return;
   }
 
+  const portalUrl = `https://deepcitation.com/verifications/${report.id}`;
+
   console.log(`✅ Report created`);
   console.log(`   id:         ${report.id}`);
-  console.log(`   shareUrl:   ${report.shareUrl}`);
+  console.log(`   portalUrl:  ${portalUrl}`);
   console.log(`   citations:  ${report.citationCount ?? "—"}`);
   console.log(`   verified:   ${report.verifiedCount ?? "—"}`);
   console.log(`   partial:    ${report.partialCount ?? "—"}`);
   console.log(`   not found:  ${report.notFoundCount ?? "—"}`);
 
-  // Open the report URL in the browser
+  // Open the portal detail page in the browser
   try {
     const { execFileSync } = await import("child_process");
     try {
-      execFileSync("explorer.exe", [report.shareUrl], { stdio: "ignore", timeout: 5000 });
+      execFileSync("explorer.exe", [portalUrl], { stdio: "ignore", timeout: 5000 });
     } catch {
-      try { execFileSync("xdg-open", [report.shareUrl], { stdio: "ignore", timeout: 5000 }); }
-      catch { try { execFileSync("open", [report.shareUrl], { stdio: "ignore", timeout: 5000 }); } catch { /* manual */ } }
+      try { execFileSync("xdg-open", [portalUrl], { stdio: "ignore", timeout: 5000 }); }
+      catch { try { execFileSync("open", [portalUrl], { stdio: "ignore", timeout: 5000 }); } catch { /* manual */ } }
     }
   } catch { /* dynamic import failed, skip */ }
 }

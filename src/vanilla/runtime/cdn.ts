@@ -201,7 +201,6 @@ function CdnPopoverWrapper(props: {
   }, []);
   const prefersReducedMotion = usePrefersReducedMotion();
   const viewState = usePopoverViewState({
-    isOpen: true,
     popoverContentRef,
     prefersReducedMotion,
     onDismiss: props.onDismiss,

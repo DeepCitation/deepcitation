@@ -4,10 +4,9 @@
 // "use no memo" — React Compiler opt-out (would be a directive if compiler were active).
 
 import type { MutableRefObject, RefObject } from "react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 import { triggerHaptic } from "../haptics.js";
-import { acquireScrollLock, releaseScrollLock } from "../scrollLock.js";
 import {
   startEvidencePageCollapseTransition,
   startEvidencePageExpandTransition,
@@ -15,7 +14,6 @@ import {
 } from "../viewTransition.js";
 
 export interface UsePopoverViewStateConfig {
-  isOpen: boolean;
   popoverContentRef: RefObject<HTMLElement | null>;
   experimentalHaptics?: boolean;
   isMobile?: boolean;
@@ -53,15 +51,8 @@ export interface PopoverViewStateHandle {
 const ORDER: Record<PopoverViewState, number> = { summary: 0, "expanded-keyhole": 1, "expanded-page": 2 };
 
 export function usePopoverViewState(config: UsePopoverViewStateConfig): PopoverViewStateHandle {
-  const {
-    isOpen,
-    popoverContentRef,
-    experimentalHaptics,
-    isMobile,
-    prefersReducedMotion,
-    onDismiss,
-    onCollapseToSummary,
-  } = config;
+  const { popoverContentRef, experimentalHaptics, isMobile, prefersReducedMotion, onDismiss, onCollapseToSummary } =
+    config;
 
   const [viewState, setViewState] = useState<PopoverViewState>("summary");
   const [expandedNaturalWidth, setExpandedNaturalWidth] = useState<number | null>(null);
@@ -171,14 +162,6 @@ export function usePopoverViewState(config: UsePopoverViewStateConfig): PopoverV
     },
     [transition],
   );
-
-  // Lock body scroll only for expanded-page (full-viewport)
-  useEffect(() => {
-    if (!isOpen) return;
-    if (viewState !== "expanded-page") return;
-    acquireScrollLock();
-    return () => releaseScrollLock();
-  }, [isOpen, viewState]);
 
   const resetToSummary = useCallback(() => {
     setViewState("summary");

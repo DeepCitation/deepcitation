@@ -2,17 +2,10 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, cleanup, renderHook } from "@testing-library/react";
 
 // Mock external dependencies that touch the DOM
-const mockAcquireScrollLock = jest.fn();
-const mockReleaseScrollLock = jest.fn();
 const mockStartEvidenceViewTransition = jest.fn((cb: () => void) => cb());
 const mockStartEvidencePageExpandTransition = jest.fn((cb: () => void) => cb());
 const mockStartEvidencePageCollapseTransition = jest.fn((cb: () => void) => cb());
 const mockTriggerHaptic = jest.fn();
-
-jest.mock("../react/scrollLock", () => ({
-  acquireScrollLock: mockAcquireScrollLock,
-  releaseScrollLock: mockReleaseScrollLock,
-}));
 
 jest.mock("../react/viewTransition", () => ({
   startEvidenceViewTransition: mockStartEvidenceViewTransition,
@@ -28,15 +21,12 @@ import { type UsePopoverViewStateConfig, usePopoverViewState } from "../react/ho
 
 function createConfig(overrides: Partial<UsePopoverViewStateConfig> = {}): UsePopoverViewStateConfig {
   return {
-    isOpen: true,
     popoverContentRef: { current: null },
     ...overrides,
   };
 }
 
 beforeEach(() => {
-  mockAcquireScrollLock.mockClear();
-  mockReleaseScrollLock.mockClear();
   mockStartEvidenceViewTransition.mockClear();
   mockStartEvidencePageExpandTransition.mockClear();
   mockStartEvidencePageCollapseTransition.mockClear();
@@ -155,25 +145,6 @@ describe("usePopoverViewState", () => {
       act(() => result.current.onEscapeKeyDown(event));
       expect(interceptor).toHaveBeenCalledTimes(1);
       expect(onDismiss).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("scroll lock", () => {
-    it("acquires scroll lock when open and in expanded-page", () => {
-      const { result } = renderHook(() => usePopoverViewState(createConfig({ isOpen: true })));
-      act(() => result.current.transition("expanded-page"));
-      expect(mockAcquireScrollLock).toHaveBeenCalledTimes(1);
-    });
-
-    it("does not acquire scroll lock in summary state", () => {
-      renderHook(() => usePopoverViewState(createConfig({ isOpen: true })));
-      expect(mockAcquireScrollLock).not.toHaveBeenCalled();
-    });
-
-    it("does not acquire scroll lock when not open", () => {
-      const { result } = renderHook(() => usePopoverViewState(createConfig({ isOpen: false })));
-      act(() => result.current.transition("expanded-page"));
-      expect(mockAcquireScrollLock).not.toHaveBeenCalled();
     });
   });
 

@@ -420,7 +420,7 @@ const BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-box; }
   .dc-cowork-notice {
     display: flex; align-items: flex-start; gap: 0.6rem;
     padding: 0.65rem 0.9rem; margin-bottom: 1rem;
-    background: var(--dc-muted); border: 1px solid var(--dc-border); border-radius: var(--dc-radius-lg);
+    background: var(--dc-muted); border: 1px solid var(--dc-border);
     font-size: 13px; line-height: 1.5; color: var(--dc-foreground);
   }
   .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }`;
@@ -525,7 +525,7 @@ function buildMetaStrip(opts: {
 }
 
 function reportShell(title: string, bodyHtml: string, options: MarkdownToHtmlOptions): string {
-  const cfg = { width: "960px", tier2Open: true };
+  const cfg = { width: "960px" };
   const metaStrip = buildMetaStrip(options);
 
   const claimText = options.claim?.trim();
@@ -623,7 +623,7 @@ ${BASE_CSS}
     display: flex; align-items: flex-start; gap: 0.6rem;
     padding: 0.65rem 0.9rem;
     margin-bottom: 1rem;
-    background: var(--dc-muted); border: 1px solid var(--dc-border); border-radius: var(--dc-radius-lg);
+    background: var(--dc-muted); border: 1px solid var(--dc-border);
     font-size: 13px; line-height: 1.5; color: var(--dc-foreground);
   }
   .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }
@@ -634,8 +634,7 @@ ${BASE_CSS}
     padding: 0.9rem 1.1rem;
     background: var(--dc-muted);
     border: 1px solid var(--dc-border);
-    border-left: 3px solid var(--dc-primary);
-    border-radius: var(--dc-radius-lg);
+    border-left: 3px solid var(--dc-foreground);
   }
   .dc-claim-label {
     display: block;
@@ -644,7 +643,7 @@ ${BASE_CSS}
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--dc-primary);
+    color: var(--dc-muted-foreground);
     margin-bottom: 0.35rem;
   }
   .dc-claim-text {
@@ -661,7 +660,7 @@ ${BASE_CSS}
   .dc-claim-text strong { font-weight: 600; }
   .dc-claim-text em { font-style: italic; }
   @media print {
-    .dc-claim { background: var(--dc-background); border-color: var(--dc-border); border-left-color: var(--dc-primary); }
+    .dc-claim { background: var(--dc-background); border-color: var(--dc-border); border-left-color: var(--dc-foreground); }
   }
 </style>
 </head>
@@ -1511,10 +1510,9 @@ export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions 
   return plainShell(title, bodyHtml, { cowork: options.cowork });
 }
 
-// ── Report body builder (progressive disclosure) ───────────────────
+// ── Report body builder ─────────────────────────────────────────────
 
 function buildReportBody(blocks: Block[]): string[] {
-  const cfg = { tier2Open: true };
   const parts: string[] = [];
 
   // Split blocks into sections by H2
@@ -1556,20 +1554,12 @@ function buildReportBody(blocks: Block[]): string[] {
     }
   }
 
-  // Tier 2: remaining main sections
-  if (sections.length > 0) {
-    const tier2Open = cfg.tier2Open ? " open" : "";
-    parts.push(`<details${tier2Open}>`);
-    parts.push(`<summary>Full Report (${sections.length} sections)</summary>`);
-
-    for (const section of sections) {
-      if (section.heading) parts.push(renderBlock(section.heading));
-      for (const b of section.blocks) {
-        parts.push(renderBlock(b));
-      }
+  // Remaining sections — rendered flat (no progressive disclosure)
+  for (const section of sections) {
+    if (section.heading) parts.push(renderBlock(section.heading));
+    for (const b of section.blocks) {
+      parts.push(renderBlock(b));
     }
-
-    parts.push("</details>");
   }
 
   return parts;
