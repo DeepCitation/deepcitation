@@ -876,9 +876,7 @@ describe("verify command (--citations mode)", () => {
   });
 
   it("rejects deprecated --no-publish and directs callers to --local-only", async () => {
-    await expect(captureOutput(() => verify(["--no-publish"], fmtNetErr))).rejects.toThrow(
-      "process.exit(1)",
-    );
+    await expect(captureOutput(() => verify(["--no-publish"], fmtNetErr))).rejects.toThrow("process.exit(1)");
   });
 
   it("verifies citations grouped by attachmentId", async () => {
@@ -961,6 +959,57 @@ describe("verify command (--citations mode)", () => {
       expect(firstCitation).toBeDefined();
       expect(firstCitation).toMatchObject({
         sourceMatch: "SCHEDULE “C”",
+      });
+      expect(stderr).not.toContain("auto-promoted display label to anchor");
+    } finally {
+      process.chdir(origCwd);
+    }
+  });
+
+  it("does not auto-promote a long display label even when it shares a token", async () => {
+    const tmpDir = makeTmpDir();
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+    mkdirSync(join(tmpDir, ".deepcitation"), { recursive: true });
+
+    const mdPath = join(tmpDir, "report.md");
+    const outPath = join(tmpDir, "verified.html");
+    const longLabel = "The company's revenue grew significantly in Q4 while margins improved";
+    writeFileSync(
+      mdPath,
+      [
+        "# Report",
+        "",
+        `[**${longLabel}**](cite:1)`,
+        "",
+        "<<<CITATION_DATA>>>",
+        JSON.stringify([
+          {
+            id: 1,
+            attachment_id: "att-1",
+            source_context: "context",
+            source_match: "revenue",
+            line_ids: [1],
+            page_id: "1_1",
+          },
+        ]),
+        "<<<END_CITATION_DATA>>>",
+        "",
+      ].join("\n"),
+    );
+
+    mockVerifyAttachment.mockResolvedValueOnce({
+      verifications: { key1: { status: "not_found" } },
+    });
+
+    try {
+      const { stderr } = await captureOutput(() => verify(["--markdown", mdPath, "--out", outPath], fmtNetErr));
+      expect(mockVerifyAttachment).toHaveBeenCalledTimes(1);
+      const citationsArg = mockVerifyAttachment.mock.calls[0]?.[1] as Record<string, Record<string, unknown>>;
+      const firstCitation = Object.values(citationsArg)[0];
+      expect(firstCitation).toBeDefined();
+      expect(firstCitation).toMatchObject({
+        sourceMatch: "revenue",
       });
       expect(stderr).not.toContain("auto-promoted display label to anchor");
     } finally {

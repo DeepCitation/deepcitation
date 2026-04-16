@@ -242,15 +242,22 @@ Examples:
 const ALLOWED_THEMES = ["auto", "light", "dark"] as const;
 const ALLOWED_INDICATORS = ["icon", "dot", "none"] as const;
 const VERIFY_REQUEST_TIMEOUT_MS = 10_000;
+const MAX_AUTO_PROMOTE_LABEL_LENGTH = 60;
 
 function hasMeaningfulLabelOverlap(left: string, right: string): boolean {
   const tokenRe = /[a-z0-9]+/g;
   const leftTokens = new Set((left.toLowerCase().match(tokenRe) ?? []).filter(token => token.length >= 3));
-  if (leftTokens.size === 0) return false;
+  const rightTokens = [...(right.toLowerCase().match(tokenRe) ?? [])].filter(token => token.length >= 3);
+  if (leftTokens.size === 0 || rightTokens.length === 0) return false;
+  if (right.trim().length > MAX_AUTO_PROMOTE_LABEL_LENGTH) return false;
 
-  for (const token of right.toLowerCase().match(tokenRe) ?? []) {
-    if (token.length >= 3 && leftTokens.has(token)) {
-      return true;
+  let overlapCount = 0;
+  for (const token of rightTokens) {
+    if (leftTokens.has(token)) {
+      overlapCount++;
+      if (overlapCount >= 1) {
+        return true;
+      }
     }
   }
 
@@ -554,10 +561,7 @@ export async function verify(
 ) {
   argv = normalizeShortFlags(argv);
   if (argv.includes("--no-publish")) {
-    die(
-      "--no-publish is no longer supported. Use --local-only to skip auto-upload to My Verifications.",
-      VERIFY_HELP,
-    );
+    die("--no-publish is no longer supported. Use --local-only to skip auto-upload to My Verifications.", VERIFY_HELP);
   }
   // Handle --prompt before parseArgs (it's a boolean flag, not a key-value pair)
   if (argv.includes("--prompt")) {
