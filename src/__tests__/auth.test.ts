@@ -1,7 +1,7 @@
+jest.mock("node:child_process");
+
 import * as childProcess from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-
-jest.mock("node:child_process");
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
