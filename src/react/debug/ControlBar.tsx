@@ -8,7 +8,7 @@ import {
 } from "./animationDebugStore.js";
 
 const SPEED_OPTIONS = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10];
-const FROZEN_KINDS: FrozenKind[] = ["any", "page-expand", "page-collapse", "vt-expand", "vt-collapse"];
+const FROZEN_KINDS: FrozenKind[] = ["any", "page-expand", "page-collapse"];
 
 function serverSnapshot(): AnimationDebugState {
   return getDebugSnapshot();

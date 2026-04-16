@@ -74,6 +74,7 @@ test("aim toggle surfaces crosshair in focus view at 10× slow-mo", async ({ mou
   await page.locator("[data-citation-id]").first().click();
 
   // Focus keyhole mounts AimOverlay with data-dc-debug-aim="focus".
-  // Wait a frame for the popover + image to render.
-  await expect(page.locator('[data-dc-debug-aim="focus"]').first()).toBeVisible({ timeout: 5000 });
+  // The overlay container is intentionally 0×0 (children overflow via absolute positioning),
+  // so use toBeAttached — presence in DOM confirms the overlay rendered.
+  await expect(page.locator('[data-dc-debug-aim="focus"]').first()).toBeAttached({ timeout: 5000 });
 });

@@ -44,7 +44,7 @@ describe("animationDebugStore", () => {
       expect(scaleDuration(250)).toBe(125);
     });
 
-    it("preserves zero duration fallback when scaled value would be non-positive", () => {
+    it("scales duration by dividing ms by speed", () => {
       setDebugState({ enabled: true, speed: 10 });
       expect(scaleDuration(16)).toBe(1.6);
     });

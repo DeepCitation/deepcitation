@@ -114,7 +114,6 @@ function clampProgress(p: number): number {
 }
 
 function installConsoleApi(): void {
-  if (process.env.NODE_ENV === "production") return;
   if (typeof window === "undefined") return;
 
   const api: ConsoleApi = {

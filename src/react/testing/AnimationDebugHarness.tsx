@@ -77,10 +77,14 @@ export function AnimationDebugHarness(): React.ReactElement {
     return {
       status: "found",
       attachmentId: HARNESS_ATTACHMENT_ID,
+      verifiedSourceMatch: "Line 8",
       document: { verifiedPageNumber: 1 },
       evidence: {
         src: imageSrc,
         dimensions: { width: 800, height: 1600 },
+        textItems: [
+          { text: "Line 8 — the quick brown fox jumps over the lazy dog", x: 40, y: 740, width: 680, height: 24 },
+        ],
       },
     };
   }, [imageSrc]);
