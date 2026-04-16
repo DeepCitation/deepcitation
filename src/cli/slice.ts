@@ -25,7 +25,7 @@ chunks to <out-dir> and prints a JSON manifest to stdout.
 
 Arguments:
   <prepare-file.json>        Path to the prepare-<name>.json written by
-                             \`deepcitation prepare <file>\`.
+                             \`deepcitation prepare <file> --out <path>\`.
 
 Options:
   -n, --parts <N>            Number of chunks to produce (default: 2)
@@ -127,7 +127,7 @@ export function slice(argv: string[]): void {
   const outDir = resolve(args.out ?? ".deepcitation");
   const format = parseFormatMode(args.format, "txt", SLICE_HELP);
   if (format === "json") {
-    die("--format json is not supported by slice (use prepare --text instead)", SLICE_HELP);
+    die("--format json is not supported by slice (use prepare default JSON output instead)", SLICE_HELP);
   }
   const lineIdsMode = parseLineIdsMode(args["line-ids"], SLICE_HELP);
 

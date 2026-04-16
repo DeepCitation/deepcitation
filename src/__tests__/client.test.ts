@@ -538,6 +538,65 @@ describe("DeepCitation Client", () => {
       // Different citations should make separate calls
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
+
+    it("does not reuse a failed request across different timeouts", async () => {
+      jest.useFakeTimers();
+      try {
+        const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
+
+        mockFetch.mockImplementation((_, init) => {
+          return new Promise<Response>((resolve, reject) => {
+            const signal = init?.signal as AbortSignal | undefined;
+            const timer = setTimeout(() => {
+              resolve({
+                ok: true,
+                json: async () => ({
+                  verifications: { "1": { status: "found" } },
+                }),
+              } as Response);
+            }, 10);
+
+            const abort = () => {
+              clearTimeout(timer);
+              reject(signal?.reason ?? new DOMException("Aborted", "AbortError"));
+            };
+
+            if (signal?.aborted) {
+              abort();
+              return;
+            }
+
+            signal?.addEventListener("abort", abort, { once: true });
+          });
+        });
+
+        const citations = {
+          "1": {
+            pageNumber: 1,
+            sourceContext: "test phrase",
+            attachmentId: "file_abc",
+          },
+        };
+
+        const shortTimeout = client.verifyAttachment("file_abc", citations, { requestTimeoutMs: 1 });
+        jest.advanceTimersByTime(1);
+        await Promise.resolve();
+        await expect(shortTimeout).rejects.toThrow("Request timed out after 1ms");
+
+        const longTimeout = client.verifyAttachment("file_abc", citations, { requestTimeoutMs: 100 });
+        jest.advanceTimersByTime(10);
+        await Promise.resolve();
+        await expect(longTimeout).resolves.toMatchObject({
+          verifications: {
+            "1": { status: "found" },
+          },
+        });
+
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 
   describe("verifyBatch", () => {
@@ -1305,6 +1364,28 @@ describe("DeepCitation Client", () => {
 
       await expect(promise).rejects.toThrow("Aborted");
       // Only one fetch attempt — aborted during the delay before the second attempt
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not retry when fetch rejects with AbortError", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", maxRetries: 3 });
+
+      mockFetch.mockRejectedValueOnce(new DOMException("Aborted", "AbortError"));
+
+      const blob = new Blob(["content"]);
+      await expect(client.uploadFile(blob, { filename: "test.pdf" })).rejects.toThrow("Aborted");
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not retry when fetch rejects with TimeoutError", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", maxRetries: 3 });
+
+      mockFetch.mockRejectedValueOnce(new DOMException("Request timed out after 50ms", "TimeoutError"));
+
+      const blob = new Blob(["content"]);
+      await expect(client.uploadFile(blob, { filename: "test.pdf" })).rejects.toThrow("timed out");
+
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });

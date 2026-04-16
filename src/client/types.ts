@@ -279,6 +279,11 @@ export interface VerifyCitationsOptions {
   outputImageFormat?: ImageFormat;
   /** Developer's end-user identifier for usage attribution. Overrides the instance-level endUserId if set. */
   endUserId?: string;
+  /**
+   * Maximum time in milliseconds to wait for the verification request before aborting.
+   * If omitted, verification uses the client/network default.
+   */
+  requestTimeoutMs?: number;
 }
 
 /**

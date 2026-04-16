@@ -115,6 +115,58 @@ export interface CitationSourceMatchMap {
   [citationId: string]: string;
 }
 
+function wrapCitationMarkerTextSegment(text: string, sourceMatchMap?: CitationSourceMatchMap): string {
+  let out = "";
+  let cursor = 0;
+  const markerRe = /\[(\d+)\]/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = markerRe.exec(text)) !== null) {
+    const markerStart = match.index;
+    const markerEnd = markerStart + match[0].length;
+    const textBefore = text.slice(cursor, markerStart);
+    const num = match[1];
+    const trimmed = textBefore.trimEnd();
+
+    if (!trimmed) {
+      out += textBefore + `<span data-cite="${num}"></span>`;
+      cursor = markerEnd;
+      continue;
+    }
+
+    const sourceMatch = sourceMatchMap?.[num];
+    if (sourceMatch) {
+      const idx = trimmed.toLowerCase().lastIndexOf(sourceMatch.toLowerCase());
+      if (idx >= 0) {
+        const before = trimmed.slice(0, idx);
+        const matched = trimmed.slice(idx, idx + sourceMatch.length);
+        const after = trimmed.slice(idx + sourceMatch.length);
+        out += before + `<span data-cite="${num}">${matched}</span>` + after;
+        cursor = markerEnd;
+        continue;
+      }
+    }
+
+    const clauseMatch = trimmed.match(/(?:[,;–—]\s*)([^,;–—]+)$/);
+    const anchor = clauseMatch ? clauseMatch[1].trim() : trimmed;
+    if (!/[a-zA-Z0-9]/.test(anchor)) {
+      out += `${textBefore}<span data-cite="${num}"></span>`;
+      cursor = markerEnd;
+      continue;
+    }
+
+    const prefix = clauseMatch
+      ? trimmed.slice(0, trimmed.length - clauseMatch[0].length) +
+        clauseMatch[0].slice(0, clauseMatch[0].length - anchor.length)
+      : "";
+
+    out += `${prefix}<span data-cite="${num}">${anchor}</span>`;
+    cursor = markerEnd;
+  }
+
+  return out + text.slice(cursor);
+}
+
 /**
  * Find [N] markers in HTML content and wrap the appropriate text fragment
  * in a <span data-cite="N">. The CDN runtime needs data-cite on inline
@@ -129,44 +181,14 @@ export interface CitationSourceMatchMap {
  * Without `sourceMatchMap`, falls back to wrapping the last clause before [N].
  */
 export function wrapCitationMarkers(html: string, sourceMatchMap?: CitationSourceMatchMap): string {
-  // Match [N] markers anywhere in text nodes. Excluding `<` and `>` keeps us from
-  // consuming HTML tag boundaries; excluding `"` keeps us out of quoted attribute values.
-  return html.replace(/([^<>"]*?)\s*\[(\d+)\]/g, (_match, textBefore: string, num: string) => {
-    const trimmed = textBefore.trimEnd();
-    if (!trimmed) return `<span data-cite="${num}"></span>`;
-
-    // ── Strategy 1: Use sourceMatch from citation data ─────────────
-    // Find the sourceMatch within the preceding text and wrap only that phrase.
-    const sourceMatch = sourceMatchMap?.[num];
-    if (sourceMatch) {
-      const idx = trimmed.toLowerCase().lastIndexOf(sourceMatch.toLowerCase());
-      if (idx >= 0) {
-        const before = trimmed.slice(0, idx);
-        const matched = trimmed.slice(idx, idx + sourceMatch.length);
-        const after = trimmed.slice(idx + sourceMatch.length);
-        return `${before}<span data-cite="${num}">${matched}</span>${after}`;
-      }
-      // sourceMatch not found in text — fall through to heuristic
-    }
-
-    // ── Strategy 2: Heuristic — last clause before [N] ───────────
-    const clauseMatch = trimmed.match(/(?:[,;–—]\s*)([^,;–—]+)$/);
-    const anchor = clauseMatch ? clauseMatch[1].trim() : trimmed;
-
-    // If the anchor is only punctuation (e.g. the [^<"] regex cut off at a
-    // literal quote in text content like Schedule "C".), emit an empty span
-    // so the CDN shows a superscript indicator instead of wrapping garbage.
-    if (!/[a-zA-Z0-9]/.test(anchor)) {
-      return `${trimmed}<span data-cite="${num}"></span>`;
-    }
-
-    const prefix = clauseMatch
-      ? trimmed.slice(0, trimmed.length - clauseMatch[0].length) +
-        clauseMatch[0].slice(0, clauseMatch[0].length - anchor.length)
-      : "";
-
-    return `${prefix}<span data-cite="${num}">${anchor}</span>`;
-  });
+  const segments = splitHtmlPreservingTags(html);
+  return segments
+    .map(segment => {
+      return segment.startsWith("<") && segment.endsWith(">")
+        ? segment
+        : wrapCitationMarkerTextSegment(segment, sourceMatchMap);
+    })
+    .join("");
 }
 
 // ── Block-level parsing ────────────────────────────────────────────
@@ -179,8 +201,67 @@ interface Block {
   language?: string; // for code blocks
 }
 
+function splitHtmlPreservingTags(html: string): string[] {
+  const segments: string[] = [];
+  let buffer = "";
+
+  for (let i = 0; i < html.length; i++) {
+    const ch = html[i] as string;
+    if (ch !== "<") {
+      buffer += ch;
+      continue;
+    }
+
+    if (buffer) {
+      segments.push(buffer);
+      buffer = "";
+    }
+
+    const start = i;
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    let closed = false;
+
+    for (i = i + 1; i < html.length; i++) {
+      const tagChar = html[i] as string;
+      if (tagChar === "'" && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote;
+      } else if (tagChar === '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote;
+      } else if (tagChar === ">" && !inSingleQuote && !inDoubleQuote) {
+        segments.push(html.slice(start, i + 1));
+        closed = true;
+        break;
+      }
+    }
+
+    if (!closed) {
+      buffer += html.slice(start);
+      break;
+    }
+  }
+
+  if (buffer) {
+    segments.push(buffer);
+  }
+
+  return segments;
+}
+
+function parseAtxHeading(line: string): { level: number; content: string } | null {
+  const match = line.match(/^ {0,3}(#{1,6})\s+(.+)$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    level: match[1].length,
+    content: match[2].trimEnd(),
+  };
+}
+
 function parseBlocks(markdown: string): Block[] {
-  const lines = markdown.split("\n");
+  const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
   const blocks: Block[] = [];
   let i = 0;
 
@@ -212,12 +293,12 @@ function parseBlocks(markdown: string): Block[] {
     }
 
     // Heading
-    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-    if (headingMatch) {
+    const heading = parseAtxHeading(line);
+    if (heading) {
       blocks.push({
         type: "heading",
-        level: headingMatch[1].length,
-        content: headingMatch[2],
+        level: heading.level,
+        content: heading.content,
       });
       i++;
       continue;
@@ -275,7 +356,7 @@ function parseBlocks(markdown: string): Block[] {
     while (
       i < lines.length &&
       lines[i].trim() !== "" &&
-      !/^#{1,6}\s/.test(lines[i]) &&
+      !parseAtxHeading(lines[i]) &&
       !/^(-{3,}|\*{3,}|_{3,})\s*$/.test(lines[i]) &&
       !lines[i].trim().startsWith("```") &&
       !/^\s*[-*+]\s+/.test(lines[i]) &&
@@ -530,7 +611,6 @@ function reportShell(title: string, bodyHtml: string, options: MarkdownToHtmlOpt
   const claimText = options.claim?.trim();
   const claimCard = claimText
     ? `<div class="dc-claim" role="note" aria-label="Claim under verification">
-<span class="dc-claim-label">CLAIM</span>
 <blockquote class="dc-claim-text">${inlineFormat(claimText)}</blockquote>
 </div>`
     : "";
@@ -554,21 +634,9 @@ ${REVIEW_SHARED_BASE_CSS}
     -webkit-font-smoothing: antialiased;
     max-width: 900px;
     margin: 0 auto;
-    padding: 3rem 1.5rem 4rem 6.5rem;
-    counter-reset: h2section;
+    padding: 3rem 1.5rem 4rem;
   }
-  body > header { margin-bottom: 2rem; position: relative; }
-  body > header::before {
-    content: "00";
-    position: absolute;
-    left: -5rem;
-    top: 0.4rem;
-    font-family: var(--dc-font-family-mono);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--dc-border);
-    letter-spacing: 0.05em;
-  }
+  body > header { margin-bottom: 2rem; }
   body > header h1 {
     font-size: 30px;
     font-weight: 600;
@@ -593,58 +661,19 @@ ${REVIEW_SHARED_BASE_CSS}
   .dc-meta-link { color: var(--dc-primary); text-decoration: none; font-weight: 500; }
   .dc-meta-link:hover { text-decoration: underline; }
   [data-cite] strong { font-weight: 600; }
-  .dc-verdict {
-    display: flex;
-    gap: 1.5rem;
-    padding: 0.85rem 1rem;
-    margin-bottom: 2.25rem;
-    font-family: var(--dc-font-family-mono);
-    font-size: 12px;
-    border: 1px solid var(--dc-border);
-    background: var(--dc-muted);
-  }
-  .dc-verdict .v-found  { color: var(--dc-verified); }
-  .dc-verdict .v-partial { color: var(--dc-partial); }
-  .dc-verdict .v-miss   { color: var(--dc-destructive); }
   h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; }
   h2 {
-    counter-increment: h2section;
-    counter-reset: h3section;
     font-size: 20px;
     font-weight: 600;
     margin: 2.75rem 0 0.85rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--dc-border);
     letter-spacing: -0.01em;
-    position: relative;
-  }
-  h2::before {
-    content: counter(h2section, decimal-leading-zero);
-    position: absolute;
-    left: -5rem;
-    top: 0.35rem;
-    font-family: var(--dc-font-family-mono);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--dc-primary);
-    letter-spacing: 0.05em;
   }
   h3 {
-    counter-increment: h3section;
     font-size: 16px;
     font-weight: 600;
     margin: 1.75rem 0 0.5rem;
-    position: relative;
-  }
-  h3::before {
-    content: counter(h2section, decimal-leading-zero) "." counter(h3section);
-    position: absolute;
-    left: -5rem;
-    top: 0.2rem;
-    font-family: var(--dc-font-family-mono);
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--dc-subtle-foreground);
   }
   .dc-section { background: var(--dc-background); border: 1px solid var(--dc-border); padding: 1.25rem 1.5rem; margin: 1rem 0; }
   .mono { font-family: var(--dc-font-family-mono); font-size: 14px; font-weight: 500; }
@@ -707,7 +736,6 @@ ${REVIEW_SHARED_BASE_CSS}
   .dc-claim-text em { font-style: italic; }
   @media (max-width: 720px) {
     body { padding: 2rem 1.25rem 3rem; }
-    body > header::before, h2::before, h3::before { position: static; display: block; margin-bottom: 0.2rem; }
     .dc-footer { margin-left: 0; padding-left: 0; }
   }
   @media print {
@@ -729,7 +757,6 @@ ${
 </div>`
     : ""
 }
-<div class="dc-verdict" id="dc-verdict"></div>
 ${bodyHtml}
 <footer class="dc-footer">
   ${BRAND_LOGO_SVG}
@@ -782,9 +809,6 @@ const REVIEW_SHARED_BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-
   summary:hover { color: var(--dc-foreground); }
   .dc-section { background: var(--dc-background); border: 1px solid var(--dc-border); padding: 1.25rem 1.5rem; margin: 1rem 0; }
   .mono { font-family: var(--dc-font-family-mono); font-size: 14px; font-weight: 500; }
-  .dc-verdict .v-found  { color: var(--dc-verified); }
-  .dc-verdict .v-partial { color: var(--dc-partial); }
-  .dc-verdict .v-miss   { color: var(--dc-destructive); }
   .dc-meta-sep { display: none; }
   .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }`;
 

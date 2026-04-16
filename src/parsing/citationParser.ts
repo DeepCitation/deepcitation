@@ -85,6 +85,38 @@ const CITATION_MARKER_RE = /\[(\d+)\]/g;
  */
 const CITATION_LINK_RE = /\[([^\][]+)\]\(cite:(\d+)\)/g;
 
+const CITATION_DATA_END_DELIMITER_VARIANTS = [CITATION_DATA_END_DELIMITER, "<<</CITATION_DATA>>>"] as const;
+
+/**
+ * Returns true when a <<<CITATION_DATA>>> block exists but contains only
+ * whitespace between the delimiters.
+ */
+export function hasWhitespaceOnlyCitationBlock(llmResponse: string): boolean {
+  if (!llmResponse || typeof llmResponse !== "string") {
+    return false;
+  }
+
+  const startIndex = llmResponse.indexOf(CITATION_DATA_START_DELIMITER);
+  if (startIndex === -1) {
+    return false;
+  }
+
+  let endIndex = -1;
+  for (const delimiter of CITATION_DATA_END_DELIMITER_VARIANTS) {
+    const idx = llmResponse.indexOf(delimiter, startIndex);
+    if (idx !== -1 && (endIndex === -1 || idx < endIndex)) {
+      endIndex = idx;
+    }
+  }
+
+  if (endIndex === -1) {
+    return false;
+  }
+
+  const jsonStartIndex = startIndex + CITATION_DATA_START_DELIMITER.length;
+  return llmResponse.substring(jsonStartIndex, endIndex).trim().length === 0;
+}
+
 /**
  * Type guard to validate that an object has the required CitationData structure.
  * Ensures at minimum the id field is present and is a number.
@@ -210,6 +242,68 @@ function parseCitationsFromJson(parsed: unknown): CitationData[] {
   return rawCitations.map(c => expandCompactKeys(c as Record<string, unknown>));
 }
 
+function escapeLiteralControlCharactersInJsonStrings(text: string): string {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i] as string;
+    if (!inString) {
+      out += ch;
+      if (ch === '"') inString = true;
+      continue;
+    }
+
+    if (escaped) {
+      out += ch;
+      escaped = false;
+      continue;
+    }
+
+    if (ch === "\\") {
+      out += ch;
+      escaped = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      out += ch;
+      inString = false;
+      continue;
+    }
+
+    if (ch === "\r") {
+      if (text[i + 1] === "\n") {
+        out += "\\n";
+        i++;
+        continue;
+      }
+      out += "\\n";
+      continue;
+    }
+
+    if (ch === "\n") {
+      out += "\\n";
+      continue;
+    }
+
+    if (ch === "\t") {
+      out += "\\t";
+      continue;
+    }
+
+    if (ch.charCodeAt(0) < 0x20) {
+      out += `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`;
+      continue;
+    }
+
+    out += ch;
+  }
+
+  return out;
+}
+
 /**
  * Attempts to repair malformed JSON.
  * Handles common LLM output issues like:
@@ -234,6 +328,14 @@ function repairJson(jsonString: string): {
   repaired = repaired.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   if (repaired !== beforeMarkdownRemoval) {
     repairs.push("removed markdown code block markers");
+  }
+
+  // Escape literal control characters that LLMs sometimes emit inside JSON
+  // strings (especially multiline source_context/source_match values).
+  const beforeControlCharRepair = repaired;
+  repaired = escapeLiteralControlCharactersInJsonStrings(repaired);
+  if (repaired !== beforeControlCharRepair) {
+    repairs.push("escaped literal control characters");
   }
 
   // Fix invalid escape sequences inside JSON strings.
@@ -317,8 +419,15 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
   // Extract visible text (everything before the delimiter)
   const visibleText = llmResponse.substring(0, startIndex).trim();
 
-  // Find the end delimiter
-  const endIndex = llmResponse.indexOf(CITATION_DATA_END_DELIMITER, startIndex);
+  // Find the end delimiter. Accept a small set of malformed variants because
+  // LLMs occasionally emit the wrong closing token while still providing usable JSON.
+  let endIndex = -1;
+  for (const delimiter of CITATION_DATA_END_DELIMITER_VARIANTS) {
+    const idx = llmResponse.indexOf(delimiter, startIndex);
+    if (idx !== -1 && (endIndex === -1 || idx < endIndex)) {
+      endIndex = idx;
+    }
+  }
 
   // Extract the JSON block
   const jsonStartIndex = startIndex + CITATION_DATA_START_DELIMITER.length;
@@ -330,27 +439,12 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
   let citations: CitationData[] = [];
   const citationMap = new Map<number, CitationData>();
 
-  // Empty jsonString can mean two things:
-  //   1. No end delimiter and no content — the output was truncated right at the
-  //      start delimiter (common token-limit cutoff). Treat as success with 0 citations.
-  //   2. End delimiter is present but block is empty — upstream mistake (unfilled
-  //      template placeholder, etc.). Return failure.
   if (!jsonString) {
-    if (endIndex === -1) {
-      // Truncated immediately after start delimiter
-      return {
-        visibleText,
-        citations: [],
-        citationMap: new Map(),
-        success: true,
-      };
-    }
     return {
       visibleText,
       citations: [],
       citationMap: new Map(),
-      success: false,
-      error: "Empty <<<CITATION_DATA>>> block: no JSON content between delimiters",
+      success: true,
     };
   }
 

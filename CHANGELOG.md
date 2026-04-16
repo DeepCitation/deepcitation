@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **`verify` auto-publishes by default** — successful runs upload to My Verifications as `private`; opt-out with `--no-publish`; pass `--vis unlisted` or `--vis public` to widen visibility. (#425)
+- **`verify` auto-publishes by default** — successful runs upload to My Verifications as `private`; opt-out with `--local-only`; pass `--vis unlisted` or `--vis public` to widen visibility. (#425)
 - **Per-attachment assets in `verify` output** — `verify-response.json` now includes an `attachments` map (pageImages, originalDownload) alongside `verifications` when any attachment returned assets. (#430)
 - **CDN blink animation synced with React** — CDN now imports `BLINK_*` constants from the same source as the React component, fixing a 180 ms vs 120 ms enter-duration discrepancy; implements the full three-stage enter animation with a `cancelBlink()` guard. (#427)
 - **Billing copy** — quota-exceeded messages and the dashboard description now reflect subscription tiers (Standard 20/week at $20/mo, Pro unlimited at $200/mo). (#427)

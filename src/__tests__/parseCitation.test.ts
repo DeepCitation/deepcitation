@@ -1292,6 +1292,18 @@ describe("getAllCitationsFromLlmOutput", () => {
   });
 
   describe("deferred JSON <<<CITATION_DATA>>> format", () => {
+    it("treats an explicit empty block as a parse error", () => {
+      const input = `Text before.
+
+<<<CITATION_DATA>>>
+
+<<<END_CITATION_DATA>>>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(result).toEqual({});
+    });
+
     it("extracts citations from exact user failing scenario with 14 citations", () => {
       // This is the EXACT failing scenario from the user
       const input = `Here's a summary of the medical document for John Doe:
@@ -1465,6 +1477,23 @@ Patient Profile:
       expect(citation.reasoning).toBe("reason");
       expect(citation.pageNumber).toBe(3);
       expect(citation.lineIds).toEqual([5, 6]);
+    });
+
+    it("keeps CRLF line breaks intact when repairing JSON strings", () => {
+      const input = `Line one [1].
+
+<<<CITATION_DATA>>>
+[
+  {"id": 1, "source_context": "Line 1\r\nLine 2", "source_match": "Line 1", "page_id": "1_0", "line_ids": [1]}
+]
+<<<END_CITATION_DATA>>>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBe(1);
+      const citation = Object.values(result)[0];
+      expect(citation.sourceContext).toBe("Line 1\nLine 2");
+      expect(citation.sourceContext).not.toContain("\n\n");
     });
 
     it("extracts citations from deferred JSON format with camelCase keys", () => {

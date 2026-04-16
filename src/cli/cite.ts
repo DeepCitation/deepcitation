@@ -81,6 +81,8 @@ export function getAllLines(lineMap: LineMap): LineEntry[] {
 export interface BodyMarker {
   id: number;
   claimText: string;
+  /** Alternate labels that reused the same citation ID. */
+  claimTextVariants?: string[];
   /** Verbatim anchor text from the evidence, if provided via title syntax. */
   anchorHint?: string;
 }
@@ -102,26 +104,26 @@ export interface BodyMarker {
 export function extractMarkersFromBody(body: string): BodyMarker[] {
   // Match [label](cite:N ...) — capture everything inside the parens after cite:N
   const re = /\[([^\][]+)\]\(cite:(\d+)((?:\s+[^)]*)?)\)/g;
-  const seen = new Map<number, string>(); // id → first display label
-  const results: BodyMarker[] = [];
+  const seen = new Map<number, BodyMarker>(); // id → first marker, with alternates preserved
   let m: RegExpExecArray | null;
   while ((m = safeExec(re, body)) !== null) {
     const label = m[1].trim();
     const id = parseInt(m[2], 10);
     const rest = m[3]?.trim() ?? "";
 
-    if (seen.has(id)) {
-      if (seen.get(id) !== label) {
+    const existing = seen.get(id);
+    if (existing) {
+      if (existing.claimText !== label && !(existing.claimTextVariants?.includes(label) ?? false)) {
         console.error(
           `  Warning: cite:${id} reused with different label — ` +
-            `"${sanitizeForLog(seen.get(id) ?? "")}" (used) vs "${sanitizeForLog(label)}" (ignored). ` +
+            `"${sanitizeForLog(existing.claimText)}" (used) vs "${sanitizeForLog(label)}" (stored as variant). ` +
             `Each distinct claim must use a unique ID.`,
         );
+        existing.claimTextVariants ??= [];
+        existing.claimTextVariants.push(label);
       }
       continue;
     }
-    seen.set(id, label);
-
     const marker: BodyMarker = { id, claimText: label };
 
     // Parse optional anchor hint (single or double quoted)
@@ -130,32 +132,34 @@ export function extractMarkersFromBody(body: string): BodyMarker[] {
     const anchorRaw = anchorDQ?.[1] ?? anchorSQ?.[1];
     if (anchorRaw?.trim()) marker.anchorHint = anchorRaw.trim();
 
-    results.push(marker);
+    seen.set(id, marker);
   }
   // Fallback: **bold text** [N] markers (Strategy 2c format).
   // Only used when no [text](cite:N) markers were found.
-  if (results.length === 0) {
+  if (seen.size === 0) {
     const boldRe = /\*\*([^*]+)\*\*\s*\[(\d+)\]/g;
     let bm: RegExpExecArray | null;
     while ((bm = safeExec(boldRe, body)) !== null) {
       const label = bm[1].trim();
       const id = parseInt(bm[2], 10);
-      if (seen.has(id)) {
-        if (seen.get(id) !== label) {
+      const existing = seen.get(id);
+      if (existing) {
+        if (existing.claimText !== label && !(existing.claimTextVariants?.includes(label) ?? false)) {
           console.error(
             `  Warning: [${id}] reused with different label — ` +
-              `"${sanitizeForLog(seen.get(id) ?? "")}" (used) vs "${sanitizeForLog(label)}" (ignored). ` +
+              `"${sanitizeForLog(existing.claimText)}" (used) vs "${sanitizeForLog(label)}" (stored as variant). ` +
               `Each distinct claim must use a unique ID.`,
           );
+          existing.claimTextVariants ??= [];
+          existing.claimTextVariants.push(label);
         }
         continue;
       }
-      seen.set(id, label);
-      results.push({ id, claimText: label });
+      seen.set(id, { id, claimText: label });
     }
   }
 
-  return results.sort((a, b) => a.id - b.id);
+  return [...seen.values()].sort((a, b) => a.id - b.id);
 }
 
 /** Generic words skipped by Strategy 3 to avoid wrong-context single-word matches. */

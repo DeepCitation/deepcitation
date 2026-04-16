@@ -7,7 +7,7 @@
  */
 
 import { randomBytes } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -567,7 +567,7 @@ describe("prepare command", () => {
     );
   });
 
-  it("prepares a URL", async () => {
+  it("prints prepared URL JSON to stdout by default", async () => {
     const tmpDir = makeTmpDir();
     const origCwd = process.cwd();
     process.chdir(tmpDir);
@@ -575,14 +575,20 @@ describe("prepare command", () => {
     try {
       mockPrepareUrl.mockResolvedValue({
         attachmentId: "att-123",
-        deepTextPages: ["some text"],
+        deepTextPages: [`<page_number_1_index_0><line id="1">some text</line></page_number_1_index_0>`],
         metadata: { pageCount: 1, textByteSize: 1024 },
       });
 
       const { stdout } = await captureOutput(() => prepare(["https://example.com/article"], fmtNetErr));
 
       expect(mockPrepareUrl).toHaveBeenCalledWith(expect.objectContaining({ url: "https://example.com/article" }));
-      expect(stdout).toContain(".deepcitation/prepare-example.com.json");
+      const output = JSON.parse(stdout);
+      expect(output).toEqual({
+        attachmentId: "att-123",
+        metadata: { pageCount: 1, textByteSize: 1024 },
+        deepTextPages: [`<page_number_1_index_0><line id="1">some text</line></page_number_1_index_0>`],
+      });
+      expect(existsSync(join(tmpDir, ".deepcitation"))).toBe(false);
     } finally {
       process.chdir(origCwd);
     }
@@ -608,7 +614,7 @@ describe("prepare command", () => {
     }
   });
 
-  it("prints text JSON when --text is used", async () => {
+  it("writes prepared JSON only when --out is provided", async () => {
     const tmpDir = makeTmpDir();
     const origCwd = process.cwd();
     process.chdir(tmpDir);
@@ -616,21 +622,28 @@ describe("prepare command", () => {
     try {
       mockPrepareUrl.mockResolvedValue({
         attachmentId: "att-123",
-        deepTextPages: ["deep text here"],
+        deepTextPages: [`<page_number_1_index_0><line id="1">deep text here</line></page_number_1_index_0>`],
         metadata: { pageCount: 2, textByteSize: 2048 },
       });
 
-      const { stdout } = await captureOutput(() => prepare(["https://example.com/article", "--text"], fmtNetErr));
+      const outPath = join(tmpDir, ".deepcitation", "prepare-example.json");
+      const { stdout } = await captureOutput(() =>
+        prepare(["https://example.com/article", "--out", outPath], fmtNetErr),
+      );
 
-      const summary = JSON.parse(stdout);
-      expect(summary.attachmentId).toBe("att-123");
-      expect(summary.deepTextPages).toEqual(["deep text here"]);
+      expect(stdout).toBe(outPath);
+      const output = JSON.parse(readFileSync(outPath, "utf-8"));
+      expect(output.attachmentId).toBe("att-123");
+      expect(output.metadata).toEqual({ pageCount: 2, textByteSize: 2048 });
+      expect(output.deepTextPages).toEqual([
+        `<page_number_1_index_0><line id="1">deep text here</line></page_number_1_index_0>`,
+      ]);
     } finally {
       process.chdir(origCwd);
     }
   });
 
-  it("--text strips <line id> and <page_number> metadata from deepTextPages", async () => {
+  it("prints tagged text when --format txt is used", async () => {
     const tmpDir = makeTmpDir();
     const origCwd = process.cwd();
     process.chdir(tmpDir);
@@ -645,16 +658,123 @@ describe("prepare command", () => {
         metadata: { pageCount: 2, textByteSize: 512 },
       });
 
-      const { stdout } = await captureOutput(() => prepare(["https://example.com/doc", "--text"], fmtNetErr));
+      const { stdout } = await captureOutput(() => prepare(["https://example.com/doc", "--format", "txt"], fmtNetErr));
 
-      const summary = JSON.parse(stdout);
-      expect(summary.deepTextPages[0]).not.toContain("<line id=");
-      expect(summary.deepTextPages[0]).not.toContain("<page_number_");
-      expect(summary.deepTextPages[0]).toContain("Hello world.");
-      expect(summary.deepTextPages[0]).toContain("Second line.");
-      expect(summary.deepTextPages[1]).not.toContain("<line id=");
-      expect(summary.deepTextPages[1]).not.toContain("<page_number_");
-      expect(summary.deepTextPages[1]).toContain("Page two content.");
+      expect(stdout).toContain("<page_number_1_index_0>");
+      expect(stdout).toContain('<line id="1">Hello world.</line>');
+      expect(stdout).toContain("</page_number_1_index_0>");
+      expect(stdout).toContain("<page_number_2_index_0>");
+      expect(stdout).toContain('<line id="3">Page two content.</line>');
+      expect(stdout).toContain("</page_number_2_index_0>");
+    } finally {
+      process.chdir(origCwd);
+    }
+  });
+
+  it("prints cleaned prose when --format plain is used", async () => {
+    const tmpDir = makeTmpDir();
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+
+    try {
+      mockPrepareUrl.mockResolvedValue({
+        attachmentId: "att-tagged",
+        deepTextPages: [
+          `<page_number_1_index_0><line id="1">Hello world.</line><line id="2">Second line.</line></page_number_1_index_0>`,
+          `<page_number_2_index_0><line id="3">Page two content.</line></page_number_2_index_0>`,
+        ],
+        metadata: { pageCount: 2, textByteSize: 512 },
+      });
+
+      const { stdout } = await captureOutput(() =>
+        prepare(["https://example.com/doc", "--format", "plain"], fmtNetErr),
+      );
+
+      expect(stdout).not.toContain("<line id=");
+      expect(stdout).not.toContain("<page_number_");
+      expect(stdout).toContain("Hello world.");
+      expect(stdout).toContain("Second line.");
+      expect(stdout).toContain("Page two content.");
+    } finally {
+      process.chdir(origCwd);
+    }
+  });
+
+  it("writes tagged text when --format txt --out is provided", async () => {
+    const tmpDir = makeTmpDir();
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+
+    try {
+      mockPrepareUrl.mockResolvedValue({
+        attachmentId: "att-tagged",
+        deepTextPages: [`<page_number_1_index_0><line id="1">Hello world.</line></page_number_1_index_0>`],
+        metadata: { pageCount: 1, textByteSize: 128 },
+      });
+
+      const outPath = join(tmpDir, "evidence.txt");
+      const { stdout } = await captureOutput(() =>
+        prepare(["https://example.com/doc", "--format", "txt", "--out", outPath], fmtNetErr),
+      );
+
+      expect(stdout).toBe(outPath);
+      expect(readFileSync(outPath, "utf-8")).toBe(
+        `<page_number_1_index_0><line id="1">Hello world.</line></page_number_1_index_0>`,
+      );
+    } finally {
+      process.chdir(origCwd);
+    }
+  });
+
+  it("preserves page wrappers when --pages selects a subset", async () => {
+    const tmpDir = makeTmpDir();
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+
+    try {
+      mockPrepareUrl.mockResolvedValue({
+        attachmentId: "att-pages",
+        deepTextPages: [
+          `<page_number_1_index_0><line id="1">Page one.</line></page_number_1_index_0>`,
+          `<page_number_2_index_1><line id="1">Page two.</line></page_number_2_index_1>`,
+        ],
+        metadata: { pageCount: 2, textByteSize: 256 },
+      });
+
+      const { stdout } = await captureOutput(() => prepare(["https://example.com/doc", "--pages", "2"], fmtNetErr));
+      const output = JSON.parse(stdout);
+
+      expect(output.deepTextPages).toEqual([
+        `<page_number_2_index_1><line id="1">Page two.</line></page_number_2_index_1>`,
+      ]);
+    } finally {
+      process.chdir(origCwd);
+    }
+  });
+
+  it.each(["--text", "--txt", "--summary"])("rejects removed prepare flag %s", async removedFlag => {
+    await expect(captureOutput(() => prepare(["https://example.com/doc", removedFlag], fmtNetErr))).rejects.toThrow(
+      "process.exit(1)",
+    );
+  });
+
+  it("accepts --out before the source argument", async () => {
+    const tmpDir = makeTmpDir();
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+
+    try {
+      mockPrepareUrl.mockResolvedValue({
+        attachmentId: "att-ordered",
+        deepTextPages: [`<page_number_1_index_0><line id="1">Ordered.</line></page_number_1_index_0>`],
+        metadata: { pageCount: 1, textByteSize: 64 },
+      });
+
+      const outPath = join(tmpDir, "ordered.json");
+      await captureOutput(() => prepare(["--out", outPath, "https://example.com/doc"], fmtNetErr));
+
+      expect(mockPrepareUrl).toHaveBeenCalledWith(expect.objectContaining({ url: "https://example.com/doc" }));
+      expect(JSON.parse(readFileSync(outPath, "utf-8")).attachmentId).toBe("att-ordered");
     } finally {
       process.chdir(origCwd);
     }
@@ -717,7 +837,9 @@ describe("prepare command", () => {
       const { stdout } = await captureOutput(() => prepare([filePath], fmtNetErr));
 
       expect(mockUploadFile).toHaveBeenCalled();
-      expect(stdout).toContain("prepare-report.json");
+      const output = JSON.parse(stdout);
+      expect(output.attachmentId).toBe("att-456");
+      expect(output.deepTextPages).toEqual(["text"]);
     } finally {
       process.chdir(origCwd);
     }
@@ -753,6 +875,10 @@ describe("verify command (--citations mode)", () => {
     await expect(captureOutput(() => verify(["--citations", citPath], fmtNetErr))).rejects.toThrow("process.exit(1)");
   });
 
+  it("rejects deprecated --no-publish and directs callers to --local-only", async () => {
+    await expect(captureOutput(() => verify(["--no-publish"], fmtNetErr))).rejects.toThrow("process.exit(1)");
+  });
+
   it("verifies citations grouped by attachmentId", async () => {
     const tmpDir = makeTmpDir();
     const origCwd = process.cwd();
@@ -781,7 +907,111 @@ describe("verify command (--citations mode)", () => {
       const { stderr } = await captureOutput(() => verify(["--citations", citPath], fmtNetErr));
 
       expect(mockVerifyAttachment).toHaveBeenCalledTimes(2);
+      for (const call of mockVerifyAttachment.mock.calls) {
+        expect(call[2]).toMatchObject({ requestTimeoutMs: 10_000 });
+      }
       expect(stderr).toContain("3 citations across 2 attachment(s)");
+    } finally {
+      process.chdir(origCwd);
+    }
+  });
+
+  it("does not auto-promote a display label when it has no overlap with the anchor", async () => {
+    const tmpDir = makeTmpDir();
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+    mkdirSync(join(tmpDir, ".deepcitation"), { recursive: true });
+
+    const mdPath = join(tmpDir, "report.md");
+    const outPath = join(tmpDir, "verified.html");
+    writeFileSync(
+      mdPath,
+      [
+        "# Report",
+        "",
+        "[**Horizontal Boundaries**](cite:1)",
+        "",
+        "<<<CITATION_DATA>>>",
+        JSON.stringify([
+          {
+            id: 1,
+            attachment_id: "att-1",
+            source_context: "context",
+            source_match: "SCHEDULE “C”",
+            line_ids: [1],
+            page_id: "1_1",
+          },
+        ]),
+        "<<<END_CITATION_DATA>>>",
+        "",
+      ].join("\n"),
+    );
+
+    mockVerifyAttachment.mockResolvedValueOnce({
+      verifications: { key1: { status: "not_found" } },
+    });
+
+    try {
+      const { stderr } = await captureOutput(() => verify(["--markdown", mdPath, "--out", outPath], fmtNetErr));
+      expect(mockVerifyAttachment).toHaveBeenCalledTimes(1);
+      const citationsArg = mockVerifyAttachment.mock.calls[0]?.[1] as Record<string, Record<string, unknown>>;
+      const firstCitation = Object.values(citationsArg)[0];
+      expect(firstCitation).toBeDefined();
+      expect(firstCitation).toMatchObject({
+        sourceMatch: "SCHEDULE “C”",
+      });
+      expect(stderr).not.toContain("auto-promoted display label to anchor");
+    } finally {
+      process.chdir(origCwd);
+    }
+  });
+
+  it("does not auto-promote a long display label even when it shares a token", async () => {
+    const tmpDir = makeTmpDir();
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+    mkdirSync(join(tmpDir, ".deepcitation"), { recursive: true });
+
+    const mdPath = join(tmpDir, "report.md");
+    const outPath = join(tmpDir, "verified.html");
+    const longLabel = "The company's revenue grew significantly in Q4 while margins improved";
+    writeFileSync(
+      mdPath,
+      [
+        "# Report",
+        "",
+        `[**${longLabel}**](cite:1)`,
+        "",
+        "<<<CITATION_DATA>>>",
+        JSON.stringify([
+          {
+            id: 1,
+            attachment_id: "att-1",
+            source_context: "context",
+            source_match: "revenue",
+            line_ids: [1],
+            page_id: "1_1",
+          },
+        ]),
+        "<<<END_CITATION_DATA>>>",
+        "",
+      ].join("\n"),
+    );
+
+    mockVerifyAttachment.mockResolvedValueOnce({
+      verifications: { key1: { status: "not_found" } },
+    });
+
+    try {
+      const { stderr } = await captureOutput(() => verify(["--markdown", mdPath, "--out", outPath], fmtNetErr));
+      expect(mockVerifyAttachment).toHaveBeenCalledTimes(1);
+      const citationsArg = mockVerifyAttachment.mock.calls[0]?.[1] as Record<string, Record<string, unknown>>;
+      const firstCitation = Object.values(citationsArg)[0];
+      expect(firstCitation).toBeDefined();
+      expect(firstCitation).toMatchObject({
+        sourceMatch: "revenue",
+      });
+      expect(stderr).not.toContain("auto-promoted display label to anchor");
     } finally {
       process.chdir(origCwd);
     }

@@ -32,13 +32,13 @@ Use this when the draft was generated with the compact citation format
 
 Options:
   --markdown <file>   Path to draft markdown file with <<<CITATION_DATA>>> block
-  --summary <file>    Path to summary file from "deepcitation prepare --text"
+  --summary <file>    Path to JSON summary file from "deepcitation prepare --out"
   --out <file>        Output path (default: overwrites --markdown input)
   -h, --help          Show this help message
 
 Examples:
-  deepcitation hydrate --markdown .deepcitation/draft.md --summary .deepcitation/summary-report.txt
-  deepcitation hydrate --markdown .deepcitation/draft.md --summary .deepcitation/summary-report.txt --out .deepcitation/draft-hydrated.md
+  deepcitation hydrate --markdown .deepcitation/draft.md --summary .deepcitation/prepare-report.json
+  deepcitation hydrate --markdown .deepcitation/draft.md --summary .deepcitation/prepare-report.json --out .deepcitation/draft-hydrated.md
 `;
 
 /**
@@ -63,7 +63,7 @@ export interface LineMap {
 }
 
 export interface HydrateOptions {
-  /** Raw content of the summary file (JSON string from deepcitation prepare --text) */
+  /** Raw content of the summary file (JSON string from deepcitation prepare --out) */
   summaryContent: string;
   /** Citations to hydrate in place — source_context is mutated on matching entries */
   citations: CitationData[];
@@ -399,7 +399,7 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
  *
  * Search order (most reliable first):
  *   1. `.deepcitation/prepare-*.json` — pure JSON output from `deepcitation prepare`
- *   2. `.deepcitation/summary-*.txt`  — text+JSON output from `prepare --text`
+ *   2. `.deepcitation/summary-*.txt`  — legacy text+JSON output from `prepare --text`
  *
  * When `attachmentId` is provided, scans each candidate and returns the first one
  * whose JSON contains a matching `attachmentId`. This prevents the wrong evidence

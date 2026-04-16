@@ -16,7 +16,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { parseCitationData, parsePageId } from "../parsing/citationParser.js";
+import { hasWhitespaceOnlyCitationBlock, parseCitationData, parsePageId } from "../parsing/citationParser.js";
 import {
   CITATION_DATA_END_DELIMITER,
   CITATION_DATA_START_DELIMITER,
@@ -186,8 +186,16 @@ export function mergeSections({ sectionAContent, sectionBContent }: MergeOptions
   const parsedA = parseCitationData(sectionAContent);
   const parsedB = parseCitationData(sectionBContent);
 
-  const parseErrorA = parsedA.success ? undefined : parsedA.error;
-  const parseErrorB = parsedB.success ? undefined : parsedB.error;
+  const parseErrorA = hasWhitespaceOnlyCitationBlock(sectionAContent)
+    ? "Empty <<<CITATION_DATA>>> block"
+    : parsedA.success
+      ? undefined
+      : parsedA.error;
+  const parseErrorB = hasWhitespaceOnlyCitationBlock(sectionBContent)
+    ? "Empty <<<CITATION_DATA>>> block"
+    : parsedB.success
+      ? undefined
+      : parsedB.error;
 
   const citesA = parsedA.citations;
   const citesB = parsedB.citations;
@@ -316,8 +324,9 @@ export function merge(argv: string[]): void {
   // See plans/noble-skipping-wolf.md for the failure history.
   if (mode === "json") {
     // Only fail on an actual parse error, not on zero citations: a section may
-    // legitimately contain no cited claims (parseable `[]`). The whitespace-only
-    // check in parseCitationData ensures that truly empty blocks set parseError.
+    // legitimately contain no cited claims (parseable `[]`). Empty blocks are
+    // detected explicitly so they still fail here even though the parser
+    // treats them as recoverable empties for other callers.
     if (parseErrorA !== undefined || parseErrorB !== undefined) {
       const lines: string[] = ["Error: merge refusing to write output — citation parsing failed."];
       if (parseErrorA !== undefined) {
