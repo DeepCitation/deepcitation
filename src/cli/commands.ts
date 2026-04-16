@@ -254,7 +254,7 @@ const ALLOWED_INDICATORS = ["icon", "dot", "none"] as const;
 
 const DEFAULT_API_URL = "https://api.deepcitation.com";
 
-function canStartBrowserAuth(argv: string[] = []): boolean {
+export function canStartBrowserAuth(argv: string[] = []): boolean {
   // --browser is an explicit opt-in that starts the OAuth flow even in constrained
   // environments. DC_NO_BROWSER still silences the execFile call inside openBrowser(),
   // so --browser + DC_NO_BROWSER starts the callback server without opening a window
@@ -291,6 +291,9 @@ export async function requireAuth(): Promise<ResolvedAuth> {
   const baseUrl = resolveBaseUrl();
   // DC_NON_INTERACTIVE lets test runners and CI force the non-interactive path
   // regardless of TTY state (e.g. when jest runs in a real terminal).
+  // argv is intentionally not passed here: requireAuth() is an internal guard
+  // used by commands (verify, prepare, get, etc.) that do not expose --browser
+  // to their callers. The --browser opt-in is only meaningful for `auth`/`login`.
   if (!canStartBrowserAuth()) {
     // Non-interactive (CI, piped stdin, AI agent) — browser OAuth won't work.
     // Print actionable, recoverable instructions and exit non-zero so the caller

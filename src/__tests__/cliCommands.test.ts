@@ -58,6 +58,7 @@ jest.mock("../utils/proxy.js", () => ({
 // ── Imports (after mocks) ─────────────────────────────────────────
 
 import {
+  canStartBrowserAuth,
   env,
   getAttachment,
   hydrate,
@@ -1153,17 +1154,42 @@ describe("login command — browser-auth gate", () => {
     process.env.MSYSTEM = "MINGW64"; // normally allows browser auth in Git Bash
     process.env.DC_NO_BROWSER = "1"; // DC_NO_BROWSER must override it
     mockResolveAuth.mockReturnValue(null);
-    const errors: string[] = [];
-    const origError = console.error;
-    console.error = (...args: unknown[]) => errors.push(args.map(String).join(" "));
-    try {
-      await login([], TEST_BASE_URL);
-    } catch (e) {
-      expect(String(e)).toContain("process.exit(1)");
-    } finally {
-      console.error = origError;
-    }
-    expect(errors.join("\n")).toContain("Browser authentication is disabled or unavailable");
+    // process.exit is mocked globally in beforeAll above — use rejects.toThrow so
+    // the dependency is visible here and the test doesn't silently pass if the mock moves.
+    const { stderr } = await captureOutput(() =>
+      expect(login([], TEST_BASE_URL)).rejects.toThrow("process.exit(1)"),
+    );
+    expect(stderr).toContain("Browser authentication is disabled or unavailable");
+  });
+});
+
+describe("canStartBrowserAuth", () => {
+  // IS_AI_AGENT is mocked as `false` in this module (see jest.mock("../auth.js") above).
+  // Tests that require IS_AI_AGENT=true are in cliAuthScenarios.test.ts (subprocess-based).
+
+  afterEach(() => {
+    delete process.env.DC_NO_BROWSER;
+    delete process.env.DC_NON_INTERACTIVE;
+  });
+
+  it("returns false when DC_NO_BROWSER is set and no --browser flag", () => {
+    process.env.DC_NO_BROWSER = "1";
+    expect(canStartBrowserAuth([])).toBe(false);
+  });
+
+  it("returns true when --browser is passed even with DC_NO_BROWSER set", () => {
+    process.env.DC_NO_BROWSER = "1";
+    expect(canStartBrowserAuth(["--browser"])).toBe(true);
+  });
+
+  it("returns true when --browser is passed even with DC_NON_INTERACTIVE set", () => {
+    process.env.DC_NON_INTERACTIVE = "1";
+    expect(canStartBrowserAuth(["--browser"])).toBe(true);
+  });
+
+  it("returns false when DC_NON_INTERACTIVE is set and no --browser flag", () => {
+    process.env.DC_NON_INTERACTIVE = "1";
+    expect(canStartBrowserAuth([])).toBe(false);
   });
 });
 
