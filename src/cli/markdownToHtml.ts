@@ -782,9 +782,6 @@ const REVIEW_SHARED_BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-
   summary:hover { color: var(--dc-foreground); }
   .dc-section { background: var(--dc-background); border: 1px solid var(--dc-border); padding: 1.25rem 1.5rem; margin: 1rem 0; }
   .mono { font-family: var(--dc-font-family-mono); font-size: 14px; font-weight: 500; }
-  .dc-verdict .v-found  { color: var(--dc-verified); }
-  .dc-verdict .v-partial { color: var(--dc-partial); }
-  .dc-verdict .v-miss   { color: var(--dc-destructive); }
   .dc-meta-sep { display: none; }
   .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }`;
 
