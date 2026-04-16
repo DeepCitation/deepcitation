@@ -115,6 +115,14 @@ describe("markdownToHtml block parsing", () => {
     expect(result).toContain("<h3>");
   });
 
+  it("renders headings with up to three leading spaces", () => {
+    const result = markdownToHtml(" # Title\n\n  ## Section\n\n   ### Sub", { style: "plain" });
+    expect(result).toContain("<h1>");
+    expect(result).toContain("<h2>");
+    expect(result).toContain("<h3>");
+    expect(result).not.toContain("<p> ### Sub</p>");
+  });
+
   it("renders paragraphs", () => {
     const result = markdownToHtml("Hello world.\n\nSecond paragraph.", { style: "plain" });
     expect(result).toContain("<p>Hello world.</p>");
@@ -200,7 +208,6 @@ describe("markdownToHtml style shells", () => {
     const mdWithSections = "# Report\n\n## Key Findings\n\nImportant stuff.\n\n## Details\n\nMore details.";
     const result = markdownToHtml(mdWithSections, { style: "report" });
     expect(result).toContain("<!DOCTYPE html>");
-    expect(result).toContain("dc-verdict");
     expect(result).toContain("data-dc-drawer-trigger");
   });
 
@@ -329,6 +336,14 @@ describe("markdownToHtml report body (flat rendering)", () => {
     const preamblePos = result.indexOf("Preamble paragraph.");
     const sectionPos = result.indexOf("Content.");
     expect(preamblePos).toBeLessThan(sectionPos);
+  });
+
+  it("does not render left-gutter section numbers in the report shell", () => {
+    const result = markdownToHtml("# Report\n\n## One\n\n### Two", { style: "report" });
+    expect(result).not.toContain('content: "00"');
+    expect(result).not.toContain("counter-reset: h2section");
+    expect(result).not.toContain("h2::before");
+    expect(result).not.toContain("h3::before");
   });
 });
 
@@ -492,20 +507,17 @@ describe("markdownToHtml header — claim & model", () => {
   it("renders a claim card when claim is provided", () => {
     const result = markdownToHtml("# T\nbody", { claim: "Did revenue exceed $4B?" });
     expect(result).toContain('class="dc-claim"');
-    expect(result).toContain(">CLAIM<");
     expect(result).toContain("Did revenue exceed $4B?");
   });
 
   it("omits the claim card when claim is absent", () => {
     const result = markdownToHtml("# T\nbody", {});
     expect(result).not.toContain('<div class="dc-claim"');
-    expect(result).not.toContain(">CLAIM<");
   });
 
   it("suppresses a whitespace-only claim", () => {
     const result = markdownToHtml("# T\nbody", { claim: "   " });
     expect(result).not.toContain('<div class="dc-claim"');
-    expect(result).not.toContain(">CLAIM<");
   });
 
   it("escapes HTML in the claim", () => {

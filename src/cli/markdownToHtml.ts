@@ -201,6 +201,18 @@ interface Block {
   language?: string; // for code blocks
 }
 
+function parseAtxHeading(line: string): { level: number; content: string } | null {
+  const match = line.match(/^ {0,3}(#{1,6})\s+(.+)$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    level: match[1].length,
+    content: match[2].trimEnd(),
+  };
+}
+
 function parseBlocks(markdown: string): Block[] {
   const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
   const blocks: Block[] = [];
@@ -234,12 +246,12 @@ function parseBlocks(markdown: string): Block[] {
     }
 
     // Heading
-    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-    if (headingMatch) {
+    const heading = parseAtxHeading(line);
+    if (heading) {
       blocks.push({
         type: "heading",
-        level: headingMatch[1].length,
-        content: headingMatch[2],
+        level: heading.level,
+        content: heading.content,
       });
       i++;
       continue;
@@ -297,7 +309,7 @@ function parseBlocks(markdown: string): Block[] {
     while (
       i < lines.length &&
       lines[i].trim() !== "" &&
-      !/^#{1,6}\s/.test(lines[i]) &&
+      !parseAtxHeading(lines[i]) &&
       !/^(-{3,}|\*{3,}|_{3,})\s*$/.test(lines[i]) &&
       !lines[i].trim().startsWith("```") &&
       !/^\s*[-*+]\s+/.test(lines[i]) &&
@@ -552,7 +564,6 @@ function reportShell(title: string, bodyHtml: string, options: MarkdownToHtmlOpt
   const claimText = options.claim?.trim();
   const claimCard = claimText
     ? `<div class="dc-claim" role="note" aria-label="Claim under verification">
-<span class="dc-claim-label">CLAIM</span>
 <blockquote class="dc-claim-text">${inlineFormat(claimText)}</blockquote>
 </div>`
     : "";
@@ -576,21 +587,9 @@ ${REVIEW_SHARED_BASE_CSS}
     -webkit-font-smoothing: antialiased;
     max-width: 900px;
     margin: 0 auto;
-    padding: 3rem 1.5rem 4rem 6.5rem;
-    counter-reset: h2section;
+    padding: 3rem 1.5rem 4rem;
   }
-  body > header { margin-bottom: 2rem; position: relative; }
-  body > header::before {
-    content: "00";
-    position: absolute;
-    left: -5rem;
-    top: 0.4rem;
-    font-family: var(--dc-font-family-mono);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--dc-border);
-    letter-spacing: 0.05em;
-  }
+  body > header { margin-bottom: 2rem; }
   body > header h1 {
     font-size: 30px;
     font-weight: 600;
@@ -615,58 +614,19 @@ ${REVIEW_SHARED_BASE_CSS}
   .dc-meta-link { color: var(--dc-primary); text-decoration: none; font-weight: 500; }
   .dc-meta-link:hover { text-decoration: underline; }
   [data-cite] strong { font-weight: 600; }
-  .dc-verdict {
-    display: flex;
-    gap: 1.5rem;
-    padding: 0.85rem 1rem;
-    margin-bottom: 2.25rem;
-    font-family: var(--dc-font-family-mono);
-    font-size: 12px;
-    border: 1px solid var(--dc-border);
-    background: var(--dc-muted);
-  }
-  .dc-verdict .v-found  { color: var(--dc-verified); }
-  .dc-verdict .v-partial { color: var(--dc-partial); }
-  .dc-verdict .v-miss   { color: var(--dc-destructive); }
   h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; }
   h2 {
-    counter-increment: h2section;
-    counter-reset: h3section;
     font-size: 20px;
     font-weight: 600;
     margin: 2.75rem 0 0.85rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--dc-border);
     letter-spacing: -0.01em;
-    position: relative;
-  }
-  h2::before {
-    content: counter(h2section, decimal-leading-zero);
-    position: absolute;
-    left: -5rem;
-    top: 0.35rem;
-    font-family: var(--dc-font-family-mono);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--dc-primary);
-    letter-spacing: 0.05em;
   }
   h3 {
-    counter-increment: h3section;
     font-size: 16px;
     font-weight: 600;
     margin: 1.75rem 0 0.5rem;
-    position: relative;
-  }
-  h3::before {
-    content: counter(h2section, decimal-leading-zero) "." counter(h3section);
-    position: absolute;
-    left: -5rem;
-    top: 0.2rem;
-    font-family: var(--dc-font-family-mono);
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--dc-subtle-foreground);
   }
   .dc-section { background: var(--dc-background); border: 1px solid var(--dc-border); padding: 1.25rem 1.5rem; margin: 1rem 0; }
   .mono { font-family: var(--dc-font-family-mono); font-size: 14px; font-weight: 500; }
@@ -729,7 +689,6 @@ ${REVIEW_SHARED_BASE_CSS}
   .dc-claim-text em { font-style: italic; }
   @media (max-width: 720px) {
     body { padding: 2rem 1.25rem 3rem; }
-    body > header::before, h2::before, h3::before { position: static; display: block; margin-bottom: 0.2rem; }
     .dc-footer { margin-left: 0; padding-left: 0; }
   }
   @media print {
@@ -751,7 +710,6 @@ ${
 </div>`
     : ""
 }
-<div class="dc-verdict" id="dc-verdict"></div>
 ${bodyHtml}
 <footer class="dc-footer">
   ${BRAND_LOGO_SVG}
