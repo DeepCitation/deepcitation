@@ -494,7 +494,7 @@ describe("non-TTY / agent environment login", () => {
   it("shows instructions for non-interactive environment", () => {
     const r = run(["login"], { env: noAuthEnv() });
     expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("Non-interactive");
+    expect(r.stderr).toContain("Browser authentication is disabled or unavailable");
     expect(r.stderr).toContain("Get your API key");
     // New (post-d2f67c2) guidance recommends the persistent `auth --key` path
     // over transient `export DEEPCITATION_API_KEY`. Both recover the same failure,

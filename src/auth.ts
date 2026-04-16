@@ -174,6 +174,8 @@ export function resolveAuth(): ResolvedAuth | null {
 // ── Browser ────────────────────────────────────────────────────────
 
 export function openBrowser(url: string): void {
+  if (process.env.DC_NO_BROWSER) return;
+
   const { platform } = process;
   const noop = () => {};
 

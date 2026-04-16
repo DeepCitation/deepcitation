@@ -382,6 +382,7 @@ describe("openBrowser", () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    delete process.env.DC_NO_BROWSER;
     if (origPlatformDesc) {
       Object.defineProperty(process, "platform", origPlatformDesc);
     }
@@ -432,5 +433,14 @@ describe("openBrowser", () => {
       ["https://deepcitation.com"],
       expect.any(Function),
     );
+  });
+
+  it("does not launch a browser when DC_NO_BROWSER is set", () => {
+    process.env.DC_NO_BROWSER = "1";
+    setPlatform("win32");
+
+    openBrowser("https://deepcitation.com");
+
+    expect(jest.mocked(childProcess.execFile)).not.toHaveBeenCalled();
   });
 });

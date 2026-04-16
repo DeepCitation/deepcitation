@@ -23,6 +23,7 @@ const mockStartCallbackServer = jest.fn();
 jest.mock("../auth.js", () => ({
   HOME_CREDENTIALS_PATH: "/tmp/home/credentials.json",
   PROJECT_CREDENTIALS_PATH: "/tmp/project/credentials.json",
+  IS_AI_AGENT: false,
   IS_COWORK: false,
   generateNonce: () => "nonce",
   maskKey: (key: string) => key,
