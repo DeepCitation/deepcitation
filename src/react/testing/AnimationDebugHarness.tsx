@@ -54,11 +54,7 @@ function makeTallImage(): string {
  * Callers MUST gate the mount behind `process.env.NODE_ENV !== "production"`.
  */
 export function AnimationDebugHarness(): React.ReactElement {
-  const [imageSrc, setImageSrc] = useState<string>("");
-
-  useEffect(() => {
-    setImageSrc(makeTallImage());
-  }, []);
+  const imageSrc = useMemo(() => makeTallImage(), []);
 
   const citation = useMemo<Citation>(
     () => ({
@@ -159,9 +155,11 @@ function AimAlignmentPanel({
       if (focusEl && pageEl) {
         const a = focusEl.getBoundingClientRect();
         const b = pageEl.getBoundingClientRect();
-        setOffset({ dx: Math.round(b.left - a.left), dy: Math.round(b.top - a.top) });
+        const dx = Math.round(b.left - a.left);
+        const dy = Math.round(b.top - a.top);
+        setOffset(prev => (prev?.dx === dx && prev?.dy === dy ? prev : { dx, dy }));
       } else {
-        setOffset(null);
+        setOffset(prev => (prev === null ? prev : null));
       }
       raf = requestAnimationFrame(tick);
     };

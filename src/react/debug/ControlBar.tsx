@@ -3,19 +3,18 @@ import {
   type AnimationDebugState,
   type FrozenKind,
   getDebugSnapshot,
+  pauseAnimation,
+  playAnimation,
   setDebugState,
+  stepAnimation,
   subscribeDebug,
 } from "./animationDebugStore.js";
 
 const SPEED_OPTIONS = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10];
 const FROZEN_KINDS: FrozenKind[] = ["any", "page-expand", "page-collapse"];
 
-function serverSnapshot(): AnimationDebugState {
-  return getDebugSnapshot();
-}
-
 function useDebugState(): AnimationDebugState {
-  return useSyncExternalStore(subscribeDebug, getDebugSnapshot, serverSnapshot);
+  return useSyncExternalStore(subscribeDebug, getDebugSnapshot, getDebugSnapshot);
 }
 
 /**
@@ -69,18 +68,15 @@ export function ControlBar(): React.ReactElement {
   }, []);
 
   const onStep = useCallback((deltaMs: number) => {
-    const api = (window as unknown as { __dcAnimationDebug?: { step: (n: number) => void } }).__dcAnimationDebug;
-    api?.step(deltaMs);
+    stepAnimation(deltaMs);
   }, []);
 
   const onPause = useCallback(() => {
-    const api = (window as unknown as { __dcAnimationDebug?: { pause: () => void } }).__dcAnimationDebug;
-    api?.pause();
+    pauseAnimation();
   }, []);
 
   const onPlay = useCallback(() => {
-    const api = (window as unknown as { __dcAnimationDebug?: { play: () => void } }).__dcAnimationDebug;
-    api?.play();
+    playAnimation();
   }, []);
 
   return (

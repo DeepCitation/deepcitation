@@ -1,12 +1,8 @@
 import { useSyncExternalStore } from "react";
 import { type AnimationDebugState, getDebugSnapshot, subscribeDebug } from "./animationDebugStore.js";
 
-function serverSnapshot(): AnimationDebugState {
-  return getDebugSnapshot();
-}
-
 function useDebugState(): AnimationDebugState {
-  return useSyncExternalStore(subscribeDebug, getDebugSnapshot, serverSnapshot);
+  return useSyncExternalStore(subscribeDebug, getDebugSnapshot, getDebugSnapshot);
 }
 
 /**

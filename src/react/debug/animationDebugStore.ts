@@ -48,6 +48,23 @@ export function registerActiveAnimation(anim: Animation | null): void {
   activeAnim = anim;
 }
 
+export function stepAnimation(deltaMs: number): void {
+  if (process.env.NODE_ENV === "production") return;
+  if (!activeAnim) return;
+  const current = typeof activeAnim.currentTime === "number" ? activeAnim.currentTime : 0;
+  activeAnim.currentTime = current + deltaMs;
+}
+
+export function pauseAnimation(): void {
+  if (process.env.NODE_ENV === "production") return;
+  activeAnim?.pause();
+}
+
+export function playAnimation(): void {
+  if (process.env.NODE_ENV === "production") return;
+  activeAnim?.play();
+}
+
 export function getDebugSnapshot(): AnimationDebugState {
   if (process.env.NODE_ENV === "production") return PROD_SNAPSHOT;
   return devState;

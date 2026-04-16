@@ -7,10 +7,13 @@ export {
   type GhostRectsSnapshot,
   getDebugSnapshot,
   getFrozen,
+  pauseAnimation,
+  playAnimation,
   registerActiveAnimation,
   scaleDuration,
   setDebugState,
   setLastGhostRects,
+  stepAnimation,
   subscribeDebug,
 } from "./animationDebugStore.js";
 export { ControlBar } from "./ControlBar.js";

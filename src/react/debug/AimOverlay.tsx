@@ -22,12 +22,8 @@ function selectShowAim(): boolean {
   return getDebugSnapshot().showAim;
 }
 
-function serverFalse(): boolean {
-  return false;
-}
-
 function useShowAim(): boolean {
-  return useSyncExternalStore(subscribeDebug, selectShowAim, serverFalse);
+  return useSyncExternalStore(subscribeDebug, selectShowAim, () => false);
 }
 
 /**
