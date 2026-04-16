@@ -3,9 +3,9 @@
   "compilerOptions": {
     "module": "CommonJS",
     "moduleResolution": "node10",
-    "ignoreDeprecations": "6.0",
     "isolatedModules": true,
     "types": ["node", "jest"],
     "jsx": "react-jsx"
-  }
+  },
+  "exclude": ["node_modules", "lib", "src/cli.ts", "src/**/__tests__", "src/react/testing", "tests"]
 }
