@@ -503,6 +503,14 @@ describe("non-TTY / agent environment login", () => {
     expect(r.stderr).toContain("deepcitation auth --key");
   });
 
+  it("shows non-interactive instructions when IS_AI_AGENT env var is set", () => {
+    // CLAUDE_CODE=1 sets IS_AI_AGENT=true in auth.ts, which canStartBrowserAuth() checks
+    const r = run(["login"], { env: { ...noAuthEnv(), CLAUDE_CODE: "1" } });
+    expect(r.exitCode).toBe(1);
+    expect(r.stderr).toContain("Browser authentication is disabled or unavailable");
+    expect(r.stderr).toContain("Get your API key");
+  });
+
   it("Cowork environment shows domain setup instructions", () => {
     const r = run(["login"], { env: { ...noAuthEnv(), CLAUDE_CODE_REMOTE: "true" } });
     expect(r.exitCode).toBe(1);

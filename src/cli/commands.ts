@@ -255,6 +255,10 @@ const ALLOWED_INDICATORS = ["icon", "dot", "none"] as const;
 const DEFAULT_API_URL = "https://api.deepcitation.com";
 
 function canStartBrowserAuth(argv: string[] = []): boolean {
+  // --browser is an explicit opt-in that starts the OAuth flow even in constrained
+  // environments. DC_NO_BROWSER still silences the execFile call inside openBrowser(),
+  // so --browser + DC_NO_BROWSER starts the callback server without opening a window
+  // (useful for headless tests that handle the redirect URL manually).
   if (argv.includes("--browser")) return true;
   if (process.env.DC_NON_INTERACTIVE || process.env.DC_NO_BROWSER || IS_AI_AGENT) return false;
   return !!process.stdin.isTTY || !!process.env.MSYSTEM;

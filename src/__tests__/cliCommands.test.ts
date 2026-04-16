@@ -1140,6 +1140,33 @@ describe("hydrate CLI command", () => {
   });
 });
 
+describe("login command — browser-auth gate", () => {
+  const origMsystem = process.env.MSYSTEM;
+
+  afterEach(() => {
+    delete process.env.DC_NO_BROWSER;
+    if (origMsystem === undefined) delete process.env.MSYSTEM;
+    else process.env.MSYSTEM = origMsystem;
+  });
+
+  it("exits with non-interactive message when DC_NO_BROWSER overrides MSYSTEM", async () => {
+    process.env.MSYSTEM = "MINGW64"; // normally allows browser auth in Git Bash
+    process.env.DC_NO_BROWSER = "1"; // DC_NO_BROWSER must override it
+    mockResolveAuth.mockReturnValue(null);
+    const errors: string[] = [];
+    const origError = console.error;
+    console.error = (...args: unknown[]) => errors.push(args.map(String).join(" "));
+    try {
+      await login([], TEST_BASE_URL);
+    } catch (e) {
+      expect(String(e)).toContain("process.exit(1)");
+    } finally {
+      console.error = origError;
+    }
+    expect(errors.join("\n")).toContain("Browser authentication is disabled or unavailable");
+  });
+});
+
 describe("login command", () => {
   beforeEach(() => {
     mockWriteCredentials.mockReturnValue("/tmp/home/credentials.json");
