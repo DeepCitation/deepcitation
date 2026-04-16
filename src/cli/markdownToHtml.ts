@@ -181,7 +181,7 @@ function wrapCitationMarkerTextSegment(text: string, sourceMatchMap?: CitationSo
  * Without `sourceMatchMap`, falls back to wrapping the last clause before [N].
  */
 export function wrapCitationMarkers(html: string, sourceMatchMap?: CitationSourceMatchMap): string {
-  const segments = html.split(/(<[^>]+>)/g);
+  const segments = splitHtmlPreservingTags(html);
   return segments
     .map(segment => {
       return segment.startsWith("<") && segment.endsWith(">")
@@ -199,6 +199,56 @@ interface Block {
   level?: number; // heading level or list nesting
   ordered?: boolean; // for lists
   language?: string; // for code blocks
+}
+
+function splitHtmlPreservingTags(html: string): string[] {
+  const segments: string[] = [];
+  let buffer = "";
+
+  for (let i = 0; i < html.length; i++) {
+    const ch = html[i] as string;
+    if (ch !== "<") {
+      buffer += ch;
+      continue;
+    }
+
+    if (buffer) {
+      segments.push(buffer);
+      buffer = "";
+    }
+
+    const start = i;
+    i++;
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+
+    while (i < html.length) {
+      const tagChar = html[i] as string;
+      if (tagChar === "'" && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote;
+      } else if (tagChar === '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote;
+      } else if (tagChar === ">" && !inSingleQuote && !inDoubleQuote) {
+        i++;
+        segments.push(html.slice(start, i));
+        break;
+      }
+      i++;
+    }
+
+    if (i >= html.length) {
+      buffer += html.slice(start);
+      break;
+    }
+
+    i--;
+  }
+
+  if (buffer) {
+    segments.push(buffer);
+  }
+
+  return segments;
 }
 
 function parseAtxHeading(line: string): { level: number; content: string } | null {

@@ -37,6 +37,13 @@ describe("wrapCitationMarkers", () => {
     expect(result).toContain('href="https://example.com"');
   });
 
+  it("preserves tags with > inside quoted attributes", () => {
+    const html = '<p><a title="3 > 2">Claim [1]</a></p>';
+    const result = wrapCitationMarkers(html);
+    expect(result).toContain('<a title="3 > 2">');
+    expect(result).toContain('<span data-cite="1">Claim</span>');
+  });
+
   it("anchors to the last clause when text contains punctuation", () => {
     const html = "<p>Overall, revenue grew significantly [1]</p>";
     const result = wrapCitationMarkers(html);

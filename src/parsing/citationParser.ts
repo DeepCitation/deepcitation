@@ -243,7 +243,17 @@ function escapeLiteralControlCharactersInJsonStrings(text: string): string {
       continue;
     }
 
-    if (ch === "\n" || ch === "\r") {
+    if (ch === "\r") {
+      if (text[i + 1] === "\n") {
+        out += "\\n";
+        i++;
+        continue;
+      }
+      out += "\\n";
+      continue;
+    }
+
+    if (ch === "\n") {
       out += "\\n";
       continue;
     }

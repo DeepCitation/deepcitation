@@ -869,17 +869,21 @@ export class DeepCitation {
     }
 
     // Performance fix: request deduplication
-    // Use getCitationKey for each citation to create a deterministic cache key
-    // Sorting ensures consistent ordering for equivalent content
-    // Selection is appended separately since getCitationKey doesn't include it
-    // Final key is hashed to prevent collisions from delimiter characters in user data
+    // Use getCitationKey for each citation to create a deterministic cache key.
+    // Sorting ensures consistent ordering for equivalent content.
+    // Include request-affecting options so different payloads do not share an in-flight promise.
+    // Final key is hashed to prevent collisions from delimiter characters in user data.
     // Note: We use Object.values, not Object.entries, because the map key (citation number)
-    // is just a display identifier - verification results depend only on citation content
+    // is just a display identifier - verification results depend only on citation content.
     const citationKeys = Object.values(citationMap)
       .map(citation => getCitationKey(citation))
       .sort()
       .join("|");
-    const rawKey = `${attachmentId}:${citationKeys}:${options?.outputImageFormat || "avif"}`;
+    const outputImageFormat = options?.outputImageFormat || "avif";
+    const resolvedEndUserId = this.resolveEndUserId(options?.endUserId);
+    const timeoutMs = options?.requestTimeoutMs;
+    const timeoutKey = Number.isFinite(timeoutMs) && timeoutMs && timeoutMs > 0 ? String(timeoutMs) : "none";
+    const rawKey = `${attachmentId}:${citationKeys}:${outputImageFormat}:${resolvedEndUserId ?? ""}:${timeoutKey}`;
     const cacheKey = sha1Hash(rawKey).slice(0, 32); // Use first 32 chars of hash
 
     // Clean expired cache entries periodically
@@ -894,27 +898,27 @@ export class DeepCitation {
       return cached.promise;
     }
 
-    const resolvedEndUserId = this.resolveEndUserId(options?.endUserId);
     this.logger.info?.("Verifying citations", { attachmentId, citationCount });
 
     // Create the fetch promise and cache it
     const fetchPromise = (async (): Promise<VerifyCitationsResponse> => {
-      const requestInit: RequestInit = {
-        method: "POST",
-        headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: {
-            attachmentId,
-            citations: citationMap,
-            outputImageFormat: options?.outputImageFormat || "avif",
-            endUserId: resolvedEndUserId,
-          },
-        }),
-      };
-      const timeoutMs = options?.requestTimeoutMs;
-      const timeout = Number.isFinite(timeoutMs) && timeoutMs && timeoutMs > 0 ? createTimeoutSignal(timeoutMs) : null;
-      if (timeout) requestInit.signal = timeout.signal;
+      let timeout: ReturnType<typeof createTimeoutSignal> | null = null;
       try {
+        const requestInit: RequestInit = {
+          method: "POST",
+          headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({
+            data: {
+              attachmentId,
+              citations: citationMap,
+              outputImageFormat,
+              endUserId: resolvedEndUserId,
+            },
+          }),
+        };
+        timeout = Number.isFinite(timeoutMs) && timeoutMs && timeoutMs > 0 ? createTimeoutSignal(timeoutMs) : null;
+        if (timeout) requestInit.signal = timeout.signal;
+
         const response = await this._fetch(`${this.apiUrl}/verifyCitations`, requestInit);
         this.checkLatestVersion(response);
         this.checkUsageWarning(response);
@@ -927,6 +931,9 @@ export class DeepCitation {
         }
 
         return normalizeVerifyResponse((await response.json()) as VerifyCitationsResponse);
+      } catch (error) {
+        this.verifyCache.delete(cacheKey);
+        throw error;
       } finally {
         timeout?.cleanup();
       }

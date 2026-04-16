@@ -1467,6 +1467,23 @@ Patient Profile:
       expect(citation.lineIds).toEqual([5, 6]);
     });
 
+    it("keeps CRLF line breaks intact when repairing JSON strings", () => {
+      const input = `Line one [1].
+
+<<<CITATION_DATA>>>
+[
+  {"id": 1, "source_context": "Line 1\r\nLine 2", "source_match": "Line 1", "page_id": "1_0", "line_ids": [1]}
+]
+<<<END_CITATION_DATA>>>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBe(1);
+      const citation = Object.values(result)[0];
+      expect(citation.sourceContext).toBe("Line 1\nLine 2");
+      expect(citation.sourceContext).not.toContain("\n\n");
+    });
+
     it("extracts citations from deferred JSON format with camelCase keys", () => {
       const input = `Camel case [1].
 
