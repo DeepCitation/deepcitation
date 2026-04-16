@@ -117,6 +117,30 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.citations[0].source_context).toContain("Line one");
   });
 
+  it("repairs literal newlines inside JSON string values", () => {
+    const response = `Multi-line content [1].
+
+${CITATION_DATA_START_DELIMITER}
+[
+  {
+    "id": 1,
+    "attachment_id": "doc789",
+    "source_context": "Line one
+Line two
+Line three",
+    "source_match": "Line two",
+    "page_id": "page_number_1_index_0"
+  }
+]
+${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseCitationData(response);
+
+    expect(result.success).toBe(true);
+    expect(result.citations.length).toBe(1);
+    expect(result.citations[0].source_context).toContain("Line one");
+  });
+
   it("handles multiple citations in single sentence", () => {
     const response = `Revenue was $1B [1] with profit of $100M [2] in Q4 [3].
 

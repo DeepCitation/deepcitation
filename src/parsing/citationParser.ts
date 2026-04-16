@@ -212,6 +212,58 @@ function parseCitationsFromJson(parsed: unknown): CitationData[] {
   return rawCitations.map(c => expandCompactKeys(c as Record<string, unknown>));
 }
 
+function escapeLiteralControlCharactersInJsonStrings(text: string): string {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i] as string;
+    if (!inString) {
+      out += ch;
+      if (ch === '"') inString = true;
+      continue;
+    }
+
+    if (escaped) {
+      out += ch;
+      escaped = false;
+      continue;
+    }
+
+    if (ch === "\\") {
+      out += ch;
+      escaped = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      out += ch;
+      inString = false;
+      continue;
+    }
+
+    if (ch === "\n" || ch === "\r") {
+      out += "\\n";
+      continue;
+    }
+
+    if (ch === "\t") {
+      out += "\\t";
+      continue;
+    }
+
+    if (ch.charCodeAt(0) < 0x20) {
+      out += `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`;
+      continue;
+    }
+
+    out += ch;
+  }
+
+  return out;
+}
+
 /**
  * Attempts to repair malformed JSON.
  * Handles common LLM output issues like:
@@ -236,6 +288,14 @@ function repairJson(jsonString: string): {
   repaired = repaired.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   if (repaired !== beforeMarkdownRemoval) {
     repairs.push("removed markdown code block markers");
+  }
+
+  // Escape literal control characters that LLMs sometimes emit inside JSON
+  // strings (especially multiline source_context/source_match values).
+  const beforeControlCharRepair = repaired;
+  repaired = escapeLiteralControlCharactersInJsonStrings(repaired);
+  if (repaired !== beforeControlCharRepair) {
+    repairs.push("escaped literal control characters");
   }
 
   // Fix invalid escape sequences inside JSON strings.

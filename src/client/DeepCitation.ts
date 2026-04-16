@@ -98,10 +98,25 @@ export async function fetchWithRetry(
     try {
       return await doFetch(url, options);
     } catch (err) {
+      if (err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError")) {
+        throw err;
+      }
       lastError = err;
     }
   }
   throw lastError;
+}
+
+function createTimeoutSignal(timeoutMs: number): { signal: AbortSignal; cleanup: () => void } {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => {
+    controller.abort(new DOMException(`Request timed out after ${timeoutMs}ms`, "TimeoutError"));
+  }, timeoutMs);
+  timeout.unref?.();
+  return {
+    signal: controller.signal,
+    cleanup: () => clearTimeout(timeout),
+  };
 }
 
 /**
@@ -884,7 +899,7 @@ export class DeepCitation {
 
     // Create the fetch promise and cache it
     const fetchPromise = (async (): Promise<VerifyCitationsResponse> => {
-      const response = await this._fetch(`${this.apiUrl}/verifyCitations`, {
+      const requestInit: RequestInit = {
         method: "POST",
         headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -895,18 +910,26 @@ export class DeepCitation {
             endUserId: resolvedEndUserId,
           },
         }),
-      });
-      this.checkLatestVersion(response);
-      this.checkUsageWarning(response);
+      };
+      const timeoutMs = options?.requestTimeoutMs;
+      const timeout = Number.isFinite(timeoutMs) && timeoutMs && timeoutMs > 0 ? createTimeoutSignal(timeoutMs) : null;
+      if (timeout) requestInit.signal = timeout.signal;
+      try {
+        const response = await this._fetch(`${this.apiUrl}/verifyCitations`, requestInit);
+        this.checkLatestVersion(response);
+        this.checkUsageWarning(response);
 
-      if (!response.ok) {
-        // Remove from cache on error so retry is possible
-        this.verifyCache.delete(cacheKey);
-        this.logger.error?.("Verification failed", { attachmentId, status: response.status });
-        throw await createApiError(response, "Verification");
+        if (!response.ok) {
+          // Remove from cache on error so retry is possible
+          this.verifyCache.delete(cacheKey);
+          this.logger.error?.("Verification failed", { attachmentId, status: response.status });
+          throw await createApiError(response, "Verification");
+        }
+
+        return normalizeVerifyResponse((await response.json()) as VerifyCitationsResponse);
+      } finally {
+        timeout?.cleanup();
       }
-
-      return normalizeVerifyResponse((await response.json()) as VerifyCitationsResponse);
     })();
 
     // Force cleanup if cache is at or approaching the limit to prevent memory leaks

@@ -115,6 +115,58 @@ export interface CitationSourceMatchMap {
   [citationId: string]: string;
 }
 
+function wrapCitationMarkerTextSegment(text: string, sourceMatchMap?: CitationSourceMatchMap): string {
+  let out = "";
+  let cursor = 0;
+  const markerRe = /\[(\d+)\]/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = markerRe.exec(text)) !== null) {
+    const markerStart = match.index;
+    const markerEnd = markerStart + match[0].length;
+    const textBefore = text.slice(cursor, markerStart);
+    const num = match[1];
+    const trimmed = textBefore.trimEnd();
+
+    if (!trimmed) {
+      out += textBefore + `<span data-cite="${num}"></span>`;
+      cursor = markerEnd;
+      continue;
+    }
+
+    const sourceMatch = sourceMatchMap?.[num];
+    if (sourceMatch) {
+      const idx = trimmed.toLowerCase().lastIndexOf(sourceMatch.toLowerCase());
+      if (idx >= 0) {
+        const before = trimmed.slice(0, idx);
+        const matched = trimmed.slice(idx, idx + sourceMatch.length);
+        const after = trimmed.slice(idx + sourceMatch.length);
+        out += before + `<span data-cite="${num}">${matched}</span>` + after;
+        cursor = markerEnd;
+        continue;
+      }
+    }
+
+    const clauseMatch = trimmed.match(/(?:[,;–—]\s*)([^,;–—]+)$/);
+    const anchor = clauseMatch ? clauseMatch[1].trim() : trimmed;
+    if (!/[a-zA-Z0-9]/.test(anchor)) {
+      out += `${textBefore}<span data-cite="${num}"></span>`;
+      cursor = markerEnd;
+      continue;
+    }
+
+    const prefix = clauseMatch
+      ? trimmed.slice(0, trimmed.length - clauseMatch[0].length) +
+        clauseMatch[0].slice(0, clauseMatch[0].length - anchor.length)
+      : "";
+
+    out += `${prefix}<span data-cite="${num}">${anchor}</span>`;
+    cursor = markerEnd;
+  }
+
+  return out + text.slice(cursor);
+}
+
 /**
  * Find [N] markers in HTML content and wrap the appropriate text fragment
  * in a <span data-cite="N">. The CDN runtime needs data-cite on inline
@@ -129,44 +181,10 @@ export interface CitationSourceMatchMap {
  * Without `sourceMatchMap`, falls back to wrapping the last clause before [N].
  */
 export function wrapCitationMarkers(html: string, sourceMatchMap?: CitationSourceMatchMap): string {
-  // Match [N] markers anywhere in text nodes. Excluding `<` and `>` keeps us from
-  // consuming HTML tag boundaries; excluding `"` keeps us out of quoted attribute values.
-  return html.replace(/([^<>"]*?)\s*\[(\d+)\]/g, (_match, textBefore: string, num: string) => {
-    const trimmed = textBefore.trimEnd();
-    if (!trimmed) return `<span data-cite="${num}"></span>`;
-
-    // ── Strategy 1: Use sourceMatch from citation data ─────────────
-    // Find the sourceMatch within the preceding text and wrap only that phrase.
-    const sourceMatch = sourceMatchMap?.[num];
-    if (sourceMatch) {
-      const idx = trimmed.toLowerCase().lastIndexOf(sourceMatch.toLowerCase());
-      if (idx >= 0) {
-        const before = trimmed.slice(0, idx);
-        const matched = trimmed.slice(idx, idx + sourceMatch.length);
-        const after = trimmed.slice(idx + sourceMatch.length);
-        return `${before}<span data-cite="${num}">${matched}</span>${after}`;
-      }
-      // sourceMatch not found in text — fall through to heuristic
-    }
-
-    // ── Strategy 2: Heuristic — last clause before [N] ───────────
-    const clauseMatch = trimmed.match(/(?:[,;–—]\s*)([^,;–—]+)$/);
-    const anchor = clauseMatch ? clauseMatch[1].trim() : trimmed;
-
-    // If the anchor is only punctuation (e.g. the [^<"] regex cut off at a
-    // literal quote in text content like Schedule "C".), emit an empty span
-    // so the CDN shows a superscript indicator instead of wrapping garbage.
-    if (!/[a-zA-Z0-9]/.test(anchor)) {
-      return `${trimmed}<span data-cite="${num}"></span>`;
-    }
-
-    const prefix = clauseMatch
-      ? trimmed.slice(0, trimmed.length - clauseMatch[0].length) +
-        clauseMatch[0].slice(0, clauseMatch[0].length - anchor.length)
-      : "";
-
-    return `${prefix}<span data-cite="${num}">${anchor}</span>`;
-  });
+  const segments = html.split(/(<[^>]+>)/g);
+  return segments
+    .map(segment => (segment.startsWith("<") && segment.endsWith(">") ? segment : wrapCitationMarkerTextSegment(segment, sourceMatchMap)))
+    .join("");
 }
 
 // ── Block-level parsing ────────────────────────────────────────────
@@ -180,7 +198,7 @@ interface Block {
 }
 
 function parseBlocks(markdown: string): Block[] {
-  const lines = markdown.split("\n");
+  const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
   const blocks: Block[] = [];
   let i = 0;
 

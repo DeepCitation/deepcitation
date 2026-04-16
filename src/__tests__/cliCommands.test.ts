@@ -903,6 +903,9 @@ describe("verify command (--citations mode)", () => {
       const { stderr } = await captureOutput(() => verify(["--citations", citPath], fmtNetErr));
 
       expect(mockVerifyAttachment).toHaveBeenCalledTimes(2);
+      for (const call of mockVerifyAttachment.mock.calls) {
+        expect(call[2]).toMatchObject({ requestTimeoutMs: 5000 });
+      }
       expect(stderr).toContain("3 citations across 2 attachment(s)");
     } finally {
       process.chdir(origCwd);

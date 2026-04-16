@@ -178,7 +178,7 @@ Options:
   --out <file>              Output path (default: {stem}-verified.html in CWD)
   --output-dir <dir>        Save HTML and verify-response.json to this directory with stable names
   --json, --keep-json       Also write {stem}-verify-response.json next to the HTML (debug/publish)
-  --no-publish              Skip the auto-upload to My Verifications. Default is to publish as private.
+  --local-only              Skip the auto-upload to My Verifications. 
   --vis, --visibility <v>   Published visibility: private | unlisted | public (default: private)
   --theme <auto|light|dark> Popover color theme (default: "auto")
   --indicator <indicator>   Indicator variant: icon, dot, none (default: "icon")
@@ -187,12 +187,12 @@ Options:
   -h, --help                Show this help message
 
 Examples:
-  deepcitation verify --md .deepcitation/draft-report.md          # auto-publishes as private
-  deepcitation verify --md report.md --claim "Did Q1 revenue exceed $4B?" --model "Claude Haiku 4.5"
+  deepcitation verify --md .deepcitation/draft-report.md 
+  deepcitation verify --md report.md --claim "Did Q1 revenue exceed $4B?" 
   deepcitation verify --md report.md --style plain
   deepcitation verify --md report.md --vis unlisted               # shareable by link
   deepcitation verify --md report.md --vis public                 # (Portal session only)
-  deepcitation verify --md report.md --no-publish                 # local-only, don't upload
+  deepcitation verify --md report.md --local-only
   deepcitation verify --html report.html --out verified.html
   deepcitation verify --prompt
   deepcitation verify --citations .deepcitation/citations-keyed.json
@@ -241,6 +241,7 @@ Examples:
 
 const ALLOWED_THEMES = ["auto", "light", "dark"] as const;
 const ALLOWED_INDICATORS = ["icon", "dot", "none"] as const;
+const VERIFY_REQUEST_TIMEOUT_MS = 5000;
 
 // ── helpers ───────────────────────────────────────────────────────
 
@@ -620,7 +621,7 @@ export async function verify(
       // Cast: CLI reads citations from JSON files as Record<string, Record<string, unknown>>,
       // but verifyAttachment expects its own typed CitationMap. The shapes match at runtime.
       groupCitations as unknown as Parameters<typeof dc.verifyAttachment>[1],
-      { outputImageFormat: imageFormat },
+      { outputImageFormat: imageFormat, requestTimeoutMs: VERIFY_REQUEST_TIMEOUT_MS },
     );
     Object.assign(merged, result.verifications);
     // Preserve per-attachment assets (pageImages, originalDownload) so downstream
@@ -1095,7 +1096,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
   // Boolean flags — filter out before parseArgs (which only handles --key value pairs).
   // --publish / --pub are no-op opt-ins kept for backwards-compat: auto-publish
-  // is now the default and only needs to be suppressed with --no-publish.
+  // is now the default and only needs to be suppressed with --local-only.
   const keepJson = normalized.includes("--json") || normalized.includes("--keep-json");
   const booleanFlags = new Set(["--json", "--keep-json"]);
   const filteredArgv = normalized.filter(a => !booleanFlags.has(a));
@@ -1283,7 +1284,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       attachmentId,
       // Cast: same as verify command — JSON-parsed citations → typed CitationMap
       groupCitations as unknown as Parameters<typeof dc.verifyAttachment>[1],
-      { outputImageFormat: imageFormat },
+      { outputImageFormat: imageFormat, requestTimeoutMs: VERIFY_REQUEST_TIMEOUT_MS },
     );
     Object.assign(merged, result.verifications);
     // Invariant: each attachmentId belongs to exactly one group, so result.attachments

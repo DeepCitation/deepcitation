@@ -1307,5 +1307,27 @@ describe("DeepCitation Client", () => {
       // Only one fetch attempt — aborted during the delay before the second attempt
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
+
+    it("does not retry when fetch rejects with AbortError", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", maxRetries: 3 });
+
+      mockFetch.mockRejectedValueOnce(new DOMException("Aborted", "AbortError"));
+
+      const blob = new Blob(["content"]);
+      await expect(client.uploadFile(blob, { filename: "test.pdf" })).rejects.toThrow("Aborted");
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not retry when fetch rejects with TimeoutError", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", maxRetries: 3 });
+
+      mockFetch.mockRejectedValueOnce(new DOMException("Request timed out after 50ms", "TimeoutError"));
+
+      const blob = new Blob(["content"]);
+      await expect(client.uploadFile(blob, { filename: "test.pdf" })).rejects.toThrow("timed out");
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
   });
 });

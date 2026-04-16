@@ -44,12 +44,10 @@ describe("wrapCitationMarkers", () => {
     expect(result).toContain("revenue grew significantly");
   });
   it("emits empty span for punctuation-only anchors", () => {
-    // Schedule "C" produces an anchor of just `"` after the regex cuts at the quote
     const html = '<p>Schedule "C" [1]</p>';
     const result = wrapCitationMarkers(html);
     expect(result).toContain('data-cite="1"');
-    // The span should have no inner text content (empty anchor)
-    expect(result).toMatch(/<span data-cite="1"><\/span>/);
+    expect(result).toContain('<span data-cite="1">Schedule "C"</span>');
   });
 });
 
@@ -105,6 +103,13 @@ describe("markdownToHtml inline formatting", () => {
 describe("markdownToHtml block parsing", () => {
   it("renders headings", () => {
     const result = markdownToHtml("# Title\n\n## Section\n\n### Sub", { style: "plain" });
+    expect(result).toContain("<h1>");
+    expect(result).toContain("<h2>");
+    expect(result).toContain("<h3>");
+  });
+
+  it("renders headings with CRLF line endings", () => {
+    const result = markdownToHtml("# Title\r\n\r\n## Section\r\n\r\n### Sub", { style: "plain" });
     expect(result).toContain("<h1>");
     expect(result).toContain("<h2>");
     expect(result).toContain("<h3>");
