@@ -904,9 +904,59 @@ describe("verify command (--citations mode)", () => {
 
       expect(mockVerifyAttachment).toHaveBeenCalledTimes(2);
       for (const call of mockVerifyAttachment.mock.calls) {
-        expect(call[2]).toMatchObject({ requestTimeoutMs: 5000 });
+        expect(call[2]).toMatchObject({ requestTimeoutMs: 10_000 });
       }
       expect(stderr).toContain("3 citations across 2 attachment(s)");
+    } finally {
+      process.chdir(origCwd);
+    }
+  });
+
+  it("does not auto-promote a display label when it has no overlap with the anchor", async () => {
+    const tmpDir = makeTmpDir();
+    const origCwd = process.cwd();
+    process.chdir(tmpDir);
+    mkdirSync(join(tmpDir, ".deepcitation"), { recursive: true });
+
+    const mdPath = join(tmpDir, "report.md");
+    const outPath = join(tmpDir, "verified.html");
+    writeFileSync(
+      mdPath,
+      [
+        "# Report",
+        "",
+        "[**Horizontal Boundaries**](cite:1)",
+        "",
+        "<<<CITATION_DATA>>>",
+        JSON.stringify([
+          {
+            id: 1,
+            attachment_id: "att-1",
+            source_context: "context",
+            source_match: "SCHEDULE “C”",
+            line_ids: [1],
+            page_id: "1_1",
+          },
+        ]),
+        "<<<END_CITATION_DATA>>>",
+        "",
+      ].join("\n"),
+    );
+
+    mockVerifyAttachment.mockResolvedValueOnce({
+      verifications: { key1: { status: "not_found" } },
+    });
+
+    try {
+      const { stderr } = await captureOutput(() => verify(["--markdown", mdPath, "--out", outPath], fmtNetErr));
+      expect(mockVerifyAttachment).toHaveBeenCalledTimes(1);
+      const citationsArg = mockVerifyAttachment.mock.calls[0]?.[1] as Record<string, Record<string, unknown>>;
+      const firstCitation = Object.values(citationsArg)[0];
+      expect(firstCitation).toBeDefined();
+      expect(firstCitation).toMatchObject({
+        sourceMatch: "SCHEDULE “C”",
+      });
+      expect(stderr).not.toContain("auto-promoted display label to anchor");
     } finally {
       process.chdir(origCwd);
     }

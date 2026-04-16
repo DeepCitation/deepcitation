@@ -183,7 +183,11 @@ function wrapCitationMarkerTextSegment(text: string, sourceMatchMap?: CitationSo
 export function wrapCitationMarkers(html: string, sourceMatchMap?: CitationSourceMatchMap): string {
   const segments = html.split(/(<[^>]+>)/g);
   return segments
-    .map(segment => (segment.startsWith("<") && segment.endsWith(">") ? segment : wrapCitationMarkerTextSegment(segment, sourceMatchMap)))
+    .map(segment => {
+      return segment.startsWith("<") && segment.endsWith(">")
+        ? segment
+        : wrapCitationMarkerTextSegment(segment, sourceMatchMap);
+    })
     .join("");
 }
 

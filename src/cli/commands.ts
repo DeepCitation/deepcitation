@@ -241,7 +241,21 @@ Examples:
 
 const ALLOWED_THEMES = ["auto", "light", "dark"] as const;
 const ALLOWED_INDICATORS = ["icon", "dot", "none"] as const;
-const VERIFY_REQUEST_TIMEOUT_MS = 5000;
+const VERIFY_REQUEST_TIMEOUT_MS = 10_000;
+
+function hasMeaningfulLabelOverlap(left: string, right: string): boolean {
+  const tokenRe = /[a-z0-9]+/g;
+  const leftTokens = new Set((left.toLowerCase().match(tokenRe) ?? []).filter(token => token.length >= 3));
+  if (leftTokens.size === 0) return false;
+
+  for (const token of right.toLowerCase().match(tokenRe) ?? []) {
+    if (token.length >= 3 && leftTokens.has(token)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 // ── helpers ───────────────────────────────────────────────────────
 
@@ -1117,14 +1131,14 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     die(`No valid <<<CITATION_DATA>>> block found in the ${src} file.`, VERIFY_HELP);
   }
 
-  // 1b. When the model picked a short bold display label that differs from
-  //     source_match, promote the bold text to anchor — it's what the reader
-  //     clicks and should drive the highlight. Mutates `parsed.citations`
-  //     before the verify API call.
+  // 1b. When the model picked a short bold display label that still overlaps
+  //     the existing source_match, promote the bold text to anchor — it's what
+  //     the reader clicks and should drive the highlight. Mutates
+  //     `parsed.citations` before the verify API call.
   {
+    const labelsById = new Map<number, Set<string>>();
     const spanRe = /<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*data-cite="(\d+)"[^>]*>([\s\S]*?)<\/\1>/g;
     let m: RegExpExecArray | null;
-    let promoted = 0;
     while ((m = safeExec(spanRe, parsed.visibleText)) !== null) {
       const id = parseInt(m[2], 10);
       // Strip nested tags in one pass. data-cite spans wrap at most a single
@@ -1140,13 +1154,24 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       visible = visible.replace(/\s+/g, " ").trim();
       if (!visible) continue;
 
-      const wordCount = visible.split(/\s+/).length;
-      if (wordCount > 4 || visible.length > 40) continue;
+      let labels = labelsById.get(id);
+      if (!labels) {
+        labels = new Set<string>();
+        labelsById.set(id, labels);
+      }
+      labels.add(visible);
+    }
 
+    let promoted = 0;
+    for (const [id, labels] of labelsById.entries()) {
+      if (labels.size !== 1) continue;
+      const [visible] = [...labels];
       const cd = parsed.citations.find(c => c.id === id);
       if (!cd) continue;
+
       const currentAnchor = (cd.source_match ?? "").trim();
-      if (currentAnchor && currentAnchor.toLowerCase() === visible.toLowerCase()) continue;
+      if (!currentAnchor || currentAnchor.toLowerCase() === visible.toLowerCase()) continue;
+      if (!hasMeaningfulLabelOverlap(currentAnchor, visible)) continue;
 
       console.error(
         `  [${id}] auto-promoted display label to anchor: "${visible}" (was "${currentAnchor.slice(0, 40)}${currentAnchor.length > 40 ? "…" : ""}")`,
