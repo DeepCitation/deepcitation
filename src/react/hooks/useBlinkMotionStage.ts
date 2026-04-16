@@ -10,6 +10,7 @@ import {
   BLINK_ROW_FAST_ENTER_TOTAL_MS,
   BLINK_ROW_FAST_EXIT_TOTAL_MS,
 } from "../constants.js";
+import { scaleDuration } from "../debug/animationDebugStore.js";
 import type { BlinkMotionStage } from "../motion/blinkAnimation.js";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion.js";
 
@@ -99,7 +100,7 @@ export function useBlinkMotionStage(
       rafRef.current = requestAnimationFrame(() => {
         setStage("enter-b");
         // Phase 2 should start only after phase 1 completes.
-        const settleDelayMs = Math.max(16, Math.min(timing.enterStepMs, timing.enterTotalMs));
+        const settleDelayMs = scaleDuration(Math.max(16, Math.min(timing.enterStepMs, timing.enterTotalMs)));
         settleTimerRef.current = setTimeout(() => {
           setStage("steady");
           settleTimerRef.current = null;
@@ -118,7 +119,7 @@ export function useBlinkMotionStage(
       setMounted(false);
       setStage("idle");
       exitTimerRef.current = null;
-    }, timing.exitMs);
+    }, scaleDuration(timing.exitMs));
 
     return clearScheduled;
   }, [active, prefersReducedMotion, timing.enterStepMs, timing.enterTotalMs, timing.exitMs]);

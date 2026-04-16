@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { getDebugSnapshot, subscribeDebug } from "../debug/animationDebugStore.js";
 
 const QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -26,5 +27,20 @@ export function usePrefersReducedMotion(): boolean {
     };
   }, []);
 
-  return prefersReduced;
+  const debugForce = useDebugForceReducedMotion();
+  return prefersReduced || debugForce;
+}
+
+function getDebugForce(): boolean {
+  return getDebugSnapshot().forceReducedMotion;
+}
+
+function getServerDebugForce(): boolean {
+  return false;
+}
+
+function useDebugForceReducedMotion(): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  // biome-ignore lint/correctness/useHookAtTopLevel: process.env.NODE_ENV is a compile-time constant.
+  return useSyncExternalStore(subscribeDebug, getDebugForce, getServerDebugForce);
 }

@@ -12,6 +12,7 @@ import {
   KEYHOLE_STRIP_HEIGHT_VAR,
   MIN_PAN_OVERFLOW_PX,
 } from "../constants.js";
+import { AimOverlay } from "../debug/AimOverlay.js";
 import { useDragToPan } from "../hooks/useDragToPan.js";
 import { useTranslation } from "../i18n.js";
 import { handleImageError } from "../imageUtils.js";
@@ -364,6 +365,14 @@ export function EvidenceKeyhole({
                 onLoad={() => setImageLoaded(true)}
                 onError={handleImageError}
               />
+              {process.env.NODE_ENV !== "production" && sourceAnchorRatio && imageFitInfo ? (
+                <AimOverlay
+                  kind="focus"
+                  label="focus-aim"
+                  x={sourceAnchorRatio.x * imageFitInfo.displayedWidth}
+                  y={sourceAnchorRatio.y * imageFitInfo.displayedHeight}
+                />
+              ) : null}
             </div>
           </div>
 

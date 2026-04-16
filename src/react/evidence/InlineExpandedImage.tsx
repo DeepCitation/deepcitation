@@ -17,6 +17,7 @@ import {
   isValidProofImageSrc,
   WHEEL_ZOOM_SENSITIVITY,
 } from "../constants.js";
+import { PageAimOverlay } from "../debug/PageAimOverlay.js";
 import { useDragToPan } from "../hooks/useDragToPan.js";
 import { applyGestureTransform, useWheelZoom, type WheelZoomAnchor } from "../hooks/useWheelZoom.js";
 import { useTranslation } from "../i18n.js";
@@ -983,6 +984,9 @@ export function InlineExpandedImage({
                 }}
                 draggable={false}
               />
+              {process.env.NODE_ENV !== "production" && imageLoaded ? (
+                <PageAimOverlay imgRef={expandedImgRef} verification={verification} />
+              ) : null}
               {imageLoaded &&
                 effectiveRenderScale &&
                 naturalWidth &&

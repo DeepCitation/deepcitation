@@ -33,6 +33,7 @@ import {
   PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
   VT_EVIDENCE_PAGE_EXPAND_MS,
 } from "./constants.js";
+import { getFrozen, registerActiveAnimation, scaleDuration } from "./debug/animationDebugStore.js";
 
 /**
  * View-transition name applied to evidence image elements (keyhole strip,
@@ -673,11 +674,14 @@ function runPageExpandGhostAnimation(
   ];
 
   // #6 — EASE_GHOST_EXPAND: deliberate departure, confident arrival.
+  const ghostDuration = scaleDuration(VT_EVIDENCE_PAGE_EXPAND_MS);
   const animation = ghost.animate(keyframes, {
-    duration: VT_EVIDENCE_PAGE_EXPAND_MS,
+    duration: ghostDuration,
     easing: EASE_GHOST_EXPAND,
     fill: "both",
   });
+  applyDebugFreeze(animation, "page-expand", ghostDuration);
+  registerActiveAnimation(animation);
 
   // Page reveal starts immediately (t=0) with a slow ease-in, reaching full
   // opacity by ~0.85 — before the ghost lands at GHOST_OFFSET_PEAK (0.92).
@@ -694,8 +698,9 @@ function runPageExpandGhostAnimation(
         { opacity: 1, offset: 0.85 },
         { opacity: 1 },
       ],
-      { duration: VT_EVIDENCE_PAGE_EXPAND_MS, easing: EASE_CONTENT_REVEAL, fill: "forwards" },
+      { duration: ghostDuration, easing: EASE_CONTENT_REVEAL, fill: "forwards" },
     );
+    applyDebugFreeze(contentAnim, "page-expand", ghostDuration);
     contentAnim.finished
       .catch(() => {})
       .finally(() => {
@@ -709,6 +714,18 @@ function runPageExpandGhostAnimation(
     .finally(() => {
       ghost.remove();
     });
+}
+
+function applyDebugFreeze(anim: Animation, kind: "page-expand" | "page-collapse", duration: number): void {
+  if (process.env.NODE_ENV === "production") return;
+  const frozen = getFrozen(kind);
+  if (frozen === null) return;
+  try {
+    anim.pause();
+    anim.currentTime = frozen * duration;
+  } catch (err) {
+    console.debug("[dc-debug] freeze failed — animation likely already settled", err);
+  }
 }
 
 function waitForPageExpandTarget(
@@ -1118,11 +1135,14 @@ function runPageCollapseGhostAnimation(
   ];
 
   // EASE_COLLAPSE: fast departure, decisive deceleration — appropriate for exits.
+  const collapseDuration = scaleDuration(PAGE_COLLAPSE_GHOST_MS);
   const animation = ghost.animate(keyframes, {
-    duration: PAGE_COLLAPSE_GHOST_MS,
+    duration: collapseDuration,
     easing: EASE_COLLAPSE,
     fill: "both",
   });
+  applyDebugFreeze(animation, "page-collapse", collapseDuration);
+  registerActiveAnimation(animation);
 
   let pendingAnimations = popoverRoot ? 2 : 1;
   const markAnimationDone = () => {
@@ -1144,8 +1164,9 @@ function runPageCollapseGhostAnimation(
         { opacity: 0.35, offset: GHOST_OFFSET_COLLAPSE_PEAK },
         { opacity: 1 },
       ],
-      { duration: PAGE_COLLAPSE_GHOST_MS, easing: EASE_CONTENT_REVEAL, fill: "forwards" },
+      { duration: collapseDuration, easing: EASE_CONTENT_REVEAL, fill: "forwards" },
     );
+    applyDebugFreeze(contentAnim, "page-collapse", collapseDuration);
     contentAnim.finished
       .catch(() => {})
       .finally(() => {

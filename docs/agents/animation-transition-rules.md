@@ -406,6 +406,48 @@ Two coordinated `Element.animate()` calls run in parallel:
 
 ---
 
+## Debug Harness (dev-only)
+
+Investigate focus↔page handoff janks with the animation debug harness. Ships zero bytes to prod — every public function in [src/react/debug/animationDebugStore.ts](../../src/react/debug/animationDebugStore.ts) early-returns under `process.env.NODE_ENV === "production"` and the harness/barrel modules are not re-exported from [src/react/index.ts](../../src/react/index.ts).
+
+### Console API (`window.__dcAnimationDebug`)
+
+Installed automatically on any dev bundle that imports `deepcitation/react`.
+
+| Method | Effect |
+|---|---|
+| `enable()` / `disable()` | Turn the debug store on/off. Other methods no-op while disabled. |
+| `setSpeed(x)` | Scale all animation durations by `1/x`. Clamped to `[0.05, 10]`. |
+| `scrub(progress, kind?)` | Freeze the next matching WAAPI animation at `progress ∈ [0, 1]`. `kind ∈ {"page-expand", "page-collapse", "vt-expand", "vt-collapse", "any"}`. |
+| `step(deltaMs)` / `pause()` / `play()` | Mutate the currently registered ghost `Animation`. |
+| `showAimOverlay(bool)` | Render crosshairs in `EvidenceKeyhole` and `InlineExpandedImage` at `resolveEvidenceSourceAnchorRatio(verification)`. |
+| `showGhostRects(bool)` | Draw source/target rect borders during ghost flight. |
+| `forceReducedMotion(bool)` | Override `usePrefersReducedMotion` globally. |
+| `snapshot()` | Return current store state. |
+
+### Harness page
+
+[src/react/testing/AnimationDebugHarness.tsx](../../src/react/testing/AnimationDebugHarness.tsx) mounts a `ControlBar` (the same store surfaced as UI) plus an interactive popover over a grid-backed 800×1600 image. To open it in a live browser:
+
+```sh
+npm run test:ct:ui
+# pin tests/playwright/specs/animationDebug.spec.tsx, then in DevTools console:
+__dcAnimationDebug.enable()
+__dcAnimationDebug.setSpeed(0.1)
+__dcAnimationDebug.showAimOverlay(true)
+__dcAnimationDebug.showGhostRects(true)
+__dcAnimationDebug.scrub(0.65, "page-expand")  // freeze mid-handoff
+__dcAnimationDebug.step(16)                     // advance one 60fps frame
+```
+
+The focus-view crosshair (orange) and page-view crosshair (cyan) should coincide pixel-wise when the aim math agrees. Drift during a "steady" frame at slow-mo is the signature of a handoff bug.
+
+### Size budget gate
+
+After touching any debug-store call site, run `npm run build && npm run size`. The `lib/react/index.js` 73 kB cap must hold. Growth >200 bytes means a `process.env.NODE_ENV` gate is leaking and must be tightened before merging.
+
+---
+
 ## Anti-Patterns
 
 - **No `EASE_EXPAND` on travel > 200px.** Absolute overshoot must stay ≤ 4px. VT morphs, page transitions, and height morphs exceed this — use `EASE_COLLAPSE` or `BLINK_ENTER_EASING`.
