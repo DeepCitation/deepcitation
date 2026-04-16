@@ -118,7 +118,7 @@ describe("text", () => {
     expect(code).toBe(1);
   });
 
-  it("rejects --format json (use prepare --text)", () => {
+  it("rejects --format json (use prepare default JSON output)", () => {
     const prep = writePrepareFile(tmp, 1);
     const code = runAndCatchExit([prep, "-f", "json"]);
     expect(code).toBe(1);

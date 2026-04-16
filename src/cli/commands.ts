@@ -44,7 +44,6 @@ import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
 import { detectProxyUrl } from "../utils/proxy.js";
 import { safeExec, safeReplace, safeTest } from "../utils/regexSafety.js";
-import { cleanDeepTextPage } from "../utils/textCleanup.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import {
@@ -60,7 +59,6 @@ import { die, extractApiKey, isValidApiKeyFormat, normalizeShortFlags, parseArgs
 import { findSummaryForMarkdown, hydrateCitations, parseSummaryToLineMap } from "./hydrate.js";
 import { generateReviewVariants, markdownToHtml, type ReportStyle } from "./markdownToHtml.js";
 import { createCoworkFetch, createProxyFetch } from "./proxy.js";
-import type { TextFormat } from "./textRender.js";
 import { applyLineIds, parseFormatMode, parseLineIdsMode, renderTextStream, resolvePageSpec } from "./textRender.js";
 
 // Re-export so cli.ts and tests can import from the single commands module
@@ -118,23 +116,17 @@ Examples:
 export const PREPARE_HELP = `Usage: deepcitation prepare <file-or-url> [options]
 
 Prepare a file or URL for citation verification. Uploads the source to the
-DeepCitation API and saves the response JSON (attachmentId + deepTextPages).
+DeepCitation API and prints the prepared output to stdout by default.
 
 Arguments:
   <file-or-url>             Local file path or URL to prepare
 
 Options:
-  --out, -o <file>          Output path (default: .deepcitation/prepare-{name}.json
-                            for JSON mode, .deepcitation/{name}.txt for --txt mode)
-  --text                    Print cleaned {attachmentId, deepTextPages} JSON to stdout.
-                            Backward-compatible default: strips <line id> / <page_number>
-                            tags unless --line-ids is also passed.
-  --txt                     Write tagged text to .deepcitation/{name}.txt (LLM default).
-                            Equivalent to --format txt with default line-id sampling.
+  --out, -o <file>          Write output to file instead of stdout
   --format, -f <fmt>        Output format override: "json" | "txt" | "plain"
-                            - json:  {attachmentId, deepTextPages} JSON
+                            - json:  {attachmentId, metadata, deepTextPages} JSON
                             - txt:   raw deepTextPages with <page_number_N_index_I> and
-                                     <line id="K"> tags (what citation authoring wants)
+                                     <line id="K"> tags
                             - plain: page text with all tags stripped, pages joined by "\\n\\n"
   --line-ids, -l <mode>     Line-ID tag sampling: "default" | "none" | "every=N"
                             - default: every-5 + first/last (server default)
@@ -150,11 +142,11 @@ Options:
 
 Examples:
   deepcitation prepare report.pdf
-  deepcitation prepare report.pdf --txt                   # LLM default: tagged text to .txt file
-  deepcitation prepare report.pdf --txt -p 1-10           # only first 10 pages
-  deepcitation prepare report.pdf --text                  # back-compat: cleaned JSON to stdout
-  deepcitation prepare report.pdf --text -f txt           # stdout: tagged text instead of JSON
-  deepcitation prepare https://example.com/article --txt
+  deepcitation prepare report.pdf --out .deepcitation/prepare-report.json
+  deepcitation prepare report.pdf --format txt            # prompt-ready tagged text to stdout
+  deepcitation prepare report.pdf --format txt -p 1-10    # only first 10 pages
+  deepcitation prepare report.pdf --format plain
+  deepcitation prepare https://example.com/article --format txt
 `;
 
 export const VERIFY_HELP = `Usage: deepcitation verify [options]
@@ -253,6 +245,36 @@ const ALLOWED_INDICATORS = ["icon", "dot", "none"] as const;
 // ── helpers ───────────────────────────────────────────────────────
 
 const DEFAULT_API_URL = "https://api.deepcitation.com";
+const PREPARE_VALUE_FLAGS = new Set(["--out", "--format", "--line-ids", "--pages"]);
+
+function findPrepareSource(argv: string[]): string | undefined {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (!arg) continue;
+    if (PREPARE_VALUE_FLAGS.has(arg)) {
+      i++;
+      continue;
+    }
+    if (!arg.startsWith("-")) return arg;
+  }
+  return undefined;
+}
+
+function prepareMigrationError(flag: string): never {
+  die(
+    `${flag} is no longer supported by prepare. ` +
+      `Use the default JSON output, --format txt, --format plain, and/or --out <file>.`,
+    PREPARE_HELP,
+  );
+}
+
+function writePrepareFile(outPath: string, body: string): void {
+  const parent = dirname(outPath);
+  if (!existsSync(parent)) mkdirSync(parent, { recursive: true });
+  writeFileSync(outPath, body); // lgtm[js/http-to-file-access]
+  console.error(`  Saved: ${outPath}`);
+  console.log(outPath);
+}
 
 export function canStartBrowserAuth(argv: string[] = []): boolean {
   // --browser is an explicit opt-in that starts the OAuth flow even in constrained
@@ -438,26 +460,22 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
 
   // Extract boolean flags before parseArgs (which only handles --key value pairs)
   const unsafeFast = normalized.includes("--unsafe-fast");
-  const textFlag = normalized.includes("--text") || normalized.includes("--summary");
-  const txtFlag = normalized.includes("--txt");
   const skipCache = normalized.includes("--skip-cache");
-  const booleans = new Set(["--unsafe-fast", "--text", "--summary", "--skip-cache", "--txt"]);
+  for (const removedFlag of ["--text", "--txt", "--summary"]) {
+    if (normalized.includes(removedFlag)) prepareMigrationError(removedFlag);
+  }
+  const booleans = new Set(["--unsafe-fast", "--skip-cache"]);
   const filteredArgv = normalized.filter(a => !booleans.has(a));
 
   const args = parseArgs(filteredArgv, PREPARE_HELP);
 
-  // Positional argument: first non-flag token.
-  const positional = filteredArgv.find(a => !a.startsWith("--"));
+  // Positional argument: first non-flag token that is not a flag value.
+  const positional = findPrepareSource(filteredArgv);
   if (!positional) die("A file path or URL is required", PREPARE_HELP);
 
   // Validate format + line-id flags up-front so bad input fails before the API call.
   const lineIdsMode = parseLineIdsMode(args["line-ids"], PREPARE_HELP);
-  const fallbackFormat: TextFormat = txtFlag ? "txt" : "json";
-  const format = parseFormatMode(args.format, fallbackFormat, PREPARE_HELP);
-
-  if (txtFlag && format === "json") {
-    die("--txt conflicts with --format json; drop --txt or pass --format txt/plain", PREPARE_HELP);
-  }
+  const format = parseFormatMode(args.format, "json", PREPARE_HELP);
 
   const { apiKey } = await requireAuth();
   const dc = await createClient(apiKey);
@@ -468,16 +486,13 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   }
 
   let result;
-  let label: string;
 
   if (isUrl) {
-    label = new URL(positional).hostname.replace(/^www\./, "");
     console.error(unsafeFast ? `Preparing URL (fast mode)...` : `Preparing URL (this may take ~30s)...`);
     result = await dc.prepareUrl({ url: positional, unsafeFastUrlOutput: unsafeFast, skipCache });
   } else {
     const filePath = resolve(positional);
     if (!existsSync(filePath)) die(`File not found: ${positional}`, PREPARE_HELP);
-    label = basename(filePath).replace(/\.[^.]+$/, "");
     console.error(`Preparing file: ${basename(filePath)}...`);
     const buffer = readFileSync(filePath);
     result = await dc.uploadFile(buffer, { filename: basename(filePath) });
@@ -486,61 +501,35 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   const pickedIndices = resolvePageSpec(args.pages, result.deepTextPages.length, PREPARE_HELP);
   const selectedPages = pickedIndices.map(i => result.deepTextPages[i] as string);
 
-  const outDir = resolve(".deepcitation");
-  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
-
-  // --txt mode: write tagged text to a .txt file (LLM default).
-  if (txtFlag) {
-    const txtPath = resolve(args.out ?? `.deepcitation/${label}.txt`);
-    const body = renderTextStream(selectedPages, format === "json" ? "txt" : format, lineIdsMode);
-    writeFileSync(txtPath, body); // lgtm[js/http-to-file-access]
-    console.error(`  Attachment ID: ${sanitizeForLog(result.attachmentId)}`);
-    console.error(
-      `  Pages: ${pickedIndices.length}${pickedIndices.length !== result.metadata.pageCount ? ` / ${result.metadata.pageCount}` : ""}`,
-    );
-    console.error(`  Text: ${Math.round(result.metadata.textByteSize / 1024)}KB`);
-    if (result.processingTimeMs) {
-      console.error(`  Time: ${(result.processingTimeMs / 1000).toFixed(1)}s`);
-    }
-    console.error(`  Saved: ${txtPath}`);
-    console.log(txtPath);
-    return;
-  }
-
-  // Default path: write the full prepare response as JSON to disk.
-  const outPath = resolve(args.out ?? `.deepcitation/prepare-${label}.json`);
-  writeFileSync(outPath, JSON.stringify(result, null, 2)); // lgtm[js/http-to-file-access]
+  const body =
+    format === "json"
+      ? JSON.stringify(
+          {
+            attachmentId: result.attachmentId,
+            metadata: result.metadata,
+            deepTextPages: selectedPages.map(page => applyLineIds(page, lineIdsMode)),
+          },
+          null,
+          2,
+        )
+      : renderTextStream(selectedPages, format, lineIdsMode);
 
   console.error(`  Attachment ID: ${sanitizeForLog(result.attachmentId)}`);
-  console.error(`  Pages: ${result.metadata.pageCount}`);
+  console.error(
+    `  Pages: ${pickedIndices.length}${pickedIndices.length !== result.metadata.pageCount ? ` / ${result.metadata.pageCount}` : ""}`,
+  );
   console.error(`  Text: ${Math.round(result.metadata.textByteSize / 1024)}KB`);
   if (result.processingTimeMs) {
     console.error(`  Time: ${(result.processingTimeMs / 1000).toFixed(1)}s`);
   }
-  console.error(`  Saved: ${outPath}`);
 
-  if (textFlag) {
-    if (format === "txt" || format === "plain") {
-      // Stream tagged or plain text to stdout instead of JSON.
-      process.stdout.write(renderTextStream(selectedPages, format, lineIdsMode));
-      process.stdout.write("\n");
-      return;
-    }
-    // json format — back-compat path. When no --line-ids flag is passed, strip tags
-    // (current behavior). When --line-ids is explicit, honor it.
-    const pagesForJson =
-      args["line-ids"] === undefined
-        ? selectedPages.map(cleanDeepTextPage)
-        : selectedPages.map(p => applyLineIds(p, lineIdsMode));
-    console.log(
-      JSON.stringify({
-        attachmentId: result.attachmentId,
-        deepTextPages: pagesForJson,
-      }),
-    );
-  } else {
-    console.log(outPath);
+  if (args.out) {
+    writePrepareFile(resolve(args.out), body);
+    return;
   }
+
+  process.stdout.write(body);
+  if (!body.endsWith("\n")) process.stdout.write("\n");
 }
 
 export async function verify(

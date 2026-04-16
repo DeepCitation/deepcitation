@@ -21,7 +21,7 @@ no network, no auth, no re-upload. Emits to stdout by default.
 
 Arguments:
   <prepare-file.json>        Path to the prepare-<name>.json written by
-                             \`deepcitation prepare <file>\`.
+                             \`deepcitation prepare <file> --out <path>\`.
 
 Options:
   -p, --pages <spec>         Page spec: "1-5,10" | "first=10" | "last=10" | "all"
@@ -48,7 +48,7 @@ export function text(argv: string[]): void {
 
   const format = parseFormatMode(args.format, "txt", TEXT_HELP);
   if (format === "json") {
-    die("--format json is not supported by text (use prepare --text instead)", TEXT_HELP);
+    die("--format json is not supported by text (use prepare default JSON output instead)", TEXT_HELP);
   }
   const lineIdsMode = parseLineIdsMode(args["line-ids"], TEXT_HELP);
 

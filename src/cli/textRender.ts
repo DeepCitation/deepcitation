@@ -1,5 +1,5 @@
 /**
- * Deterministic text rendering primitives shared by `prepare --txt`,
+ * Deterministic text rendering primitives shared by `prepare`,
  * `slice`, and `text` subcommands.
  *
  * Everything here is a pure function over strings — no filesystem, no network,
@@ -193,7 +193,7 @@ export function applyLineIds(page: string, mode: LineIdsMode): string {
  *
  * - `txt` preserves `<page_number_...>` wrappers and `<line id>` tags (subject
  *   to `lineIds` mode), joining pages with `\n`. This is the LLM-default
- *   output for `prepare --txt` and `slice`.
+ *   output for `prepare`, `text`, and `slice`.
  * - `plain` strips both page wrappers and line tags via `cleanDeepTextPage`,
  *   then joins pages with a blank-line separator so prose stays readable.
  */
