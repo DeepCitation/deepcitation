@@ -58,6 +58,7 @@ export function AnimationDebugHarness(): React.ReactElement {
 
   const citation = useMemo<Citation>(
     () => ({
+      type: "document",
       attachmentId: HARNESS_ATTACHMENT_ID,
       citationNumber: 1,
       sourceMatch: "Line 8",
