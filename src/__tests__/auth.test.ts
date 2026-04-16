@@ -1,5 +1,7 @@
 import * as childProcess from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+
+jest.mock("node:child_process");
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -376,11 +378,10 @@ describe("sourceLabel", () => {
 // ── openBrowser ────────────────────────────────────────────────────
 
 describe("openBrowser", () => {
-  let execFileSpy: ReturnType<typeof jest.spyOn>;
   const origPlatformDesc = Object.getOwnPropertyDescriptor(process, "platform");
 
   afterEach(() => {
-    execFileSpy.mockRestore();
+    jest.clearAllMocks();
     if (origPlatformDesc) {
       Object.defineProperty(process, "platform", origPlatformDesc);
     }
@@ -394,43 +395,42 @@ describe("openBrowser", () => {
     // Security: explorer.exe opens the URL as a file association without invoking
     // a shell parser. cmd.exe /c start would interpret & as a command separator,
     // allowing a URL like https://x.com?a=1&calc.exe to execute two commands.
-    execFileSpy = jest
-      .spyOn(childProcess, "execFile")
-      .mockImplementation(() => ({}) as ReturnType<typeof childProcess.execFile>);
     setPlatform("win32");
 
     openBrowser("https://deepcitation.com/auth?token=abc&nonce=xyz");
 
-    expect(execFileSpy).toHaveBeenCalledTimes(1);
-    expect(execFileSpy).toHaveBeenCalledWith(
+    const execFileMock = jest.mocked(childProcess.execFile);
+    expect(execFileMock).toHaveBeenCalledTimes(1);
+    expect(execFileMock).toHaveBeenCalledWith(
       "explorer.exe",
       ["https://deepcitation.com/auth?token=abc&nonce=xyz"],
       expect.any(Function),
     );
     // Must NOT use cmd.exe — that would introduce a shell injection vector
-    const firstCall = execFileSpy.mock.calls[0] as string[];
-    expect(firstCall[0]).not.toBe("cmd.exe");
+    expect(execFileMock.mock.calls[0][0]).not.toBe("cmd.exe");
   });
 
   it("uses open on macOS", () => {
-    execFileSpy = jest
-      .spyOn(childProcess, "execFile")
-      .mockImplementation(() => ({}) as ReturnType<typeof childProcess.execFile>);
     setPlatform("darwin");
 
     openBrowser("https://deepcitation.com");
 
-    expect(execFileSpy).toHaveBeenCalledWith("open", ["https://deepcitation.com"], expect.any(Function));
+    expect(jest.mocked(childProcess.execFile)).toHaveBeenCalledWith(
+      "open",
+      ["https://deepcitation.com"],
+      expect.any(Function),
+    );
   });
 
   it("uses wslview on Linux", () => {
-    execFileSpy = jest
-      .spyOn(childProcess, "execFile")
-      .mockImplementation(() => ({}) as ReturnType<typeof childProcess.execFile>);
     setPlatform("linux");
 
     openBrowser("https://deepcitation.com");
 
-    expect(execFileSpy).toHaveBeenCalledWith("wslview", ["https://deepcitation.com"], expect.any(Function));
+    expect(jest.mocked(childProcess.execFile)).toHaveBeenCalledWith(
+      "wslview",
+      ["https://deepcitation.com"],
+      expect.any(Function),
+    );
   });
 });
