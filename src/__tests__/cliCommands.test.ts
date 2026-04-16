@@ -875,6 +875,12 @@ describe("verify command (--citations mode)", () => {
     await expect(captureOutput(() => verify(["--citations", citPath], fmtNetErr))).rejects.toThrow("process.exit(1)");
   });
 
+  it("rejects deprecated --no-publish and directs callers to --local-only", async () => {
+    await expect(captureOutput(() => verify(["--no-publish"], fmtNetErr))).rejects.toThrow(
+      "process.exit(1)",
+    );
+  });
+
   it("verifies citations grouped by attachmentId", async () => {
     const tmpDir = makeTmpDir();
     const origCwd = process.cwd();

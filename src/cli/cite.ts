@@ -116,7 +116,7 @@ export function extractMarkersFromBody(body: string): BodyMarker[] {
       if (existing.claimText !== label && !(existing.claimTextVariants?.includes(label) ?? false)) {
         console.error(
           `  Warning: cite:${id} reused with different label — ` +
-            `"${sanitizeForLog(existing.claimText)}" (used) vs "${sanitizeForLog(label)}" (ignored). ` +
+            `"${sanitizeForLog(existing.claimText)}" (used) vs "${sanitizeForLog(label)}" (stored as variant). ` +
             `Each distinct claim must use a unique ID.`,
         );
         existing.claimTextVariants ??= [];
@@ -147,7 +147,7 @@ export function extractMarkersFromBody(body: string): BodyMarker[] {
         if (existing.claimText !== label && !(existing.claimTextVariants?.includes(label) ?? false)) {
           console.error(
             `  Warning: [${id}] reused with different label — ` +
-              `"${sanitizeForLog(existing.claimText)}" (used) vs "${sanitizeForLog(label)}" (ignored). ` +
+              `"${sanitizeForLog(existing.claimText)}" (used) vs "${sanitizeForLog(label)}" (stored as variant). ` +
               `Each distinct claim must use a unique ID.`,
           );
           existing.claimTextVariants ??= [];

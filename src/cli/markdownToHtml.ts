@@ -218,30 +218,27 @@ function splitHtmlPreservingTags(html: string): string[] {
     }
 
     const start = i;
-    i++;
     let inSingleQuote = false;
     let inDoubleQuote = false;
+    let closed = false;
 
-    while (i < html.length) {
+    for (i = i + 1; i < html.length; i++) {
       const tagChar = html[i] as string;
       if (tagChar === "'" && !inDoubleQuote) {
         inSingleQuote = !inSingleQuote;
       } else if (tagChar === '"' && !inSingleQuote) {
         inDoubleQuote = !inDoubleQuote;
       } else if (tagChar === ">" && !inSingleQuote && !inDoubleQuote) {
-        i++;
-        segments.push(html.slice(start, i));
+        segments.push(html.slice(start, i + 1));
+        closed = true;
         break;
       }
-      i++;
     }
 
-    if (i >= html.length) {
+    if (!closed) {
       buffer += html.slice(start);
       break;
     }
-
-    i--;
   }
 
   if (buffer) {

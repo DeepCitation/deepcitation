@@ -553,6 +553,12 @@ export async function verify(
   resolveSpecPath?: () => string | null,
 ) {
   argv = normalizeShortFlags(argv);
+  if (argv.includes("--no-publish")) {
+    die(
+      "--no-publish is no longer supported. Use --local-only to skip auto-upload to My Verifications.",
+      VERIFY_HELP,
+    );
+  }
   // Handle --prompt before parseArgs (it's a boolean flag, not a key-value pair)
   if (argv.includes("--prompt")) {
     if (resolveSpecPath) {
