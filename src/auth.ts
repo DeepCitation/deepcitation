@@ -180,7 +180,10 @@ export function openBrowser(url: string): void {
   if (platform === "darwin") {
     execFile("open", [url], noop);
   } else if (platform === "win32") {
-    execFile("cmd.exe", ["/c", "start", "", url], noop);
+    // explorer.exe opens URLs without invoking a shell parser.
+    // cmd.exe /c start interprets & as a command separator even via execFile,
+    // allowing a URL like https://x.com?a=1&calc.exe to run two commands.
+    execFile("explorer.exe", [url], noop);
   } else {
     // Linux / WSL — try wslview first (WSL helper), fall back to xdg-open
     execFile("wslview", [url], err => {

@@ -1,18 +1,22 @@
+import * as childProcess from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 
 import {
   type CallbackPayload,
   type Credentials,
   generateNonce,
   maskKey,
+  openBrowser,
   resolveAuth,
   sourceLabel,
   startCallbackServer,
 } from "../auth.js";
+
+jest.mock("node:child_process");
 
 /** Make an HTTP request using node:http (bypasses happy-dom's same-origin policy) */
 function req(
@@ -367,6 +371,66 @@ describe("sourceLabel", () => {
   it("returns path for credentials source", () => {
     expect(sourceLabel({ kind: "credentials", path: "/home/user/.deepcitation/credentials.json" })).toBe(
       "/home/user/.deepcitation/credentials.json",
+    );
+  });
+});
+
+// ── openBrowser ────────────────────────────────────────────────────
+
+describe("openBrowser", () => {
+  const origPlatformDesc = Object.getOwnPropertyDescriptor(process, "platform");
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    if (origPlatformDesc) {
+      Object.defineProperty(process, "platform", origPlatformDesc);
+    }
+  });
+
+  function setPlatform(value: string) {
+    Object.defineProperty(process, "platform", { value, configurable: true });
+  }
+
+  it("uses explorer.exe on Windows (no shell interpreter)", () => {
+    // Security: explorer.exe opens the URL as a file association without invoking
+    // a shell parser. cmd.exe /c start would interpret & as a command separator,
+    // allowing a URL like https://x.com?a=1&calc.exe to execute two commands.
+    setPlatform("win32");
+
+    openBrowser("https://deepcitation.com/auth?token=abc&nonce=xyz");
+
+    const execFileMock = jest.mocked(childProcess.execFile);
+    expect(execFileMock).toHaveBeenCalledTimes(1);
+    expect(execFileMock).toHaveBeenCalledWith(
+      "explorer.exe",
+      ["https://deepcitation.com/auth?token=abc&nonce=xyz"],
+      expect.any(Function),
+    );
+    // Must NOT use cmd.exe — that would introduce a shell injection vector
+    expect(execFileMock.mock.calls[0][0]).not.toBe("cmd.exe");
+  });
+
+  it("uses open on macOS", () => {
+    setPlatform("darwin");
+
+    openBrowser("https://deepcitation.com");
+
+    expect(jest.mocked(childProcess.execFile)).toHaveBeenCalledWith(
+      "open",
+      ["https://deepcitation.com"],
+      expect.any(Function),
+    );
+  });
+
+  it("uses wslview on Linux", () => {
+    setPlatform("linux");
+
+    openBrowser("https://deepcitation.com");
+
+    expect(jest.mocked(childProcess.execFile)).toHaveBeenCalledWith(
+      "wslview",
+      ["https://deepcitation.com"],
+      expect.any(Function),
     );
   });
 });
