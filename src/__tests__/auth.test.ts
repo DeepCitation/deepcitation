@@ -1,14 +1,16 @@
+import * as childProcess from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 
 import {
   type CallbackPayload,
   type Credentials,
   generateNonce,
   maskKey,
+  openBrowser,
   resolveAuth,
   sourceLabel,
   startCallbackServer,
@@ -368,5 +370,67 @@ describe("sourceLabel", () => {
     expect(sourceLabel({ kind: "credentials", path: "/home/user/.deepcitation/credentials.json" })).toBe(
       "/home/user/.deepcitation/credentials.json",
     );
+  });
+});
+
+// ── openBrowser ────────────────────────────────────────────────────
+
+describe("openBrowser", () => {
+  let execFileSpy: ReturnType<typeof jest.spyOn>;
+  const origPlatformDesc = Object.getOwnPropertyDescriptor(process, "platform");
+
+  afterEach(() => {
+    execFileSpy.mockRestore();
+    if (origPlatformDesc) {
+      Object.defineProperty(process, "platform", origPlatformDesc);
+    }
+  });
+
+  function setPlatform(value: string) {
+    Object.defineProperty(process, "platform", { value, configurable: true });
+  }
+
+  it("uses explorer.exe on Windows (no shell interpreter)", () => {
+    // Security: explorer.exe opens the URL as a file association without invoking
+    // a shell parser. cmd.exe /c start would interpret & as a command separator,
+    // allowing a URL like https://x.com?a=1&calc.exe to execute two commands.
+    execFileSpy = jest
+      .spyOn(childProcess, "execFile")
+      .mockImplementation(() => ({}) as ReturnType<typeof childProcess.execFile>);
+    setPlatform("win32");
+
+    openBrowser("https://deepcitation.com/auth?token=abc&nonce=xyz");
+
+    expect(execFileSpy).toHaveBeenCalledTimes(1);
+    expect(execFileSpy).toHaveBeenCalledWith(
+      "explorer.exe",
+      ["https://deepcitation.com/auth?token=abc&nonce=xyz"],
+      expect.any(Function),
+    );
+    // Must NOT use cmd.exe — that would introduce a shell injection vector
+    const firstCall = execFileSpy.mock.calls[0] as string[];
+    expect(firstCall[0]).not.toBe("cmd.exe");
+  });
+
+  it("uses open on macOS", () => {
+    execFileSpy = jest
+      .spyOn(childProcess, "execFile")
+      .mockImplementation(() => ({}) as ReturnType<typeof childProcess.execFile>);
+    setPlatform("darwin");
+
+    openBrowser("https://deepcitation.com");
+
+    expect(execFileSpy).toHaveBeenCalledWith("open", ["https://deepcitation.com"], expect.any(Function));
+  });
+
+  it("uses wslview on Linux", () => {
+    execFileSpy = jest
+      .spyOn(childProcess, "execFile")
+      .mockImplementation(() => ({}) as ReturnType<typeof childProcess.execFile>);
+    setPlatform("linux");
+
+    openBrowser("https://deepcitation.com");
+
+    expect(execFileSpy).toHaveBeenCalledWith("wslview", ["https://deepcitation.com"], expect.any(Function));
   });
 });

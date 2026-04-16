@@ -1609,12 +1609,18 @@ export function logout() {
     case "credentials":
       if (deleteCredentials()) console.log(`Logged out. Credentials removed from ${auth.source.path}`);
       break;
-    case "dotenv":
-      console.log(`API key is stored in ${auth.source.path}.`);
-      console.log("Remove the DEEPCITATION_API_KEY line from that file to log out.");
-      // Also clean up credentials.json if it exists
+    case "dotenv": {
+      try {
+        const content = readFileSync(auth.source.path, "utf-8");
+        const updated = content.replace(/^DEEPCITATION_API_KEY[^\n]*\n?/m, "");
+        writeFileSync(auth.source.path, updated);
+        console.log(`Logged out. Removed DEEPCITATION_API_KEY from ${auth.source.path}.`);
+      } catch {
+        console.log(`Could not modify ${auth.source.path}. Remove the DEEPCITATION_API_KEY line manually.`);
+      }
       deleteCredentials();
       break;
+    }
     case "env-var":
       console.log("API key is set via the DEEPCITATION_API_KEY environment variable.");
       console.log("Unset it to log out: unset DEEPCITATION_API_KEY");
