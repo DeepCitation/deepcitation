@@ -1156,9 +1156,7 @@ describe("login command — browser-auth gate", () => {
     mockResolveAuth.mockReturnValue(null);
     // process.exit is mocked globally in beforeAll above — use rejects.toThrow so
     // the dependency is visible here and the test doesn't silently pass if the mock moves.
-    const { stderr } = await captureOutput(() =>
-      expect(login([], TEST_BASE_URL)).rejects.toThrow("process.exit(1)"),
-    );
+    const { stderr } = await captureOutput(() => expect(login([], TEST_BASE_URL)).rejects.toThrow("process.exit(1)"));
     expect(stderr).toContain("Browser authentication is disabled or unavailable");
   });
 });
