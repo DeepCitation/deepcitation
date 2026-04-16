@@ -1,5 +1,3 @@
-jest.mock("node:child_process");
-
 import * as childProcess from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
@@ -17,6 +15,8 @@ import {
   sourceLabel,
   startCallbackServer,
 } from "../auth.js";
+
+jest.mock("node:child_process");
 
 /** Make an HTTP request using node:http (bypasses happy-dom's same-origin policy) */
 function req(
