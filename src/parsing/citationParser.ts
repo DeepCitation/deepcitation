@@ -409,14 +409,16 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
   let citations: CitationData[] = [];
   const citationMap = new Map<number, CitationData>();
 
-  // Empty jsonString can mean two things:
-  //   1. No end delimiter and no content — the output was truncated right at the
-  //      start delimiter (common token-limit cutoff).
-  //   2. End delimiter is present but block is empty — upstream mistake
-  //      (unfilled template placeholder, etc.).
-  // In both cases, treat this as a recoverable no-citations result so callers
-  // can fall back to body markers instead of hard-failing on the block itself.
   if (!jsonString) {
+    if (endIndex !== -1) {
+      return {
+        visibleText,
+        citations: [],
+        citationMap: new Map(),
+        success: false,
+        error: "Empty <<<CITATION_DATA>>> block",
+      };
+    }
     return {
       visibleText,
       citations: [],

@@ -1292,6 +1292,18 @@ describe("getAllCitationsFromLlmOutput", () => {
   });
 
   describe("deferred JSON <<<CITATION_DATA>>> format", () => {
+    it("treats an explicit empty block as a parse error", () => {
+      const input = `Text before.
+
+<<<CITATION_DATA>>>
+
+<<<END_CITATION_DATA>>>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(result).toEqual({});
+    });
+
     it("extracts citations from exact user failing scenario with 14 citations", () => {
       // This is the EXACT failing scenario from the user
       const input = `Here's a summary of the medical document for John Doe:
