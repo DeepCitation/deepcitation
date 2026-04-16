@@ -10,7 +10,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { parseCitationData } from "../parsing/citationParser.js";
+import { hasWhitespaceOnlyCitationBlock, parseCitationData } from "../parsing/citationParser.js";
 import type { CitationData } from "../prompts/citationPrompts.js";
 import { CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
@@ -132,6 +132,15 @@ function runChecks(content: string): Finding[] {
         message: "body contains citation markers but has no <<<CITATION_DATA>>> block",
       });
     }
+    return findings;
+  }
+
+  if (hasWhitespaceOnlyCitationBlock(content)) {
+    findings.push({
+      severity: "ERR",
+      rule: "parse",
+      message: "empty <<<CITATION_DATA>>> block",
+    });
     return findings;
   }
 

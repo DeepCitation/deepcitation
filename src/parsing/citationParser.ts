@@ -88,6 +88,36 @@ const CITATION_LINK_RE = /\[([^\][]+)\]\(cite:(\d+)\)/g;
 const CITATION_DATA_END_DELIMITER_VARIANTS = [CITATION_DATA_END_DELIMITER, "<<</CITATION_DATA>>>"] as const;
 
 /**
+ * Returns true when a <<<CITATION_DATA>>> block exists but contains only
+ * whitespace between the delimiters.
+ */
+export function hasWhitespaceOnlyCitationBlock(llmResponse: string): boolean {
+  if (!llmResponse || typeof llmResponse !== "string") {
+    return false;
+  }
+
+  const startIndex = llmResponse.indexOf(CITATION_DATA_START_DELIMITER);
+  if (startIndex === -1) {
+    return false;
+  }
+
+  let endIndex = -1;
+  for (const delimiter of CITATION_DATA_END_DELIMITER_VARIANTS) {
+    const idx = llmResponse.indexOf(delimiter, startIndex);
+    if (idx !== -1 && (endIndex === -1 || idx < endIndex)) {
+      endIndex = idx;
+    }
+  }
+
+  if (endIndex === -1) {
+    return false;
+  }
+
+  const jsonStartIndex = startIndex + CITATION_DATA_START_DELIMITER.length;
+  return llmResponse.substring(jsonStartIndex, endIndex).trim().length === 0;
+}
+
+/**
  * Type guard to validate that an object has the required CitationData structure.
  * Ensures at minimum the id field is present and is a number.
  */
@@ -410,15 +440,6 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
   const citationMap = new Map<number, CitationData>();
 
   if (!jsonString) {
-    if (endIndex !== -1) {
-      return {
-        visibleText,
-        citations: [],
-        citationMap: new Map(),
-        success: false,
-        error: "Empty <<<CITATION_DATA>>> block",
-      };
-    }
     return {
       visibleText,
       citations: [],
