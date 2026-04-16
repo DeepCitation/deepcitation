@@ -39,6 +39,14 @@ describe("extractMarkersFromBody", () => {
     expect(markers[0].claimText).toBe("Discount Rate");
   });
 
+  it("preserves alternate labels for a reused cite id", () => {
+    const body = "[Horizontal Boundaries](cite:1) and [Vertical Boundaries](cite:1)";
+    const markers = extractMarkersFromBody(body);
+    expect(markers).toHaveLength(1);
+    expect(markers[0].claimText).toBe("Horizontal Boundaries");
+    expect(markers[0].claimTextVariants).toEqual(["Vertical Boundaries"]);
+  });
+
   it("extracts double-quoted anchor hint", () => {
     const body = '[terminates](cite:3 "automatically terminate")';
     const markers = extractMarkersFromBody(body);
@@ -107,6 +115,14 @@ describe("extractMarkersFromBody", () => {
     const markers = extractMarkersFromBody(body);
     expect(markers).toHaveLength(1);
     expect(markers[0].claimText).toBe("Rate");
+  });
+
+  it("preserves alternate labels for reused bold markers", () => {
+    const body = "**Horizontal Boundaries** [1] and **Vertical Boundaries** [1]";
+    const markers = extractMarkersFromBody(body);
+    expect(markers).toHaveLength(1);
+    expect(markers[0].claimText).toBe("Horizontal Boundaries");
+    expect(markers[0].claimTextVariants).toEqual(["Vertical Boundaries"]);
   });
 });
 

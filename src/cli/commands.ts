@@ -872,9 +872,19 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
         const allLines = getAllLines(lineMap);
         const citations: CitationData[] = [];
 
-        for (const { id, claimText, anchorHint } of markers) {
-          const searchTerm = anchorHint ?? claimText;
-          const found = findAnchorWithFallback(searchTerm, allLines);
+        for (const { id, claimText, claimTextVariants, anchorHint } of markers) {
+          const searchTerms = anchorHint
+            ? [anchorHint, claimText, ...(claimTextVariants ?? [])]
+            : [claimText, ...(claimTextVariants ?? [])];
+          let found: ReturnType<typeof findAnchorWithFallback> | null = null;
+          let usedSearchTerm: string | undefined;
+          for (const searchTerm of searchTerms) {
+            found = findAnchorWithFallback(searchTerm, allLines);
+            if (found) {
+              usedSearchTerm = searchTerm;
+              break;
+            }
+          }
           if (!found) {
             console.error(`  Citation ${id} ("${claimText}"): not found in evidence`);
             continue;
@@ -887,7 +897,8 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
             page_id: toCompactPageId(pageId),
             line_ids: [lineId],
             attachment_id: attachmentId,
-            claim_text: claimText.toLowerCase() !== sourceMatch.toLowerCase() ? claimText : undefined,
+            claim_text:
+              usedSearchTerm && usedSearchTerm.toLowerCase() !== sourceMatch.toLowerCase() ? usedSearchTerm : undefined,
           });
         }
 

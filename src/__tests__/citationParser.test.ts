@@ -162,6 +162,19 @@ ${CITATION_DATA_START_DELIMITER}
     expect(result.citations.length).toBe(1);
   });
 
+  it("handles malformed end delimiter variant", () => {
+    const response = `Test [1].
+
+${CITATION_DATA_START_DELIMITER}
+[{"id": 1, "attachment_id": "a", "source_context": "test", "source_match": "test"}]
+<<</CITATION_DATA>>>`;
+
+    const result = parseCitationData(response);
+
+    expect(result.success).toBe(true);
+    expect(result.citations.length).toBe(1);
+  });
+
   it("handles empty citation block", () => {
     const response = `No citations here.
 
@@ -175,19 +188,13 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.citations.length).toBe(0);
   });
 
-  it("fails when citation block is present but whitespace-only", () => {
-    // A bare <<<CITATION_DATA>>> block with no content is an authoring mistake
-    // (e.g. unfilled template placeholder), not a legitimate empty result.
-    // An empty array `[]` is fine; whitespace-only is a failure.
-    // See plans/noble-skipping-wolf.md for the parallel-agent merge failure this caught.
+  it("treats whitespace-only citation blocks as recoverable empties", () => {
     const response = `Body text.\n\n${CITATION_DATA_START_DELIMITER}\n\n${CITATION_DATA_END_DELIMITER}\n`;
 
     const result = parseCitationData(response);
 
-    expect(result.success).toBe(false);
-    expect(result.error).toMatch(/empty/i);
+    expect(result.success).toBe(true);
     expect(result.citations.length).toBe(0);
-    // visibleText is still extracted even on failure
     expect(result.visibleText).toBe("Body text.");
   });
 

@@ -85,6 +85,8 @@ const CITATION_MARKER_RE = /\[(\d+)\]/g;
  */
 const CITATION_LINK_RE = /\[([^\][]+)\]\(cite:(\d+)\)/g;
 
+const CITATION_DATA_END_DELIMITER_VARIANTS = [CITATION_DATA_END_DELIMITER, "<<</CITATION_DATA>>>"] as const;
+
 /**
  * Type guard to validate that an object has the required CitationData structure.
  * Ensures at minimum the id field is present and is a number.
@@ -317,8 +319,15 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
   // Extract visible text (everything before the delimiter)
   const visibleText = llmResponse.substring(0, startIndex).trim();
 
-  // Find the end delimiter
-  const endIndex = llmResponse.indexOf(CITATION_DATA_END_DELIMITER, startIndex);
+  // Find the end delimiter. Accept a small set of malformed variants because
+  // LLMs occasionally emit the wrong closing token while still providing usable JSON.
+  let endIndex = -1;
+  for (const delimiter of CITATION_DATA_END_DELIMITER_VARIANTS) {
+    const idx = llmResponse.indexOf(delimiter, startIndex);
+    if (idx !== -1 && (endIndex === -1 || idx < endIndex)) {
+      endIndex = idx;
+    }
+  }
 
   // Extract the JSON block
   const jsonStartIndex = startIndex + CITATION_DATA_START_DELIMITER.length;
@@ -332,25 +341,17 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
 
   // Empty jsonString can mean two things:
   //   1. No end delimiter and no content — the output was truncated right at the
-  //      start delimiter (common token-limit cutoff). Treat as success with 0 citations.
-  //   2. End delimiter is present but block is empty — upstream mistake (unfilled
-  //      template placeholder, etc.). Return failure.
+  //      start delimiter (common token-limit cutoff).
+  //   2. End delimiter is present but block is empty — upstream mistake
+  //      (unfilled template placeholder, etc.).
+  // In both cases, treat this as a recoverable no-citations result so callers
+  // can fall back to body markers instead of hard-failing on the block itself.
   if (!jsonString) {
-    if (endIndex === -1) {
-      // Truncated immediately after start delimiter
-      return {
-        visibleText,
-        citations: [],
-        citationMap: new Map(),
-        success: true,
-      };
-    }
     return {
       visibleText,
       citations: [],
       citationMap: new Map(),
-      success: false,
-      error: "Empty <<<CITATION_DATA>>> block: no JSON content between delimiters",
+      success: true,
     };
   }
 
