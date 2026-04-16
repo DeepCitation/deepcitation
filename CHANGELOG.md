@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`DC_NO_BROWSER` env var** — set `DC_NO_BROWSER=1` to suppress browser launch during auth; respected by `openBrowser()` and the browser-auth gate. (#432)
+- **AI-agent auth gate** — `IS_AI_AGENT` (set by Claude Code and similar tools) is now checked in `canStartBrowserAuth()`; non-interactive environments automatically fall through to the device-code / env-var path with a clearer error message. (#432)
+
+### Fixed
+
+- **Windows browser-open injection** — replaced `cmd.exe /c start` with `explorer.exe` to prevent URL `&` characters from being parsed as shell command separators (CodeQL `js/indirect-command-line-injection`). (#431)
+- **`logout` removes `.env` key automatically** — `deepcitation auth logout` now deletes the `DEEPCITATION_API_KEY` line from `.env` instead of printing a manual-edit instruction. (#431)
+- **Review regressions** — restored report verdict shell, hardened citation block parsing and markdown rendering, tightened anchor promotion logic, and corrected `prepare` CLI output contract. (#433)
+
 ## [0.4.2] - 2026-04-15
 
 ### Added
