@@ -30,7 +30,7 @@ interface RunResult {
 
 function run(
   args: string[],
-  opts?: { env?: Record<string, string | undefined>; cwd?: string; stdin?: string },
+  opts?: { env?: Record<string, string | undefined>; cwd?: string; stdin?: string; timeout?: number },
 ): RunResult {
   // Build clean env: start from process.env, overlay opts.env, remove undefined keys
   const env: Record<string, string> = { ...process.env } as Record<string, string>;
@@ -47,7 +47,7 @@ function run(
 
   const result = spawnSync("node", [CLI, ...args], {
     env,
-    timeout: 15000,
+    timeout: opts?.timeout ?? 15000,
     cwd: opts?.cwd,
     input: opts?.stdin,
     stdio: ["pipe", "pipe", "pipe"],
@@ -56,7 +56,9 @@ function run(
   return {
     stdout: result.stdout?.toString() ?? "",
     stderr: result.stderr?.toString() ?? "",
-    exitCode: result.status ?? 1,
+    // When spawnSync kills the process due to timeout, status is null.
+    // Preserve null to let callers distinguish "killed by timeout" from "exited 1".
+    exitCode: result.status ?? -1,
   };
 }
 
@@ -494,13 +496,39 @@ describe("non-TTY / agent environment login", () => {
   it("shows instructions for non-interactive environment", () => {
     const r = run(["login"], { env: noAuthEnv() });
     expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("Non-interactive");
+    expect(r.stderr).toContain("Browser authentication is disabled or unavailable");
     expect(r.stderr).toContain("Get your API key");
     // New (post-d2f67c2) guidance recommends the persistent `auth --key` path
     // over transient `export DEEPCITATION_API_KEY`. Both recover the same failure,
     // but `auth --key` saves credentials to the home-dir file so the next session
     // inherits them without re-exporting.
     expect(r.stderr).toContain("deepcitation auth --key");
+  });
+
+  it("shows non-interactive instructions when IS_AI_AGENT env var is set", () => {
+    // CLAUDE_CODE=1 sets IS_AI_AGENT=true in auth.ts, which canStartBrowserAuth() checks
+    const r = run(["login"], { env: { ...noAuthEnv(), CLAUDE_CODE: "1" } });
+    expect(r.exitCode).toBe(1);
+    expect(r.stderr).toContain("Browser authentication is disabled or unavailable");
+    expect(r.stderr).toContain("Get your API key");
+  });
+
+  it("--browser bypasses IS_AI_AGENT to start the OAuth flow instead of exiting", () => {
+    // DC_NO_BROWSER=1 silences the execFile inside openBrowser() (no window opens)
+    // but does NOT block canStartBrowserAuth() when --browser is passed — the --browser
+    // hard opt-in fires first and returns true before DC_NO_BROWSER is checked.
+    // With piped stdin (no TTY) the process hangs waiting for the callback: the absence
+    // of the non-interactive error message is what proves the --browser override worked.
+    const r = run(["login", "--browser"], {
+      env: { ...noAuthEnv(), CLAUDE_CODE: "1", DC_NO_BROWSER: "1" },
+      timeout: 2500,
+    });
+    // If the non-interactive path fired, stderr would contain this.
+    expect(r.stderr).not.toContain("Browser authentication is disabled or unavailable");
+    // The OAuth path prints this before waiting for the browser callback.
+    expect(r.stderr).toContain("Opening browser");
+    // Process was killed by timeout (waiting for callback), not by process.exit(1).
+    expect(r.exitCode).not.toBe(1);
   });
 
   it("Cowork environment shows domain setup instructions", () => {

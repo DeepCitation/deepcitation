@@ -23,6 +23,7 @@ const mockStartCallbackServer = jest.fn();
 jest.mock("../auth.js", () => ({
   HOME_CREDENTIALS_PATH: "/tmp/home/credentials.json",
   PROJECT_CREDENTIALS_PATH: "/tmp/project/credentials.json",
+  IS_AI_AGENT: false,
   IS_COWORK: false,
   generateNonce: () => "nonce",
   maskKey: (key: string) => key,
@@ -57,6 +58,7 @@ jest.mock("../utils/proxy.js", () => ({
 // ── Imports (after mocks) ─────────────────────────────────────────
 
 import {
+  canStartBrowserAuth,
   env,
   getAttachment,
   hydrate,
@@ -1136,6 +1138,56 @@ describe("hydrate CLI command", () => {
     const mdPath = join(tmpDir, "draft.md");
     writeFileSync(mdPath, "# Draft\n<<<CITATION_DATA>>>\n[]\n<<<END_CITATION_DATA>>>\n");
     await expect(captureOutput(() => hydrate(["--markdown", mdPath]))).rejects.toThrow("process.exit(1)");
+  });
+});
+
+describe("login command — browser-auth gate", () => {
+  const origMsystem = process.env.MSYSTEM;
+
+  afterEach(() => {
+    delete process.env.DC_NO_BROWSER;
+    if (origMsystem === undefined) delete process.env.MSYSTEM;
+    else process.env.MSYSTEM = origMsystem;
+  });
+
+  it("exits with non-interactive message when DC_NO_BROWSER overrides MSYSTEM", async () => {
+    process.env.MSYSTEM = "MINGW64"; // normally allows browser auth in Git Bash
+    process.env.DC_NO_BROWSER = "1"; // DC_NO_BROWSER must override it
+    mockResolveAuth.mockReturnValue(null);
+    // process.exit is mocked globally in beforeAll above — use rejects.toThrow so
+    // the dependency is visible here and the test doesn't silently pass if the mock moves.
+    const { stderr } = await captureOutput(() => expect(login([], TEST_BASE_URL)).rejects.toThrow("process.exit(1)"));
+    expect(stderr).toContain("Browser authentication is disabled or unavailable");
+  });
+});
+
+describe("canStartBrowserAuth", () => {
+  // IS_AI_AGENT is mocked as `false` in this module (see jest.mock("../auth.js") above).
+  // Tests that require IS_AI_AGENT=true are in cliAuthScenarios.test.ts (subprocess-based).
+
+  afterEach(() => {
+    delete process.env.DC_NO_BROWSER;
+    delete process.env.DC_NON_INTERACTIVE;
+  });
+
+  it("returns false when DC_NO_BROWSER is set and no --browser flag", () => {
+    process.env.DC_NO_BROWSER = "1";
+    expect(canStartBrowserAuth([])).toBe(false);
+  });
+
+  it("returns true when --browser is passed even with DC_NO_BROWSER set", () => {
+    process.env.DC_NO_BROWSER = "1";
+    expect(canStartBrowserAuth(["--browser"])).toBe(true);
+  });
+
+  it("returns true when --browser is passed even with DC_NON_INTERACTIVE set", () => {
+    process.env.DC_NON_INTERACTIVE = "1";
+    expect(canStartBrowserAuth(["--browser"])).toBe(true);
+  });
+
+  it("returns false when DC_NON_INTERACTIVE is set and no --browser flag", () => {
+    process.env.DC_NON_INTERACTIVE = "1";
+    expect(canStartBrowserAuth([])).toBe(false);
   });
 });
 

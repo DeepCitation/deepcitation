@@ -13,6 +13,7 @@ import {
   type CallbackPayload,
   deleteCredentials,
   generateNonce,
+  IS_AI_AGENT,
   IS_COWORK,
   maskKey,
   openBrowser,
@@ -253,6 +254,16 @@ const ALLOWED_INDICATORS = ["icon", "dot", "none"] as const;
 
 const DEFAULT_API_URL = "https://api.deepcitation.com";
 
+export function canStartBrowserAuth(argv: string[] = []): boolean {
+  // --browser is an explicit opt-in that starts the OAuth flow even in constrained
+  // environments. DC_NO_BROWSER still silences the execFile call inside openBrowser(),
+  // so --browser + DC_NO_BROWSER starts the callback server without opening a window
+  // (useful for headless tests that handle the redirect URL manually).
+  if (argv.includes("--browser")) return true;
+  if (process.env.DC_NON_INTERACTIVE || process.env.DC_NO_BROWSER || IS_AI_AGENT) return false;
+  return !!process.stdin.isTTY || !!process.env.MSYSTEM;
+}
+
 /** Print diagnostic when all citations return not_found. */
 function printAllNotFoundHint(): void {
   console.error(
@@ -280,8 +291,10 @@ export async function requireAuth(): Promise<ResolvedAuth> {
   const baseUrl = resolveBaseUrl();
   // DC_NON_INTERACTIVE lets test runners and CI force the non-interactive path
   // regardless of TTY state (e.g. when jest runs in a real terminal).
-  const isInteractive = !process.env.DC_NON_INTERACTIVE && (process.stdin.isTTY || !!process.env.MSYSTEM);
-  if (!isInteractive) {
+  // argv is intentionally not passed here: requireAuth() is an internal guard
+  // used by commands (verify, prepare, get, etc.) that do not expose --browser
+  // to their callers. The --browser opt-in is only meaningful for `auth`/`login`.
+  if (!canStartBrowserAuth()) {
     // Non-interactive (CI, piped stdin, AI agent) — browser OAuth won't work.
     // Print actionable, recoverable instructions and exit non-zero so the caller
     // can surface the recovery flow to the user instead of treating this as a
@@ -1506,8 +1519,7 @@ export async function login(argv: string[], baseUrl: string) {
   // Git Bash (mintty) on Windows reports isTTY=false even for interactive
   // terminals, so also check for MSYSTEM (set in MINGW32/MINGW64/UCRT64).
   // DC_NON_INTERACTIVE lets test runners force this path regardless of TTY.
-  const isInteractive = !process.env.DC_NON_INTERACTIVE && (process.stdin.isTTY || !!process.env.MSYSTEM);
-  if (!isInteractive && !argv.includes("--browser")) {
+  if (!canStartBrowserAuth(argv)) {
     const manualUrl = `${baseUrl}/cli-auth?manual=true`;
     if (IS_COWORK) {
       console.error("Claude Cowork (cloud session) detected. To set up DeepCitation:\n");
@@ -1520,7 +1532,7 @@ export async function login(argv: string[], baseUrl: string) {
       console.error("   This persists across sessions automatically.");
       console.error("   Or for this session only: npx deepcitation auth --key <your-key>");
     } else {
-      console.error("Non-interactive environment detected (no TTY).\n");
+      console.error("Browser authentication is disabled or unavailable in this environment.\n");
       console.error("AI agents / Claude Code — self-recover with:");
       console.error('  script -q -c "npx -y deepcitation@latest auth" /dev/null');
       console.error("  `script` allocates a pseudo-TTY so browser OAuth works. Run directly,");
@@ -1585,7 +1597,7 @@ export async function login(argv: string[], baseUrl: string) {
         `\nLogged in as ${sanitizeForLog(winner.payload.displayName ?? winner.payload.email ?? "unknown")}.`,
       );
       console.error(`Credentials saved to ${writtenTo}`);
-      console.error(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
+      console.error(`\nYou're all set!`);
       process.stdin.destroy();
     } else {
       saveApiKey(winner.key, "terminal paste");
