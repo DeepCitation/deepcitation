@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import { useLayoutEffect, useRef } from "react";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
+import { scaleDuration } from "../debug/animationDebugStore.js";
 import { isViewTransitioning } from "../viewTransition.js";
 
 /**
@@ -89,7 +90,7 @@ export function useAnimatedHeight(
 
     // Next frame: set new height with CSS transition → smooth animation
     const isExpanding = viewState !== "summary";
-    const duration = isExpanding ? expandDurationMs : collapseDurationMs;
+    const duration = scaleDuration(isExpanding ? expandDurationMs : collapseDurationMs);
     const easing = isExpanding ? expandEasing : collapseEasing;
 
     // Zero duration (reduced motion): skip the transition entirely. A 0ms CSS

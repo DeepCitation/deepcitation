@@ -71,6 +71,9 @@ export default defineConfig({
       esbuild: {
         jsx: "automatic",
       },
+      define: {
+        "process.env.NODE_ENV": JSON.stringify("development"),
+      },
     },
   },
   projects: [

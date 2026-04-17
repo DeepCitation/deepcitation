@@ -187,8 +187,8 @@ Options:
   -h, --help                Show this help message
 
 Examples:
-  deepcitation verify --md .deepcitation/draft-report.md 
-  deepcitation verify --md report.md --claim "Did Q1 revenue exceed $4B?" 
+  deepcitation verify --md .deepcitation/draft-report.md
+  deepcitation verify --md report.md --claim "Did Q1 revenue exceed $4B?"
   deepcitation verify --md report.md --style plain
   deepcitation verify --md report.md --vis unlisted               # shareable by link
   deepcitation verify --md report.md --vis public                 # (Portal session only)
