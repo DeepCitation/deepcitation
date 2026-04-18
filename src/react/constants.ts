@@ -812,8 +812,9 @@ export const KEYHOLE_STRIP_BORDER_RADIUS = "6px";
  * NOTE: keyframe offsets, opacity profile, and blur profile are shared with
  * the expand pipeline (see applyGhostMorph in viewTransition.ts). The two
  * directions intentionally remain distinct only in duration and easing —
- * expand lingers slightly with overshoot (entrance feel), collapse snaps
- * with deceleration (exit feel). Everything else is the same math, inverted.
+ * expand departs slowly from the keyhole and arrives confidently at the
+ * spotlight (EASE_GHOST_EXPAND); collapse snaps away with fast deceleration
+ * (EASE_COLLAPSE). Everything else is the same math, inverted.
  */
 export const PAGE_COLLAPSE_GHOST_MS = 180;
 

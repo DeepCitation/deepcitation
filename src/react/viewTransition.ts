@@ -308,6 +308,11 @@ function takePrimedPageExpandSource(root: ParentNode): HTMLElement | null {
   return isVisibleRect(rect) ? sourceEl : null;
 }
 
+function readAnchorDataset(el: HTMLElement, axis: "X" | "Y"): number {
+  const raw = Number.parseFloat(el.dataset[`dcSourceAnchor${axis}`] ?? "");
+  return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 0.5;
+}
+
 function buildPageExpandSnapshot(sourceEl: HTMLElement): GhostSnapshot | null {
   const rect = sourceEl.getBoundingClientRect();
   if (!isVisibleRect(rect)) return null;
@@ -315,8 +320,6 @@ function buildPageExpandSnapshot(sourceEl: HTMLElement): GhostSnapshot | null {
   const imageRect = img?.getBoundingClientRect();
   const imageSrc = img?.currentSrc || img?.src;
   if (!img || !imageRect || !imageSrc || !isVisibleRect(imageRect)) return null;
-  const sourceAnchorXRaw = Number.parseFloat(sourceEl.dataset.dcSourceAnchorX ?? "");
-  const sourceAnchorYRaw = Number.parseFloat(sourceEl.dataset.dcSourceAnchorY ?? "");
   return {
     viewportRect: rect,
     imageSrc,
@@ -331,10 +334,8 @@ function buildPageExpandSnapshot(sourceEl: HTMLElement): GhostSnapshot | null {
       sourceEl.dataset.dcPageExpandSourceKind === "expanded-keyhole"
         ? sourceEl.dataset.dcPageExpandSourceKind
         : null,
-    sourceAnchorX:
-      Number.isFinite(sourceAnchorXRaw) && sourceAnchorXRaw >= 0 && sourceAnchorXRaw <= 1 ? sourceAnchorXRaw : 0.5,
-    sourceAnchorY:
-      Number.isFinite(sourceAnchorYRaw) && sourceAnchorYRaw >= 0 && sourceAnchorYRaw <= 1 ? sourceAnchorYRaw : 0.5,
+    sourceAnchorX: readAnchorDataset(sourceEl, "X"),
+    sourceAnchorY: readAnchorDataset(sourceEl, "Y"),
     borderRadius: getComputedStyle(sourceEl).borderRadius || "0px",
   };
 }
@@ -733,7 +734,7 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
         anchorInGhostY: opts.anchorInGhostY,
         samples: [...samples],
       });
-      if (progress < 1 && animation.playState !== "finished" && animation.playState !== "idle") {
+      if (animation.playState === "running") {
         requestAnimationFrame(tick);
       }
     };
@@ -1153,10 +1154,8 @@ function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: ParentNode
   // for off-center matches it produces a constant pixel offset between the
   // ghost's annotation and the spotlight, which reads as x/y-axis overshoot
   // when the ghost hands off to the real element.
-  const anchorXRaw = Number.parseFloat(destEl.dataset.dcSourceAnchorX ?? "");
-  const anchorYRaw = Number.parseFloat(destEl.dataset.dcSourceAnchorY ?? "");
-  const sourceAnchorX = Number.isFinite(anchorXRaw) && anchorXRaw >= 0 && anchorXRaw <= 1 ? anchorXRaw : 0.5;
-  const sourceAnchorY = Number.isFinite(anchorYRaw) && anchorYRaw >= 0 && anchorYRaw <= 1 ? anchorYRaw : 0.5;
+  const sourceAnchorX = readAnchorDataset(destEl, "X");
+  const sourceAnchorY = readAnchorDataset(destEl, "Y");
 
   const anchorInGhostX = imageOffsetLeft + sourceAnchorX * imageWidth;
   const anchorInGhostY = imageOffsetTop + sourceAnchorY * imageHeight;
@@ -1298,8 +1297,8 @@ function runPageCollapseGhostAnimation(
     const contentAnim = popoverRoot.animate(
       [
         { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR },
-        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: 0.65 },
-        { opacity: 0.35, offset: 0.88 },
+        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: GHOST_OFFSET_LATE },
+        { opacity: 0.35, offset: GHOST_OFFSET_PEAK },
         { opacity: 1 },
       ],
       { duration: collapseDuration, easing: EASE_CONTENT_REVEAL, fill: "forwards" },
@@ -1595,12 +1594,11 @@ export function debugCapturePageExpandRects(root: ParentNode): {
  * @internal — compute page-collapse start/end rects using the EXACT same
  * helpers the runtime path uses. `buildCollapseGhostSnapshot` returns the
  * ghost's start rect (spotlight-anchored, dest-sized, using the destination's
- * `data-dc-source-anchor-x/y` dataset). The end rect is then derived with the
- * same `targetC - anchorInGhost` math as `runPageCollapseGhostAnimation`, so
- * start/end here are 1:1 with what the real animation computes. Do not
- * reinvent the formula here — earlier versions used `imageWidth / 2` as the
- * anchor, which silently diverged from runtime whenever the annotation
- * wasn't at the image midpoint.
+ * `data-dc-source-anchor-x/y` dataset). The end rect mirrors the runtime:
+ * the ghost is seated at `destRect.left, destRect.top` (top-left of the
+ * keyhole / inline-expanded element). Do not reinvent this formula — the
+ * old center-based math `(destCenter - anchorInGhost)` was wrong for pannable
+ * strips where `anchorInGhostX ≠ destRect.width / 2`.
  */
 export function debugCapturePageCollapseRects(root: ParentNode): {
   ghostStartRect: DOMRect;
@@ -1623,13 +1621,8 @@ export function debugCapturePageCollapseRects(root: ParentNode): {
     const snapshot = buildCollapseGhostSnapshot(preflush, root);
     if (!snapshot) return null;
 
-    // Same math as runPageCollapseGhostAnimation.
     const src = snapshot.viewportRect;
-    const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.sourceAnchorX * snapshot.imageWidth;
-    const anchorInGhostY = snapshot.imageOffsetTop + snapshot.sourceAnchorY * snapshot.imageHeight;
-    const targetCX = destRect.left + destRect.width / 2;
-    const targetCY = destRect.top + destRect.height / 2;
-    const ghostEndRect = new DOMRect(targetCX - anchorInGhostX, targetCY - anchorInGhostY, src.width, src.height);
+    const ghostEndRect = new DOMRect(destRect.left, destRect.top, src.width, src.height);
 
     return {
       ghostStartRect: src,

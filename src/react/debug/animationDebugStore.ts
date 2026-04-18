@@ -152,6 +152,9 @@ function clampProgress(p: number): number {
   return Math.max(0, Math.min(1, p));
 }
 
+let _vtMod: Promise<typeof import("../viewTransition.js")> | null = null;
+const lazyVt = () => (_vtMod ??= import("../viewTransition.js"));
+
 function installConsoleApi(): void {
   if (typeof window === "undefined") return;
 
@@ -200,18 +203,17 @@ function installConsoleApi(): void {
     },
     async drawAnimationKeyFrames(root) {
       // Dynamic import avoids a static cycle with viewTransition.ts (which
-      // already statically imports this module). The body is only evaluated
-      // at call-time, after both modules have fully initialized.
-      const mod = await import("../viewTransition.js");
+      // already statically imports this module). Cached so the three methods
+      // share a single module load after the first call.
+      const mod = await lazyVt();
       return mod.debugDrawAnimationKeyFrames(root ?? null);
     },
     async drawAllAnimationKeyFrames(root) {
-      const mod = await import("../viewTransition.js");
+      const mod = await lazyVt();
       return mod.debugDrawAllAnimationKeyFrames(root ?? null);
     },
-    async clearAnimationKeyFrames() {
-      const mod = await import("../viewTransition.js");
-      mod.debugClearAnimationKeyFrames();
+    clearAnimationKeyFrames() {
+      void lazyVt().then(mod => mod.debugClearAnimationKeyFrames());
     },
   };
 
