@@ -222,3 +222,13 @@ function installConsoleApi(): void {
 }
 
 installConsoleApi();
+
+// Eagerly load the overlay module in development so that __dcDebugPageExpand
+// (installed at overlay module-load time) is available immediately — without
+// requiring a prior call to drawAnimationKeyFrames / drawAllAnimationKeyFrames.
+// On main, __dcDebugPageExpand was registered by viewTransition.ts at import
+// time; moving it to viewTransitionOverlay.ts made it lazy, which broke tests
+// that call scan() without first triggering a transition.
+if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+  void lazyOverlay();
+}
