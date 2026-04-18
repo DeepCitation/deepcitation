@@ -1,5 +1,5 @@
-import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationStatus } from "./citationStatus.js";
 
 /**
  * Get verification status indicator character for plain text/terminal output.

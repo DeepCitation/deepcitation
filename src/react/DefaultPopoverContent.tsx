@@ -9,7 +9,7 @@
  */
 
 import { type ReactNode, type Ref, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { buildIntentSummary } from "../analysis/intent.js";
+import { analyzeVerification } from "../analysis/searchAnalysis.js";
 import type { CitationStatus } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
@@ -940,7 +940,7 @@ export function DefaultPopoverContent({
 
   // Intent summary for document citations — snippet-based display for partial matches
   const intentSummary = useMemo(
-    () => (!isUrlCitation(citation) ? buildIntentSummary(verification, verification?.searchAttempts ?? []) : null),
+    () => (!isUrlCitation(citation) ? analyzeVerification(verification ?? null).intent : null),
     [citation, verification],
   );
   const intentSnippets = intentSummary?.outcome === "related_found" ? intentSummary.snippets : [];

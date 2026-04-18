@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { buildIntentSummary } from "../analysis/intent.js";
+import { analyzeVerification } from "../analysis/searchAnalysis.js";
 import { type CitationStatus, isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
 import type {
@@ -40,6 +40,7 @@ import { EvidenceTray, InlineExpandedImage, resolveEvidenceSrc, resolveExpandedI
 import { HighlightedSourceContext } from "./HighlightedSourceContext.js";
 import { useBlinkMotionStage } from "./hooks/useBlinkMotionStage.js";
 import { useDrawerDragToClose } from "./hooks/useDrawerDragToClose.js";
+import { useDrawerNavigation } from "./hooks/useDrawerNavigation.js";
 import { type TranslateFunction, tPlural, useTranslation } from "./i18n.js";
 import { DocumentIcon } from "./icons.js";
 import { getBlinkRowMotionStyle } from "./motion/blinkAnimation.js";
@@ -79,8 +80,6 @@ function computeStaggerDelay(itemIndex: number): number {
 // =========
 
 interface DrawerEscapeCtx {
-  /** Items call this whenever their expanded state changes */
-  onSubstateChange: (key: string, isExpanded: boolean) => void;
   /** The currently expanded item's citation key (accordion) */
   expandedCitationKey: string | null;
   /** Toggle expansion for a citation key (same key = collapse, different = switch) */
@@ -358,13 +357,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 
   const [wasAutoExpanded, setWasAutoExpanded] = useState(defaultExpanded);
 
-  const onSubstateChange = escCtx?.onSubstateChange;
-
-  // Report substate to parent so the escape handler knows what to collapse next
-  useEffect(() => {
-    onSubstateChange?.(citationKey, isExpanded);
-  }, [isExpanded, citationKey, onSubstateChange]);
-
   // Sync expanded state when defaultExpanded changes from false → true.
   // Uses setState-during-render to avoid cascading renders from useEffect.
   const [prevDefaultExpanded, setPrevDefaultExpanded] = useState(defaultExpanded);
@@ -448,7 +440,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   // Closest-match snippets for partial/miss states
   const intentSnippets = useMemo(() => {
     if (isUrlCitation(citation)) return [];
-    const summary = buildIntentSummary(verification ?? null, verification?.searchAttempts ?? []);
+    const summary = analyzeVerification(verification ?? null).intent;
     return summary?.outcome === "related_found" ? summary.snippets : [];
   }, [citation, verification]);
 
@@ -891,14 +883,14 @@ function OpenCitationDrawer({
     return () => releaseScrollLock();
   }, []);
 
-  // Manual full-page state — set via drag-up gesture
-  const [manualFullPage, setManualFullPage] = useState(false);
+  // Stable ref bridges onManualExpand from the nav hook (declared later) to the drag hook
+  const onManualExpandRef = useRef<() => void>(() => {});
 
   // Drag-to-close (down) and drag-to-expand (up) on the handle bar
   const isBottomSheet = position === "bottom";
   const { handleRef, drawerRef, dragOffset, isDragging, dragDirection } = useDrawerDragToClose({
     onClose,
-    onExpand: () => setManualFullPage(true),
+    onExpand: useCallback(() => onManualExpandRef.current(), []),
     enabled: isBottomSheet,
   });
 
@@ -917,27 +909,6 @@ function OpenCitationDrawer({
   // Flatten all citations for total count and header icons
   const totalCitations = summary.total;
   const flatCitations = useMemo(() => flattenCitations(resolvedGroups, t), [resolvedGroups, t]);
-
-  // Click handler for header indicator icons — expand the citation, scroll it into view,
-  // and toggle the overlay highlight when a page is shown in the header panel.
-  // Note: headerInlineRef2 is declared after headerInline useState below.
-
-  const handleIndicatorClick = useCallback(
-    (index: number) => {
-      const flat = flatCitations[index];
-      if (!flat) return;
-      const key = flat.item.citationKey;
-
-      setExpandedCitationKey(prev => (prev === key ? null : key));
-      scrollToCitationItem(key);
-
-      // When a page is expanded, toggle the overlay for this citation
-      if (headerInlineRef2.current) {
-        setActiveIndicatorKey(prev => (prev === key ? null : key));
-      }
-    },
-    [flatCitations],
-  );
 
   // Page numbers for header — computed from all groups, shown top-right as clickable badges
   const drawerPages = useMemo(
@@ -991,52 +962,44 @@ function OpenCitationDrawer({
     return { keyToPage: k2p, pageToItems: p2i, pageToAnyItem: p2any };
   }, [sortedGroups, pageImagesByAttachmentId]);
 
-  // Accordion state — only one item expanded at a time
-  const [expandedCitationKey, setExpandedCitationKey] = useState<string | null>(null);
+  const {
+    headerInline,
+    activeIndicatorKey,
+    isFullPage,
+    activePage,
+    toggleActiveIndicator,
+    toggleItem,
+    onInlineExpand: handleInlineExpand,
+    closeInline,
+    onManualExpand,
+    handlePageDeactivate,
+    navCtxValue,
+  } = useDrawerNavigation({ isBottomSheet, keyToPage, onClose });
 
-  const onItemExpand = useCallback((key: string | null) => {
-    setExpandedCitationKey(key);
-  }, []);
+  // Sync ref so the drag hook (declared before this hook) can call onManualExpand
+  onManualExpandRef.current = onManualExpand;
 
-  // Header inline panel state — full-page image shown above the citation list
-  type HeaderInlineState = {
-    citationKey: string;
-    src: string;
-    verification?: Verification | null;
-    renderScale?: { x: number; y: number } | null;
-    pageNumber?: number | null;
-  };
-  const [headerInline, setHeaderInline] = useState<HeaderInlineState | null>(null);
-  const headerInlineRef2 = useRef(headerInline);
-  useLayoutEffect(() => {
-    headerInlineRef2.current = headerInline;
-  }, [headerInline]);
-  const [activeIndicatorKey, setActiveIndicatorKey] = useState<string | null>(null);
+  // Click handler for header indicator icons — expand the citation, scroll it into view,
+  // and toggle the overlay highlight when a page is shown in the header panel.
+  const handleIndicatorClick = useCallback(
+    (index: number) => {
+      const flat = flatCitations[index];
+      if (!flat) return;
+      const key = flat.item.citationKey;
+
+      toggleItem(key);
+      scrollToCitationItem(key);
+
+      // Only toggle the overlay when a page is open in the header panel
+      if (headerInline !== null) {
+        toggleActiveIndicator(key);
+      }
+    },
+    [flatCitations, headerInline, toggleItem, toggleActiveIndicator],
+  );
 
   // ARIA announcement for page badge navigation (screen readers)
   const [pageAnnouncement, setPageAnnouncement] = useState("");
-
-  // Push a full-page image into the header panel (called from item rows and page badge clicks)
-  const handleInlineExpand = useCallback(
-    (
-      key: string,
-      src: string,
-      verification?: Verification | null,
-      renderScale?: { x: number; y: number } | null,
-      pageNumber?: number | null,
-    ) => {
-      const normalizedPage = Number(pageNumber);
-      setHeaderInline({
-        citationKey: key,
-        src,
-        verification,
-        renderScale,
-        pageNumber: Number.isFinite(normalizedPage) && normalizedPage > 0 ? normalizedPage : null,
-      });
-      setActiveIndicatorKey(null);
-    },
-    [],
-  );
 
   // Handler for clicking a page badge — opens the header panel (Level 3) for the
   // first citation on that page WITHOUT expanding the accordion (Level 2).
@@ -1057,12 +1020,6 @@ function OpenCitationDrawer({
     [pageToItems, pageToAnyItem, handleInlineExpand, pageImagesByAttachmentId],
   );
 
-  // Full-page mode: header inline panel open or manual drag-up gesture
-  const isFullPage = isBottomSheet && (headerInline !== null || manualFullPage);
-
-  // Active page pill — prefer explicit page set by the interaction, then fall back to citation page.
-  const activePage = headerInline ? (headerInline.pageNumber ?? keyToPage.get(headerInline.citationKey) ?? null) : null;
-
   // Citations on the active page with sourceContextDeepItem — used for the indicator row
   const citationsOnActivePage = useMemo(
     () =>
@@ -1082,69 +1039,6 @@ function OpenCitationDrawer({
     }
     return indices;
   }, [activePage, pageToItems, flatCitations]);
-
-  const handlePageDeactivate = useCallback(() => {
-    setHeaderInline(null);
-    setActiveIndicatorKey(null);
-    setManualFullPage(false);
-  }, []);
-
-  // Escape navigation — tracks substate (expanded accordion items) to step back
-  const expandedKeysRef = useRef(new Set<string>());
-
-  const onSubstateChange = useCallback((key: string, isExpanded: boolean) => {
-    if (isExpanded) expandedKeysRef.current.add(key);
-    else expandedKeysRef.current.delete(key);
-  }, []);
-
-  const escCtxValue = useMemo<DrawerEscapeCtx>(
-    () => ({
-      onSubstateChange,
-      expandedCitationKey,
-      onItemExpand,
-      onInlineExpand: handleInlineExpand,
-      isFullPage,
-    }),
-    [onSubstateChange, expandedCitationKey, onItemExpand, handleInlineExpand, isFullPage],
-  );
-
-  // Refs mirror mutable state so the escape handler reads the latest value
-  // without re-registering the listener on every state change.
-  // Synced in useLayoutEffect to avoid React Compiler bailout.
-  const expandedKeyRef = useRef(expandedCitationKey);
-  useLayoutEffect(() => {
-    expandedKeyRef.current = expandedCitationKey;
-  }, [expandedCitationKey]);
-
-  const headerInlineRef = useRef(headerInline);
-  useLayoutEffect(() => {
-    headerInlineRef.current = headerInline;
-  }, [headerInline]);
-
-  // Escape key: step back through navigation levels instead of always closing.
-  // Uses refs for mutable state so the listener is registered once while open.
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (headerInlineRef.current !== null) {
-          // Level 3 → Level 2: close the header inline panel
-          setHeaderInline(null);
-          setActiveIndicatorKey(null);
-          setManualFullPage(false);
-        } else if (expandedKeyRef.current !== null) {
-          // Level 2 → Level 1: collapse the accordion
-          setExpandedCitationKey(null);
-          expandedKeysRef.current.clear();
-        } else {
-          // Level 1 → closed: close the drawer
-          onClose();
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
 
   // Pre-compute stagger offsets for each group (cumulative citation count)
   const staggerOffsets = sortedGroups.reduce<number[]>((acc, _group, idx) => {
@@ -1325,9 +1219,7 @@ function OpenCitationDrawer({
                       key={item.citationKey}
                       type="button"
                       aria-pressed={isIndicatorActive}
-                      onClick={() =>
-                        setActiveIndicatorKey(prev => (prev === item.citationKey ? null : item.citationKey))
-                      }
+                      onClick={() => toggleActiveIndicator(item.citationKey)}
                       className={cn(
                         "p-1 rounded-full transition-colors",
                         isIndicatorActive ? "bg-dc-primary/15" : "hover:bg-dc-muted",
@@ -1364,11 +1256,7 @@ function OpenCitationDrawer({
             <CitationErrorBoundary>
               <InlineExpandedImage
                 src={headerInline.src}
-                onCollapse={() => {
-                  setHeaderInline(null);
-                  setActiveIndicatorKey(null);
-                  setManualFullPage(false);
-                }}
+                onCollapse={closeInline}
                 verification={headerInline.verification ?? undefined}
                 renderScale={headerInline.renderScale}
                 initialOverlayHidden
@@ -1386,7 +1274,7 @@ function OpenCitationDrawer({
         )}
 
         {/* Citation list */}
-        <DrawerEscapeContext.Provider value={escCtxValue}>
+        <DrawerEscapeContext.Provider value={navCtxValue}>
           <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ overscrollBehavior: "contain" }}>
             {totalCitations === 0 ? (
               <div className="px-4 py-8 text-center text-dc-subtle-foreground">{t("drawer.noCitationsToDisplay")}</div>

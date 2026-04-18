@@ -1,8 +1,8 @@
 import React, { forwardRef, memo, type ReactNode, useCallback, useMemo } from "react";
-import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
+import { getCitationStatus } from "../utils/citationStatus.js";
 import {
   ERROR_COLOR_STYLE,
   INDICATOR_SIZE_STYLE,
