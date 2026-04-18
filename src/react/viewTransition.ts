@@ -25,7 +25,7 @@ import {
   PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
   VT_EVIDENCE_PAGE_EXPAND_MS,
 } from "./constants.js";
-import { getFrozen, registerActiveAnimation, scaleDuration, setLastGhostRects } from "./debug/animationDebugStore.js";
+import { getFrozen, registerActiveAnimations, scaleDuration, setLastGhostRects } from "./debug/animationDebugStore.js";
 
 /**
  * View-transition name applied to evidence image elements (keyhole strip,
@@ -663,25 +663,46 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
   }
   const hasClip = clipTop > 0 || clipRight > 0 || clipBottom > 0 || clipLeft > 0;
 
-  // Iris ramp 0.15→0.88: starts soon after depart so motion reads as focused
-  // rather than hunting; ends before GHOST_OFFSET_PEAK so the key is fully
-  // seated visually before the ghost opacity collapses.
+  // Iris ramp differs by direction:
+  //   • expand   — closes during translation (0.15→0.88). Closing-iris vector
+  //                aligns with translate vector; both focus toward the destination.
+  //   • collapse — stays fully clipped to spotlight until ghost has landed,
+  //                then opens (0.55→0.88). Opening-iris during translation
+  //                reveals image pixels asymmetrically (whichever inset is
+  //                larger reveals more pixels per unit time), and the eye sums
+  //                that lateral drift with the diagonal translate as
+  //                "shoots sideways then down". With the open deferred to
+  //                after the ghost arrives, the spotlight chunk travels on a
+  //                clean line; the late open reveals the keyhole-shaped end
+  //                frame in place. Endpoints align — the ghost is keyhole-sized
+  //                and lands exactly on the keyhole strip — so the revealed
+  //                pixels match the strip behind.
   const clipAt = (t: number) => {
-    const ramp = Math.min(1, Math.max(0, (t - 0.15) / 0.73));
-    const ct = opts.direction === "expand" ? ramp : 1 - ramp;
+    let ct: number;
+    if (opts.direction === "expand") {
+      ct = Math.min(1, Math.max(0, (t - 0.15) / 0.73));
+    } else {
+      ct = 1 - Math.min(1, Math.max(0, (t - 0.55) / 0.33));
+    }
     return `inset(${clipTop * ct}px ${clipRight * ct}px ${clipBottom * ct}px ${clipLeft * ct}px)`;
   };
 
+  // Choreography keyframes: opacity / blur / clip / radius only.
+  // `transform` is animated separately (see below) so the eased curve is
+  // applied once across the whole translate path. WAAPI applies an
+  // animation-level easing PER KEYFRAME-PAIR, so packing transform into this
+  // 6-keyframe array produces 5 mini ease-outs stitched together — the
+  // ghost's velocity drops to ~0 at every internal offset, reading as a
+  // pulsing motion. With transform on its own 2-keyframe animation the
+  // eased curve covers the full path and velocity stays continuous.
   const keyframes: Keyframe[] = [
     {
-      transform: tfAt(0),
       opacity: GHOST_OPACITY_START,
       filter: blurAt(GHOST_BLUR_START_PX),
       borderRadius: opts.srcRadius,
       ...(hasClip && { clipPath: clipAt(0) }),
     },
     {
-      transform: tfAt(GHOST_OFFSET_EARLY),
       opacity: GHOST_OPACITY_EARLY,
       filter: blurAt(GHOST_BLUR_EARLY_PX),
       borderRadius: opts.srcRadius,
@@ -689,7 +710,6 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
       ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_EARLY) }),
     },
     {
-      transform: tfAt(GHOST_OFFSET_MID),
       opacity: GHOST_OPACITY_MID,
       filter: blurAt(GHOST_BLUR_MID_PX),
       borderRadius: opts.srcRadius,
@@ -697,7 +717,6 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
       ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_MID) }),
     },
     {
-      transform: tfAt(GHOST_OFFSET_LATE),
       opacity: GHOST_OPACITY_LATE,
       filter: blurAt(GHOST_BLUR_LATE_PX),
       borderRadius: opts.tgtRadius,
@@ -705,7 +724,6 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
       ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_LATE) }),
     },
     {
-      transform: tfAt(1),
       opacity: GHOST_OPACITY_PEAK,
       filter: blurAt(GHOST_BLUR_PEAK_PX),
       borderRadius: opts.tgtRadius,
@@ -713,7 +731,6 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
       ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_PEAK) }),
     },
     {
-      transform: tfAt(1),
       opacity: 0,
       filter: blurAt(0),
       borderRadius: opts.tgtRadius,
@@ -722,6 +739,21 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
   ];
 
   const animation = ghost.animate(keyframes, { duration: opts.duration, easing: opts.easing, fill: "both" });
+  const transformAnim = ghost.animate([{ transform: tfAt(0) }, { transform: tfAt(1) }], {
+    duration: opts.duration,
+    easing: opts.easing,
+    fill: "both",
+  });
+
+  // Both animations must freeze and step together so harness scrub stays coherent.
+  // Caller awaits `animation.finished` for cleanup; `transformAnim` is detached
+  // when the caller removes the ghost element.
+  if (process.env.NODE_ENV !== "production") {
+    const debugKind = opts.direction === "expand" ? "page-expand" : "page-collapse";
+    applyDebugFreeze(animation, debugKind, opts.duration);
+    applyDebugFreeze(transformAnim, debugKind, opts.duration);
+    registerActiveAnimations([animation, transformAnim]);
+  }
 
   // Dev-only: capture endpoint rects AND per-rAF samples of the ghost's real
   // bounding rect during playback. Math-based overlays repeatedly diverged
@@ -844,8 +876,6 @@ function runPageExpandGhostAnimation(
     anchorInGhostX: snapshot.imageOffsetLeft + snapshot.sourceAnchorX * snapshot.imageWidth,
     anchorInGhostY: snapshot.imageOffsetTop + snapshot.sourceAnchorY * snapshot.imageHeight,
   });
-  applyDebugFreeze(animation, "page-expand", ghostDuration);
-  registerActiveAnimation(animation);
 
   // Page reveal starts immediately (t=0) with a slow ease-in, reaching full
   // opacity by ~0.85 — before the ghost lands at GHOST_OFFSET_PEAK (0.92).
@@ -1295,8 +1325,6 @@ function runPageCollapseGhostAnimation(
     anchorInGhostX,
     anchorInGhostY,
   });
-  applyDebugFreeze(animation, "page-collapse", collapseDuration);
-  registerActiveAnimation(animation);
 
   let pendingAnimations = popoverRoot ? 2 : 1;
   const markAnimationDone = () => {

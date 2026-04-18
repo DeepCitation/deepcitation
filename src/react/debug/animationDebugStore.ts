@@ -64,24 +64,33 @@ export function setLastGhostRects(rects: GhostRectsSnapshot | null): void {
 
 export function registerActiveAnimation(anim: Animation | null): void {
   if (process.env.NODE_ENV === "production") return;
-  activeAnim = anim;
+  activeAnims = anim ? [anim] : [];
+}
+
+// A single ghost morph runs two parallel WAAPI animations (transform + choreography).
+// step/pause/play must drive both together, otherwise scrubbing freezes one half
+// while the other keeps animating.
+export function registerActiveAnimations(anims: Array<Animation | null>): void {
+  if (process.env.NODE_ENV === "production") return;
+  activeAnims = anims.filter((a): a is Animation => a !== null);
 }
 
 export function stepAnimation(deltaMs: number): void {
   if (process.env.NODE_ENV === "production") return;
-  if (!activeAnim) return;
-  const current = typeof activeAnim.currentTime === "number" ? activeAnim.currentTime : 0;
-  activeAnim.currentTime = current + deltaMs;
+  for (const anim of activeAnims) {
+    const current = typeof anim.currentTime === "number" ? anim.currentTime : 0;
+    anim.currentTime = current + deltaMs;
+  }
 }
 
 export function pauseAnimation(): void {
   if (process.env.NODE_ENV === "production") return;
-  activeAnim?.pause();
+  for (const anim of activeAnims) anim.pause();
 }
 
 export function playAnimation(): void {
   if (process.env.NODE_ENV === "production") return;
-  activeAnim?.play();
+  for (const anim of activeAnims) anim.play();
 }
 
 export function getDebugSnapshot(): AnimationDebugState {
@@ -116,7 +125,7 @@ const PROD_SNAPSHOT: AnimationDebugState = {
 
 let devState: AnimationDebugState = { ...PROD_SNAPSHOT };
 const devListeners = new Set<() => void>();
-let activeAnim: Animation | null = null;
+let activeAnims: Animation[] = [];
 
 function setDevState(patch: Partial<AnimationDebugState>): void {
   devState = { ...devState, ...patch };
@@ -179,15 +188,13 @@ function installConsoleApi(): void {
       setDevState({ frozen: { kind, progress: clampProgress(progress) } });
     },
     step(deltaMs) {
-      if (!activeAnim) return;
-      const current = typeof activeAnim.currentTime === "number" ? activeAnim.currentTime : 0;
-      activeAnim.currentTime = current + deltaMs;
+      stepAnimation(deltaMs);
     },
     pause() {
-      activeAnim?.pause();
+      pauseAnimation();
     },
     play() {
-      activeAnim?.play();
+      playAnimation();
     },
     showAimOverlay(on) {
       setDevState({ showAim: on });
