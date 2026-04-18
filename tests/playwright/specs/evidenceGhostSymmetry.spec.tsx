@@ -29,9 +29,6 @@ import { AsymmetricAnchorCitation } from "./AsymmetricAnchorCitation";
 // ≈ 0.825). Read the per-rAF sample trajectory the animation pipeline
 // records in the animation debug store via `__dcAnimationDebug.snapshot()`.
 //
-// All tests in this file are intentionally written to fail against the
-// current implementation — they are the failing TDD baseline we will fix
-// against in follow-up work.
 // =============================================================================
 
 type SampleRect = { x: number; y: number; width: number; height: number };

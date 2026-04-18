@@ -4,26 +4,19 @@ import { PannedKeyholeCitation } from "./PannedKeyholeCitation";
 // =============================================================================
 // Keyhole-pan vs ghost endpoint regression suite
 //
-// Bug being captured (viewTransition.ts:1263-1267, runPageCollapseGhostAnimation):
+// Guards the fix in runPageCollapseGhostAnimation: the collapse ghost end rect
+// is now seated at `keyholeRect.left, keyholeRect.top` (not the center-based
+// `keyholeRect.centerX − anchorInGhostX` which diverged from the real anchor
+// position whenever the strip was pannable and the annotation was off-center).
 //
-//   const anchorInGhostX = imageOffsetLeft + sourceAnchorX * imageWidth;
-//   const targetCX = keyholeRect.left + keyholeRect.width / 2;   // ← centered!
-//   const toRect = new DOMRect(targetCX - anchorInGhostX, ...);
+// Bug that was fixed: the old center-based formula produced a `stripWidth/2 −
+// anchorInGhostX` pixel gap between where the collapse ghost landed and where
+// the real keyhole's annotation was rendered. This appeared as the ghost
+// "shooting past" the destination strip before the real element revealed.
 //
-// The collapse ghost's end rect is seated so the anchor lands at the keyhole's
-// geometric *center*. But the real keyhole's scroll state puts the anchor at
-// `keyholeRect.left + (imageOffsetLeft + sourceAnchorX × imageWidth)`. Those
-// two positions diverge by `stripWidth/2 − anchorInGhostX`:
-//
-//   anchor visually at LEFT of strip ([yyyy-------]): positive delta →
-//       collapse ghost ends to the RIGHT of the real anchor (shoots right).
-//   anchor visually at RIGHT of strip ([--------yyyy]): negative delta →
-//       collapse ghost ends to the LEFT of the real anchor (shoots left).
-//   anchor centered in strip: delta ≈ 0 (why the bug hides at default pan).
-//
-// Expand path is pan-correct because it starts at `snapshot.viewportRect` (the
-// real strip rect) with the image offset baked into the ghost's inner <img>,
-// so it's included here as a control/regression guard.
+// Expand path is included as a control/regression guard — it was already
+// pan-correct because it started at `snapshot.viewportRect` (the real strip rect)
+// with the image offset baked into the ghost's inner <img>.
 //
 // All tests drive pan via `container.scrollLeft = N` (not drag) — deterministic
 // and immune to the `keyholeInitAppliedRef` one-shot init guard in

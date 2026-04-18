@@ -152,8 +152,8 @@ function clampProgress(p: number): number {
   return Math.max(0, Math.min(1, p));
 }
 
-let _vtMod: Promise<typeof import("../viewTransition.js")> | null = null;
-const lazyVt = () => (_vtMod ??= import("../viewTransition.js"));
+let _overlayMod: Promise<typeof import("./viewTransitionOverlay.js")> | null = null;
+const lazyOverlay = () => (_overlayMod ??= import("./viewTransitionOverlay.js"));
 
 function installConsoleApi(): void {
   if (typeof window === "undefined") return;
@@ -202,18 +202,19 @@ function installConsoleApi(): void {
       return devState;
     },
     async drawAnimationKeyFrames(root) {
-      // Dynamic import avoids a static cycle with viewTransition.ts (which
-      // already statically imports this module). Cached so the three methods
-      // share a single module load after the first call.
-      const mod = await lazyVt();
+      // Dynamic import: the overlay module isn't statically pulled into this
+      // module's graph, so bundlers can split it into its own chunk and strip
+      // it from production builds (see `./viewTransitionOverlay.ts` header).
+      // Cached so the three methods share one load after the first call.
+      const mod = await lazyOverlay();
       return mod.debugDrawAnimationKeyFrames(root ?? null);
     },
     async drawAllAnimationKeyFrames(root) {
-      const mod = await lazyVt();
+      const mod = await lazyOverlay();
       return mod.debugDrawAllAnimationKeyFrames(root ?? null);
     },
     clearAnimationKeyFrames() {
-      void lazyVt().then(mod => mod.debugClearAnimationKeyFrames());
+      void lazyOverlay().then(mod => mod.debugClearAnimationKeyFrames());
     },
   };
 
