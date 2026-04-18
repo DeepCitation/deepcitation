@@ -171,7 +171,12 @@ export function resolveEvidenceSourceAnchorRatio(
 
   if (!bestItem) return null;
 
+  // Anchor y at the TOP of the text item, not its vertical midpoint. Reading flow is
+  // top-down, and both endpoints (keyhole strip, full page) consume this ratio at
+  // different container heights — using the midpoint introduces parallax because the
+  // ratio resolves to a different pixel offset relative to the citation edge at each
+  // scale. Top-edge is the stable landmark across zoom levels.
   const x = Math.max(0, Math.min(1, (bestItem.x + bestItem.width / 2) / dims.width));
-  const y = Math.max(0, Math.min(1, (bestItem.y + bestItem.height / 2) / dims.height));
+  const y = Math.max(0, Math.min(1, bestItem.y / dims.height));
   return { x, y };
 }

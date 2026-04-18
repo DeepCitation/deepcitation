@@ -8,6 +8,25 @@ export type FrozenKind = "vt-expand" | "vt-collapse" | "page-expand" | "page-col
 export type GhostRectsSnapshot = {
   source: DOMRect | null;
   target: DOMRect | null;
+  /** Direction the most recent ghost traveled. Used by the keyframe overlay to pick hue/label. */
+  direction?: "expand" | "collapse";
+  /** Spotlight rect at animation start — null when the transition had no clip-path iris. */
+  spotlight?: DOMRect | null;
+  /**
+   * Offset from the ghost element's top-left to the citation anchor point
+   * (inside the ghost). Under pure-translate animation this is constant across
+   * frames, so one scalar pair is enough to compute the anchor's viewport
+   * position at any sampled rect: `rect.left + anchorInGhostX`.
+   */
+  anchorInGhostX?: number;
+  anchorInGhostY?: number;
+  /**
+   * Per-rAF samples of the ghost's actual bounding rect during the animation,
+   * captured by the animation pipeline. `t` is normalized progress (0..1) at
+   * the time of capture. This is the ground truth for the overlay — every
+   * entry corresponds to a visually-occupied position during the real animation.
+   */
+  samples?: Array<{ t: number; rect: DOMRect }>;
 };
 
 export type AnimationDebugState = {
@@ -118,6 +137,9 @@ type ConsoleApi = {
   showGhostRects(on: boolean): void;
   forceReducedMotion(on: boolean): void;
   snapshot(): AnimationDebugState;
+  drawAnimationKeyFrames(root?: ParentNode | null): unknown;
+  drawAllAnimationKeyFrames(root?: ParentNode | null): unknown;
+  clearAnimationKeyFrames(): void;
 };
 
 function clampSpeed(x: number): number {
@@ -175,6 +197,21 @@ function installConsoleApi(): void {
     },
     snapshot() {
       return devState;
+    },
+    async drawAnimationKeyFrames(root) {
+      // Dynamic import avoids a static cycle with viewTransition.ts (which
+      // already statically imports this module). The body is only evaluated
+      // at call-time, after both modules have fully initialized.
+      const mod = await import("../viewTransition.js");
+      return mod.debugDrawAnimationKeyFrames(root ?? null);
+    },
+    async drawAllAnimationKeyFrames(root) {
+      const mod = await import("../viewTransition.js");
+      return mod.debugDrawAllAnimationKeyFrames(root ?? null);
+    },
+    async clearAnimationKeyFrames() {
+      const mod = await import("../viewTransition.js");
+      mod.debugClearAnimationKeyFrames();
     },
   };
 

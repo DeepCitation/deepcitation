@@ -806,26 +806,16 @@ export const EASE_GHOST_EXPAND = "cubic-bezier(0.05, 0.7, 0.1, 1)";
 /** Default border-radius for the keyhole strip — matches CSS in EvidenceKeyhole. */
 export const KEYHOLE_STRIP_BORDER_RADIUS = "6px";
 
-/** Page-collapse ghost duration (ms) — faster than expand for a decisive exit. */
+/**
+ * Page-collapse ghost duration (ms) — faster than expand for a decisive exit.
+ *
+ * NOTE: keyframe offsets, opacity profile, and blur profile are shared with
+ * the expand pipeline (see applyGhostMorph in viewTransition.ts). The two
+ * directions intentionally remain distinct only in duration and easing —
+ * expand lingers slightly with overshoot (entrance feel), collapse snaps
+ * with deceleration (exit feel). Everything else is the same math, inverted.
+ */
 export const PAGE_COLLAPSE_GHOST_MS = 180;
-
-// Page-collapse ghost keyframe anchors — faster/tighter than expand (fewer keyframes).
-/** Collapse ghost offset at early blur peak. */
-export const GHOST_OFFSET_COLLAPSE_EARLY = 0.3;
-/** Collapse ghost offset at mid blur + fade. */
-export const GHOST_OFFSET_COLLAPSE_MID = 0.65;
-/** Collapse ghost offset at near-landing fade. */
-export const GHOST_OFFSET_COLLAPSE_PEAK = 0.88;
-/** Collapse ghost opacity at mid-flight — fading from full. */
-export const GHOST_OPACITY_COLLAPSE_MID = 0.8;
-/** Collapse ghost opacity at near-landing — almost gone. */
-export const GHOST_OPACITY_COLLAPSE_PEAK = 0.3;
-/** Collapse ghost blur (px) at early — motion building. */
-export const GHOST_BLUR_COLLAPSE_EARLY_PX = 5;
-/** Collapse ghost blur (px) at mid-flight — peak distortion. */
-export const GHOST_BLUR_COLLAPSE_MID_PX = 6;
-/** Collapse ghost blur (px) near landing — clearing for clean snap. */
-export const GHOST_BLUR_COLLAPSE_LATE_PX = 2;
 
 /** Easing for popover content reveal during page transitions (both expand and collapse). */
 export const EASE_CONTENT_REVEAL = "ease-in";

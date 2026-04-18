@@ -44,7 +44,7 @@ import type {
 const DEFAULT_API_URL = "https://api.deepcitation.com";
 
 /** Current SDK version — must be kept in sync with package.json. */
-export const SDK_VERSION = "0.2.3";
+export const SDK_VERSION = "0.4.3";
 
 const DEFAULT_MAX_RETRIES = 3;
 

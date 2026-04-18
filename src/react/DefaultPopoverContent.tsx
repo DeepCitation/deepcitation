@@ -17,6 +17,7 @@ import { getStatusLabel } from "./citationStatus.js";
 import {
   BLINK_ENTER_EASING,
   EASE_COLLAPSE,
+  EASE_EXPAND,
   FONT_FAMILY_VAR,
   isValidProofImageSrc,
   POPOVER_CONTAINER_BASE_CLASSES,
@@ -410,6 +411,14 @@ function EvidenceZone({
            host apps using their own VTs should be aware. */
         ::view-transition { pointer-events: none; }
 
+        /* Suppress the browser's default cross-fade on the root pseudos. Only the
+           dc-evidence geometry morph should animate; otherwise a full-page fade
+           stacks on top, producing double-popover ghosting at 25-50% progress. */
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+          animation: none !important;
+        }
+
         ::view-transition-old(${DC_EVIDENCE_VT_NAME}) {
           animation: none;
           opacity: 0;
@@ -419,7 +428,7 @@ function EvidenceZone({
         }
         ::view-transition-group(${DC_EVIDENCE_VT_NAME}) {
           animation-duration: ${VT_EVIDENCE_EXPAND_MS}ms;
-          animation-timing-function: ${EASE_COLLAPSE};
+          animation-timing-function: ${EASE_EXPAND};
         }
 
         :root[data-dc-collapse] ::view-transition-old(${DC_EVIDENCE_VT_NAME}) {
