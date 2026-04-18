@@ -1288,11 +1288,12 @@ function runPageCollapseGhostAnimation(
     if (pendingAnimations === 0) onDone();
   };
 
-  // Content reveal: holds at floor until ~65% of flight, then ramps to 35% by
-  // ~88%, then finishes 35%→1.0 after the ghost exits. Unlike expand's smooth
-  // 8-frame ramp, collapse needs a LATE reveal because destination content
-  // can occupy area the ghost hasn't covered yet (large vertical travel from
-  // page to keyhole). Revealing earlier caused visible pop-through.
+  // Content reveal: holds at floor until GHOST_OFFSET_LATE (~68% of flight),
+  // then ramps to 35% by GHOST_OFFSET_PEAK (~92%), then finishes 35%→1.0
+  // after the ghost exits. These offsets match the collapse ghost's fade
+  // schedule from applyGhostMorph. Collapse needs a LATE reveal because
+  // destination content can occupy area the ghost hasn't covered yet (large
+  // vertical travel from page to keyhole). Revealing earlier caused pop-through.
   if (popoverRoot) {
     const contentAnim = popoverRoot.animate(
       [
