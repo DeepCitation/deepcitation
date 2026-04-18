@@ -386,9 +386,10 @@ describe("resolveEvidenceSourceAnchorRatio", () => {
       const ctx = v.document!.sourceContextDeepItem!;
       // biome-ignore lint/style/noNonNullAssertion: test fixtures define these
       const dims = v.evidence!.dimensions!;
+      const clamp = (n: number) => Math.max(0, Math.min(1, n));
       return {
-        x: (ctx.x + ctx.width / 2) / dims.width,
-        y: (ctx.y + ctx.height / 2) / dims.height,
+        x: clamp((ctx.x + ctx.width / 2) / dims.width),
+        y: clamp((ctx.y + ctx.height / 2) / dims.height),
       };
     }
 
@@ -428,11 +429,9 @@ describe("resolveEvidenceSourceAnchorRatio", () => {
       expect(anchor?.y).toBeCloseTo(spotlight.y, 3);
     });
 
-    // Missing-items case: keyhole crop didn't capture the citation's text
-    // items (cropped away, filtered, or sourceContextDeepItem is off-screen
-    // in evidence coords). Current code returns null; spotlight still exists
-    // on the page — ghost has no start position and snaps visibly.
-    it("falls back cleanly when no items match the citation text", () => {
+    // Primary path fires even when textItems don't match — sourceContextDeepItem
+    // is the source of truth, so unmatched items don't affect the anchor at all.
+    it("holds when textItems have no citation matches (primary path fires via sourceContextDeepItem)", () => {
       const verification: Verification = {
         status: "found",
         verifiedSourceMatch: "business associate agreement",
@@ -497,6 +496,61 @@ describe("resolveEvidenceSourceAnchorRatio", () => {
       expect(anchor?.x).toBeCloseTo(spotlight.x, 3);
       expect(anchor?.y).toBeCloseTo(spotlight.y, 3);
     });
+  });
+
+  // True legacy-fallback path: no sourceContextDeepItem present — resolver
+  // derives anchor from textItems only. Validates the union/scoring logic that
+  // the invariant describe block above cannot exercise (those fixtures all
+  // supply a valid sourceContextDeepItem that short-circuits to primary path).
+  it("legacy fallback: returns null when no sourceContextDeepItem and no items match", () => {
+    const verification: Verification = {
+      status: "found",
+      verifiedSourceMatch: "business associate agreement",
+      evidence: {
+        src: "x",
+        dimensions: { width: 1000, height: 1000 },
+        textItems: [
+          { x: 0, y: 0, width: 100, height: 20, text: "header chrome" },
+          { x: 900, y: 990, width: 100, height: 20, text: "page 1 of 10" },
+        ],
+      },
+    };
+    expect(resolveEvidenceSourceAnchorRatio(verification)).toBeNull();
+  });
+
+  // ─── bounds-check guard: page-space vs evidence-space ───────────────────
+  // When sourceContextDeepItem coordinates exceed evidence.dimensions, they
+  // are in a different coordinate space (PDF/page space) and dividing by
+  // dims produces a wrong clamped ratio. The resolver must fall through to
+  // textItems in that case. NOT captured by the invariant tests above —
+  // those use dims={1000,1000} so contextItem always fits, meaning their
+  // spotlightCenterRatio mirrors the resolver formula exactly.
+  it("falls through to textItems when sourceContextDeepItem center exceeds evidence bounds", () => {
+    // Mirrors the AsymmetricAnchorCitation Playwright fixture:
+    //   sourceContextDeepItem.y = 790 in evidence height 120 → cy = 807 > 120 → page space
+    //   textItem "installation" at x=280, width=100 → center 330/400 = 0.825
+    // Broken (before fix): primary path returns x = 420/400 = 1.0 (clamped).
+    const verification: Verification = {
+      status: "found",
+      verifiedSourceMatch: "installation",
+      evidence: {
+        src: "x",
+        dimensions: { width: 400, height: 120 },
+        textItems: [{ x: 280, y: 40, width: 100, height: 28, text: "installation" }],
+      },
+      document: {
+        sourceContextDeepItem: {
+          x: 140,
+          y: 790,
+          width: 560,
+          height: 34,
+          text: 'At YC we use the term "Collision installation" for the technique they invented.',
+        },
+      },
+    };
+    const anchor = resolveEvidenceSourceAnchorRatio(verification);
+    expect(anchor?.x).toBeCloseTo(0.825, 2);
+    expect(anchor?.y).toBeCloseTo(0.45, 2);
   });
 
   it("sourceContextDeepItem wins over verifiedSourceMatch when both exact-match different items", () => {

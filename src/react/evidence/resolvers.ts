@@ -143,22 +143,29 @@ export function resolveEvidenceSourceAnchorRatio(
   const dims = evidence?.dimensions;
   if (!dims || dims.width <= 0 || dims.height <= 0) return null;
 
-  // Spotlight-pinning (primary path). CitationAnnotationOverlay draws the
-  // page-view spotlight from sourceContextDeepItem's bbox center. Anchoring
-  // directly on that same center makes the ghost's frame-0 position pixel-
-  // identical to the spotlight — no possible drift, regardless of what
-  // evidence.textItems happens to contain (parent items wider than the
-  // citation, character-level fragments, filtered/missing items, stray
-  // common-word matches). This is enforced by the "anchor ↔ spotlight
-  // invariant" test block in src/__tests__/resolvers.test.ts. Any divergence
-  // from this path shows up as a visible ghost-vs-spotlight offset at
-  // collapse-start / expand-end (e.g. scratch/collapse6.png).
+  // Primary path: sourceContextDeepItem, but only when its center falls
+  // within evidence image bounds. This guards against the coordinate-space
+  // mismatch: sourceContextDeepItem uses PDF/page coordinates (e.g. y=790 on
+  // a 1600 px page) while evidence.dimensions is the evidence-image size
+  // (e.g. height=120). When the center overflows dims, the coordinates are in
+  // a different space and dividing by dims produces an out-of-range ratio that
+  // clamps to an incorrect edge (e.g. 807/120 → 1.0 = bottom edge, not the
+  // annotation). Fall through to textItems in that case.
+  //
+  // When the center IS within dims (both coordinates ≤ evidence image size),
+  // the sourceContextDeepItem is in evidence-image space and is the most
+  // accurate anchor — it matches CitationAnnotationOverlay's spotlight exactly
+  // (see "anchor ↔ spotlight invariant" tests in src/__tests__/resolvers.test.ts).
   const contextItem = verification?.document?.sourceContextDeepItem;
   if (contextItem && contextItem.width > 0 && contextItem.height > 0) {
-    return {
-      x: clamp01((contextItem.x + contextItem.width / 2) / dims.width),
-      y: clamp01((contextItem.y + contextItem.height / 2) / dims.height),
-    };
+    const cx = contextItem.x + contextItem.width / 2;
+    const cy = contextItem.y + contextItem.height / 2;
+    if (cx <= dims.width && cy <= dims.height) {
+      return {
+        x: clamp01(cx / dims.width),
+        y: clamp01(cy / dims.height),
+      };
+    }
   }
 
   // Legacy fallback: payloads without sourceContextDeepItem (URL citations,
@@ -173,6 +180,7 @@ export function resolveEvidenceSourceAnchorRatio(
     verification?.verifiedSourceMatch,
     verification?.document?.sourceMatchDeepItems?.[0]?.text,
     verification?.verifiedSourceContext,
+    verification?.document?.sourceContextDeepItem?.text,
   ]
     .map(normalizeEvidenceText)
     .filter(Boolean);
