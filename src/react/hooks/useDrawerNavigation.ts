@@ -49,6 +49,7 @@ export interface DrawerNavigationReturn {
   closeInline: () => void;
   onManualExpand: () => void;
   onItemExpand: (key: string | null) => void;
+  toggleItem: (key: string) => void;
   handlePageDeactivate: () => void;
   navCtxValue: DrawerNavContext;
 }
@@ -92,6 +93,10 @@ export function useDrawerNavigation({
     setExpandedCitationKey(key);
   }, []);
 
+  const toggleItem = useCallback((key: string) => {
+    setExpandedCitationKey(prev => (prev === key ? null : key));
+  }, []);
+
   const closeInline = useCallback(() => {
     setHeaderInline(null);
     setActiveIndicatorKey(null);
@@ -124,10 +129,6 @@ export function useDrawerNavigation({
     },
     [],
   );
-
-  const handlePageDeactivate = useCallback(() => {
-    closeInline();
-  }, [closeInline]);
 
   const onManualExpand = useCallback(() => {
     setManualFullPage(true);
@@ -165,7 +166,8 @@ export function useDrawerNavigation({
     closeInline,
     onManualExpand,
     onItemExpand,
-    handlePageDeactivate,
+    toggleItem,
+    handlePageDeactivate: closeInline,
     navCtxValue,
   };
 }

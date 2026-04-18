@@ -9,6 +9,7 @@ export function mapToVerification(data: VerificationData): Verification {
     verifiedSourceContext: data.verifiedSourceContext,
     verifiedSourceMatch: data.verifiedSourceMatch,
     sourceSnippet: data.sourceSnippet,
+    // Spread is safe: VerificationData sub-types use Pick<>, so no extra fields can leak through
     evidence: data.evidence?.src ? { ...data.evidence } : undefined,
     document: data.document ? { ...data.document } : undefined,
     url: data.url ? { ...data.url } : undefined,

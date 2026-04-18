@@ -963,16 +963,15 @@ function OpenCitationDrawer({
   }, [sortedGroups, pageImagesByAttachmentId]);
 
   const {
-    expandedCitationKey,
     headerInline,
     activeIndicatorKey,
     isFullPage,
     activePage,
     toggleActiveIndicator,
+    toggleItem,
     onInlineExpand: handleInlineExpand,
     closeInline,
     onManualExpand,
-    onItemExpand,
     handlePageDeactivate,
     navCtxValue,
   } = useDrawerNavigation({ isBottomSheet, keyToPage, onClose });
@@ -988,7 +987,7 @@ function OpenCitationDrawer({
       if (!flat) return;
       const key = flat.item.citationKey;
 
-      onItemExpand(expandedCitationKey === key ? null : key);
+      toggleItem(key);
       scrollToCitationItem(key);
 
       // Only toggle the overlay when a page is open in the header panel
@@ -996,7 +995,7 @@ function OpenCitationDrawer({
         toggleActiveIndicator(key);
       }
     },
-    [flatCitations, expandedCitationKey, headerInline, onItemExpand, toggleActiveIndicator],
+    [flatCitations, headerInline, toggleItem, toggleActiveIndicator],
   );
 
   // ARIA announcement for page badge navigation (screen readers)

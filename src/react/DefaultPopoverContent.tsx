@@ -940,7 +940,7 @@ export function DefaultPopoverContent({
 
   // Intent summary for document citations — snippet-based display for partial matches
   const intentSummary = useMemo(
-    () => (!isUrlCitation(citation) ? analyzeVerification(verification).intent : null),
+    () => (!isUrlCitation(citation) ? analyzeVerification(verification ?? null).intent : null),
     [citation, verification],
   );
   const intentSnippets = intentSummary?.outcome === "related_found" ? intentSummary.snippets : [];
