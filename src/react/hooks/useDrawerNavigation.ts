@@ -97,6 +97,7 @@ export function useDrawerNavigation({
     setActiveIndicatorKey(null);
     setManualFullPage(false);
   }, []);
+  // Inline (not useLayoutEffect) because closeInline is stable (empty deps) — unlike onCloseRef which tracks a changing prop
   closeInlineRef.current = closeInline;
 
   const toggleActiveIndicator = useCallback((key: string) => {
