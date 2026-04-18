@@ -6,7 +6,8 @@ Open this file when importing symbols from deepcitation to find the correct cano
 
 | Symbol | Canonical file | Notes |
 |--------|---------------|-------|
-| `getCitationStatus()` | `src/parsing/parseCitation.ts` | Status computation |
+| `getCitationStatus()`, `PARTIAL_STATUSES` | `src/utils/citationStatus.ts` | Status computation and partial status set |
+| `analyzeVerification()` | `src/analysis/searchAnalysis.ts` | Main analysis API — wraps intent + search summary |
 | `getCitationKey()` | `src/utils/citationKey.ts` | Key generation |
 | `parseCitationResponse()` | `src/parsing/parseCitationResponse.ts` | Unified numeric citation parser ([N] + JSON block) |
 | `ParsedCitationResult` | `src/parsing/parseCitationResponse.ts` | Return type of `parseCitationResponse()` |
@@ -116,13 +117,13 @@ Open this file when importing symbols from deepcitation to find the correct cano
 
 ```typescript
 // WRONG — re-exporting a variable from another module
-export { getCitationStatus } from "../../parsing/parseCitation.js"; // ❌ DO NOT
+export { getCitationStatus } from "../../utils/citationStatus.js"; // ❌ DO NOT
 
 // WRONG — creating an alias
 export const BROKEN_WAVY_UNDERLINE_STYLE = MISS_WAVY_UNDERLINE_STYLE; // ❌ DO NOT
 
 // CORRECT — import directly from canonical location
-import { getCitationStatus } from "../../parsing/parseCitation.js"; // ✓
+import { getCitationStatus } from "../../utils/citationStatus.js"; // ✓
 import { getCitationKey } from "../../utils/citationKey.js";          // ✓
 import { getIndicator } from "../../formatting/indicators.js";       // ✓
 ```
