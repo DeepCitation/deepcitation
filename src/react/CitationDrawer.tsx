@@ -968,7 +968,7 @@ function OpenCitationDrawer({
     activeIndicatorKey,
     isFullPage,
     activePage,
-    setActiveIndicatorKey,
+    toggleActiveIndicator,
     onInlineExpand: handleInlineExpand,
     closeInline,
     onManualExpand,
@@ -991,12 +991,12 @@ function OpenCitationDrawer({
       onItemExpand(expandedCitationKey === key ? null : key);
       scrollToCitationItem(key);
 
-      // When a page is expanded, toggle the overlay for this citation
+      // Only toggle the overlay when a page is open in the header panel
       if (headerInline !== null) {
-        setActiveIndicatorKey(activeIndicatorKey === key ? null : key);
+        toggleActiveIndicator(key);
       }
     },
-    [flatCitations, expandedCitationKey, activeIndicatorKey, headerInline, onItemExpand, setActiveIndicatorKey],
+    [flatCitations, expandedCitationKey, headerInline, onItemExpand, toggleActiveIndicator],
   );
 
   // ARIA announcement for page badge navigation (screen readers)
@@ -1040,8 +1040,6 @@ function OpenCitationDrawer({
     }
     return indices;
   }, [activePage, pageToItems, flatCitations]);
-
-  const escCtxValue = useMemo<DrawerEscapeCtx>(() => navCtxValue, [navCtxValue]);
 
   // Pre-compute stagger offsets for each group (cumulative citation count)
   const staggerOffsets = sortedGroups.reduce<number[]>((acc, _group, idx) => {
@@ -1222,9 +1220,7 @@ function OpenCitationDrawer({
                       key={item.citationKey}
                       type="button"
                       aria-pressed={isIndicatorActive}
-                      onClick={() =>
-                        setActiveIndicatorKey(activeIndicatorKey === item.citationKey ? null : item.citationKey)
-                      }
+                      onClick={() => toggleActiveIndicator(item.citationKey)}
                       className={cn(
                         "p-1 rounded-full transition-colors",
                         isIndicatorActive ? "bg-dc-primary/15" : "hover:bg-dc-muted",
@@ -1279,7 +1275,7 @@ function OpenCitationDrawer({
         )}
 
         {/* Citation list */}
-        <DrawerEscapeContext.Provider value={escCtxValue}>
+        <DrawerEscapeContext.Provider value={navCtxValue}>
           <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ overscrollBehavior: "contain" }}>
             {totalCitations === 0 ? (
               <div className="px-4 py-8 text-center text-dc-subtle-foreground">{t("drawer.noCitationsToDisplay")}</div>

@@ -38,7 +38,7 @@ export interface DrawerNavigationReturn {
   activeIndicatorKey: string | null;
   isFullPage: boolean;
   activePage: number | null;
-  setActiveIndicatorKey: (key: string | null) => void;
+  toggleActiveIndicator: (key: string) => void;
   onInlineExpand: (
     key: string,
     src: string,
@@ -77,11 +77,12 @@ export function useDrawerNavigation({
     headerInlineRef.current = headerInline;
   }, [headerInline]);
 
-  // onClose identity changes don't re-register the listener
+  // Prop refs — identity changes don't re-register the listener
   const onCloseRef = useRef(onClose);
   useLayoutEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
+  const closeInlineRef = useRef<() => void>(() => {});
 
   const isFullPage = isBottomSheet && (headerInline !== null || manualFullPage);
 
@@ -91,11 +92,15 @@ export function useDrawerNavigation({
     setExpandedCitationKey(key);
   }, []);
 
-  // Bundles the triple-reset that every level-3 → lower transition requires
   const closeInline = useCallback(() => {
     setHeaderInline(null);
     setActiveIndicatorKey(null);
     setManualFullPage(false);
+  }, []);
+  closeInlineRef.current = closeInline;
+
+  const toggleActiveIndicator = useCallback((key: string) => {
+    setActiveIndicatorKey(prev => (prev === key ? null : key));
   }, []);
 
   const onInlineExpand = useCallback(
@@ -132,9 +137,7 @@ export function useDrawerNavigation({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (headerInlineRef.current !== null) {
-        setHeaderInline(null);
-        setActiveIndicatorKey(null);
-        setManualFullPage(false);
+        closeInlineRef.current();
       } else if (expandedKeyRef.current !== null) {
         setExpandedCitationKey(null);
       } else {
@@ -156,7 +159,7 @@ export function useDrawerNavigation({
     activeIndicatorKey,
     isFullPage,
     activePage,
-    setActiveIndicatorKey,
+    toggleActiveIndicator,
     onInlineExpand,
     closeInline,
     onManualExpand,
