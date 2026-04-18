@@ -17,7 +17,6 @@ import { getStatusLabel } from "./citationStatus.js";
 import {
   BLINK_ENTER_EASING,
   EASE_COLLAPSE,
-  EASE_EXPAND,
   FONT_FAMILY_VAR,
   isValidProofImageSrc,
   POPOVER_CONTAINER_BASE_CLASSES,
@@ -428,7 +427,7 @@ function EvidenceZone({
         }
         ::view-transition-group(${DC_EVIDENCE_VT_NAME}) {
           animation-duration: ${VT_EVIDENCE_EXPAND_MS}ms;
-          animation-timing-function: ${EASE_EXPAND};
+          animation-timing-function: ${EASE_COLLAPSE};
         }
 
         :root[data-dc-collapse] ::view-transition-old(${DC_EVIDENCE_VT_NAME}) {
