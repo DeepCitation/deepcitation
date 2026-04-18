@@ -5,10 +5,10 @@
  * used by prepareCitations and the terminal renderer.
  */
 
-import { getCitationStatus } from "../utils/citationStatus.js";
 import { type ParsedCitationResult, parseCitationResponse } from "../parsing/parseCitationResponse.js";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationStatus } from "../utils/citationStatus.js";
 import type { RenderCitationWithStatus } from "./types.js";
 
 export type StatusKey = "verified" | "partial" | "notFound" | "pending";

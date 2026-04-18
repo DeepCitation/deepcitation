@@ -7,10 +7,10 @@
  * @packageDocumentation
  */
 
-import { getCitationStatus, PARTIAL_STATUSES } from "../utils/citationStatus.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationStatus, PARTIAL_STATUSES } from "../utils/citationStatus.js";
 import { defaultTranslator, type TranslateFunction } from "./i18n.js";
 
 export function isPartialSearchStatus(status: SearchStatus | null | undefined): boolean {

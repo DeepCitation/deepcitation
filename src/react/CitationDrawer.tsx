@@ -910,7 +910,6 @@ function OpenCitationDrawer({
   const totalCitations = summary.total;
   const flatCitations = useMemo(() => flattenCitations(resolvedGroups, t), [resolvedGroups, t]);
 
-
   // Page numbers for header — computed from all groups, shown top-right as clickable badges
   const drawerPages = useMemo(
     () => computeUniquePageNumbers(sortedGroups, pageImagesByAttachmentId),
@@ -1042,10 +1041,7 @@ function OpenCitationDrawer({
     return indices;
   }, [activePage, pageToItems, flatCitations]);
 
-  const escCtxValue = useMemo<DrawerEscapeCtx>(
-    () => navCtxValue,
-    [navCtxValue],
-  );
+  const escCtxValue = useMemo<DrawerEscapeCtx>(() => navCtxValue, [navCtxValue]);
 
   // Pre-compute stagger offsets for each group (cumulative citation count)
   const staggerOffsets = sortedGroups.reduce<number[]>((acc, _group, idx) => {

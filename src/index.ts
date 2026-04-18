@@ -13,6 +13,7 @@
  * @packageDocumentation
  */
 
+export { SDK_VERSION } from "./client/DeepCitation.js";
 // Client errors — DeepCitation class itself is in deepcitation/client
 export {
   AuthenticationError,
@@ -23,7 +24,6 @@ export {
   ServerError,
   ValidationError,
 } from "./client/errors.js";
-export { SDK_VERSION } from "./client/DeepCitation.js";
 export type {
   AttachmentResponse,
   CitationInput,
@@ -84,15 +84,12 @@ export {
   groupCitationsByAttachmentIdObject,
   normalizeCitationType,
 } from "./parsing/parseCitation.js";
-export { getCitationStatus, PARTIAL_STATUSES } from "./utils/citationStatus.js";
 export type { ParsedCitationResult } from "./parsing/parseCitationResponse.js";
 export { parseCitationResponse } from "./parsing/parseCitationResponse.js";
-
 export {
   cleanRepeatingLastSentence,
   isGeminiGarbage,
 } from "./parsing/parseWorkAround.js";
-
 // Prompts types only — prompt constants and wrappers are in deepcitation/prompts
 export type {
   CitationData,
@@ -110,7 +107,6 @@ export {
   compressPromptIds,
   decompressPromptIds,
 } from "./prompts/promptCompression.js";
-
 // React utilities
 export {
   CITATION_X_PADDING,
@@ -177,6 +173,7 @@ export type {
 } from "./types/verification.js";
 // Utilities
 export { getCitationKey, getVerificationKey } from "./utils/citationKey.js";
+export { getCitationStatus, PARTIAL_STATUSES } from "./utils/citationStatus.js";
 export {
   getFieldAliases,
   normalizeCitationFields,

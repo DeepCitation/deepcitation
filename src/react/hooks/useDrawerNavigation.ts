@@ -70,18 +70,22 @@ export function useDrawerNavigation({
   // Refs for stale-closure safety in the escape listener — registered once
   const expandedKeyRef = useRef(expandedCitationKey);
   const headerInlineRef = useRef(headerInline);
-  useLayoutEffect(() => { expandedKeyRef.current = expandedCitationKey; }, [expandedCitationKey]);
-  useLayoutEffect(() => { headerInlineRef.current = headerInline; }, [headerInline]);
+  useLayoutEffect(() => {
+    expandedKeyRef.current = expandedCitationKey;
+  }, [expandedCitationKey]);
+  useLayoutEffect(() => {
+    headerInlineRef.current = headerInline;
+  }, [headerInline]);
 
   // onClose identity changes don't re-register the listener
   const onCloseRef = useRef(onClose);
-  useLayoutEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   const isFullPage = isBottomSheet && (headerInline !== null || manualFullPage);
 
-  const activePage = headerInline
-    ? (headerInline.pageNumber ?? keyToPage.get(headerInline.citationKey) ?? null)
-    : null;
+  const activePage = headerInline ? (headerInline.pageNumber ?? keyToPage.get(headerInline.citationKey) ?? null) : null;
 
   const onItemExpand = useCallback((key: string | null) => {
     setExpandedCitationKey(key);

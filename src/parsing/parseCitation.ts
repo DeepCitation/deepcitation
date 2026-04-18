@@ -1,10 +1,4 @@
-import type {
-  AudioVideoCitation,
-  Citation,
-  CitationRecord,
-  DocumentCitation,
-  UrlCitation,
-} from "../types/citation.js";
+import type { AudioVideoCitation, Citation, CitationRecord, DocumentCitation, UrlCitation } from "../types/citation.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { getFieldAliases, resolveField } from "../utils/fieldAliases.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
@@ -14,7 +8,6 @@ import {
   hasCitationData,
   parsePageId,
 } from "./citationParser.js";
-
 
 /**
  * Parses a JSON-based citation object into a Citation.
