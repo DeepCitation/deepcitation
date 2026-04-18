@@ -365,6 +365,140 @@ describe("resolveEvidenceSourceAnchorRatio", () => {
     expect(ratio?.y).toBeCloseTo(0.14, 2);
   });
 
+  // ─── anchor ↔ spotlight invariant (the REAL failure reproduction) ───
+  //
+  // The prior tests hand-compute expected ratios from the same inputs the
+  // resolver uses, so they can pass even when the resolver disagrees with
+  // what CitationAnnotationOverlay actually draws on the page. That's how
+  // collapse4/5/6 kept slipping through.
+  //
+  // This block pins the invariant: for every verification with a
+  // sourceContextDeepItem, the resolver's output MUST equal the center of
+  // that bbox (the same center CitationAnnotationOverlay uses to draw the
+  // spotlight). If the two disagree, the ghost visibly offsets from the
+  // spotlight at handoff — by exactly `(anchor - spotlight) * imageSize` px.
+  describe("anchor ↔ spotlight invariant", () => {
+    // Mirrors CitationAnnotationOverlay's spotlight center (via toPercentRect
+    // with renderScale=1, origin="image"). Bypasses the resolver so the
+    // expected value is derived independently, the way the UI derives it.
+    function spotlightCenterRatio(v: Verification): { x: number; y: number } {
+      // biome-ignore lint/style/noNonNullAssertion: test fixtures define these
+      const ctx = v.document!.sourceContextDeepItem!;
+      // biome-ignore lint/style/noNonNullAssertion: test fixtures define these
+      const dims = v.evidence!.dimensions!;
+      return {
+        x: (ctx.x + ctx.width / 2) / dims.width,
+        y: (ctx.y + ctx.height / 2) / dims.height,
+      };
+    }
+
+    // Parent-item case: OCR returned one text item that's WIDER than the
+    // citation. Unioning matching items gives the parent bbox, not the
+    // narrower sourceContextDeepItem — anchor drifts to the parent center.
+    it("holds when evidence item is wider than sourceContextDeepItem", () => {
+      const verification: Verification = {
+        status: "found",
+        verifiedSourceMatch: "founders make them take a quick break",
+        evidence: {
+          src: "x",
+          dimensions: { width: 1000, height: 1000 },
+          textItems: [
+            {
+              x: 100,
+              y: 100,
+              width: 400,
+              height: 20,
+              text: "the founders make them take a quick break today",
+            },
+          ],
+        },
+        document: {
+          sourceContextDeepItem: {
+            x: 140,
+            y: 100,
+            width: 280,
+            height: 20,
+            text: "founders make them take a quick break",
+          },
+        },
+      };
+      const anchor = resolveEvidenceSourceAnchorRatio(verification);
+      const spotlight = spotlightCenterRatio(verification);
+      expect(anchor?.x).toBeCloseTo(spotlight.x, 3);
+      expect(anchor?.y).toBeCloseTo(spotlight.y, 3);
+    });
+
+    // Missing-items case: keyhole crop didn't capture the citation's text
+    // items (cropped away, filtered, or sourceContextDeepItem is off-screen
+    // in evidence coords). Current code returns null; spotlight still exists
+    // on the page — ghost has no start position and snaps visibly.
+    it("falls back cleanly when no items match the citation text", () => {
+      const verification: Verification = {
+        status: "found",
+        verifiedSourceMatch: "business associate agreement",
+        evidence: {
+          src: "x",
+          dimensions: { width: 1000, height: 1000 },
+          textItems: [
+            { x: 0, y: 0, width: 100, height: 20, text: "header chrome" },
+            { x: 900, y: 990, width: 100, height: 20, text: "page 1 of 10" },
+          ],
+        },
+        document: {
+          sourceContextDeepItem: {
+            x: 100,
+            y: 500,
+            width: 500,
+            height: 20,
+            text: "business associate agreement",
+          },
+        },
+      };
+      const anchor = resolveEvidenceSourceAnchorRatio(verification);
+      const spotlight = spotlightCenterRatio(verification);
+      expect(anchor).not.toBeNull();
+      expect(anchor?.x).toBeCloseTo(spotlight.x, 3);
+      expect(anchor?.y).toBeCloseTo(spotlight.y, 3);
+    });
+
+    // Realistic collapse6 shape: verifiedSourceMatch exact-matches a short
+    // fragment (single word) of a multi-line sourceContextDeepItem, AND
+    // evidence.textItems has stray same-tier noise. Resolver must still
+    // agree with the spotlight (= context center), not drift toward the
+    // fragment or the noise.
+    it("holds under the full collapse6 scenario (fragment match + noise)", () => {
+      const verification: Verification = {
+        status: "found",
+        verifiedSourceMatch: "founders",
+        evidence: {
+          src: "x",
+          dimensions: { width: 1000, height: 1000 },
+          textItems: [
+            { x: 200, y: 100, width: 150, height: 20, text: "founders" },
+            { x: 200, y: 130, width: 150, height: 20, text: "make them" },
+            { x: 200, y: 160, width: 200, height: 20, text: "take a quick break" },
+            { x: 50, y: 300, width: 30, height: 15, text: "the" },
+            { x: 700, y: 360, width: 40, height: 15, text: "make" },
+            { x: 820, y: 740, width: 50, height: 15, text: "quick" },
+          ],
+        },
+        document: {
+          sourceContextDeepItem: {
+            x: 200,
+            y: 100,
+            width: 250,
+            height: 80,
+            text: "founders make them take a quick break",
+          },
+        },
+      };
+      const anchor = resolveEvidenceSourceAnchorRatio(verification);
+      const spotlight = spotlightCenterRatio(verification);
+      expect(anchor?.x).toBeCloseTo(spotlight.x, 3);
+      expect(anchor?.y).toBeCloseTo(spotlight.y, 3);
+    });
+  });
+
   it("sourceContextDeepItem wins over verifiedSourceMatch when both exact-match different items", () => {
     // Both targets have exact-match items, but at different positions. The
     // spotlight is on sourceContextDeepItem's bbox, so the anchor must pick

@@ -134,22 +134,49 @@ function normalizeEvidenceText(text: string | null | undefined): string {
   return normalizeQuotes(text?.toLowerCase().replace(/\s+/g, " ").trim() ?? "");
 }
 
+const clamp01 = (n: number): number => Math.max(0, Math.min(1, n));
+
 export function resolveEvidenceSourceAnchorRatio(
   verification: Verification | null | undefined,
 ): { x: number; y: number } | null {
   const evidence = verification?.evidence;
   const dims = evidence?.dimensions;
-  const items = evidence?.textItems;
-  if (!dims || dims.width <= 0 || dims.height <= 0 || !items || items.length === 0) return null;
+  if (!dims || dims.width <= 0 || dims.height <= 0) return null;
+
+  // Spotlight-pinning (primary path). CitationAnnotationOverlay draws the
+  // page-view spotlight from sourceContextDeepItem's bbox center. Anchoring
+  // directly on that same center makes the ghost's frame-0 position pixel-
+  // identical to the spotlight — no possible drift, regardless of what
+  // evidence.textItems happens to contain (parent items wider than the
+  // citation, character-level fragments, filtered/missing items, stray
+  // common-word matches). This is enforced by the "anchor ↔ spotlight
+  // invariant" test block in src/__tests__/resolvers.test.ts. Any divergence
+  // from this path shows up as a visible ghost-vs-spotlight offset at
+  // collapse-start / expand-end (e.g. scratch/collapse6.png).
+  const contextItem = verification?.document?.sourceContextDeepItem;
+  if (contextItem && contextItem.width > 0 && contextItem.height > 0) {
+    return {
+      x: clamp01((contextItem.x + contextItem.width / 2) / dims.width),
+      y: clamp01((contextItem.y + contextItem.height / 2) / dims.height),
+    };
+  }
+
+  // Legacy fallback: payloads without sourceContextDeepItem (URL citations,
+  // older verifications). Union the non-overlapping text-item matches against
+  // verifiedSourceMatch / verifiedSourceContext. Less accurate than the
+  // primary path — may drift on wrapped citations or character fragments —
+  // but preserves compat for the no-context-bbox case.
+  const items = evidence.textItems;
+  if (!items || items.length === 0) return null;
 
   const targets = [
     verification?.verifiedSourceMatch,
     verification?.document?.sourceMatchDeepItems?.[0]?.text,
     verification?.verifiedSourceContext,
-    verification?.document?.sourceContextDeepItem?.text,
   ]
     .map(normalizeEvidenceText)
     .filter(Boolean);
+  if (targets.length === 0) return null;
 
   // Tier 3 (exact): itemText === target       → score 4000 + itemText.length
   // Tier 2 (fragment): target.includes(item)  → score 3000 + itemText.length
@@ -188,24 +215,12 @@ export function resolveEvidenceSourceAnchorRatio(
   }
   if (candidates.length === 0) return null;
 
-  // sourceContextDeepItem defines the spotlight center in CitationAnnotationOverlay.
-  // When it produces candidates, it always wins as winningTarget — even if
-  // verifiedSourceMatch has a higher raw score (which happens when verifiedSourceMatch
-  // is shorter and exact-matches a fragment while the context spans multiple lines or columns).
-  const contextText = normalizeEvidenceText(verification?.document?.sourceContextDeepItem?.text);
-  const contextCandidates = contextText ? candidates.filter(c => c.target === contextText) : [];
-
-  let winningTarget: string;
-  let winningTier: number;
-  if (contextCandidates.length > 0) {
-    contextCandidates.sort((a, b) => b.score - a.score);
-    winningTarget = contextText;
-    winningTier = tierOf(contextCandidates[0].score);
-  } else {
-    candidates.sort((a, b) => b.score - a.score);
-    winningTarget = candidates[0].target;
-    winningTier = tierOf(candidates[0].score);
-  }
+  // Winning target = target of the highest-scoring candidate. Filter to
+  // matches against that target in the same tier so multi-line wrapped
+  // citations (all tier 2 of the same target) union cleanly.
+  candidates.sort((a, b) => b.score - a.score);
+  const winningTarget = candidates[0].target;
+  const winningTier = tierOf(candidates[0].score);
   const targetCandidates = candidates.filter(c => c.target === winningTarget && tierOf(c.score) === winningTier);
 
   // Greedy non-overlapping cover of the target string, by score DESC.
@@ -240,7 +255,8 @@ export function resolveEvidenceSourceAnchorRatio(
   }
   if (!Number.isFinite(unionLeft)) return null;
 
-  const x = Math.max(0, Math.min(1, (unionLeft + unionRight) / 2 / dims.width));
-  const y = Math.max(0, Math.min(1, (unionTop + unionBottom) / 2 / dims.height));
-  return { x, y };
+  return {
+    x: clamp01((unionLeft + unionRight) / 2 / dims.width),
+    y: clamp01((unionTop + unionBottom) / 2 / dims.height),
+  };
 }
