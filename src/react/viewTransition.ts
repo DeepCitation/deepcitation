@@ -5,23 +5,15 @@ import {
   EASE_COLLAPSE,
   EASE_CONTENT_REVEAL,
   EASE_GHOST_EXPAND,
-  GHOST_BLUR_COLLAPSE_EARLY_PX,
-  GHOST_BLUR_COLLAPSE_LATE_PX,
-  GHOST_BLUR_COLLAPSE_MID_PX,
   GHOST_BLUR_EARLY_PX,
   GHOST_BLUR_LATE_PX,
   GHOST_BLUR_MID_PX,
   GHOST_BLUR_PEAK_PX,
   GHOST_BLUR_START_PX,
-  GHOST_OFFSET_COLLAPSE_EARLY,
-  GHOST_OFFSET_COLLAPSE_MID,
-  GHOST_OFFSET_COLLAPSE_PEAK,
   GHOST_OFFSET_EARLY,
   GHOST_OFFSET_LATE,
   GHOST_OFFSET_MID,
   GHOST_OFFSET_PEAK,
-  GHOST_OPACITY_COLLAPSE_MID,
-  GHOST_OPACITY_COLLAPSE_PEAK,
   GHOST_OPACITY_EARLY,
   GHOST_OPACITY_LATE,
   GHOST_OPACITY_MID,
@@ -33,7 +25,7 @@ import {
   PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
   VT_EVIDENCE_PAGE_EXPAND_MS,
 } from "./constants.js";
-import { getFrozen, registerActiveAnimation, scaleDuration } from "./debug/animationDebugStore.js";
+import { getFrozen, registerActiveAnimation, scaleDuration, setLastGhostRects } from "./debug/animationDebugStore.js";
 
 /**
  * View-transition name applied to evidence image elements (keyhole strip,
@@ -159,21 +151,28 @@ export type GhostSnapshot = {
   borderRadius: string;
 };
 
-function isVisibleRect(rect: DOMRect): boolean {
+/** @internal — exported for `./debug/viewTransitionOverlay.ts`, not part of the public API. */
+export function isVisibleRect(rect: DOMRect): boolean {
   return rect.width > 0.5 && rect.height > 0.5;
 }
 
-type DebugPhase = "source" | "target" | "both" | null;
+/** @internal — exported for `./debug/viewTransitionOverlay.ts`, not part of the public API. */
+export type DebugPhase = "source" | "target" | "both" | null;
 
-function getPageExpandDebugPhase(): DebugPhase {
+/** @internal — exported for `./debug/viewTransitionOverlay.ts`, not part of the public API. */
+export function getPageExpandDebugPhase(): DebugPhase {
   if (typeof document === "undefined") return null;
   const phase = document.documentElement.dataset.dcPageExpandDebugPhase;
   if (phase === "source" || phase === "target" || phase === "both") return phase;
   return null;
 }
 
-/** Remove all debug overlays from the DOM. */
-function clearDebugOverlays(): void {
+/**
+ * Remove all debug overlays from the DOM.
+ *
+ * @internal — exported for `./debug/viewTransitionOverlay.ts`, not part of the public API.
+ */
+export function clearDebugOverlays(): void {
   if (typeof document === "undefined") return;
   document.querySelectorAll("[data-dc-debug-overlay]").forEach(el => el.remove());
 }
@@ -181,8 +180,27 @@ function clearDebugOverlays(): void {
 /** Shared font for debug labels. */
 const DEBUG_LABEL_FONT = "10px/1.2 ui-monospace, SFMono-Regular, monospace";
 
-/** Create a debug overlay box at the given rect with a colored outline and label. */
-function createDebugOverlay(rect: DOMRect, color: string, label: string, sublabel?: string): HTMLDivElement {
+type DebugOverlayOpts = {
+  /** Render outline as a dashed border (instead of solid). Useful for mid-progress frames. */
+  dashed?: boolean;
+  /** 2-digit hex alpha suffix for the fill (e.g. "11" for ~7%, "22" for ~13%). Defaults to "22". */
+  fillAlpha?: string;
+  /** Place the label below the box instead of above. Useful when stacking multiple labels. */
+  labelBelow?: boolean;
+};
+
+/**
+ * Create a debug overlay box at the given rect with a colored outline and label.
+ *
+ * @internal — exported for `./debug/viewTransitionOverlay.ts`, not part of the public API.
+ */
+export function createDebugOverlay(
+  rect: DOMRect,
+  color: string,
+  label: string,
+  sublabel?: string,
+  opts?: DebugOverlayOpts,
+): HTMLDivElement {
   const el = document.createElement("div");
   el.setAttribute("aria-hidden", "true");
   el.dataset.dcDebugOverlay = "";
@@ -191,9 +209,15 @@ function createDebugOverlay(rect: DOMRect, color: string, label: string, sublabe
   el.style.top = `${rect.top}px`;
   el.style.width = `${rect.width}px`;
   el.style.height = `${rect.height}px`;
-  el.style.outline = `2px solid ${color}`;
-  el.style.outlineOffset = "-1px";
-  el.style.backgroundColor = `${color}22`;
+  // Use `border` for dashed (outline doesn't support dashed rendering in
+  // Chromium/WebKit the way border does).
+  if (opts?.dashed) {
+    el.style.border = `2px dashed ${color}`;
+  } else {
+    el.style.outline = `2px solid ${color}`;
+    el.style.outlineOffset = "-1px";
+  }
+  el.style.backgroundColor = `${color}${opts?.fillAlpha ?? "22"}`;
   el.style.pointerEvents = "none";
   el.style.zIndex = "2147483647";
   el.style.overflow = "visible";
@@ -201,13 +225,18 @@ function createDebugOverlay(rect: DOMRect, color: string, label: string, sublabe
   // Label badge
   const badge = document.createElement("div");
   badge.style.position = "absolute";
-  badge.style.top = "-18px";
+  if (opts?.labelBelow) {
+    badge.style.bottom = "-18px";
+    badge.style.borderRadius = "0 0 3px 3px";
+  } else {
+    badge.style.top = "-18px";
+    badge.style.borderRadius = "3px 3px 0 0";
+  }
   badge.style.left = "0";
   badge.style.background = color;
   badge.style.color = "#fff";
   badge.style.font = DEBUG_LABEL_FONT;
   badge.style.padding = "1px 5px";
-  badge.style.borderRadius = "3px 3px 0 0";
   badge.style.whiteSpace = "nowrap";
   badge.textContent = label;
   el.appendChild(badge);
@@ -229,6 +258,49 @@ function createDebugOverlay(rect: DOMRect, color: string, label: string, sublabe
   return el;
 }
 
+/**
+ * Draw a small crosshair at a viewport point. Used by the keyframe overlay to
+ * mark the citation anchor's trajectory (where the cited text is inside the
+ * ghost) so a reader can see whether the anchor sits on the spotlight at t=0
+ * and t=1 and holds position through the middle. If the crosshairs drift off
+ * the spotlight center, the aim math is wrong — the overlay misalignment the
+ * user has been seeing is the same defect the animation is suffering from.
+ */
+/** @internal — exported for `./debug/viewTransitionOverlay.ts`, not part of the public API. */
+export function createDebugCrosshair(x: number, y: number, color: string, label?: string, size = 12): HTMLDivElement {
+  const el = document.createElement("div");
+  el.setAttribute("aria-hidden", "true");
+  el.dataset.dcDebugOverlay = "";
+  el.style.position = "fixed";
+  el.style.left = `${x - size / 2}px`;
+  el.style.top = `${y - size / 2}px`;
+  el.style.width = `${size}px`;
+  el.style.height = `${size}px`;
+  el.style.pointerEvents = "none";
+  el.style.zIndex = "2147483647";
+  el.style.overflow = "visible";
+  // Two thin lines forming a plus sign; keeps the exact (x,y) pixel readable.
+  el.style.background = `linear-gradient(to right, transparent calc(50% - 0.5px), ${color} calc(50% - 0.5px), ${color} calc(50% + 0.5px), transparent calc(50% + 0.5px)), linear-gradient(to bottom, transparent calc(50% - 0.5px), ${color} calc(50% - 0.5px), ${color} calc(50% + 0.5px), transparent calc(50% + 0.5px))`;
+  el.style.borderRadius = "50%";
+  el.style.boxShadow = `0 0 0 1px ${color}`;
+  if (label) {
+    const badge = document.createElement("div");
+    badge.style.position = "absolute";
+    badge.style.left = `${size + 2}px`;
+    badge.style.top = "-6px";
+    badge.style.background = color;
+    badge.style.color = "#fff";
+    badge.style.font = DEBUG_LABEL_FONT;
+    badge.style.padding = "0 3px";
+    badge.style.borderRadius = "2px";
+    badge.style.whiteSpace = "nowrap";
+    badge.textContent = label;
+    el.appendChild(badge);
+  }
+  document.body.appendChild(el);
+  return el;
+}
+
 function takePrimedPageExpandSource(root: ParentNode): HTMLElement | null {
   const sourceEl = _primedPageExpandSource;
   _primedPageExpandSource = null;
@@ -242,52 +314,61 @@ function takePrimedPageExpandSource(root: ParentNode): HTMLElement | null {
   return isVisibleRect(rect) ? sourceEl : null;
 }
 
-function capturePageExpandSource(root: ParentNode): GhostSnapshot | null {
+function readAnchorDataset(el: HTMLElement, axis: "X" | "Y"): number {
+  const raw = Number.parseFloat(el.dataset[`dcSourceAnchor${axis}`] ?? "");
+  return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 0.5;
+}
+
+function buildPageExpandSnapshot(sourceEl: HTMLElement): GhostSnapshot | null {
+  const rect = sourceEl.getBoundingClientRect();
+  if (!isVisibleRect(rect)) return null;
+  const img = sourceEl.querySelector<HTMLImageElement>("img");
+  const imageRect = img?.getBoundingClientRect();
+  const imageSrc = img?.currentSrc || img?.src;
+  if (!img || !imageRect || !imageSrc || !isVisibleRect(imageRect)) return null;
+  return {
+    viewportRect: rect,
+    imageSrc,
+    imageOffsetLeft: imageRect.left - rect.left,
+    imageOffsetTop: imageRect.top - rect.top,
+    imageWidth: imageRect.width,
+    imageHeight: imageRect.height,
+    imageNaturalWidth: img.naturalWidth,
+    imageNaturalHeight: img.naturalHeight,
+    sourceKind:
+      sourceEl.dataset.dcPageExpandSourceKind === "summary-keyhole" ||
+      sourceEl.dataset.dcPageExpandSourceKind === "expanded-keyhole"
+        ? sourceEl.dataset.dcPageExpandSourceKind
+        : null,
+    sourceAnchorX: readAnchorDataset(sourceEl, "X"),
+    sourceAnchorY: readAnchorDataset(sourceEl, "Y"),
+    borderRadius: getComputedStyle(sourceEl).borderRadius || "0px",
+  };
+}
+
+/** @internal — exported for `./debug/viewTransitionOverlay.ts`, not part of the public API. */
+export function capturePageExpandSource(root: ParentNode): GhostSnapshot | null {
   const primedSource = takePrimedPageExpandSource(root);
   const candidates = primedSource
     ? [primedSource]
     : Array.from(root.querySelectorAll<HTMLElement>("[data-dc-page-expand-source]"));
   for (const sourceEl of candidates) {
-    const rect = sourceEl.getBoundingClientRect();
-    if (!isVisibleRect(rect)) continue;
-    const img = sourceEl.querySelector<HTMLImageElement>("img");
-    const imageRect = img?.getBoundingClientRect();
-    const imageSrc = img?.currentSrc || img?.src;
-    if (!img || !imageRect || !imageSrc || !isVisibleRect(imageRect)) continue;
-    const sourceAnchorXRaw = Number.parseFloat(sourceEl.dataset.dcSourceAnchorX ?? "");
-    const sourceAnchorYRaw = Number.parseFloat(sourceEl.dataset.dcSourceAnchorY ?? "");
-    return {
-      viewportRect: rect,
-      imageSrc,
-      imageOffsetLeft: imageRect.left - rect.left,
-      imageOffsetTop: imageRect.top - rect.top,
-      imageWidth: imageRect.width,
-      imageHeight: imageRect.height,
-      imageNaturalWidth: img.naturalWidth,
-      imageNaturalHeight: img.naturalHeight,
-      sourceKind:
-        sourceEl.dataset.dcPageExpandSourceKind === "summary-keyhole" ||
-        sourceEl.dataset.dcPageExpandSourceKind === "expanded-keyhole"
-          ? sourceEl.dataset.dcPageExpandSourceKind
-          : null,
-      sourceAnchorX:
-        Number.isFinite(sourceAnchorXRaw) && sourceAnchorXRaw >= 0 && sourceAnchorXRaw <= 1 ? sourceAnchorXRaw : 0.5,
-      sourceAnchorY:
-        Number.isFinite(sourceAnchorYRaw) && sourceAnchorYRaw >= 0 && sourceAnchorYRaw <= 1 ? sourceAnchorYRaw : 0.5,
-      borderRadius: getComputedStyle(sourceEl).borderRadius || "0px",
-    };
+    const snapshot = buildPageExpandSnapshot(sourceEl);
+    if (snapshot) return snapshot;
   }
   return null;
 }
 
-type PageExpandTarget = {
+/** @internal — exported for `./debug/viewTransitionOverlay.ts`, not part of the public API. */
+export type PageExpandTarget = {
   markerRect: DOMRect;
   ghostRect: DOMRect;
   /** Spotlight rect in viewport coords, used for clip-path convergence. Null when no spotlight. */
   spotlightRect: DOMRect | null;
 };
 
-function buildGhostTarget(
+/** @internal — exported for `./debug/viewTransitionOverlay.ts`, not part of the public API. */
+export function buildGhostTarget(
   snapshot: GhostSnapshot,
   targetEl: HTMLElement,
   markerRect: DOMRect,
@@ -512,6 +593,181 @@ function applyGhostRect(ghost: HTMLDivElement, rect: DOMRect): void {
   ghost.style.height = `${rect.height}px`;
 }
 
+type GhostMorphDirection = "expand" | "collapse";
+
+interface GhostMorphOpts {
+  direction: GhostMorphDirection;
+  /** Spotlight rect in viewport coords (null → no iris). */
+  spotlightRect: DOMRect | null;
+  /** Border-radius at t=0 and t=1 respectively. */
+  srcRadius: string;
+  tgtRadius: string;
+  duration: number;
+  easing: string;
+  /**
+   * Citation anchor offset from ghost top-left (ghost-local coords).
+   * Dev-only: passed through to the debug store so the overlay can draw the
+   * anchor's viewport trajectory on top of each sampled ghost rect. If the
+   * anchor trajectory drifts from the spotlight center, the aim is wrong.
+   */
+  anchorInGhostX?: number;
+  anchorInGhostY?: number;
+}
+
+/**
+ * Shared animation pipeline for page-expand and page-collapse ghosts.
+ *
+ * Both directions share pure-translate math, the same 6-keyframe opacity and
+ * blur profile, and the same clip-path iris — with the iris timeline flipped
+ * by `opts.direction`. Keeping them on one code path prevents drift: any fix
+ * to aim, iris timing, or fade profile applies to both halves of the round trip.
+ *
+ * Clip-path iris behaviour:
+ *   • expand  — ghost starts unclipped at source, iris CLOSES onto spotlight
+ *               as the ghost lands (focus into the citation).
+ *   • collapse — ghost starts clipped to the spotlight, iris OPENS to the
+ *               full keyhole frame as the ghost lands (emerge from citation).
+ *
+ * The inset values are identical either way (the ghost is the same size at
+ * both ends under pure translate, and its anchor coincides with the spotlight
+ * at the expand-end and the collapse-start). Only the 0→1 interpolation
+ * direction differs.
+ */
+function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRect, opts: GhostMorphOpts): Animation {
+  const translateX = toRect.left - fromRect.left;
+  const translateY = toRect.top - fromRect.top;
+  const tfAt = (t: number) => `translate(${translateX * t}px, ${translateY * t}px)`;
+  const blurAt = (px: number) => (px > 0 ? `blur(${px}px)` : "none");
+
+  // Clip-path iris inset math. The "convergence" rect is whichever end the
+  // ghost overlaps with the spotlight: toRect for expand, fromRect for collapse.
+  const convergenceRect = opts.direction === "expand" ? toRect : fromRect;
+  const spot = opts.spotlightRect;
+  let clipTop = 0;
+  let clipRight = 0;
+  let clipBottom = 0;
+  let clipLeft = 0;
+  if (spot) {
+    const spotInGhostLeft = spot.left - convergenceRect.left;
+    const spotInGhostTop = spot.top - convergenceRect.top;
+    // `fromRect.width/height` are the ghost element's CSS dimensions (set at creation
+    // from `snapshot.viewportRect`). Under pure-translate, toRect.width === fromRect.width,
+    // so this is correct in both directions — these are the ghost's pixel dimensions, not
+    // the convergence rect's.
+    const spotInGhostRight = fromRect.width - (spotInGhostLeft + spot.width);
+    const spotInGhostBottom = fromRect.height - (spotInGhostTop + spot.height);
+    clipLeft = Math.max(0, spotInGhostLeft);
+    clipTop = Math.max(0, spotInGhostTop);
+    clipRight = Math.max(0, spotInGhostRight);
+    clipBottom = Math.max(0, spotInGhostBottom);
+  }
+  const hasClip = clipTop > 0 || clipRight > 0 || clipBottom > 0 || clipLeft > 0;
+
+  // Iris ramp 0.15→0.88: starts soon after depart so motion reads as focused
+  // rather than hunting; ends before GHOST_OFFSET_PEAK so the key is fully
+  // seated visually before the ghost opacity collapses.
+  const clipAt = (t: number) => {
+    const ramp = Math.min(1, Math.max(0, (t - 0.15) / 0.73));
+    const ct = opts.direction === "expand" ? ramp : 1 - ramp;
+    return `inset(${clipTop * ct}px ${clipRight * ct}px ${clipBottom * ct}px ${clipLeft * ct}px)`;
+  };
+
+  const keyframes: Keyframe[] = [
+    {
+      transform: tfAt(0),
+      opacity: GHOST_OPACITY_START,
+      filter: blurAt(GHOST_BLUR_START_PX),
+      borderRadius: opts.srcRadius,
+      ...(hasClip && { clipPath: clipAt(0) }),
+    },
+    {
+      transform: tfAt(GHOST_OFFSET_EARLY),
+      opacity: GHOST_OPACITY_EARLY,
+      filter: blurAt(GHOST_BLUR_EARLY_PX),
+      borderRadius: opts.srcRadius,
+      offset: GHOST_OFFSET_EARLY,
+      ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_EARLY) }),
+    },
+    {
+      transform: tfAt(GHOST_OFFSET_MID),
+      opacity: GHOST_OPACITY_MID,
+      filter: blurAt(GHOST_BLUR_MID_PX),
+      borderRadius: opts.srcRadius,
+      offset: GHOST_OFFSET_MID,
+      ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_MID) }),
+    },
+    {
+      transform: tfAt(GHOST_OFFSET_LATE),
+      opacity: GHOST_OPACITY_LATE,
+      filter: blurAt(GHOST_BLUR_LATE_PX),
+      borderRadius: opts.tgtRadius,
+      offset: GHOST_OFFSET_LATE,
+      ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_LATE) }),
+    },
+    {
+      transform: tfAt(1),
+      opacity: GHOST_OPACITY_PEAK,
+      filter: blurAt(GHOST_BLUR_PEAK_PX),
+      borderRadius: opts.tgtRadius,
+      offset: GHOST_OFFSET_PEAK,
+      ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_PEAK) }),
+    },
+    {
+      transform: tfAt(1),
+      opacity: 0,
+      filter: blurAt(0),
+      borderRadius: opts.tgtRadius,
+      ...(hasClip && { clipPath: clipAt(1) }),
+    },
+  ];
+
+  const animation = ghost.animate(keyframes, { duration: opts.duration, easing: opts.easing, fill: "both" });
+
+  // Dev-only: capture endpoint rects AND per-rAF samples of the ghost's real
+  // bounding rect during playback. Math-based overlays repeatedly diverged
+  // from what appeared on screen (layout wrapping, compositor rounding,
+  // iris-clip visual bounds, etc.) so we stop predicting and just record.
+  // `getBoundingClientRect()` after each rAF is the definitive position the
+  // user saw the ghost at during that frame.
+  if (process.env.NODE_ENV !== "production") {
+    const samples: Array<{ t: number; rect: DOMRect }> = [];
+    const pushSample = (t: number) => samples.push({ t, rect: ghost.getBoundingClientRect() });
+    pushSample(0);
+    const tick = () => {
+      if (!ghost.isConnected) return;
+      const current = animation.currentTime;
+      const progress = typeof current === "number" ? Math.max(0, Math.min(1, current / opts.duration)) : 0;
+      pushSample(progress);
+      setLastGhostRects({
+        source: fromRect,
+        target: toRect,
+        direction: opts.direction,
+        spotlight: opts.spotlightRect,
+        anchorInGhostX: opts.anchorInGhostX,
+        anchorInGhostY: opts.anchorInGhostY,
+        samples: [...samples],
+      });
+      if (animation.playState === "running") {
+        requestAnimationFrame(tick);
+      }
+    };
+    // Seed the store with endpoints immediately so overlays work even on the
+    // very first paint; rAF refinement kicks in from here.
+    setLastGhostRects({
+      source: fromRect,
+      target: toRect,
+      direction: opts.direction,
+      spotlight: opts.spotlightRect,
+      anchorInGhostX: opts.anchorInGhostX,
+      anchorInGhostY: opts.anchorInGhostY,
+      samples: [...samples],
+    });
+    requestAnimationFrame(tick);
+  }
+
+  return animation;
+}
+
 function runPageExpandGhostAnimation(
   ghost: HTMLDivElement,
   snapshot: GhostSnapshot,
@@ -576,109 +832,17 @@ function runPageExpandGhostAnimation(
     return;
   }
 
-  // Animate transform + opacity + blur + clip-path + borderRadius.
-  // All compositor-friendly — no layout thrash per frame.
-  const src = snapshot.viewportRect;
-  const scaleX = ghostRect.width / src.width;
-  const scaleY = ghostRect.height / src.height;
-  const translateX = ghostRect.left - src.left;
-  const translateY = ghostRect.top - src.top;
-
-  const tfAt = (t: number) =>
-    `translate(${translateX * t}px, ${translateY * t}px) scale(${1 + (scaleX - 1) * t}, ${1 + (scaleY - 1) * t})`;
-  const blurAt = (px: number) => (px > 0 ? `blur(${px}px)` : "none");
-
-  // --- #3 Clip-path convergence ---
-  // In the last ~30%, iris the ghost's visible area down to the spotlight rect.
-  // Trims the excess keyhole padding so the ghost visually converges onto the
-  // landing zone instead of just vanishing as an oversized strip.
-  const spotlight = target.spotlightRect;
-  let clipTop = 0;
-  let clipRight = 0;
-  let clipBottom = 0;
-  let clipLeft = 0;
-  if (spotlight) {
-    // Spotlight rect relative to the ghost element at landing (t=1).
-    // Ghost element sits at ghostRect in viewport coords; spotlight is also viewport.
-    const spotInGhostLeft = spotlight.left - ghostRect.left;
-    const spotInGhostTop = spotlight.top - ghostRect.top;
-    const spotInGhostRight = src.width - (spotInGhostLeft + spotlight.width);
-    const spotInGhostBottom = src.height - (spotInGhostTop + spotlight.height);
-    clipLeft = Math.max(0, spotInGhostLeft);
-    clipTop = Math.max(0, spotInGhostTop);
-    clipRight = Math.max(0, spotInGhostRight);
-    clipBottom = Math.max(0, spotInGhostBottom);
-  }
-  const hasClip = clipTop > 0 || clipRight > 0 || clipBottom > 0 || clipLeft > 0;
-  // Clip ramps 0.42→0.88 so it's fully converged before the ghost's last visible
-  // frame (GHOST_OFFSET_PEAK = 0.92, opacity 0.4). The key must be fully seated
-  // in the keyhole by the time it becomes visible through the fading ghost.
-  const clipAt = (t: number) => {
-    const ct = Math.min(1, Math.max(0, (t - 0.42) / 0.46));
-    return `inset(${clipTop * ct}px ${clipRight * ct}px ${clipBottom * ct}px ${clipLeft * ct}px)`;
-  };
-
-  // --- #5 Border-radius morph ---
-  const srcRadius = snapshot.borderRadius;
-  const tgtRadius = "0px";
-
-  // Motion blur is the sole mid-flight cue — ghost stays fully opaque (1.0)
-  // through flight, fades only during handoff to page content.
-  const keyframes: Keyframe[] = [
-    {
-      transform: tfAt(0),
-      opacity: GHOST_OPACITY_START,
-      filter: blurAt(GHOST_BLUR_START_PX),
-      borderRadius: srcRadius,
-      ...(hasClip && { clipPath: clipAt(0) }),
-    },
-    {
-      transform: tfAt(GHOST_OFFSET_EARLY),
-      opacity: GHOST_OPACITY_EARLY,
-      filter: blurAt(GHOST_BLUR_EARLY_PX),
-      borderRadius: srcRadius,
-      offset: GHOST_OFFSET_EARLY,
-      ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_EARLY) }),
-    },
-    {
-      transform: tfAt(GHOST_OFFSET_MID),
-      opacity: GHOST_OPACITY_MID,
-      filter: blurAt(GHOST_BLUR_MID_PX),
-      borderRadius: srcRadius,
-      offset: GHOST_OFFSET_MID,
-      ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_MID) }),
-    },
-    {
-      transform: tfAt(GHOST_OFFSET_LATE),
-      opacity: GHOST_OPACITY_LATE,
-      filter: blurAt(GHOST_BLUR_LATE_PX),
-      borderRadius: tgtRadius,
-      offset: GHOST_OFFSET_LATE,
-      ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_LATE) }),
-    },
-    {
-      transform: tfAt(1),
-      opacity: GHOST_OPACITY_PEAK,
-      filter: blurAt(GHOST_BLUR_PEAK_PX),
-      borderRadius: tgtRadius,
-      offset: GHOST_OFFSET_PEAK,
-      ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_PEAK) }),
-    },
-    {
-      transform: tfAt(1),
-      opacity: 0,
-      filter: blurAt(0),
-      borderRadius: tgtRadius,
-      ...(hasClip && { clipPath: clipAt(1) }),
-    },
-  ];
-
-  // #6 — EASE_GHOST_EXPAND: deliberate departure, confident arrival.
+  // Shared pipeline — see applyGhostMorph. Expand = iris CLOSES onto spotlight.
   const ghostDuration = scaleDuration(VT_EVIDENCE_PAGE_EXPAND_MS);
-  const animation = ghost.animate(keyframes, {
+  const animation = applyGhostMorph(ghost, snapshot.viewportRect, ghostRect, {
+    direction: "expand",
+    spotlightRect: target.spotlightRect,
+    srcRadius: snapshot.borderRadius,
+    tgtRadius: "0px",
     duration: ghostDuration,
     easing: EASE_GHOST_EXPAND,
-    fill: "both",
+    anchorInGhostX: snapshot.imageOffsetLeft + snapshot.sourceAnchorX * snapshot.imageWidth,
+    anchorInGhostY: snapshot.imageOffsetTop + snapshot.sourceAnchorY * snapshot.imageHeight,
   });
   applyDebugFreeze(animation, "page-expand", ghostDuration);
   registerActiveAnimation(animation);
@@ -904,10 +1068,13 @@ export function startEvidencePageExpandTransition(
 // PAGE COLLAPSE (reverse of page-expand ghost)
 // =============================================================================
 
-type CollapsePreflushData = {
+/** @internal — exported for `./debug/viewTransitionOverlay.ts`, not part of the public API. */
+export type CollapsePreflushData = {
   /** Spotlight center in viewport coords — the ghost's starting anchor. */
   spotlightCX: number;
   spotlightCY: number;
+  /** Full spotlight rect — used to drive the inverse clip-path iris on collapse. */
+  spotlightRect: DOMRect;
   /** Evidence snippet image src (same image the keyhole strip shows). */
   keyholeImageSrc: string;
   keyholeNaturalWidth: number;
@@ -926,7 +1093,8 @@ type CollapsePreflushData = {
  *
  * Returns null when no spotlight is visible (miss/not_found states — no ghost).
  */
-function captureCollapsePreflushData(root: ParentNode): CollapsePreflushData | null {
+/** @internal — exported for `./debug/viewTransitionOverlay.ts`, not part of the public API. */
+export function captureCollapsePreflushData(root: ParentNode): CollapsePreflushData | null {
   const spotlightEl = root.querySelector<HTMLElement>("[data-dc-spotlight]");
   const spotRect = spotlightEl?.getBoundingClientRect();
   if (!spotRect || !isVisibleRect(spotRect)) return null;
@@ -943,6 +1111,7 @@ function captureCollapsePreflushData(root: ParentNode): CollapsePreflushData | n
   return {
     spotlightCX: spotRect.left + spotRect.width / 2,
     spotlightCY: spotRect.top + spotRect.height / 2,
+    spotlightRect: spotRect,
     keyholeImageSrc,
     keyholeNaturalWidth: keyholeImg.naturalWidth,
     keyholeNaturalHeight: keyholeImg.naturalHeight,
@@ -959,7 +1128,8 @@ function captureCollapsePreflushData(root: ParentNode): CollapsePreflushData | n
  * Handles both collapse-to-summary ([data-dc-keyhole] visible) and
  * collapse-to-expanded-keyhole ([data-dc-inline-expanded] visible).
  */
-function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: ParentNode): GhostSnapshot | null {
+/** @internal — exported for `./debug/viewTransitionOverlay.ts`, not part of the public API. */
+export function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: ParentNode): GhostSnapshot | null {
   // Find the visible destination — same priority as findPageCollapseTarget.
   let destEl: HTMLElement | null = null;
   let destRect: DOMRect | null = null;
@@ -991,11 +1161,20 @@ function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: ParentNode
   const imageWidth = hasImgRect ? imgRect.width : destRect.width;
   const imageHeight = hasImgRect ? imgRect.height : destRect.height;
 
-  // Ghost is destination-sized. Position it so the image center (annotation
-  // anchor within the ghost) aligns with the spotlight center — the exact
-  // reverse of buildGhostTarget in the expand path.
-  const anchorInGhostX = imageOffsetLeft + imageWidth / 2;
-  const anchorInGhostY = imageOffsetTop + imageHeight / 2;
+  // The destination keyhole / expanded-keyhole already advertises the
+  // annotation anchor ratio via data-dc-source-anchor-x/y (it doubles as a
+  // page-expand-source when clicked). Reading those values here makes the
+  // collapse a TRUE inverse of expand: both sides align the SAME annotation
+  // anchor with the spotlight. Using imageWidth/2 (image center) instead
+  // works only when the annotation happens to sit at the image midpoint —
+  // for off-center matches it produces a constant pixel offset between the
+  // ghost's annotation and the spotlight, which reads as x/y-axis overshoot
+  // when the ghost hands off to the real element.
+  const sourceAnchorX = readAnchorDataset(destEl, "X");
+  const sourceAnchorY = readAnchorDataset(destEl, "Y");
+
+  const anchorInGhostX = imageOffsetLeft + sourceAnchorX * imageWidth;
+  const anchorInGhostY = imageOffsetTop + sourceAnchorY * imageHeight;
 
   return {
     viewportRect: new DOMRect(
@@ -1012,8 +1191,8 @@ function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: ParentNode
     imageNaturalWidth: data.keyholeNaturalWidth,
     imageNaturalHeight: data.keyholeNaturalHeight,
     sourceKind: null,
-    sourceAnchorX: 0.5,
-    sourceAnchorY: 0.5,
+    sourceAnchorX,
+    sourceAnchorY,
     borderRadius: data.borderRadius,
   };
 }
@@ -1084,62 +1263,37 @@ function runPageCollapseGhostAnimation(
   ghost: HTMLDivElement,
   snapshot: GhostSnapshot,
   keyholeRect: DOMRect,
+  spotlightRect: DOMRect | null,
   popoverRoot: HTMLElement | null,
   onDone: () => void,
 ): void {
   const src = snapshot.viewportRect;
 
-  // Pure translate: align the ghost's annotation anchor (image center in ghost
-  // coords, same formula as buildGhostTarget in the expand path) with the
-  // keyhole center. Using src.width/2 would only be correct when the image
-  // exactly fills the ghost container with no scroll offset.
-  const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.imageWidth / 2;
-  const anchorInGhostY = snapshot.imageOffsetTop + snapshot.imageHeight / 2;
-  const targetCX = keyholeRect.left + keyholeRect.width / 2;
-  const targetCY = keyholeRect.top + keyholeRect.height / 2;
-  const translateX = targetCX - anchorInGhostX - src.left;
-  const translateY = targetCY - anchorInGhostY - src.top;
+  // Pure translate: seat the ghost on the keyhole strip's top-left. The ghost's
+  // inner <img> was already positioned at the destination strip's live
+  // imageOffsetLeft by createPageExpandGhost (see buildCollapseGhostSnapshot),
+  // so the ghost's annotation anchor lands at the same viewport position as the
+  // real keyhole's annotation when ghostLeft === stripLeft. Prior code used
+  // keyholeRect.center − anchorInGhost, which only coincided with stripLeft
+  // when the strip width-filled (imageOffsetLeft = 0 and anchor ≈ stripW/2);
+  // when the strip was pannable, that formula parked the ghost at strip center
+  // regardless of pan, producing a (stripCenter − anchorViewport) gap on
+  // handoff.
+  const anchorInGhostX = snapshot.imageOffsetLeft + snapshot.sourceAnchorX * snapshot.imageWidth;
+  const anchorInGhostY = snapshot.imageOffsetTop + snapshot.sourceAnchorY * snapshot.imageHeight;
+  const toRect = new DOMRect(keyholeRect.left, keyholeRect.top, src.width, src.height);
 
-  const tfAt = (t: number) => `translate(${translateX * t}px, ${translateY * t}px)`;
-  const blurAt = (px: number) => (px > 0 ? `blur(${px}px)` : "none");
-
-  // Collapse: solid at start, blur mid-flight, fade out at keyhole.
-  // Faster profile — fewer keyframes, sharper curve than expand.
-  // Ghost starts with the keyhole's border-radius (the snippet image frame)
-  // and maintains it throughout — no radius morph needed for this direction.
-  const startRadius = snapshot.borderRadius || "0px";
-  const keyframes: Keyframe[] = [
-    { transform: tfAt(0), opacity: 1, filter: blurAt(GHOST_BLUR_START_PX), borderRadius: startRadius },
-    {
-      transform: tfAt(GHOST_OFFSET_COLLAPSE_EARLY),
-      opacity: 1,
-      filter: blurAt(GHOST_BLUR_COLLAPSE_EARLY_PX),
-      borderRadius: startRadius,
-      offset: GHOST_OFFSET_COLLAPSE_EARLY,
-    },
-    {
-      transform: tfAt(GHOST_OFFSET_COLLAPSE_MID),
-      opacity: GHOST_OPACITY_COLLAPSE_MID,
-      filter: blurAt(GHOST_BLUR_COLLAPSE_MID_PX),
-      borderRadius: startRadius,
-      offset: GHOST_OFFSET_COLLAPSE_MID,
-    },
-    {
-      transform: tfAt(1),
-      opacity: GHOST_OPACITY_COLLAPSE_PEAK,
-      filter: blurAt(GHOST_BLUR_COLLAPSE_LATE_PX),
-      borderRadius: KEYHOLE_STRIP_BORDER_RADIUS,
-      offset: GHOST_OFFSET_COLLAPSE_PEAK,
-    },
-    { transform: tfAt(1), opacity: 0, filter: blurAt(GHOST_BLUR_PEAK_PX), borderRadius: KEYHOLE_STRIP_BORDER_RADIUS },
-  ];
-
-  // EASE_COLLAPSE: fast departure, decisive deceleration — appropriate for exits.
+  // Shared pipeline — see applyGhostMorph. Collapse = iris OPENS from spotlight.
   const collapseDuration = scaleDuration(PAGE_COLLAPSE_GHOST_MS);
-  const animation = ghost.animate(keyframes, {
+  const animation = applyGhostMorph(ghost, src, toRect, {
+    direction: "collapse",
+    spotlightRect,
+    srcRadius: snapshot.borderRadius || "0px",
+    tgtRadius: KEYHOLE_STRIP_BORDER_RADIUS,
     duration: collapseDuration,
     easing: EASE_COLLAPSE,
-    fill: "both",
+    anchorInGhostX,
+    anchorInGhostY,
   });
   applyDebugFreeze(animation, "page-collapse", collapseDuration);
   registerActiveAnimation(animation);
@@ -1150,18 +1304,18 @@ function runPageCollapseGhostAnimation(
     if (pendingAnimations === 0) onDone();
   };
 
-  // Content reveal: holds at floor through GHOST_OFFSET_COLLAPSE_MID (0.65) while
-  // the ghost covers vertical travel, then ramps 0.03→0.35 by GHOST_OFFSET_COLLAPSE_PEAK
-  // (0.88) as the ghost fades to GHOST_OPACITY_COLLAPSE_PEAK (0.3), then finishes 0.35→1.0
-  // after the ghost exits. Revealing earlier caused jank: large vertical travel (e.g.
-  // spotlight in a tall page → expanded-keyhole container near the top) meant the
-  // destination content became visible before the ghost had covered it.
+  // Content reveal: holds at floor until GHOST_OFFSET_LATE (~68% of flight),
+  // then ramps to 35% by GHOST_OFFSET_PEAK (~92%), then finishes 35%→1.0
+  // after the ghost exits. These offsets match the collapse ghost's fade
+  // schedule from applyGhostMorph. Collapse needs a LATE reveal because
+  // destination content can occupy area the ghost hasn't covered yet (large
+  // vertical travel from page to keyhole). Revealing earlier caused pop-through.
   if (popoverRoot) {
     const contentAnim = popoverRoot.animate(
       [
         { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR },
-        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: GHOST_OFFSET_COLLAPSE_MID },
-        { opacity: 0.35, offset: GHOST_OFFSET_COLLAPSE_PEAK },
+        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: GHOST_OFFSET_LATE },
+        { opacity: 0.35, offset: GHOST_OFFSET_PEAK },
         { opacity: 1 },
       ],
       { duration: collapseDuration, easing: EASE_CONTENT_REVEAL, fill: "forwards" },
@@ -1268,88 +1422,28 @@ export function startEvidencePageCollapseTransition(
         _transitionDepth = Math.max(0, _transitionDepth - 1);
         return;
       }
-      runPageCollapseGhostAnimation(ghost, snapshot, keyholeRect, rootEl, () => {
+      // Re-measure against the now-stable layout. Late horizontal settles
+      // (useViewportBoundaryGuard's safety timer at BLINK_ENTER_TOTAL_MS+16,
+      // and usePopoverAlignOffset's ResizeObserver-driven recompute) can shift
+      // the destination after the initial post-flushSync snapshot. Without this
+      // re-measure, the ghost's start position and image-anchor come from the
+      // pre-settle layout while `keyholeRect` comes from the settled layout —
+      // visible as an x-axis "overshoot" of the ghost past where the real
+      // keyhole reveals.
+      const stableSnapshot = buildCollapseGhostSnapshot(preflush, root) ?? snapshot;
+      applyGhostRect(ghost, stableSnapshot.viewportRect);
+      const ghostImg = ghost.querySelector<HTMLImageElement>("img");
+      if (ghostImg) {
+        ghostImg.style.left = `${stableSnapshot.imageOffsetLeft}px`;
+        ghostImg.style.top = `${stableSnapshot.imageOffsetTop}px`;
+        ghostImg.style.width = `${stableSnapshot.imageWidth}px`;
+        ghostImg.style.height = `${stableSnapshot.imageHeight}px`;
+      }
+      runPageCollapseGhostAnimation(ghost, stableSnapshot, keyholeRect, preflush.spotlightRect, rootEl, () => {
         _transitionDepth = Math.max(0, _transitionDepth - 1);
       });
     });
   };
 
   queueMicrotask(commitAndAnimate);
-}
-
-// =============================================================================
-// CONSOLE DEBUG API
-// =============================================================================
-//
-// Usage from browser DevTools:
-//   __dcDebugPageExpand("both")   — show source + target + marker overlays
-//   __dcDebugPageExpand("source") — freeze ghost at source rect
-//   __dcDebugPageExpand("target") — freeze ghost at target rect
-//   __dcDebugPageExpand(null)     — disable debug mode
-//   __dcDebugPageExpand()         — toggle: off → "both" → "source" → "target" → off
-//   __dcDebugPageExpand.clear()   — remove debug overlays without changing mode
-
-if (typeof window !== "undefined") {
-  const CYCLE: DebugPhase[] = ["both", "source", "target", null];
-
-  const api = (phase?: DebugPhase | undefined) => {
-    if (phase === undefined) {
-      // Cycle through modes
-      const current = getPageExpandDebugPhase();
-      const idx = CYCLE.indexOf(current);
-      const next = CYCLE[(idx + 1) % CYCLE.length];
-      return api(next ?? null);
-    }
-    if (phase === null) {
-      delete document.documentElement.dataset.dcPageExpandDebugPhase;
-      clearDebugOverlays();
-      console.log("[DC debug] page-expand debug OFF");
-    } else {
-      document.documentElement.dataset.dcPageExpandDebugPhase = phase;
-      if (phase !== "both") clearDebugOverlays();
-      console.log(
-        `[DC debug] page-expand debug: %c${phase}`,
-        `color: ${phase === "source" ? DEBUG_PAGE_EXPAND_SOURCE_COLOR : phase === "target" ? DEBUG_PAGE_EXPAND_TARGET_COLOR : "#3b82f6"}; font-weight: bold`,
-        "— click a page pill / View Page to trigger",
-      );
-    }
-    return phase;
-  };
-  api.clear = () => {
-    clearDebugOverlays();
-    console.log("[DC debug] overlays cleared");
-  };
-
-  /** Scan the live DOM and outline all page-expand source/target elements without triggering a transition. */
-  api.scan = () => {
-    clearDebugOverlays();
-    const sources = document.querySelectorAll<HTMLElement>("[data-dc-page-expand-source]");
-    const targets = document.querySelectorAll<HTMLElement>("[data-dc-page-expand-target]");
-    let sourceCount = 0;
-    let targetCount = 0;
-    sources.forEach(el => {
-      const rect = el.getBoundingClientRect();
-      if (!isVisibleRect(rect)) return;
-      sourceCount++;
-      const kind = el.dataset.dcPageExpandSourceKind ?? "unknown";
-      const anchorX = el.dataset.dcSourceAnchorX ?? "—";
-      const anchorY = el.dataset.dcSourceAnchorY ?? "—";
-      createDebugOverlay(rect, DEBUG_PAGE_EXPAND_SOURCE_COLOR, `SOURCE (${kind})`, `anchor: (${anchorX}, ${anchorY})`);
-    });
-    targets.forEach(el => {
-      const rect = el.getBoundingClientRect();
-      if (!isVisibleRect(rect)) return;
-      targetCount++;
-      const ready = el.dataset.dcPageExpandReady;
-      const color = ready === "true" ? DEBUG_PAGE_EXPAND_TARGET_COLOR : "#f59e0b";
-      createDebugOverlay(rect, color, `TARGET (ready=${ready ?? "?"})`);
-    });
-    console.log(
-      `[DC debug] scan: ${sourceCount} visible source(s), ${targetCount} visible target(s)`,
-      `\n  Total in DOM: ${sources.length} source(s), ${targets.length} target(s)`,
-    );
-    return { sources: sourceCount, targets: targetCount };
-  };
-
-  (window as unknown as Record<string, unknown>).__dcDebugPageExpand = api;
 }

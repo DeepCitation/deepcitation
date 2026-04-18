@@ -410,6 +410,14 @@ function EvidenceZone({
            host apps using their own VTs should be aware. */
         ::view-transition { pointer-events: none; }
 
+        /* Suppress the browser's default cross-fade on the root pseudos. Only the
+           dc-evidence geometry morph should animate; otherwise a full-page fade
+           stacks on top, producing double-popover ghosting at 25-50% progress. */
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+          animation: none !important;
+        }
+
         ::view-transition-old(${DC_EVIDENCE_VT_NAME}) {
           animation: none;
           opacity: 0;

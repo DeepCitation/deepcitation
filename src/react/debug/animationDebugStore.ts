@@ -8,6 +8,25 @@ export type FrozenKind = "vt-expand" | "vt-collapse" | "page-expand" | "page-col
 export type GhostRectsSnapshot = {
   source: DOMRect | null;
   target: DOMRect | null;
+  /** Direction the most recent ghost traveled. Used by the keyframe overlay to pick hue/label. */
+  direction?: "expand" | "collapse";
+  /** Spotlight rect at animation start — null when the transition had no clip-path iris. */
+  spotlight?: DOMRect | null;
+  /**
+   * Offset from the ghost element's top-left to the citation anchor point
+   * (inside the ghost). Under pure-translate animation this is constant across
+   * frames, so one scalar pair is enough to compute the anchor's viewport
+   * position at any sampled rect: `rect.left + anchorInGhostX`.
+   */
+  anchorInGhostX?: number;
+  anchorInGhostY?: number;
+  /**
+   * Per-rAF samples of the ghost's actual bounding rect during the animation,
+   * captured by the animation pipeline. `t` is normalized progress (0..1) at
+   * the time of capture. This is the ground truth for the overlay — every
+   * entry corresponds to a visually-occupied position during the real animation.
+   */
+  samples?: Array<{ t: number; rect: DOMRect }>;
 };
 
 export type AnimationDebugState = {
@@ -118,6 +137,9 @@ type ConsoleApi = {
   showGhostRects(on: boolean): void;
   forceReducedMotion(on: boolean): void;
   snapshot(): AnimationDebugState;
+  drawAnimationKeyFrames(root?: ParentNode | null): unknown;
+  drawAllAnimationKeyFrames(root?: ParentNode | null): unknown;
+  clearAnimationKeyFrames(): void;
 };
 
 function clampSpeed(x: number): number {
@@ -129,6 +151,9 @@ function clampProgress(p: number): number {
   if (!Number.isFinite(p)) return 0;
   return Math.max(0, Math.min(1, p));
 }
+
+let _overlayMod: Promise<typeof import("./viewTransitionOverlay.js")> | null = null;
+const lazyOverlay = () => (_overlayMod ??= import("./viewTransitionOverlay.js"));
 
 function installConsoleApi(): void {
   if (typeof window === "undefined") return;
@@ -176,9 +201,34 @@ function installConsoleApi(): void {
     snapshot() {
       return devState;
     },
+    async drawAnimationKeyFrames(root) {
+      // Dynamic import: the overlay module isn't statically pulled into this
+      // module's graph, so bundlers can split it into its own chunk and strip
+      // it from production builds (see `./viewTransitionOverlay.ts` header).
+      // Cached so the three methods share one load after the first call.
+      const mod = await lazyOverlay();
+      return mod.debugDrawAnimationKeyFrames(root ?? null);
+    },
+    async drawAllAnimationKeyFrames(root) {
+      const mod = await lazyOverlay();
+      return mod.debugDrawAllAnimationKeyFrames(root ?? null);
+    },
+    clearAnimationKeyFrames() {
+      void lazyOverlay().then(mod => mod.debugClearAnimationKeyFrames());
+    },
   };
 
   (window as unknown as { __dcAnimationDebug?: ConsoleApi }).__dcAnimationDebug = api;
 }
 
 installConsoleApi();
+
+// Eagerly load the overlay module in development so that __dcDebugPageExpand
+// (installed at overlay module-load time) is available immediately — without
+// requiring a prior call to drawAnimationKeyFrames / drawAllAnimationKeyFrames.
+// On main, __dcDebugPageExpand was registered by viewTransition.ts at import
+// time; moving it to viewTransitionOverlay.ts made it lazy, which broke tests
+// that call scan() without first triggering a transition.
+if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+  void lazyOverlay();
+}
