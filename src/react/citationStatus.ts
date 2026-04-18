@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import { getCitationStatus, PARTIAL_STATUSES } from "../parsing/parseCitation.js";
+import { getCitationStatus, PARTIAL_STATUSES } from "../utils/citationStatus.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";

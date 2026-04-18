@@ -1,5 +1,5 @@
 import React, { forwardRef, memo, type ReactNode, useCallback, useMemo } from "react";
-import { getCitationStatus } from "../parsing/parseCitation.js";
+import { getCitationStatus } from "../utils/citationStatus.js";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";

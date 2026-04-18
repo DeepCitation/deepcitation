@@ -23,6 +23,7 @@ export {
   ServerError,
   ValidationError,
 } from "./client/errors.js";
+export { SDK_VERSION } from "./client/DeepCitation.js";
 export type {
   AttachmentResponse,
   CitationInput,
@@ -79,11 +80,11 @@ export {
 
 export {
   getAllCitationsFromLlmOutput,
-  getCitationStatus,
   groupCitationsByAttachmentId,
   groupCitationsByAttachmentIdObject,
   normalizeCitationType,
 } from "./parsing/parseCitation.js";
+export { getCitationStatus, PARTIAL_STATUSES } from "./utils/citationStatus.js";
 export type { ParsedCitationResult } from "./parsing/parseCitationResponse.js";
 export { parseCitationResponse } from "./parsing/parseCitationResponse.js";
 
@@ -99,6 +100,10 @@ export type {
   WrapCitationPromptOptions,
   WrapCitationPromptResult,
   WrapSystemPromptOptions,
+} from "./prompts/citationPrompts.js";
+export {
+  CITATION_DATA_END_DELIMITER,
+  CITATION_DATA_START_DELIMITER,
 } from "./prompts/citationPrompts.js";
 export {
   type CompressedResult,

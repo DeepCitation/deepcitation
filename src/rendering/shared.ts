@@ -5,7 +5,7 @@
  * used by prepareCitations and the terminal renderer.
  */
 
-import { getCitationStatus } from "../parsing/parseCitation.js";
+import { getCitationStatus } from "../utils/citationStatus.js";
 import { type ParsedCitationResult, parseCitationResponse } from "../parsing/parseCitationResponse.js";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";

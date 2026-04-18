@@ -14,7 +14,7 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { getCitationStatus } from "../parsing/parseCitation.js";
+import { getCitationStatus } from "../utils/citationStatus.js";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";

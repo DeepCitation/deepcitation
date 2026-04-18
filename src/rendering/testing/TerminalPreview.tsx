@@ -1,6 +1,6 @@
 import type React from "react";
 import { getIndicator } from "../../formatting/indicators.js";
-import { getCitationStatus } from "../../parsing/parseCitation.js";
+import { getCitationStatus } from "../../utils/citationStatus.js";
 import type { CitationStatus } from "../../types/citation.js";
 import {
   DOC_CITATION_1,

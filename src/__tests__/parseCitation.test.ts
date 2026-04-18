@@ -1,10 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
 import {
   getAllCitationsFromLlmOutput,
-  getCitationStatus,
   groupCitationsByAttachmentId,
   normalizeCitationType,
 } from "../parsing/parseCitation.js";
+import { getCitationStatus } from "../utils/citationStatus.js";
 import type { Citation } from "../types/citation.js";
 import { isDocumentCitation, isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";

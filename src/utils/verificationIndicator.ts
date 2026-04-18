@@ -1,4 +1,4 @@
-import { getCitationStatus } from "../parsing/parseCitation.js";
+import { getCitationStatus } from "./citationStatus.js";
 import type { Verification } from "../types/verification.js";
 
 /**
