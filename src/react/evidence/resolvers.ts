@@ -180,7 +180,7 @@ export function resolveEvidenceSourceAnchorRatio(
     verification?.verifiedSourceMatch,
     verification?.document?.sourceMatchDeepItems?.[0]?.text,
     verification?.verifiedSourceContext,
-    verification?.document?.sourceContextDeepItem?.text,
+    contextItem?.text,
   ]
     .map(normalizeEvidenceText)
     .filter(Boolean);
