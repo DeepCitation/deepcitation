@@ -9,26 +9,9 @@ export function mapToVerification(data: VerificationData): Verification {
     verifiedSourceContext: data.verifiedSourceContext,
     verifiedSourceMatch: data.verifiedSourceMatch,
     sourceSnippet: data.sourceSnippet,
-    evidence: data.evidence?.src ? { src: data.evidence.src, dimensions: data.evidence.dimensions } : undefined,
-    document: data.document
-      ? {
-          verifiedPageNumber: data.document.verifiedPageNumber,
-          mimeType: data.document.mimeType,
-          sourceContextDeepItem: data.document.sourceContextDeepItem,
-          sourceMatchDeepItems: data.document.sourceMatchDeepItems,
-          renderScale: data.document.renderScale,
-        }
-      : undefined,
-    url: data.url
-      ? {
-          verifiedUrl: data.url.verifiedUrl,
-          verifiedTitle: data.url.verifiedTitle,
-          verifiedDomain: data.url.verifiedDomain,
-          verifiedFaviconUrl: data.url.verifiedFaviconUrl,
-          urlAccessStatus: data.url.urlAccessStatus,
-          urlVerificationError: data.url.urlVerificationError,
-        }
-      : undefined,
+    evidence: data.evidence?.src ? { ...data.evidence } : undefined,
+    document: data.document ? { ...data.document } : undefined,
+    url: data.url ? { ...data.url } : undefined,
     searchAttempts: data.searchAttempts,
   };
 }

@@ -17,6 +17,14 @@ import {
   BLINK_EXIT_OPACITY,
   BLINK_EXIT_SCALE,
   BLINK_EXIT_TOTAL_MS,
+  ERROR_COLOR_DEFAULT,
+  ERROR_COLOR_VAR,
+  PARTIAL_COLOR_DEFAULT,
+  PARTIAL_COLOR_VAR,
+  PENDING_COLOR_DEFAULT,
+  PENDING_COLOR_VAR,
+  VERIFIED_COLOR_DEFAULT,
+  VERIFIED_COLOR_VAR,
 } from "../../react/constants.js";
 import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
 import { usePopoverViewState } from "../../react/hooks/usePopoverViewState.js";
@@ -37,12 +45,12 @@ const CHECK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 // XIcon: used for miss (red) — two crossing diagonal lines, NOT a dash
 const X_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" width="100%" height="100%"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
 
-/** Status color constants — use CSS custom properties with fallbacks matching React constants.ts */
+/** Status color constants — CSS custom properties with fallbacks from React constants.ts */
 const STATUS_COLORS = {
-  verified: "var(--dc-verified, #10b981)", // emerald-500
-  partial: "var(--dc-partial, #f59e0b)", // amber-500
-  miss: "var(--dc-destructive, #ef4444)", // red-500
-  pending: "var(--dc-pending, #a1a1aa)", // zinc-400
+  verified: `var(${VERIFIED_COLOR_VAR}, ${VERIFIED_COLOR_DEFAULT})`,
+  partial: `var(${PARTIAL_COLOR_VAR}, ${PARTIAL_COLOR_DEFAULT})`,
+  miss: `var(${ERROR_COLOR_VAR}, ${ERROR_COLOR_DEFAULT})`,
+  pending: `var(${PENDING_COLOR_VAR}, ${PENDING_COLOR_DEFAULT})`,
 } as const;
 
 /** Indicator variant type — mirrors React's IndicatorVariant */
