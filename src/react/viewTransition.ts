@@ -1178,6 +1178,31 @@ export function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: Par
       if (isVisibleRect(r)) {
         destEl = expandedEl;
         destRect = r;
+        // Scroll [data-dc-inline-expanded] to annotation center before reading imgRect.
+        // Its scroll is seeded from the summary keyhole strip's scrollLeft×zoom, which is
+        // calibrated for the strip's zoom level — not for centering the annotation in the
+        // expanded-keyhole view. Using the strip-seeded scroll gives anchorInGhostX ≠ elW/2,
+        // pushing the collapse ghost start rect off-screen (e.g., anchorInGhostX = 990 for
+        // an 82.5% annotation on a 1200px image, vs elW/2 = 175 after centering). Force
+        // annotation-centering so anchorInGhostX = elW/2 and the ghost starts on-screen.
+        const scrollImg = expandedEl.querySelector<HTMLImageElement>("img");
+        if (scrollImg) {
+          // getBoundingClientRect forces reflow after display:none removal so scroll
+          // geometry is computed before we read or write scrollLeft/scrollTop.
+          const si = scrollImg.getBoundingClientRect();
+          const ax = readAnchorDataset(expandedEl, "X");
+          const ay = readAnchorDataset(expandedEl, "Y");
+          // si.width is 0 when the img has display:none (imageLoaded=false). Fall back
+          // to natural dims (fill=false zoom=1, so displayed size = natural size).
+          const imgW = si.width > 0.5 ? si.width : data.keyholeNaturalWidth;
+          const imgH = si.height > 0.5 ? si.height : data.keyholeNaturalHeight;
+          if (imgW > r.width) {
+            expandedEl.scrollLeft = Math.max(0, Math.min(imgW - r.width, ax * imgW - r.width / 2));
+          }
+          if (imgH > r.height) {
+            expandedEl.scrollTop = Math.max(0, Math.min(imgH - r.height, ay * imgH - r.height / 2));
+          }
+        }
       }
     }
   }

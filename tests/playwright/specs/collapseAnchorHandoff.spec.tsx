@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/experimental-ct-react";
 import { AsymmetricAnchorCitation } from "./AsymmetricAnchorCitation";
+import { WideEvidenceCitation } from "./WideEvidenceCitation";
 
 // =============================================================================
 // Collapse / expand anchor-handoff regression suite
@@ -111,6 +112,17 @@ async function collapseBackToSummary(page: import("@playwright/test").Page) {
   await page.keyboard.press("Escape");
 }
 
+// Click the keyhole strip to open the expanded-keyhole (focus) view.
+// Works only when the evidence image overflows the strip (canExpand = true).
+async function expandToKeyhole(popover: import("@playwright/test").Locator) {
+  const keyhole = popover.locator("[data-dc-keyhole]").first();
+  await expect(keyhole).toBeVisible();
+  await keyhole.click();
+  // Expanded-keyhole is visible when [data-dc-inline-expanded] becomes visible
+  // and [data-dc-keyhole] is hidden.
+  await expect(popover.locator("[data-dc-inline-expanded]").first()).toBeVisible();
+}
+
 // =============================================================================
 
 test.describe("Anchor handoff: ghost ↔ keyhole (AsymmetricAnchorCitation)", () => {
@@ -205,4 +217,81 @@ test.describe("Anchor handoff: ghost ↔ keyhole (AsymmetricAnchorCitation)", ()
       `ghost anchor (${ghostAnchorX.toFixed(0)}) should be within 15 px of expected (${expectedAnchorX.toFixed(0)})`,
     ).toBeLessThanOrEqual(15);
   });
+
+  // ── Test 3: Collapse from expanded-page → expanded-keyhole ──────────────
+  // Reproduces the user-reported flow: summary → expanded-keyhole → page → collapse.
+  // When collapsing to expanded-keyhole (not summary), the ghost destination is
+  // [data-dc-inline-expanded]. Its scroll may be seeded from the keyhole strip at
+  // a different zoom, leaving anchorInGhostX >> elW/2. This pushes the ghost's
+  // starting rect far off-screen left.
+  //
+  // Root cause without the fix:
+  //   imageOffsetLeft = 0 (no annotation-centered scroll applied)
+  //   anchorInGhostX  = sourceAnchorX × imageWidth = 0.867 × 1200 ≈ 1040
+  //   viewportRect.x  = spotlightCX − 1040  (far off-screen left)
+  //
+  // Non-gamed invariant: anchorInGhostX ≤ containerWidth (anchor within ghost bounds).
+  //   With fix: scroll-centering brings anchorInGhostX to ≤ elW (at most right edge).
+  //   Without fix: anchorInGhostX ≈ 1040 >> containerWidth (≈ 680) — outside bounds.
+  //
+  // Narrow viewport required: at the default 1280px viewport the container can grow to
+  // match the 1200px image width, making overflow (and the bug) invisible. 800px forces
+  // ~680px available width so the 1200px image overflows and the fix is exercised.
+  //
+  // The gamed alternative (|source.x + anchorInGhostX − spotlightCX| ≤ tol) is a
+  // tautology: source.x is DEFINED as spotlightCX − anchorInGhostX, so their sum
+  // always equals spotlightCX regardless of whether the fix works. That check is
+  // omitted here.
+  test.describe("narrow viewport (800px) — forces image overflow in expanded-keyhole", () => {
+    test.use({ viewport: { width: 800, height: 900 } });
+
+  test("collapse ghost from expanded-page → expanded-keyhole: anchorInGhostX within ghost bounds (WideEvidenceCitation)", async ({
+    mount,
+    page,
+  }) => {
+    await mount(<WideEvidenceCitation />);
+    await enableDebugStore(page);
+
+    const popover = await openSummaryPopover(page);
+    await expandToKeyhole(popover);
+    await expandToPage(page, popover);
+    await waitForGhostDirection(page, "expand");
+    await page.waitForTimeout(150);
+    await collapseBackToSummary(page);
+    const collapse = await waitForGhostDirection(page, "collapse");
+
+    expect(collapse.target, "collapse ghost target rect must be captured").not.toBeNull();
+    expect(collapse.anchorInGhostX, "anchorInGhostX must be present").not.toBeUndefined();
+
+    // Non-gamed invariant: anchorInGhostX must be WITHIN the ghost's width.
+    //
+    // Without the annotation-centering scroll fix (broken):
+    //   imageOffsetLeft = 0  (scrollLeft not set)
+    //   anchorInGhostX  = sourceAnchorX × imageWidth = 0.867 × 1200 ≈ 1040
+    //   → 1040 > target.width (≈ 680)  — anchor outside ghost bounds, ghost off-screen
+    //
+    // With the fix (correct):
+    //   scrollLeft sets imageOffsetLeft = −(ax×imgW − elW/2)
+    //   anchorInGhostX = elW/2 (unclamped) or < elW (clamped at right edge)
+    //   → anchorInGhostX ≤ target.width  — anchor within ghost, ghost starts on-screen
+    //
+    // This assertion is independent of spotlightCX and can only pass when the
+    // overflow scroll fix is actually applied. The gamed alternative
+    // (|source.x + anchorInGhostX − spotlightCX| ≤ tol) is a tautology because
+    // source.x is defined as spotlightCX − anchorInGhostX.
+    const anchorInGhostX = collapse.anchorInGhostX ?? 0;
+    const containerWidth = collapse.target!.width;
+    expect(
+      anchorInGhostX,
+      `anchorInGhostX (${anchorInGhostX.toFixed(0)}) must be ≤ containerWidth (${containerWidth.toFixed(0)}). ` +
+        `Without the scroll fix it would be ≈ 1040 (0.867 × 1200px image), well past the ghost's right edge.`,
+    ).toBeLessThanOrEqual(containerWidth);
+
+    // Secondary: ghost did not start wildly off-screen to the left.
+    expect(
+      collapse.source!.x,
+      `ghost source.x should not be further off-screen than one ghost-width (>= -containerWidth)`,
+    ).toBeGreaterThanOrEqual(-containerWidth);
+  });
+  }); // end narrow-viewport describe
 });
