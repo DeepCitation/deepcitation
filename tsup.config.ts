@@ -9,6 +9,7 @@ export default defineConfig({
     "drawing/index": "src/drawing/index.ts",
     "prompts/index": "src/prompts/index.ts",
     "react/index": "src/react/index.ts",
+    "render/index": "src/render/index.ts",
     "rendering/terminal/terminalRenderer": "src/rendering/terminal/terminalRenderer.ts",
     "vanilla/index": "src/vanilla/index.ts",
     "html-utils": "src/html-utils.ts",
