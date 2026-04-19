@@ -1262,6 +1262,8 @@ export function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: Par
     // ghost shows the correct annotation region, not a compressed container-width fallback.
     // anchorInGhostX = destRect.width/2 by construction: the ghost is centered on the spotlight
     // and the annotation sits at the midpoint of the ghost — same invariant as the visible case.
+    // Note: expandedKHImgW > 0 is also false when data.keyholeNaturalWidth === 0 (no natural dims
+    // available), which falls through to the container-width else branch — same as pre-fix behavior.
     const anchorX = Number.isFinite(expandedKHAnchorX) ? expandedKHAnchorX : 0.5;
     const anchorY = Number.isFinite(expandedKHAnchorY) ? expandedKHAnchorY : 0.5;
     imageWidth = expandedKHImgW;

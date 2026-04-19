@@ -310,7 +310,7 @@ test.describe("Anchor handoff: ghost ↔ keyhole (AsymmetricAnchorCitation)", ()
   //   the expanded-keyhole's scroll. The initialScroll prop is seeded from the
   //   keyhole strip at its zoom level (e.g. 0.5×) — not annotation-centered at
   //   natural size. So scrollLeft ≈ strip value → imageOffsetLeft ≠ −(ax × imgW − W/2)
-  //   → anchorInGhostX = 0 + 0.825 × 1200 ≈ 990 >> containerWidth.
+  //   → anchorInGhostX = 0 + 0.867 × 1200 ≈ 1040 >> containerWidth.
   //   ghostEndX = pageCX − 990 → far off-screen left. With the iris clip
   //   (spotlight present) this is visually masked; without it the ghost flies to corner.
   //
@@ -318,42 +318,42 @@ test.describe("Anchor handoff: ghost ↔ keyhole (AsymmetricAnchorCitation)", ()
   //   center before reading the image rect, mirroring buildCollapseGhostSnapshot.
   //
   // Non-gamed invariant: anchorInGhostX for the EXPAND ghost ≤ containerWidth.
-  //   Without fix: 0.825 × 1200 ≈ 990 >> containerWidth (≈ 680) at 800px viewport.
+  //   Without fix: 0.867 × 1200 ≈ 1040 >> containerWidth (≈ 680) at 800px viewport.
   //   With fix: scroll-centering → anchorInGhostX ≈ containerWidth/2.
   test.describe("narrow viewport (800px) — expand from expanded-keyhole without spotlight", () => {
     test.use({ viewport: { width: 800, height: 900 } });
 
-  test("expand ghost from expanded-keyhole → page: anchorInGhostX within ghost bounds (WideEvidenceCitation)", async ({
-    mount,
-    page,
-  }) => {
-    await mount(<WideEvidenceCitation />);
-    await enableDebugStore(page);
+    test("expand ghost from expanded-keyhole → page: anchorInGhostX within ghost bounds (WideEvidenceCitation)", async ({
+      mount,
+      page,
+    }) => {
+      await mount(<WideEvidenceCitation />);
+      await enableDebugStore(page);
 
-    const popover = await openSummaryPopover(page);
-    await expandToKeyhole(popover);
-    await expandToPage(page, popover);
-    const expand = await waitForGhostDirection(page, "expand");
+      const popover = await openSummaryPopover(page);
+      await expandToKeyhole(popover);
+      await expandToPage(page, popover);
+      const expand = await waitForGhostDirection(page, "expand");
 
-    expect(expand.source, "expand ghost source rect must be captured").not.toBeNull();
-    expect(expand.anchorInGhostX, "anchorInGhostX must be present").not.toBeUndefined();
+      expect(expand.source, "expand ghost source rect must be captured").not.toBeNull();
+      expect(expand.anchorInGhostX, "anchorInGhostX must be present").not.toBeUndefined();
 
-    // Non-gamed invariant: anchorInGhostX must be WITHIN the ghost's width.
-    //
-    // Without the scroll fix: imageOffsetLeft = 0, anchorInGhostX = 0.825 × 1200 ≈ 990
-    // which far exceeds containerWidth (~680 at 800px viewport). The ghost end
-    // position is pageCX − 990 ≈ far off-screen left — flies to corner.
-    //
-    // With fix: scroll-centering → anchorInGhostX ≈ containerWidth/2.
-    const anchorInGhostX = expand.anchorInGhostX ?? 0;
-    const containerWidth = expand.source!.width;
-    expect(
-      anchorInGhostX,
-      `anchorInGhostX (${anchorInGhostX.toFixed(0)}) must be ≤ containerWidth (${containerWidth.toFixed(0)}). ` +
-        `Without the scroll fix it would be ≈ 990 (0.825 × 1200px image), well past the ghost's right edge.`,
-    ).toBeLessThanOrEqual(containerWidth);
+      // Non-gamed invariant: anchorInGhostX must be WITHIN the ghost's width.
+      //
+      // Without the scroll fix: imageOffsetLeft = 0, anchorInGhostX = 0.867 × 1200 ≈ 1040
+      // which far exceeds containerWidth (~680 at 800px viewport). The ghost end
+      // position is pageCX − 1040 ≈ far off-screen left — flies to corner.
+      //
+      // With fix: scroll-centering → anchorInGhostX ≈ containerWidth/2.
+      const anchorInGhostX = expand.anchorInGhostX ?? 0;
+      const containerWidth = expand.source!.width;
+      expect(
+        anchorInGhostX,
+        `anchorInGhostX (${anchorInGhostX.toFixed(0)}) must be ≤ containerWidth (${containerWidth.toFixed(0)}). ` +
+          `Without the scroll fix it would be ≈ 1040 (0.867 × 1200px image), well past the ghost's right edge.`,
+      ).toBeLessThanOrEqual(containerWidth);
 
-    expect(anchorInGhostX).toBeGreaterThan(0);
-  });
+      expect(anchorInGhostX).toBeGreaterThan(0);
+    });
   }); // end narrow-viewport describe (expand)
 });
