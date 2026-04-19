@@ -11,8 +11,8 @@
  *   → RUN_FINISHED
  */
 
+import { DeepCitation } from "deepcitation/client";
 import {
-  DeepCitation,
   ValidationError,
   getAllCitationsFromLlmOutput,
   getCitationStatus,

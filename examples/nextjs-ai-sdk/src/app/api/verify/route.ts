@@ -1,4 +1,5 @@
-import { DeepCitation, ValidationError, getAllCitationsFromLlmOutput, getCitationStatus, sanitizeForLog } from "deepcitation";
+import { DeepCitation } from "deepcitation/client";
+import { ValidationError, getAllCitationsFromLlmOutput, getCitationStatus, sanitizeForLog } from "deepcitation";
 import { type NextRequest, NextResponse } from "next/server";
 import { clearCorpusCache } from "@/lib/corpusAttachment";
 

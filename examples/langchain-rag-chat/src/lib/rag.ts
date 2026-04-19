@@ -2,8 +2,8 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import OpenAI from "openai";
+import { DeepCitation } from "deepcitation/client";
 import {
-  DeepCitation,
   ValidationError,
   extractVisibleText,
   getAllCitationsFromLlmOutput,

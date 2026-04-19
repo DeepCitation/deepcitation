@@ -3,8 +3,8 @@ import { LibSQLVector } from "@mastra/libsql";
 import { embedMany } from "ai";
 import { openai as openaiProvider } from "@ai-sdk/openai";
 import OpenAI from "openai";
+import { DeepCitation } from "deepcitation/client";
 import {
-  DeepCitation,
   ValidationError,
   extractVisibleText,
   getAllCitationsFromLlmOutput,
