@@ -125,10 +125,10 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
               {/* Expanded details */}
               {isExpanded && (
                 <div className="px-4 pb-3 space-y-2">
-                  {v.verifiedMatchSnippet && (
+                  {v.verifiedSourceMatch && (
                     <div className="bg-gray-50 rounded p-2">
                       <div className="text-xs font-medium text-gray-500 mb-1">Matched Text</div>
-                      <div className="text-sm text-gray-700 line-clamp-3">"{v.verifiedMatchSnippet}"</div>
+                      <div className="text-sm text-gray-700 line-clamp-3">"{v.verifiedSourceMatch}"</div>
                     </div>
                   )}
 

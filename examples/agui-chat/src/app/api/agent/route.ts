@@ -307,7 +307,7 @@ export async function POST(req: Request) {
             console.log(`[agui-chat] Parsed ${citationCount} citation(s) from LLM output`);
             for (const [key, citation] of citationEntries) {
               console.log(
-                `[agui-chat] Citation ${key}: anchor="${citation.anchorText ?? ""}" full="${citation.fullPhrase ?? ""}" ` +
+                `[agui-chat] Citation ${key}: anchor="${citation.sourceMatch ?? ""}" full="${citation.sourceContext ?? ""}" ` +
                   `pageId="${citation.startPageId ?? ""}" lineIds="${citation.lineIds?.join(",") ?? ""}"`,
               );
             }

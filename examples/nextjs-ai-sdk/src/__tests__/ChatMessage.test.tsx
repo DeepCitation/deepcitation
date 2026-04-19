@@ -5,7 +5,7 @@ import { ChatMessage } from "../components/ChatMessage";
 // Mock the CitationComponent from deepcitation
 vi.mock("deepcitation/react", () => ({
   CitationComponent: ({ citation }: { citation: any }) => (
-    <span data-testid="citation">[{citation?.fullPhrase || "citation"}]</span>
+    <span data-testid="citation">[{citation?.sourceContext || "citation"}]</span>
   ),
 }));
 
@@ -67,7 +67,7 @@ describe("ChatMessage", () => {
       "1": {
         pageNumber: 1,
         lineId: "L1",
-        fullPhrase: "test quote",
+        sourceContext: "test quote",
       },
     };
     const verifications = {
