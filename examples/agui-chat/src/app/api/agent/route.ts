@@ -11,14 +11,15 @@
  *   → RUN_FINISHED
  */
 
+import { DeepCitation } from "deepcitation/client";
 import {
-  DeepCitation,
+  ValidationError,
   getAllCitationsFromLlmOutput,
   getCitationStatus,
   getVerificationTextIndicator,
   sanitizeForLog,
-  wrapCitationPrompt,
 } from "deepcitation";
+import { wrapCitationPrompt } from "deepcitation/prompts";
 import { EventEncoder } from "@ag-ui/encoder";
 import OpenAI from "openai";
 import {
@@ -306,15 +307,25 @@ export async function POST(req: Request) {
             console.log(`[agui-chat] Parsed ${citationCount} citation(s) from LLM output`);
             for (const [key, citation] of citationEntries) {
               console.log(
-                `[agui-chat] Citation ${key}: anchor="${citation.anchorText ?? ""}" full="${citation.fullPhrase ?? ""}" ` +
+                `[agui-chat] Citation ${key}: anchor="${citation.sourceMatch ?? ""}" full="${citation.sourceContext ?? ""}" ` +
                   `pageId="${citation.startPageId ?? ""}" lineIds="${citation.lineIds?.join(",") ?? ""}"`,
               );
             }
 
-            const result = await dc.verify(
-              { llmOutput: fullResponse, outputImageFormat: "avif" },
-              citations,
-            );
+            let result: Awaited<ReturnType<typeof dc.verify>>;
+            try {
+              result = await dc.verify(
+                { llmOutput: fullResponse, outputImageFormat: "avif" },
+                citations,
+              );
+            } catch (err) {
+              if (err instanceof ValidationError && err.statusCode === 404) {
+                // Cached attachment IDs expired — clear so next request re-uploads.
+                preparedAttachmentCache.clear();
+                throw new Error("Documents expired. Please try again.");
+              }
+              throw err;
+            }
 
             const { verifications } = result;
 

@@ -70,11 +70,16 @@ export default function Home() {
       body: JSON.stringify({ llmOutput: messageContent }),
     })
       .then(async res => {
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 410 && body?.code === "ATTACHMENT_EXPIRED") {
+          // Server-side corpus expired — refresh silently so the next question works.
+          loadCorpus();
+          throw new Error(body.error ?? "Documents expired. Please ask your question again.");
+        }
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
           throw new Error(body.error || `Verification request failed (${res.status})`);
         }
-        return res.json();
+        return body as MessageVerificationResult;
       })
       .then((data: MessageVerificationResult) => {
         setVerificationError(prev => {

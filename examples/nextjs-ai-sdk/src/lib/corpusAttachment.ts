@@ -1,4 +1,5 @@
-import { DeepCitation, sanitizeForLog } from "deepcitation";
+import { DeepCitation } from "deepcitation/client";
+import { sanitizeForLog } from "deepcitation";
 import { CORPUS_SOURCES, type CorpusSource } from "./corpus";
 
 type FileDataPart = { attachmentId: string; filename?: string };
@@ -63,6 +64,10 @@ async function resolveAttachment(
 }
 
 export type { FileDataPart };
+
+export function clearCorpusCache(): void {
+  preparedAttachmentCache.clear();
+}
 
 function cacheAttachment(
   client: DeepCitation,

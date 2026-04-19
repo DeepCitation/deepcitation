@@ -14,7 +14,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^3.0.9",
     "@ai-sdk/react": "^1.2.12",
-    "deepcitation": "^0.3.10",
+    "deepcitation": "file:../../",
     "ai": "^6.0.30",
     "next": "^16.1.1",
     "openai": "^6.16.0",
