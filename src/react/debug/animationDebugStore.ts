@@ -169,7 +169,7 @@ function installConsoleApi(): void {
 
   const api: ConsoleApi = {
     enable() {
-      setDevState({ enabled: true });
+      setDevState({ enabled: true, lastGhostRects: null });
     },
     disable() {
       setDevState({
