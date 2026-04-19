@@ -319,6 +319,25 @@ function readAnchorDataset(el: HTMLElement, axis: "X" | "Y"): number {
   return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 0.5;
 }
 
+// Scroll el so the annotation at (ax, ay) sits at the center of its container.
+// Clamped to [0, imgDim - containerDim] so we never scroll past image bounds.
+function scrollToAnnotationCenter(
+  el: HTMLElement,
+  imgW: number,
+  imgH: number,
+  ax: number,
+  ay: number,
+  containerW: number,
+  containerH: number,
+): void {
+  if (imgW > containerW) {
+    el.scrollLeft = Math.max(0, Math.min(imgW - containerW, ax * imgW - containerW / 2));
+  }
+  if (imgH > containerH) {
+    el.scrollTop = Math.max(0, Math.min(imgH - containerH, ay * imgH - containerH / 2));
+  }
+}
+
 function buildPageExpandSnapshot(sourceEl: HTMLElement): GhostSnapshot | null {
   const rect = sourceEl.getBoundingClientRect();
   if (!isVisibleRect(rect)) return null;
@@ -337,12 +356,7 @@ function buildPageExpandSnapshot(sourceEl: HTMLElement): GhostSnapshot | null {
     const si = img.getBoundingClientRect();
     const imgW = si.width > 0.5 ? si.width : img.naturalWidth;
     const imgH = si.height > 0.5 ? si.height : img.naturalHeight;
-    if (imgW > rect.width) {
-      sourceEl.scrollLeft = Math.max(0, Math.min(imgW - rect.width, ax * imgW - rect.width / 2));
-    }
-    if (imgH > rect.height) {
-      sourceEl.scrollTop = Math.max(0, Math.min(imgH - rect.height, ay * imgH - rect.height / 2));
-    }
+    scrollToAnnotationCenter(sourceEl, imgW, imgH, ax, ay, rect.width, rect.height);
   }
 
   const imageRect = img.getBoundingClientRect();
@@ -1194,8 +1208,8 @@ export function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: Par
   }
   // Natural image dims for the expanded-keyhole fallback (image not yet visible).
   // Lifted here so the !hasImgRect branch below can use them.
-  let expandedKHAnchorX = Number.NaN;
-  let expandedKHAnchorY = Number.NaN;
+  let expandedKHAnchorX = NaN;
+  let expandedKHAnchorY = NaN;
   let expandedKHImgW = 0;
   let expandedKHImgH = 0;
 
@@ -1224,18 +1238,7 @@ export function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: Par
           // to natural dims (fill=false zoom=1, so displayed size = natural size).
           expandedKHImgW = si.width > 0.5 ? si.width : data.keyholeNaturalWidth;
           expandedKHImgH = si.height > 0.5 ? si.height : data.keyholeNaturalHeight;
-          if (expandedKHImgW > r.width) {
-            expandedEl.scrollLeft = Math.max(
-              0,
-              Math.min(expandedKHImgW - r.width, expandedKHAnchorX * expandedKHImgW - r.width / 2),
-            );
-          }
-          if (expandedKHImgH > r.height) {
-            expandedEl.scrollTop = Math.max(
-              0,
-              Math.min(expandedKHImgH - r.height, expandedKHAnchorY * expandedKHImgH - r.height / 2),
-            );
-          }
+          scrollToAnnotationCenter(expandedEl, expandedKHImgW, expandedKHImgH, expandedKHAnchorX, expandedKHAnchorY, r.width, r.height);
         }
       }
     }
