@@ -38,6 +38,9 @@
       "react": [
         "./lib/react/index.d.ts"
       ],
+      "render": [
+        "./lib/render/index.d.ts"
+      ],
       "types": [
         "./lib/types/index.d.ts"
       ],
@@ -137,7 +140,7 @@
   "size-limit": [
     {
       "path": "lib/index.js",
-      "limit": "90 KB"
+      "limit": "10 KB"
     },
     {
       "path": "lib/client/index.js",
@@ -149,7 +152,11 @@
     },
     {
       "path": "lib/react/index.js",
-      "limit": "73 KB"
+      "limit": "74 KB"
+    },
+    {
+      "path": "lib/render/index.js",
+      "limit": "100 KB"
     },
     {
       "path": "lib/vanilla/deepcitation-popover.cdn.js",
@@ -186,6 +193,12 @@
       "import": "./lib/react/index.js",
       "require": "./lib/react/index.cjs",
       "default": "./lib/react/index.js"
+    },
+    "./render": {
+      "types": "./lib/render/index.d.ts",
+      "import": "./lib/render/index.js",
+      "require": "./lib/render/index.cjs",
+      "default": "./lib/render/index.js"
     },
     "./types": {
       "types": "./lib/types/index.d.ts"

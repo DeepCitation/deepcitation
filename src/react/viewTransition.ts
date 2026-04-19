@@ -25,7 +25,7 @@ import {
   PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
   VT_EVIDENCE_PAGE_EXPAND_MS,
 } from "./constants.js";
-import { getFrozen, registerActiveAnimation, scaleDuration, setLastGhostRects } from "./debug/animationDebugStore.js";
+import { getFrozen, registerActiveAnimations, scaleDuration, setLastGhostRects } from "./debug/animationDebugStore.js";
 
 /**
  * View-transition name applied to evidence image elements (keyhole strip,
@@ -319,13 +319,48 @@ function readAnchorDataset(el: HTMLElement, axis: "X" | "Y"): number {
   return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 0.5;
 }
 
+// Scroll el so the annotation at (ax, ay) sits at the center of its container.
+// Clamped to [0, imgDim - containerDim] so we never scroll past image bounds.
+function scrollToAnnotationCenter(
+  el: HTMLElement,
+  imgW: number,
+  imgH: number,
+  ax: number,
+  ay: number,
+  containerW: number,
+  containerH: number,
+): void {
+  if (imgW > containerW) {
+    el.scrollLeft = Math.max(0, Math.min(imgW - containerW, ax * imgW - containerW / 2));
+  }
+  if (imgH > containerH) {
+    el.scrollTop = Math.max(0, Math.min(imgH - containerH, ay * imgH - containerH / 2));
+  }
+}
+
 function buildPageExpandSnapshot(sourceEl: HTMLElement): GhostSnapshot | null {
   const rect = sourceEl.getBoundingClientRect();
   if (!isVisibleRect(rect)) return null;
   const img = sourceEl.querySelector<HTMLImageElement>("img");
-  const imageRect = img?.getBoundingClientRect();
   const imageSrc = img?.currentSrc || img?.src;
-  if (!img || !imageRect || !imageSrc || !isVisibleRect(imageRect)) return null;
+  if (!img || !imageSrc || !isValidProofImageSrc(imageSrc)) return null;
+
+  // For expanded-keyhole sources, the container's scrollLeft may be seeded from
+  // the keyhole strip at a different zoom level — not annotation-centered at the
+  // expanded-keyhole's natural zoom. Scroll to center the annotation now so
+  // imageOffsetLeft + sourceAnchorX × imageWidth = containerWidth/2.
+  // This mirrors buildCollapseGhostSnapshot's scroll-centering for the reverse path.
+  if (sourceEl.dataset.dcPageExpandSourceKind === "expanded-keyhole") {
+    const ax = readAnchorDataset(sourceEl, "X");
+    const ay = readAnchorDataset(sourceEl, "Y");
+    const si = img.getBoundingClientRect();
+    const imgW = si.width > 0.5 ? si.width : img.naturalWidth;
+    const imgH = si.height > 0.5 ? si.height : img.naturalHeight;
+    scrollToAnnotationCenter(sourceEl, imgW, imgH, ax, ay, rect.width, rect.height);
+  }
+
+  const imageRect = img.getBoundingClientRect();
+  if (!isVisibleRect(imageRect)) return null;
   return {
     viewportRect: rect,
     imageSrc,
@@ -663,25 +698,46 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
   }
   const hasClip = clipTop > 0 || clipRight > 0 || clipBottom > 0 || clipLeft > 0;
 
-  // Iris ramp 0.15→0.88: starts soon after depart so motion reads as focused
-  // rather than hunting; ends before GHOST_OFFSET_PEAK so the key is fully
-  // seated visually before the ghost opacity collapses.
+  // Iris ramp differs by direction:
+  //   • expand   — closes during translation (0.15→0.88). Closing-iris vector
+  //                aligns with translate vector; both focus toward the destination.
+  //   • collapse — stays fully clipped to spotlight until ghost has landed,
+  //                then opens (0.55→0.88). Opening-iris during translation
+  //                reveals image pixels asymmetrically (whichever inset is
+  //                larger reveals more pixels per unit time), and the eye sums
+  //                that lateral drift with the diagonal translate as
+  //                "shoots sideways then down". With the open deferred to
+  //                after the ghost arrives, the spotlight chunk travels on a
+  //                clean line; the late open reveals the keyhole-shaped end
+  //                frame in place. Endpoints align — the ghost is keyhole-sized
+  //                and lands exactly on the keyhole strip — so the revealed
+  //                pixels match the strip behind.
   const clipAt = (t: number) => {
-    const ramp = Math.min(1, Math.max(0, (t - 0.15) / 0.73));
-    const ct = opts.direction === "expand" ? ramp : 1 - ramp;
+    let ct: number;
+    if (opts.direction === "expand") {
+      ct = Math.min(1, Math.max(0, (t - 0.15) / 0.73));
+    } else {
+      ct = 1 - Math.min(1, Math.max(0, (t - 0.55) / 0.33));
+    }
     return `inset(${clipTop * ct}px ${clipRight * ct}px ${clipBottom * ct}px ${clipLeft * ct}px)`;
   };
 
+  // Choreography keyframes: opacity / blur / clip / radius only.
+  // `transform` is animated separately (see below) so the eased curve is
+  // applied once across the whole translate path. WAAPI applies an
+  // animation-level easing PER KEYFRAME-PAIR, so packing transform into this
+  // 6-keyframe array produces 5 mini ease-outs stitched together — the
+  // ghost's velocity drops to ~0 at every internal offset, reading as a
+  // pulsing motion. With transform on its own 2-keyframe animation the
+  // eased curve covers the full path and velocity stays continuous.
   const keyframes: Keyframe[] = [
     {
-      transform: tfAt(0),
       opacity: GHOST_OPACITY_START,
       filter: blurAt(GHOST_BLUR_START_PX),
       borderRadius: opts.srcRadius,
       ...(hasClip && { clipPath: clipAt(0) }),
     },
     {
-      transform: tfAt(GHOST_OFFSET_EARLY),
       opacity: GHOST_OPACITY_EARLY,
       filter: blurAt(GHOST_BLUR_EARLY_PX),
       borderRadius: opts.srcRadius,
@@ -689,7 +745,6 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
       ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_EARLY) }),
     },
     {
-      transform: tfAt(GHOST_OFFSET_MID),
       opacity: GHOST_OPACITY_MID,
       filter: blurAt(GHOST_BLUR_MID_PX),
       borderRadius: opts.srcRadius,
@@ -697,7 +752,6 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
       ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_MID) }),
     },
     {
-      transform: tfAt(GHOST_OFFSET_LATE),
       opacity: GHOST_OPACITY_LATE,
       filter: blurAt(GHOST_BLUR_LATE_PX),
       borderRadius: opts.tgtRadius,
@@ -705,7 +759,6 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
       ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_LATE) }),
     },
     {
-      transform: tfAt(1),
       opacity: GHOST_OPACITY_PEAK,
       filter: blurAt(GHOST_BLUR_PEAK_PX),
       borderRadius: opts.tgtRadius,
@@ -713,7 +766,6 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
       ...(hasClip && { clipPath: clipAt(GHOST_OFFSET_PEAK) }),
     },
     {
-      transform: tfAt(1),
       opacity: 0,
       filter: blurAt(0),
       borderRadius: opts.tgtRadius,
@@ -722,6 +774,21 @@ function applyGhostMorph(ghost: HTMLDivElement, fromRect: DOMRect, toRect: DOMRe
   ];
 
   const animation = ghost.animate(keyframes, { duration: opts.duration, easing: opts.easing, fill: "both" });
+  const transformAnim = ghost.animate([{ transform: tfAt(0) }, { transform: tfAt(1) }], {
+    duration: opts.duration,
+    easing: opts.easing,
+    fill: "both",
+  });
+
+  // Both animations must freeze and step together so harness scrub stays coherent.
+  // Caller awaits `animation.finished` for cleanup; `transformAnim` is detached
+  // when the caller removes the ghost element.
+  if (process.env.NODE_ENV !== "production") {
+    const debugKind = opts.direction === "expand" ? "page-expand" : "page-collapse";
+    applyDebugFreeze(animation, debugKind, opts.duration);
+    applyDebugFreeze(transformAnim, debugKind, opts.duration);
+    registerActiveAnimations([animation, transformAnim]);
+  }
 
   // Dev-only: capture endpoint rects AND per-rAF samples of the ghost's real
   // bounding rect during playback. Math-based overlays repeatedly diverged
@@ -844,8 +911,6 @@ function runPageExpandGhostAnimation(
     anchorInGhostX: snapshot.imageOffsetLeft + snapshot.sourceAnchorX * snapshot.imageWidth,
     anchorInGhostY: snapshot.imageOffsetTop + snapshot.sourceAnchorY * snapshot.imageHeight,
   });
-  applyDebugFreeze(animation, "page-expand", ghostDuration);
-  registerActiveAnimation(animation);
 
   // Page reveal starts immediately (t=0) with a slow ease-in, reaching full
   // opacity by ~0.85 — before the ghost lands at GHOST_OFFSET_PEAK (0.92).
@@ -1141,6 +1206,13 @@ export function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: Par
       destRect = r;
     }
   }
+  // Natural image dims for the expanded-keyhole fallback (image not yet visible).
+  // Lifted here so the !hasImgRect branch below can use them.
+  let expandedKHAnchorX = NaN;
+  let expandedKHAnchorY = NaN;
+  let expandedKHImgW = 0;
+  let expandedKHImgH = 0;
+
   if (!destEl) {
     const expandedEl = root.querySelector<HTMLElement>("[data-dc-inline-expanded]");
     if (expandedEl) {
@@ -1148,6 +1220,34 @@ export function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: Par
       if (isVisibleRect(r)) {
         destEl = expandedEl;
         destRect = r;
+        // Scroll [data-dc-inline-expanded] to annotation center before reading imgRect.
+        // Its scroll is seeded from the summary keyhole strip's scrollLeft×zoom, which is
+        // calibrated for the strip's zoom level — not for centering the annotation in the
+        // expanded-keyhole view. Using the strip-seeded scroll gives anchorInGhostX ≠ elW/2,
+        // pushing the collapse ghost start rect off-screen (e.g., anchorInGhostX = 990 for
+        // an 82.5% annotation on a 1200px image, vs elW/2 = 175 after centering). Force
+        // annotation-centering so anchorInGhostX = elW/2 and the ghost starts on-screen.
+        const scrollImg = expandedEl.querySelector<HTMLImageElement>("img");
+        if (scrollImg) {
+          // getBoundingClientRect forces reflow after display:none removal so scroll
+          // geometry is computed before we read or write scrollLeft/scrollTop.
+          const si = scrollImg.getBoundingClientRect();
+          expandedKHAnchorX = readAnchorDataset(expandedEl, "X");
+          expandedKHAnchorY = readAnchorDataset(expandedEl, "Y");
+          // si.width is 0 when the img has display:none (imageLoaded=false). Fall back
+          // to natural dims (fill=false zoom=1, so displayed size = natural size).
+          expandedKHImgW = si.width > 0.5 ? si.width : data.keyholeNaturalWidth;
+          expandedKHImgH = si.height > 0.5 ? si.height : data.keyholeNaturalHeight;
+          scrollToAnnotationCenter(
+            expandedEl,
+            expandedKHImgW,
+            expandedKHImgH,
+            expandedKHAnchorX,
+            expandedKHAnchorY,
+            r.width,
+            r.height,
+          );
+        }
       }
     }
   }
@@ -1156,10 +1256,37 @@ export function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: Par
   const destImg = destEl.querySelector<HTMLImageElement>("img");
   const imgRect = destImg?.getBoundingClientRect();
   const hasImgRect = !!imgRect && isVisibleRect(imgRect);
-  const imageOffsetLeft = hasImgRect ? imgRect.left - destRect.left : 0;
-  const imageOffsetTop = hasImgRect ? imgRect.top - destRect.top : 0;
-  const imageWidth = hasImgRect ? imgRect.width : destRect.width;
-  const imageHeight = hasImgRect ? imgRect.height : destRect.height;
+
+  let imageOffsetLeft: number;
+  let imageOffsetTop: number;
+  let imageWidth: number;
+  let imageHeight: number;
+
+  if (hasImgRect) {
+    // Image is rendered and visible — read its actual layout (accounts for scroll, zoom, etc.)
+    imageOffsetLeft = imgRect.left - destRect.left;
+    imageOffsetTop = imgRect.top - destRect.top;
+    imageWidth = imgRect.width;
+    imageHeight = imgRect.height;
+  } else if (expandedKHImgW > 0) {
+    // Image not yet visible (imageLoaded=false in expanded-keyhole). Use natural dims so the
+    // ghost shows the correct annotation region, not a compressed container-width fallback.
+    // anchorInGhostX = destRect.width/2 by construction: the ghost is centered on the spotlight
+    // and the annotation sits at the midpoint of the ghost — same invariant as the visible case.
+    // Note: expandedKHImgW > 0 is also false when data.keyholeNaturalWidth === 0 (no natural dims
+    // available), which falls through to the container-width else branch — same as pre-fix behavior.
+    const anchorX = Number.isFinite(expandedKHAnchorX) ? expandedKHAnchorX : 0.5;
+    const anchorY = Number.isFinite(expandedKHAnchorY) ? expandedKHAnchorY : 0.5;
+    imageWidth = expandedKHImgW;
+    imageHeight = expandedKHImgH;
+    imageOffsetLeft = destRect.width / 2 - anchorX * imageWidth;
+    imageOffsetTop = destRect.height / 2 - anchorY * imageHeight;
+  } else {
+    imageOffsetLeft = 0;
+    imageOffsetTop = 0;
+    imageWidth = destRect.width;
+    imageHeight = destRect.height;
+  }
 
   // The destination keyhole / expanded-keyhole already advertises the
   // annotation anchor ratio via data-dc-source-anchor-x/y (it doubles as a
@@ -1295,8 +1422,6 @@ function runPageCollapseGhostAnimation(
     anchorInGhostX,
     anchorInGhostY,
   });
-  applyDebugFreeze(animation, "page-collapse", collapseDuration);
-  registerActiveAnimation(animation);
 
   let pendingAnimations = popoverRoot ? 2 : 1;
   const markAnimationDone = () => {

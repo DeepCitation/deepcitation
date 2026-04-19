@@ -113,8 +113,6 @@ export {
   CITATION_Y_PADDING,
   generateCitationInstanceId,
 } from "./react/utils.js";
-export type { RenderVerifiedHtmlOptions } from "./render/renderVerifiedHtml.js";
-export { renderVerifiedHtml } from "./render/renderVerifiedHtml.js";
 // Rendering port (prepare-once, render-many pattern)
 export {
   type CitationAdapter,
