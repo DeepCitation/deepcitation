@@ -323,9 +323,30 @@ function buildPageExpandSnapshot(sourceEl: HTMLElement): GhostSnapshot | null {
   const rect = sourceEl.getBoundingClientRect();
   if (!isVisibleRect(rect)) return null;
   const img = sourceEl.querySelector<HTMLImageElement>("img");
-  const imageRect = img?.getBoundingClientRect();
   const imageSrc = img?.currentSrc || img?.src;
-  if (!img || !imageRect || !imageSrc || !isVisibleRect(imageRect)) return null;
+  if (!img || !imageSrc || !isValidProofImageSrc(imageSrc)) return null;
+
+  // For expanded-keyhole sources, the container's scrollLeft may be seeded from
+  // the keyhole strip at a different zoom level — not annotation-centered at the
+  // expanded-keyhole's natural zoom. Scroll to center the annotation now so
+  // imageOffsetLeft + sourceAnchorX × imageWidth = containerWidth/2.
+  // This mirrors buildCollapseGhostSnapshot's scroll-centering for the reverse path.
+  if (sourceEl.dataset.dcPageExpandSourceKind === "expanded-keyhole") {
+    const ax = readAnchorDataset(sourceEl, "X");
+    const ay = readAnchorDataset(sourceEl, "Y");
+    const si = img.getBoundingClientRect();
+    const imgW = si.width > 0.5 ? si.width : img.naturalWidth;
+    const imgH = si.height > 0.5 ? si.height : img.naturalHeight;
+    if (imgW > rect.width) {
+      sourceEl.scrollLeft = Math.max(0, Math.min(imgW - rect.width, ax * imgW - rect.width / 2));
+    }
+    if (imgH > rect.height) {
+      sourceEl.scrollTop = Math.max(0, Math.min(imgH - rect.height, ay * imgH - rect.height / 2));
+    }
+  }
+
+  const imageRect = img.getBoundingClientRect();
+  if (!isVisibleRect(imageRect)) return null;
   return {
     viewportRect: rect,
     imageSrc,
@@ -1171,6 +1192,13 @@ export function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: Par
       destRect = r;
     }
   }
+  // Natural image dims for the expanded-keyhole fallback (image not yet visible).
+  // Lifted here so the !hasImgRect branch below can use them.
+  let expandedKHAnchorX = Number.NaN;
+  let expandedKHAnchorY = Number.NaN;
+  let expandedKHImgW = 0;
+  let expandedKHImgH = 0;
+
   if (!destEl) {
     const expandedEl = root.querySelector<HTMLElement>("[data-dc-inline-expanded]");
     if (expandedEl) {
@@ -1190,17 +1218,23 @@ export function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: Par
           // getBoundingClientRect forces reflow after display:none removal so scroll
           // geometry is computed before we read or write scrollLeft/scrollTop.
           const si = scrollImg.getBoundingClientRect();
-          const ax = readAnchorDataset(expandedEl, "X");
-          const ay = readAnchorDataset(expandedEl, "Y");
+          expandedKHAnchorX = readAnchorDataset(expandedEl, "X");
+          expandedKHAnchorY = readAnchorDataset(expandedEl, "Y");
           // si.width is 0 when the img has display:none (imageLoaded=false). Fall back
           // to natural dims (fill=false zoom=1, so displayed size = natural size).
-          const imgW = si.width > 0.5 ? si.width : data.keyholeNaturalWidth;
-          const imgH = si.height > 0.5 ? si.height : data.keyholeNaturalHeight;
-          if (imgW > r.width) {
-            expandedEl.scrollLeft = Math.max(0, Math.min(imgW - r.width, ax * imgW - r.width / 2));
+          expandedKHImgW = si.width > 0.5 ? si.width : data.keyholeNaturalWidth;
+          expandedKHImgH = si.height > 0.5 ? si.height : data.keyholeNaturalHeight;
+          if (expandedKHImgW > r.width) {
+            expandedEl.scrollLeft = Math.max(
+              0,
+              Math.min(expandedKHImgW - r.width, expandedKHAnchorX * expandedKHImgW - r.width / 2),
+            );
           }
-          if (imgH > r.height) {
-            expandedEl.scrollTop = Math.max(0, Math.min(imgH - r.height, ay * imgH - r.height / 2));
+          if (expandedKHImgH > r.height) {
+            expandedEl.scrollTop = Math.max(
+              0,
+              Math.min(expandedKHImgH - r.height, expandedKHAnchorY * expandedKHImgH - r.height / 2),
+            );
           }
         }
       }
@@ -1211,10 +1245,35 @@ export function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: Par
   const destImg = destEl.querySelector<HTMLImageElement>("img");
   const imgRect = destImg?.getBoundingClientRect();
   const hasImgRect = !!imgRect && isVisibleRect(imgRect);
-  const imageOffsetLeft = hasImgRect ? imgRect.left - destRect.left : 0;
-  const imageOffsetTop = hasImgRect ? imgRect.top - destRect.top : 0;
-  const imageWidth = hasImgRect ? imgRect.width : destRect.width;
-  const imageHeight = hasImgRect ? imgRect.height : destRect.height;
+
+  let imageOffsetLeft: number;
+  let imageOffsetTop: number;
+  let imageWidth: number;
+  let imageHeight: number;
+
+  if (hasImgRect) {
+    // Image is rendered and visible — read its actual layout (accounts for scroll, zoom, etc.)
+    imageOffsetLeft = imgRect.left - destRect.left;
+    imageOffsetTop = imgRect.top - destRect.top;
+    imageWidth = imgRect.width;
+    imageHeight = imgRect.height;
+  } else if (expandedKHImgW > 0) {
+    // Image not yet visible (imageLoaded=false in expanded-keyhole). Use natural dims so the
+    // ghost shows the correct annotation region, not a compressed container-width fallback.
+    // anchorInGhostX = destRect.width/2 by construction: the ghost is centered on the spotlight
+    // and the annotation sits at the midpoint of the ghost — same invariant as the visible case.
+    const anchorX = Number.isFinite(expandedKHAnchorX) ? expandedKHAnchorX : 0.5;
+    const anchorY = Number.isFinite(expandedKHAnchorY) ? expandedKHAnchorY : 0.5;
+    imageWidth = expandedKHImgW;
+    imageHeight = expandedKHImgH;
+    imageOffsetLeft = destRect.width / 2 - anchorX * imageWidth;
+    imageOffsetTop = destRect.height / 2 - anchorY * imageHeight;
+  } else {
+    imageOffsetLeft = 0;
+    imageOffsetTop = 0;
+    imageWidth = destRect.width;
+    imageHeight = destRect.height;
+  }
 
   // The destination keyhole / expanded-keyhole already advertises the
   // annotation anchor ratio via data-dc-source-anchor-x/y (it doubles as a

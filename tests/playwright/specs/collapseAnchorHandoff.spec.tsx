@@ -265,20 +265,26 @@ test.describe("Anchor handoff: ghost ↔ keyhole (AsymmetricAnchorCitation)", ()
 
     // Non-gamed invariant: anchorInGhostX must be WITHIN the ghost's width.
     //
-    // Without the annotation-centering scroll fix (broken):
-    //   imageOffsetLeft = 0  (scrollLeft not set)
-    //   anchorInGhostX  = sourceAnchorX × imageWidth = 0.867 × 1200 ≈ 1040
-    //   → 1040 > target.width (≈ 680)  — anchor outside ghost bounds, ghost off-screen
+    // Two bugs can break this (narrow viewport forces both to be visible):
     //
-    // With the fix (correct):
-    //   scrollLeft sets imageOffsetLeft = −(ax×imgW − elW/2)
-    //   anchorInGhostX = elW/2 (unclamped) or < elW (clamped at right edge)
-    //   → anchorInGhostX ≤ target.width  — anchor within ghost, ghost starts on-screen
+    // Bug A — missing scroll fix (original):
+    //   imageLoaded=true, but scrollLeft never set → imageOffsetLeft = 0
+    //   anchorInGhostX = 0.867 × 1200 ≈ 1040 >> containerWidth
+    //   → ghost starts wildly off-screen left
     //
-    // This assertion is independent of spotlightCX and can only pass when the
-    // overflow scroll fix is actually applied. The gamed alternative
-    // (|source.x + anchorInGhostX − spotlightCX| ≤ tol) is a tautology because
-    // source.x is defined as spotlightCX − anchorInGhostX.
+    // Bug B — wrong fallback when imageLoaded=false:
+    //   !hasImgRect → imageWidth = containerWidth, imageOffsetLeft = 0
+    //   anchorInGhostX = 0.867 × containerWidth ≈ 590
+    //   → ghost shows wrong (compressed) image region; annotation doesn't align with spotlight
+    //   → numerically ≤ containerWidth but visually broken (handoff snap)
+    //   (not exercised by this test — canvas data URIs load synchronously, imageLoaded=true)
+    //
+    // Correct behavior:
+    //   When image overflows container: scroll fix → anchorInGhostX = containerWidth/2.
+    //   When image fits container: no scroll needed → anchorInGhostX = ax × imageWidth ≤ containerWidth.
+    //
+    // The gamed alternative (|source.x + anchorInGhostX − spotlightCX| ≤ tol) is a
+    // tautology: source.x = spotlightCX − anchorInGhostX, so their sum is always spotlightCX.
     const anchorInGhostX = collapse.anchorInGhostX ?? 0;
     const containerWidth = collapse.target!.width;
     expect(
@@ -294,4 +300,60 @@ test.describe("Anchor handoff: ghost ↔ keyhole (AsymmetricAnchorCitation)", ()
     ).toBeGreaterThanOrEqual(-containerWidth);
   });
   }); // end narrow-viewport describe
+
+  // ── Test 4: Expand from expanded-keyhole → page (no spotlight) ─────────────
+  // Reproduces the bug where expanding from expanded-keyhole without a spotlight
+  // causes the ghost to fly off-screen.
+  //
+  // Root cause:
+  //   buildPageExpandSnapshot reads img.getBoundingClientRect() before correcting
+  //   the expanded-keyhole's scroll. The initialScroll prop is seeded from the
+  //   keyhole strip at its zoom level (e.g. 0.5×) — not annotation-centered at
+  //   natural size. So scrollLeft ≈ strip value → imageOffsetLeft ≠ −(ax × imgW − W/2)
+  //   → anchorInGhostX = 0 + 0.825 × 1200 ≈ 990 >> containerWidth.
+  //   ghostEndX = pageCX − 990 → far off-screen left. With the iris clip
+  //   (spotlight present) this is visually masked; without it the ghost flies to corner.
+  //
+  // Fix: buildPageExpandSnapshot force-scrolls the expanded-keyhole to annotation
+  //   center before reading the image rect, mirroring buildCollapseGhostSnapshot.
+  //
+  // Non-gamed invariant: anchorInGhostX for the EXPAND ghost ≤ containerWidth.
+  //   Without fix: 0.825 × 1200 ≈ 990 >> containerWidth (≈ 680) at 800px viewport.
+  //   With fix: scroll-centering → anchorInGhostX ≈ containerWidth/2.
+  test.describe("narrow viewport (800px) — expand from expanded-keyhole without spotlight", () => {
+    test.use({ viewport: { width: 800, height: 900 } });
+
+  test("expand ghost from expanded-keyhole → page: anchorInGhostX within ghost bounds (WideEvidenceCitation)", async ({
+    mount,
+    page,
+  }) => {
+    await mount(<WideEvidenceCitation />);
+    await enableDebugStore(page);
+
+    const popover = await openSummaryPopover(page);
+    await expandToKeyhole(popover);
+    await expandToPage(page, popover);
+    const expand = await waitForGhostDirection(page, "expand");
+
+    expect(expand.source, "expand ghost source rect must be captured").not.toBeNull();
+    expect(expand.anchorInGhostX, "anchorInGhostX must be present").not.toBeUndefined();
+
+    // Non-gamed invariant: anchorInGhostX must be WITHIN the ghost's width.
+    //
+    // Without the scroll fix: imageOffsetLeft = 0, anchorInGhostX = 0.825 × 1200 ≈ 990
+    // which far exceeds containerWidth (~680 at 800px viewport). The ghost end
+    // position is pageCX − 990 ≈ far off-screen left — flies to corner.
+    //
+    // With fix: scroll-centering → anchorInGhostX ≈ containerWidth/2.
+    const anchorInGhostX = expand.anchorInGhostX ?? 0;
+    const containerWidth = expand.source!.width;
+    expect(
+      anchorInGhostX,
+      `anchorInGhostX (${anchorInGhostX.toFixed(0)}) must be ≤ containerWidth (${containerWidth.toFixed(0)}). ` +
+        `Without the scroll fix it would be ≈ 990 (0.825 × 1200px image), well past the ghost's right edge.`,
+    ).toBeLessThanOrEqual(containerWidth);
+
+    expect(anchorInGhostX).toBeGreaterThan(0);
+  });
+  }); // end narrow-viewport describe (expand)
 });
