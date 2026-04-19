@@ -4,6 +4,7 @@ import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import OpenAI from "openai";
 import {
   DeepCitation,
+  ValidationError,
   extractVisibleText,
   getAllCitationsFromLlmOutput,
   getCitationStatus,
@@ -275,9 +276,11 @@ export function summarizeVerifications(summaryInput: ChatResponse["verifications
   };
 }
 
-export async function answerQuestion(question: string): Promise<ChatResponse> {
-  const dc = getRequiredClient();
-  const openAiClient = getRequiredOpenAiClient();
+async function runAnswerQuestion(
+  dc: DeepCitation,
+  openAiClient: OpenAI,
+  question: string,
+): Promise<ChatResponse> {
   const retrievedSources = await retrieveSources(question);
   const sourceDefs = retrievedSources.map(source => getSourceById(source.sourceId));
   const preparedSources = await Promise.all(sourceDefs.map(source => getAttachmentPromise(dc, source)));
@@ -333,4 +336,21 @@ export async function answerQuestion(question: string): Promise<ChatResponse> {
     summary: summarizeVerifications(verificationResult.verifications),
     retrievedSources,
   };
+}
+
+export async function answerQuestion(question: string): Promise<ChatResponse> {
+  const dc = getRequiredClient();
+  const openAiClient = getRequiredOpenAiClient();
+  try {
+    return await runAnswerQuestion(dc, openAiClient, question);
+  } catch (err) {
+    if (err instanceof ValidationError && err.statusCode === 404) {
+      // Cached attachment IDs expired on the server — clear the cache so fresh
+      // uploads are used, then retry the full LLM + verify pipeline.
+      console.warn("[DeepCitation] Attachment expired — clearing cache and retrying.");
+      preparedAttachmentCache.clear();
+      return await runAnswerQuestion(dc, openAiClient, question);
+    }
+    throw err;
+  }
 }

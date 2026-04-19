@@ -5,6 +5,7 @@ import { openai as openaiProvider } from "@ai-sdk/openai";
 import OpenAI from "openai";
 import {
   DeepCitation,
+  ValidationError,
   extractVisibleText,
   getAllCitationsFromLlmOutput,
   getCitationStatus,
@@ -330,10 +331,11 @@ export function summarizeVerifications(summaryInput: ChatResponse["verifications
   };
 }
 
-export async function answerQuestion(question: string): Promise<ChatResponse> {
-  const dc = getRequiredClient();
-  const openAiClient = getRequiredOpenAiClient();
-
+async function runAnswerQuestion(
+  dc: DeepCitation,
+  openAiClient: OpenAI,
+  question: string,
+): Promise<ChatResponse> {
   // Ensure all attachment warmups are resolved before we need them. On warm
   // instances the promises are already settled; on cold starts this runs in
   // parallel with retrieveSources below, so neither blocks the other.
@@ -396,4 +398,21 @@ export async function answerQuestion(question: string): Promise<ChatResponse> {
     summary: summarizeVerifications(verificationResult.verifications),
     retrievedSources,
   };
+}
+
+export async function answerQuestion(question: string): Promise<ChatResponse> {
+  const dc = getRequiredClient();
+  const openAiClient = getRequiredOpenAiClient();
+  try {
+    return await runAnswerQuestion(dc, openAiClient, question);
+  } catch (err) {
+    if (err instanceof ValidationError && err.statusCode === 404) {
+      // Cached attachment IDs expired on the server — clear the cache so fresh
+      // uploads are used, then retry the full LLM + verify pipeline.
+      console.warn("[DeepCitation] Attachment expired — clearing cache and retrying.");
+      preparedAttachmentCache.clear();
+      return await runAnswerQuestion(dc, openAiClient, question);
+    }
+    throw err;
+  }
 }

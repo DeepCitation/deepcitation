@@ -13,6 +13,7 @@
 
 import {
   DeepCitation,
+  ValidationError,
   getAllCitationsFromLlmOutput,
   getCitationStatus,
   getVerificationTextIndicator,
@@ -311,10 +312,20 @@ export async function POST(req: Request) {
               );
             }
 
-            const result = await dc.verify(
-              { llmOutput: fullResponse, outputImageFormat: "avif" },
-              citations,
-            );
+            let result: Awaited<ReturnType<typeof dc.verify>>;
+            try {
+              result = await dc.verify(
+                { llmOutput: fullResponse, outputImageFormat: "avif" },
+                citations,
+              );
+            } catch (err) {
+              if (err instanceof ValidationError && err.statusCode === 404) {
+                // Cached attachment IDs expired — clear so next request re-uploads.
+                preparedAttachmentCache.clear();
+                throw new Error("Documents expired. Please try again.");
+              }
+              throw err;
+            }
 
             const { verifications } = result;
 

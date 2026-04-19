@@ -64,6 +64,10 @@ async function resolveAttachment(
 
 export type { FileDataPart };
 
+export function clearCorpusCache(): void {
+  preparedAttachmentCache.clear();
+}
+
 function cacheAttachment(
   client: DeepCitation,
   source: CorpusSource,

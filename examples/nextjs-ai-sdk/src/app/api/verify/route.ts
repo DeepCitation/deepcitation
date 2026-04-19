@@ -1,5 +1,6 @@
-import { DeepCitation, getAllCitationsFromLlmOutput, getCitationStatus, sanitizeForLog } from "deepcitation";
+import { DeepCitation, ValidationError, getAllCitationsFromLlmOutput, getCitationStatus, sanitizeForLog } from "deepcitation";
 import { type NextRequest, NextResponse } from "next/server";
+import { clearCorpusCache } from "@/lib/corpusAttachment";
 
 const apiKey = process.env.DEEPCITATION_API_KEY;
 if (!apiKey) {
@@ -83,6 +84,16 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Verification error:", sanitizeForLog(message));
+
+    if (error instanceof ValidationError && error.statusCode === 404) {
+      // Cached attachment IDs expired on the DC server. Clear the server-side
+      // cache so the next corpus/init call re-uploads with fresh IDs.
+      clearCorpusCache();
+      return NextResponse.json(
+        { error: "Documents expired. Please ask your question again.", code: "ATTACHMENT_EXPIRED" },
+        { status: 410 },
+      );
+    }
 
     if (message.includes("Invalid or expired API key")) {
       return NextResponse.json(
