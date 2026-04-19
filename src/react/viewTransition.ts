@@ -1238,7 +1238,15 @@ export function buildCollapseGhostSnapshot(data: CollapsePreflushData, root: Par
           // to natural dims (fill=false zoom=1, so displayed size = natural size).
           expandedKHImgW = si.width > 0.5 ? si.width : data.keyholeNaturalWidth;
           expandedKHImgH = si.height > 0.5 ? si.height : data.keyholeNaturalHeight;
-          scrollToAnnotationCenter(expandedEl, expandedKHImgW, expandedKHImgH, expandedKHAnchorX, expandedKHAnchorY, r.width, r.height);
+          scrollToAnnotationCenter(
+            expandedEl,
+            expandedKHImgW,
+            expandedKHImgH,
+            expandedKHAnchorX,
+            expandedKHAnchorY,
+            r.width,
+            r.height,
+          );
         }
       }
     }
