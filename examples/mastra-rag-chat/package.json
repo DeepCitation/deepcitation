@@ -16,7 +16,7 @@
     "@mastra/libsql": "^1.7.1",
     "@mastra/rag": "^2.1.2",
     "ai": "^6.0.116",
-    "deepcitation": "^0.3.10",
+    "deepcitation": "file:../../",
     "next": "^16.1.1",
     "openai": "^6.16.0",
     "react": "^19.2.3",

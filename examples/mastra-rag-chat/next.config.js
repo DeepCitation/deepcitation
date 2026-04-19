@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["deepcitation"],
   serverExternalPackages: [
     "@mastra/core",
     "@mastra/rag",
