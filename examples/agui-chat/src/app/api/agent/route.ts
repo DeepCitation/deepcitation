@@ -18,8 +18,8 @@ import {
   getCitationStatus,
   getVerificationTextIndicator,
   sanitizeForLog,
-  wrapCitationPrompt,
 } from "deepcitation";
+import { wrapCitationPrompt } from "deepcitation/prompts";
 import { EventEncoder } from "@ag-ui/encoder";
 import OpenAI from "openai";
 import {

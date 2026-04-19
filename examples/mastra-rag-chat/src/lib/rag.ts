@@ -9,8 +9,8 @@ import {
   extractVisibleText,
   getAllCitationsFromLlmOutput,
   getCitationStatus,
-  wrapCitationPrompt,
 } from "deepcitation";
+import { wrapCitationPrompt } from "deepcitation/prompts";
 import { CORPUS_SOURCES, type CorpusSource } from "@/lib/corpus";
 import type { ChatResponse, RetrievedSource, VerificationSummary } from "@/lib/types";
 

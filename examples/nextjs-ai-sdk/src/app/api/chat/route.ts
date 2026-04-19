@@ -1,5 +1,6 @@
 import { openai } from "@ai-sdk/openai";
-import { sanitizeForLog, wrapCitationPrompt } from "deepcitation";
+import { sanitizeForLog } from "deepcitation";
+import { wrapCitationPrompt } from "deepcitation/prompts";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { checkRateLimit } from "@/lib/rateLimit";
 
