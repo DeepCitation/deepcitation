@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -14,8 +14,17 @@ const cdnCssTmp = resolve(ROOT, "lib/vanilla/.cdn-popover.css");
 const pkgJson = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf-8"));
 
 // ── Extract Tailwind CSS ───────────────────────────────────────────
+// Retry up to 8x: WSL2 drvfs can intermittently fail module resolution under load
 console.log("  Extracting Tailwind CSS for CDN bundle...");
-execFileSync("npx", ["@tailwindcss/cli", "-i", cdnCssInput, "-o", cdnCssTmp, "--minify"], { cwd: ROOT, stdio: "pipe" });
+for (let attempt = 0; ; attempt++) {
+  try {
+    execFileSync(resolve(ROOT, "node_modules/.bin/tailwindcss"), ["-i", cdnCssInput, "-o", cdnCssTmp, "--minify"], { cwd: ROOT, stdio: "pipe" });
+    break;
+  } catch (e) {
+    if (attempt >= 7) throw e;
+    console.warn(`  tailwindcss attempt ${attempt + 1} failed (${e.message}), retrying...`);
+  }
+}
 const cdnCssRaw = readFileSync(cdnCssTmp, "utf-8").trim();
 
 // Strip @layer wrappers so utilities have normal specificity when injected
@@ -45,12 +54,37 @@ function stripCssLayers(css) {
 const cdnCss = stripCssLayers(cdnCssRaw);
 console.log(`  ✓ CDN CSS extracted (${(cdnCssRaw.length / 1024).toFixed(1)}KB raw → ${(cdnCss.length / 1024).toFixed(1)}KB unlayered)`);
 
+// ── Sequential-reads plugin (WSL2/NTFS drvfs concurrency workaround) ──
+// The NTFS drvfs driver fails under concurrent file I/O. This plugin
+// intercepts esbuild's file reads and serializes them via readFileSync,
+// which blocks Node.js's single thread and prevents concurrent NTFS handles.
+const EXT_LOADER = { ts: "ts", tsx: "tsx", js: "js", mjs: "js", cjs: "js", jsx: "jsx", css: "css", json: "json" };
+const ntfsSequentialPlugin = {
+  name: "ntfs-sequential-reads",
+  setup(build) {
+    build.onLoad({ filter: /.*/, namespace: "file" }, (args) => {
+      const loader = EXT_LOADER[extname(args.path).slice(1).toLowerCase()];
+      if (!loader) return null;
+      for (let i = 0; i < 5; i++) {
+        try {
+          return { contents: readFileSync(args.path), loader };
+        } catch (e) {
+          if (e.code === "EIO" && i < 4) continue;
+          throw e;
+        }
+      }
+      return null; // unreachable
+    });
+  },
+};
+
 // ── Build CDN bundle (Preact + React components) ───────────────────
 const cdnResult = await esbuild.build({
   entryPoints: [cdnEntryPoint], bundle: true, format: "iife", globalName: "__dc_cdn__", minify: true, target: ["es2020"], write: false,
   alias: { react: "preact/compat", "react-dom": "preact/compat", "react/jsx-runtime": "preact/jsx-runtime" },
   jsx: "automatic", jsxImportSource: "preact",
   define: { __CDN_CSS__: JSON.stringify(cdnCss), "process.env.NODE_ENV": '"production"' },
+  plugins: [ntfsSequentialPlugin],
 });
 if (cdnResult.errors.length > 0) { console.error("CDN build errors:", cdnResult.errors); process.exit(1); }
 

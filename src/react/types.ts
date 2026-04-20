@@ -414,6 +414,33 @@ export interface CitationEventHandlers {
     citationKey: string,
     event: React.MouseEvent | React.TouchEvent | React.KeyboardEvent,
   ) => void;
+  /**
+   * Called before the default click behavior runs. Return `false` to suppress
+   * the default popover toggle (and the paired `onClickAfterDefault`). Use when
+   * single-click drives a separate interaction and the popover should open via
+   * `onDoubleClick` or another trigger instead.
+   *
+   * Returning anything other than `false` allows the default to proceed.
+   *
+   * Note: keyboard activations (Enter/Space) do not invoke this callback — it
+   * fires only for pointer events. If `onClick` is also provided, it takes
+   * precedence and this callback will not be called.
+   */
+  onClickBeforeDefault?: (
+    citation: Citation,
+    citationKey: string,
+    event: React.MouseEvent | React.TouchEvent,
+  ) => boolean | undefined;
+  /**
+   * Called on double-click. Independent of the single-click path — defaults
+   * are not affected. Intended for consumers that reserve single-click for a
+   * separate interaction and open the popover on double-click instead.
+   *
+   * Note: browsers fire two `click` events before `dblclick` (~300ms delay).
+   * Pair this with `onClickBeforeDefault` returning `false` to prevent those
+   * clicks from toggling the popover or triggering `onClickAfterDefault`.
+   */
+  onDoubleClick?: (citation: Citation, citationKey: string, event: React.MouseEvent) => void;
   /** Called on touch start (mobile) - useful for analytics or custom interactions */
   onTouchStart?: (citation: Citation, citationKey: string, event: React.TouchEvent) => void;
   /** Called on touch end (mobile) */
