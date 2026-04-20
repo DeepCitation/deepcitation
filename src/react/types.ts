@@ -421,11 +421,15 @@ export interface CitationEventHandlers {
    * `onDoubleClick` or another trigger instead.
    *
    * Returning anything other than `false` allows the default to proceed.
+   *
+   * Note: keyboard activations (Enter/Space) do not invoke this callback — it
+   * fires only for pointer events. If `onClick` is also provided, it takes
+   * precedence and this callback will not be called.
    */
   onClickBeforeDefault?: (
     citation: Citation,
     citationKey: string,
-    event: React.MouseEvent | React.TouchEvent | React.KeyboardEvent,
+    event: React.MouseEvent | React.TouchEvent,
   ) => boolean | undefined;
   /**
    * Called on double-click. Independent of the single-click path — defaults

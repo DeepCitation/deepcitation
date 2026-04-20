@@ -22,7 +22,7 @@ for (let attempt = 0; ; attempt++) {
     break;
   } catch (e) {
     if (attempt >= 7) throw e;
-    console.warn(`  tailwindcss attempt ${attempt + 1} failed, retrying...`);
+    console.warn(`  tailwindcss attempt ${attempt + 1} failed (${e.message}), retrying...`);
   }
 }
 const cdnCssRaw = readFileSync(cdnCssTmp, "utf-8").trim();

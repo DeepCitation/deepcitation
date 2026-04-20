@@ -793,7 +793,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         // Suppressing skips the paired onClickAfterDefault so consumers don't
         // observe a "default ran" signal when it didn't.
         if (eventHandlers?.onClickBeforeDefault && e.type !== "keydown") {
-          const shouldContinue = eventHandlers.onClickBeforeDefault(citation, citationKey, e);
+          const shouldContinue = eventHandlers.onClickBeforeDefault(
+            citation,
+            citationKey,
+            e as React.MouseEvent | React.TouchEvent,
+          );
           if (shouldContinue === false) return;
         }
 
@@ -876,7 +880,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const handleDoubleClick = useCallback(
       (e: React.MouseEvent<HTMLSpanElement>) => {
         if (!eventHandlers?.onDoubleClick) return;
-        e.preventDefault();
+        e.preventDefault(); // prevents browser text-selection on double-click
         e.stopPropagation();
         eventHandlers.onDoubleClick(citation, citationKey, e);
       },
