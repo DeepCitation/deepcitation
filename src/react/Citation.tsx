@@ -787,6 +787,16 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           return;
         }
 
+        // Before-default hook — callers can suppress the default popover toggle
+        // by returning `false` (e.g. when single-click drives a separate
+        // interaction and the popover belongs on double-click / long-press).
+        // Suppressing skips the paired onClickAfterDefault so consumers don't
+        // observe a "default ran" signal when it didn't.
+        if (eventHandlers?.onClickBeforeDefault) {
+          const shouldContinue = eventHandlers.onClickBeforeDefault(citation, citationKey, e);
+          if (shouldContinue === false) return;
+        }
+
         // Execute the requested default action
         switch (action) {
           case "showPopover":
@@ -856,6 +866,21 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       // openedViaKeyboardRef: stable ref identity, included so the compiler's
       // inferred deps match the manual deps (avoids "could not preserve" bailout).
       [isMobile, isHovering, handleTapAction, openedViaKeyboardRef],
+    );
+
+    // Double-click handler — independent of the single-click popover toggle.
+    // Fires `eventHandlers.onDoubleClick` when present. Consumers typically
+    // pair this with `onClickBeforeDefault` returning `false` so single-click
+    // engages a separate interaction (spotlight/zoom) and the popover opens
+    // only on double-click or long-press.
+    const handleDoubleClick = useCallback(
+      (e: React.MouseEvent<HTMLSpanElement>) => {
+        if (!eventHandlers?.onDoubleClick) return;
+        e.preventDefault();
+        e.stopPropagation();
+        eventHandlers.onDoubleClick(citation, citationKey, e);
+      },
+      [eventHandlers, citation, citationKey],
     );
 
     // Keyboard handler for accessibility - Enter/Space triggers tap action
@@ -1283,6 +1308,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       onMouseEnter: handleMouseEnter,
       onMouseLeave: handleMouseLeave,
       onClick: handleClick,
+      onDoubleClick: eventHandlers?.onDoubleClick ? handleDoubleClick : undefined,
       onKeyDown: handleKeyDown,
       onTouchStart: isMobile ? handleTouchStart : undefined,
       onTouchEndCapture: isMobile ? handleTouchEnd : undefined,
