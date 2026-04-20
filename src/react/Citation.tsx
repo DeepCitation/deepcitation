@@ -792,7 +792,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         // interaction and the popover belongs on double-click / long-press).
         // Suppressing skips the paired onClickAfterDefault so consumers don't
         // observe a "default ran" signal when it didn't.
-        if (eventHandlers?.onClickBeforeDefault) {
+        if (eventHandlers?.onClickBeforeDefault && e.type !== "keydown") {
           const shouldContinue = eventHandlers.onClickBeforeDefault(citation, citationKey, e);
           if (shouldContinue === false) return;
         }

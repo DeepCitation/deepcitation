@@ -431,6 +431,10 @@ export interface CitationEventHandlers {
    * Called on double-click. Independent of the single-click path — defaults
    * are not affected. Intended for consumers that reserve single-click for a
    * separate interaction and open the popover on double-click instead.
+   *
+   * Note: browsers fire two `click` events before `dblclick` (~300ms delay).
+   * Pair this with `onClickBeforeDefault` returning `false` to prevent those
+   * clicks from toggling the popover or triggering `onClickAfterDefault`.
    */
   onDoubleClick?: (citation: Citation, citationKey: string, event: React.MouseEvent) => void;
   /** Called on touch start (mobile) - useful for analytics or custom interactions */

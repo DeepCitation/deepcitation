@@ -69,10 +69,11 @@ const ntfsSequentialPlugin = {
         try {
           return { contents: readFileSync(args.path), loader };
         } catch (e) {
-          if (e.code !== "EIO" || i === 4) return null;
+          if (e.code === "EIO" && i < 4) continue;
+          throw e;
         }
       }
-      return null;
+      return null; // unreachable
     });
   },
 };
