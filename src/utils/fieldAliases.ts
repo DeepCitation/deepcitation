@@ -47,7 +47,18 @@ const FIELD_ALIAS_MAP: Record<string, readonly string[]> = {
   // NOTE: bare short aliases ("phrase", "full", "anchor") are intentional — LLMs
   // frequently emit these. If a future field collides, add it to CANONICAL_FIELDS
   // first so it wins over the alias lookup.
-  sourceContext: ["source_context", "source-context", "fullPhrase", "full_phrase", "full-phrase", "phrase", "full"],
+  sourceContext: [
+    "source_context",
+    "source-context",
+    "fullPhrase",
+    "full_phrase",
+    "full-phrase",
+    "phrase",
+    "full",
+    "claimContext",
+    "claim_context",
+    "claim-context",
+  ],
   sourceMatch: [
     "source_match",
     "source-match",
@@ -58,6 +69,9 @@ const FIELD_ALIAS_MAP: Record<string, readonly string[]> = {
     "keySpan",
     "key_span",
     "key-span",
+    "claimMatch",
+    "claim_match",
+    "claim-match",
   ],
   citationNumber: ["citation_number", "citation-number", "number"],
   reasoning: [],
