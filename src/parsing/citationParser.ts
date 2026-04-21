@@ -24,6 +24,7 @@ import type { AudioVideoCitation, Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
+import { escapeForRegex } from "../utils/regexSafety.js";
 import { sha1Hash } from "../utils/sha.js";
 import { getVerificationTextIndicator } from "../utils/verificationIndicator.js";
 
@@ -72,16 +73,29 @@ const LEGACY_PAGE_ID_RE = /page[_a-z]{0,30}(\d+)_index_(\d+)/i;
  * Matches [N] citation markers in text.
  * Safe to reuse as a module-level constant: String.replace() and String.matchAll()
  * do not mutate lastIndex, so there is no stateful cross-call contamination.
- * Do NOT use with RegExp.exec() in a loop — exec() advances lastIndex.
+ * Do NOT use with RegExp iterative calls in a loop — they advance lastIndex.
  */
 const CITATION_MARKER_RE = /\[(\d+)\]/g;
+
+/**
+ * Matches [N] citation markers, capturing the full bracket token.
+ * Outer-capture variant of CITATION_MARKER_RE — intended for use with
+ * String.split() so that the `[N]` delimiters are preserved in the result array.
+ *
+ * @example
+ * ```typescript
+ * const segments = text.split(CITATION_MARKER_PATTERN);
+ * // ["before ", "[1]", " after"]
+ * ```
+ */
+export const CITATION_MARKER_PATTERN = /(\[\d+\])/g;
 
 /**
  * Matches [anchor text](cite:N) citation link markers.
  * The anchor text is in capture group 1, the citation ID in capture group 2.
  * Safe to reuse as a module-level constant: String.replace() and String.matchAll()
  * do not mutate lastIndex, so there is no stateful cross-call contamination.
- * Do NOT use with RegExp.exec() in a loop — exec() advances lastIndex.
+ * Do NOT use with RegExp iterative calls in a loop — they advance lastIndex.
  */
 const CITATION_LINK_RE = /\[([^\][]+)\]\(cite:(\d+)\)/g;
 
@@ -1007,4 +1021,27 @@ export function stripCitations(llmResponse: string): string {
   // Strip <<<CITATION_DATA>>> block (if present), then remove [N] markers
   const visibleText = extractVisibleText(llmResponse);
   return replaceCitationMarkers(visibleText);
+}
+
+/**
+ * Strips `sourceMatch` text from the tail of a markdown segment.
+ * Recognises **bold**, *italic*, and plain text forms of the match.
+ *
+ * Used when rendering `[N]` markers: if the segment immediately before the
+ * marker ends with the citation's `sourceMatch`, strip it so the citation
+ * component can absorb and render the claim text as a single interactive element.
+ *
+ * @param segment - The markdown text segment (everything before the `[N]` token)
+ * @param sourceMatch - The citation's source match text to strip
+ * @returns The segment with the trailing `sourceMatch` removed, or `null` if not found
+ */
+export function stripClaimText(segment: string, sourceMatch: string): string | null {
+  if (!sourceMatch) return null;
+  const esc = escapeForRegex(sourceMatch);
+  const patterns = [new RegExp(`\\*\\*${esc}\\*\\*\\s*$`), new RegExp(`\\*${esc}\\*\\s*$`), new RegExp(`${esc}\\s*$`)];
+  for (const pat of patterns) {
+    const m = segment.match(pat);
+    if (m && m.index !== undefined) return segment.slice(0, m.index);
+  }
+  return null;
 }
