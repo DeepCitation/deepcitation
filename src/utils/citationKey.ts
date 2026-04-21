@@ -17,6 +17,8 @@ import { getCitationPageNumber } from "./textCleanup.js";
  * @returns A deterministic 16-char hex key
  */
 export function getCitationKey(citation: Citation): string {
+  if (!citation) return "";
+  
   // Cast once — LLMs sometimes emit old-CLI field names (pageId, fullPhrase, anchorText) that aren't on the Citation type
   const rawCitation = citation as unknown as Record<string, unknown>;
   const resolvedStartPageId = resolveField(rawCitation, "startPageId") as string | undefined;
