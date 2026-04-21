@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Canonical `markerMap` from `parseCitationResponse`** — `parseCitationResponse` now returns a `markerMap: Record<string, string>` alongside `citations`, mapping each citation marker to its canonical citation ID; eliminates per-component marker lookups and fixes hover/nav state drift in multi-marker responses. (#991)
+
 ### Changed
 
 - **`renderVerifiedHtml` moved to `deepcitation/render` subpath** *(breaking)* — importing `renderVerifiedHtml` from the main `deepcitation` entry now fails at compile time. Update imports to `import { renderVerifiedHtml } from "deepcitation/render"`. The move reduces the main-bundle size limit from 90 KB to 10 KB by excluding the React/server-render dependency graph from the core entry. (#437)

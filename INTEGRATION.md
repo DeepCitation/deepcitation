@@ -126,6 +126,17 @@ const result = parseCitationResponse(llmOutput);
 </ReactMarkdown>
 ```
 
+> **Absorbing claim text into the citation component**: When your LLM outputs `**claim text** [N]` (claim before marker), the best UX is to strip the claim text from the surrounding markdown and render the Citation with `variant="text"` — the component then renders `sourceMatch` as the single interactive citation element (colored, hoverable, with verification indicator). Strip the tail of the preceding text segment that matches `sourceMatch` (accounting for `**` or `*` markdown decorators), then pass `variant="text"` to the component. If stripping is not viable, use `variant="superscript"` (shows a small superscript number only — no text duplication). Avoid `variant="brackets"` without `content="number"` — it shows `[sourceMatch]`, not `[N]`:
+>
+> ```tsx
+> // Best — absorb claim text; citation component renders it once as an interactive element
+> // (strip "**Revenue grew**" from preceding segment first, then:)
+> return <CitationComponent citation={citation} verification={verifications[key] ?? null} variant="text" />;
+>
+> // Fallback — superscript when claim text cannot be cleanly stripped
+> return <CitationComponent citation={citation} verification={verifications[key] ?? null} variant="superscript" />;
+> ```
+
 See [Section 3.2](#32-post-stream-full-response) for the full post-stream pattern and [`examples/`](./examples) for complete working implementations.
 
 ### Recipe 4 — Customize colors, radius, and font
@@ -666,7 +677,10 @@ function MessageWithCitations({
       const key = result.markerMap[Number(n)];
       const citation = key ? result.citations[key] : null;
       if (!key || !citation) return <sup>[{n}]</sup>;
-      return <CitationComponent citation={citation} verification={verifications[key] ?? null} />;
+      // Strip the claim text from the preceding markdown segment and use variant="text" so
+      // the component absorbs and renders sourceMatch as the single interactive element.
+      // Fall back to variant="superscript" when stripping is not viable.
+      return <CitationComponent citation={citation} verification={verifications[key] ?? null} variant="superscript" />;
     },
   };
 
