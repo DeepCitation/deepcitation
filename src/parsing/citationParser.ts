@@ -24,7 +24,7 @@ import type { AudioVideoCitation, Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
-import { escapeForRegex } from "../utils/regexSafety.js";
+import { escapeForRegex, safeMatch } from "../utils/regexSafety.js";
 import { sha1Hash } from "../utils/sha.js";
 import { getVerificationTextIndicator } from "../utils/verificationIndicator.js";
 
@@ -88,7 +88,7 @@ const CITATION_MARKER_RE = /\[(\d+)\]/g;
  * // ["before ", "[1]", " after"]
  * ```
  */
-export const CITATION_MARKER_PATTERN = /(\[\d+\])/g;
+export const CITATION_MARKER_PATTERN = /(\[\d+\])/;
 
 /**
  * Matches [anchor text](cite:N) citation link markers.
@@ -1040,7 +1040,7 @@ export function stripClaimText(segment: string, sourceMatch: string): string | n
   const esc = escapeForRegex(sourceMatch);
   const patterns = [new RegExp(`\\*\\*${esc}\\*\\*\\s*$`), new RegExp(`\\*${esc}\\*\\s*$`), new RegExp(`${esc}\\s*$`)];
   for (const pat of patterns) {
-    const m = segment.match(pat);
+    const m = safeMatch(segment, pat);
     if (m && m.index !== undefined) return segment.slice(0, m.index);
   }
   return null;
