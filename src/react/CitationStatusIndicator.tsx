@@ -193,7 +193,10 @@ export const CitationStatusIndicator = ({
           data-dc-indicator="pending"
           aria-hidden="true"
         >
-          <span className="inline-flex animate-pulse opacity-60" style={{ ...CARET_INDICATOR_SIZE_STYLE, ...PENDING_COLOR_STYLE }}>
+          <span
+            className="inline-flex animate-pulse opacity-60"
+            style={{ ...CARET_INDICATOR_SIZE_STYLE, ...PENDING_COLOR_STYLE }}
+          >
             <SpinnerIcon />
           </span>
         </span>
