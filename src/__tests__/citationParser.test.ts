@@ -1445,6 +1445,21 @@ describe("extractTrailingClaimText", () => {
   it("ignores newline-crossing wrappers", () => {
     expect(extractTrailingClaimText("line1 `wrap with\nnewline` ", null)).toBeNull();
   });
+
+  // Behavioral proxy for the internal LRU cache on per-sourceMatch patterns:
+  // 200 distinct sourceMatch values exercise the eviction path beyond the
+  // cap of 128, after which previously-evicted keys must still produce
+  // correct results (i.e. the cache is a perf optimization, never a
+  // correctness hazard).
+  it("remains correct when stripPatternCache churns past its cap", () => {
+    const uniqueMatches = Array.from({ length: 200 }, (_, i) => `value_${i}`);
+    for (const m of uniqueMatches) {
+      expect(stripClaimText(`prefix: ${m}`, m)).toBe("prefix: ");
+    }
+    // Re-hit the earliest keys (likely evicted) — should recompute and still strip.
+    expect(stripClaimText("prefix: value_0", "value_0")).toBe("prefix: ");
+    expect(stripClaimText("prefix: value_5", "value_5")).toBe("prefix: ");
+  });
 });
 
 describe("extractCitationsFromMarkers", () => {

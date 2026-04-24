@@ -10,10 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Canonical `markerMap` from `parseCitationResponse`** — `parseCitationResponse` now returns a `markerMap: Record<string, string>` alongside `citations`, mapping each citation marker to its canonical citation ID; eliminates per-component marker lookups and fixes hover/nav state drift in multi-marker responses. (#991)
+- **`extractTrailingClaimText(segment, sourceMatch?)`** — richer successor to `stripClaimText` that returns `{ stripped, claimText }`. Recognises additional wrappers around LLM-emitted claim values (backticks, straight and curly quotes, `` **`code`** `` / `` *`code`* `` composites) and falls back to sourceMatch-agnostic extraction when the LLM's wrapped value diverges from the citation's verified `sourceMatch`. Callers can forward `claimText` to `CitationComponent.claimText` so the trigger shows what the model wrote while the popover continues to display the verified claim.
 
 ### Changed
 
 - **`renderVerifiedHtml` moved to `deepcitation/render` subpath** *(breaking)* — importing `renderVerifiedHtml` from the main `deepcitation` entry now fails at compile time. Update imports to `import { renderVerifiedHtml } from "deepcitation/render"`. The move reduces the main-bundle size limit from 90 KB to 10 KB by excluding the React/server-render dependency graph from the core entry. (#437)
+- **`stripClaimText` recognises more wrapper forms** — the existing exact-match API now strips `` `code` ``, `'…'`, `"…"`, `‘…’`, `“…”`, and the bold/italic-wrapped code composites in addition to `**bold**`, `*italic*`, and plain text.
+
+### Deprecated
+
+- **`stripClaimText`** — prefer `extractTrailingClaimText` which also returns the extracted claim text (needed when the LLM's wrapped value diverges from the verified `sourceMatch`). The old function remains exported and functional for back-compat.
 
 ## [0.4.3] - 2026-04-16
 
