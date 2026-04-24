@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`stripClaimText`** — prefer `extractTrailingClaimText` which also returns the extracted claim text (needed when the LLM's wrapped value diverges from the verified `sourceMatch`). The old function remains exported and functional for back-compat.
 
+### Fixed
+
+- **`CitationStatusIndicator` reduced-motion guard** — restored `motion-reduce:animate-none` on both pulse stages and the caret-variant spinner. The spin→pulse animation refactor dropped the implicit `prefers-reduced-motion` block that the previous `dc-spin-ease` keyframe provided, so users with reduced-motion preferences saw the indicator pulsing.
+
 ## [0.4.3] - 2026-04-16
 
 ### Added
