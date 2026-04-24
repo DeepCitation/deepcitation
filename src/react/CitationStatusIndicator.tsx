@@ -194,7 +194,7 @@ export const CitationStatusIndicator = ({
           aria-hidden="true"
         >
           <span
-            className="inline-flex animate-pulse opacity-60"
+            className="inline-flex animate-pulse opacity-60 motion-reduce:animate-none"
             style={{ ...CARET_INDICATOR_SIZE_STYLE, ...PENDING_COLOR_STYLE }}
           >
             <SpinnerIcon />
@@ -247,8 +247,8 @@ export const CitationStatusIndicator = ({
       <span
         className={cn(
           "inline-flex ml-1 align-middle [text-decoration:none] transition-opacity duration-[350ms]",
-          spinnerStage === "active" && "animate-pulse",
-          spinnerStage === "slow" && "animate-[pulse_2.5s_ease-in-out_infinite]",
+          spinnerStage === "active" && "animate-pulse motion-reduce:animate-none",
+          spinnerStage === "slow" && "animate-[pulse_2.5s_ease-in-out_infinite] motion-reduce:animate-none",
         )}
         style={{
           ...INDICATOR_SIZE_STYLE,

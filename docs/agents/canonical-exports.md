@@ -31,6 +31,10 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `sanitizeForLog()`, `createLogEntry()` | `src/utils/logSafety.ts` | Log injection prevention |
 | `isSafeKey()`, `safeAssign()`, `safeMerge()` | `src/utils/objectSafety.ts` | Prototype pollution prevention |
 | `safeMatch()`, `safeReplace()`, `safeTest()` | `src/utils/regexSafety.ts` | ReDoS prevention (input length validation) |
+| `escapeForRegex()` | `src/utils/regexSafety.ts` | Escape a literal string for safe embedding in a `RegExp` constructor |
+| `CITATION_MARKER_PATTERN` | `src/parsing/citationParser.ts` | Canonical `[N]` / `[N,M]` citation marker regex (source) |
+| `stripClaimText()` | `src/parsing/citationParser.ts` | **Deprecated**: strips trailing `sourceMatch` (with known wrappers) from a segment. Prefer `extractTrailingClaimText`. |
+| `extractTrailingClaimText()` | `src/parsing/citationParser.ts` | Strips a trailing claim span and returns `{ stripped, claimText }` — falls back to a sourceMatch-agnostic quote extraction |
 | `validateFileMagicBytes()`, `validateUploadFile()` | `src/utils/fileSafety.ts` | File content validation via magic bytes |
 | `ALLOWED_UPLOAD_MIME_TYPES`, `MAX_UPLOAD_FILE_SIZE` | `src/utils/fileSafety.ts` | Upload constraints (MIME allowlist, size limit) |
 | `isValidProofImageSrc()` | `src/react/constants.ts` | Image source validation (blocks SVG, untrusted hosts) |

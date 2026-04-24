@@ -23,6 +23,11 @@ describe("getCitationKey determinism", () => {
     const key = getCitationKey(baseCitation);
     expect(key).toMatch(/^[a-f0-9]{16}$/);
   });
+
+  it("returns empty string for null or undefined citation", () => {
+    expect(getCitationKey(null)).toBe("");
+    expect(getCitationKey(undefined)).toBe("");
+  });
 });
 
 describe("getCitationKey sensitivity", () => {

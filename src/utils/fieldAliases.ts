@@ -47,6 +47,13 @@ const FIELD_ALIAS_MAP: Record<string, readonly string[]> = {
   // NOTE: bare short aliases ("phrase", "full", "anchor") are intentional — LLMs
   // frequently emit these. If a future field collides, add it to CANONICAL_FIELDS
   // first so it wins over the alias lookup.
+  // NOTE on `claim*` aliases: the `claim*` prefix nominally belongs to Domain A
+  // (what the asserting document says), while `source*` belongs to Domain B
+  // (what the cited document shows). These aliases exist because LLMs prompted
+  // with ad-hoc schemas sometimes emit `claimContext` / `claimMatch` when they
+  // mean the Domain B text fields. We normalize defensively so an off-schema
+  // emission still verifies; the canonical Citation model only exposes
+  // `sourceContext` / `sourceMatch`.
   sourceContext: [
     "source_context",
     "source-context",
