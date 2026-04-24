@@ -77,7 +77,7 @@ describe("CitationComponent behaviorConfig", () => {
       const { container } = render(<CitationComponent citation={baseCitation} verification={pendingVerification} />);
 
       // Should have a spinner (svg with animate-spin class)
-      const spinner = container.querySelector(".animate-spin svg");
+      const spinner = container.querySelector("[data-dc-indicator='pending']");
       expect(spinner).toBeInTheDocument();
     });
 
@@ -85,7 +85,7 @@ describe("CitationComponent behaviorConfig", () => {
       const { container } = render(<CitationComponent citation={baseCitation} verification={null} />);
 
       // Should NOT have a spinner by default - use isLoading prop to show spinner
-      const spinner = container.querySelector(".animate-spin svg");
+      const spinner = container.querySelector("[data-dc-indicator='pending']");
       expect(spinner).not.toBeInTheDocument();
     });
 
@@ -93,7 +93,7 @@ describe("CitationComponent behaviorConfig", () => {
       const { container } = render(<CitationComponent citation={baseCitation} verification={{}} />);
 
       // Should NOT have a spinner by default - use isLoading prop to show spinner
-      const spinner = container.querySelector(".animate-spin svg");
+      const spinner = container.querySelector("[data-dc-indicator='pending']");
       expect(spinner).not.toBeInTheDocument();
     });
 
@@ -101,7 +101,7 @@ describe("CitationComponent behaviorConfig", () => {
       const { container } = render(<CitationComponent citation={baseCitation} verification={null} isLoading={true} />);
 
       // Should have a spinner when isLoading is true
-      const spinner = container.querySelector(".animate-spin svg");
+      const spinner = container.querySelector("[data-dc-indicator='pending']");
       expect(spinner).toBeInTheDocument();
     });
 

@@ -193,7 +193,10 @@ export const CitationStatusIndicator = ({
           data-dc-indicator="pending"
           aria-hidden="true"
         >
-          <span className="inline-flex animate-spin" style={{ ...CARET_INDICATOR_SIZE_STYLE, ...PENDING_COLOR_STYLE }}>
+          <span
+            className="inline-flex animate-pulse opacity-60 motion-reduce:animate-none"
+            style={{ ...CARET_INDICATOR_SIZE_STYLE, ...PENDING_COLOR_STYLE }}
+          >
             <SpinnerIcon />
           </span>
         </span>
@@ -237,39 +240,31 @@ export const CitationStatusIndicator = ({
     return null;
   }
 
-  // Default: icon variant — 3-stage spinner.
-  // "slow" stage uses a decelerating spin (eased rotation) + reduced opacity
-  // to communicate "still working but taking longer" without constant motion.
+  // Default: icon variant — pulse animation.
+  // "slow" stage uses a longer period + lower base opacity to signal "still working".
+  // Wrapper carries the base opacity; inner span carries the pulse animation.
+  // CSS animations override inline `opacity` on the same element, so the two must
+  // live on different elements — opacities then multiply through the hierarchy
+  // (active 0.7 × pulse 1↔0.5 = 0.7↔0.35; slow 0.5 × pulse 1↔0.5 = 0.5↔0.25).
   if (shouldShowSpinner) {
     return (
       <span
-        className={cn(
-          "inline-flex ml-1 align-middle [text-decoration:none] transition-opacity duration-[350ms]",
-          spinnerStage === "active" && "animate-spin",
-          spinnerStage === "slow" && "animate-[dc-spin-ease_2s_linear_infinite]",
-        )}
-        style={{
-          ...INDICATOR_SIZE_STYLE,
-          ...PENDING_COLOR_STYLE,
-          opacity: spinnerStage === "slow" ? 0.6 : 1,
-        }}
+        className="inline-flex ml-1 align-middle [text-decoration:none] transition-opacity duration-[350ms]"
+        style={{ opacity: spinnerStage === "slow" ? 0.5 : 0.7 }}
         data-dc-indicator="pending"
         aria-hidden="true"
         title={spinnerStage === "slow" ? t("indicator.stillVerifying") : undefined}
       >
-        <SpinnerIcon />
-        {spinnerStage === "slow" && (
-          <style>{`
-            @keyframes dc-spin-ease {
-              0% { transform: rotate(0deg); }
-              60% { transform: rotate(252deg); }
-              100% { transform: rotate(360deg); }
-            }
-            @media (prefers-reduced-motion: reduce) {
-              .animate-\\[dc-spin-ease_2s_linear_infinite\\] { animation: none !important; }
-            }
-          `}</style>
-        )}
+        <span
+          className={cn(
+            "inline-flex",
+            spinnerStage === "active" && "animate-pulse motion-reduce:animate-none",
+            spinnerStage === "slow" && "animate-[pulse_2.5s_ease-in-out_infinite] motion-reduce:animate-none",
+          )}
+          style={{ ...INDICATOR_SIZE_STYLE, ...PENDING_COLOR_STYLE }}
+        >
+          <SpinnerIcon />
+        </span>
       </span>
     );
   }

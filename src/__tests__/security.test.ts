@@ -8,6 +8,7 @@ import { isValidProofImageSrc } from "../react/constants";
 import { createLogEntry, sanitizeForLog, sanitizeJsonForLog } from "../utils/logSafety";
 import { createSafeObject, isSafeKey, safeAssign, safeAssignBulk, safeMerge } from "../utils/objectSafety";
 import {
+  escapeForRegex,
   safeExec,
   safeMatch,
   safeReplace,
@@ -138,6 +139,33 @@ describe("Security Tests", () => {
       it("should reject oversized input", () => {
         const attack = "a".repeat(100_001);
         expect(() => safeTest(/test/, attack)).toThrow("Input too large");
+      });
+    });
+
+    describe("escapeForRegex", () => {
+      // Escaped output must match its literal input and nothing more — a missed
+      // metacharacter would silently expose `new RegExp(...)` to ReDoS / bypass.
+      const METACHARACTERS = [".", "*", "+", "?", "^", "$", "{", "}", "(", ")", "|", "[", "]", "\\", "/"];
+
+      for (const ch of METACHARACTERS) {
+        it(`escapes '${ch}' to match only the literal`, () => {
+          const escaped = escapeForRegex(ch);
+          const re = new RegExp(`^${escaped}$`);
+          expect(re.test(ch)).toBe(true);
+          // Sanity: the escape must not produce a pattern that matches an unrelated char.
+          expect(re.test("x")).toBe(false);
+        });
+      }
+
+      it("escapes a literal with mixed metacharacters", () => {
+        const literal = "a.b*c?";
+        const re = new RegExp(`^${escapeForRegex(literal)}$`);
+        expect(re.test(literal)).toBe(true);
+        expect(re.test("aXbYcZ")).toBe(false);
+      });
+
+      it("preserves ordinary characters unchanged", () => {
+        expect(escapeForRegex("hello world")).toBe("hello world");
       });
     });
   });

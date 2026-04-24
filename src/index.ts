@@ -68,14 +68,17 @@ export {
 
 // Citation parsing — core API + display helpers
 export {
+  CITATION_MARKER_PATTERN,
   citationDataToCitation,
   extractCitationsFromMarkers,
+  extractTrailingClaimText,
   extractVisibleText,
   getCitationMarkerIds,
   hasCitationData,
   parseCitationData,
   replaceCitationMarkers,
   stripCitations,
+  stripClaimText,
 } from "./parsing/citationParser.js";
 
 export {
@@ -198,6 +201,7 @@ export {
   setObjectSafetyWarning,
 } from "./utils/objectSafety.js";
 export {
+  escapeForRegex,
   MAX_REGEX_INPUT_LENGTH,
   safeExec,
   safeMatch,

@@ -201,3 +201,19 @@ export function safeTest(regex: RegExp, input: string): boolean {
   validateRegexInput(input);
   return regex.test(input);
 }
+
+/**
+ * Escapes all regex special characters in a string so it can be safely
+ * embedded in a `new RegExp(...)` pattern without unintended matching.
+ *
+ * @param s - The string to escape
+ * @returns A string with all regex metacharacters escaped
+ *
+ * @example
+ * ```typescript
+ * const pattern = new RegExp(escapeForRegex(userInput) + '\\s*$');
+ * ```
+ */
+export function escapeForRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}

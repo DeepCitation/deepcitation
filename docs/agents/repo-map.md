@@ -1,7 +1,7 @@
 ---
-generated_at: "2026-04-11T12:39:12Z"
-commit_sha: "31553cd"
-commit_sha_full: "31553cd64df8c60aae6f0f673ae3dc98841ef3ab"
+generated_at: "2026-04-24T21:28:33Z"
+commit_sha: "4f8cee3"
+commit_sha_full: "4f8cee38cf63303f5576b2ed77993cd9d7c117af"
 stale_after_commits: 30
 ---
 
@@ -38,11 +38,13 @@ src/  # Source files
   parsing/  # Citation extraction: parseCitation, normalizeCitation, parseWorkAround
   prompts/  # LLM prompt templates (citationPrompts, promptCompression)
   react/  # React components and hooks (CitationComponent, SourcesList, i18n, popovers)
+    debug/  # (no description)
     evidence/  # Evidence tray, expanded images, search analysis summary components
     hooks/  # Extracted React hooks
     locales/  # i18n locale JSON files (en, es, fr, ...)
     motion/  # Animation/motion utilities
     testing/  # React testing helpers
+  render/  # (no description)
   rendering/  # Output renderers: Slack, GitHub, HTML, terminal, proofUrl
     terminal/  # Terminal/ANSI renderer
     testing/  # Renderer test helpers
@@ -92,6 +94,7 @@ examples/  # Integration examples (Next.js, etc.)
   mastra-rag-chat/  # Mastra RAG chat example with Next.js and LibSQLVector
   nextjs-ai-sdk/  # Next.js AI SDK integration example
   output/  # (no description)
+  qmd-local-search/  # (no description)
   static-html/  # CDN popover bundle in a plain HTML page (no build step)
   url-example/  # URL citation verification example
 ```

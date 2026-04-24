@@ -126,6 +126,29 @@ const result = parseCitationResponse(llmOutput);
 </ReactMarkdown>
 ```
 
+> **Absorbing claim text into the citation component**: When your LLM outputs `**claim text** [N]` (claim before marker), the best UX is to strip the claim text from the surrounding markdown and render the Citation with `variant="text"` — the component then renders the claim as the single interactive citation element (colored, hoverable, with verification indicator). Use [`extractTrailingClaimText`](./docs/agents/canonical-exports.md) to peel a trailing wrapped value off the preceding text node — it handles `**bold**`, `*italic*`, `` `code` ``, the `**\`…\`**` composite, and straight/curly quotes. The helper returns `{ stripped, claimText }`: feed `stripped` back into the segment and pass `claimText` to `<CitationComponent>` via the `claimText` prop. If stripping is not viable, fall back to `variant="superscript"` (small superscript number only — no text duplication). Avoid `variant="brackets"` without `content="number"` — it shows `[sourceMatch]`, not `[N]`:
+>
+> ```tsx
+> import { extractTrailingClaimText } from "deepcitation";
+>
+> // Best — absorb claim text; citation component renders it once as an interactive element
+> const peeled = extractTrailingClaimText(precedingTextNode.value, citation.sourceMatch);
+> if (peeled) {
+>   precedingTextNode.value = peeled.stripped;
+>   return (
+>     <CitationComponent
+>       citation={citation}
+>       verification={verifications[key] ?? null}
+>       claimText={peeled.claimText}
+>       variant="text"
+>     />
+>   );
+> }
+>
+> // Fallback — superscript when no trailing claim was found
+> return <CitationComponent citation={citation} verification={verifications[key] ?? null} variant="superscript" />;
+> ```
+
 See [Section 3.2](#32-post-stream-full-response) for the full post-stream pattern and [`examples/`](./examples) for complete working implementations.
 
 ### Recipe 4 — Customize colors, radius, and font
@@ -666,7 +689,10 @@ function MessageWithCitations({
       const key = result.markerMap[Number(n)];
       const citation = key ? result.citations[key] : null;
       if (!key || !citation) return <sup>[{n}]</sup>;
-      return <CitationComponent citation={citation} verification={verifications[key] ?? null} />;
+      // Strip the claim text from the preceding markdown segment and use variant="text" so
+      // the component absorbs and renders sourceMatch as the single interactive element.
+      // Fall back to variant="superscript" when stripping is not viable.
+      return <CitationComponent citation={citation} verification={verifications[key] ?? null} variant="superscript" />;
     },
   };
 

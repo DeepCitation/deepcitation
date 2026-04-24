@@ -24,6 +24,7 @@ import type { AudioVideoCitation, Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
+import { escapeForRegex, safeMatch } from "../utils/regexSafety.js";
 import { sha1Hash } from "../utils/sha.js";
 import { getVerificationTextIndicator } from "../utils/verificationIndicator.js";
 
@@ -72,16 +73,29 @@ const LEGACY_PAGE_ID_RE = /page[_a-z]{0,30}(\d+)_index_(\d+)/i;
  * Matches [N] citation markers in text.
  * Safe to reuse as a module-level constant: String.replace() and String.matchAll()
  * do not mutate lastIndex, so there is no stateful cross-call contamination.
- * Do NOT use with RegExp.exec() in a loop — exec() advances lastIndex.
+ * Do NOT use with RegExp iterative calls in a loop — they advance lastIndex.
  */
 const CITATION_MARKER_RE = /\[(\d+)\]/g;
+
+/**
+ * Matches [N] citation markers, capturing the full bracket token.
+ * Outer-capture variant of CITATION_MARKER_RE — intended for use with
+ * String.split() so that the `[N]` delimiters are preserved in the result array.
+ *
+ * @example
+ * ```typescript
+ * const segments = text.split(CITATION_MARKER_PATTERN);
+ * // ["before ", "[1]", " after"]
+ * ```
+ */
+export const CITATION_MARKER_PATTERN = /(\[\d+\])/;
 
 /**
  * Matches [anchor text](cite:N) citation link markers.
  * The anchor text is in capture group 1, the citation ID in capture group 2.
  * Safe to reuse as a module-level constant: String.replace() and String.matchAll()
  * do not mutate lastIndex, so there is no stateful cross-call contamination.
- * Do NOT use with RegExp.exec() in a loop — exec() advances lastIndex.
+ * Do NOT use with RegExp iterative calls in a loop — they advance lastIndex.
  */
 const CITATION_LINK_RE = /\[([^\][]+)\]\(cite:(\d+)\)/g;
 
@@ -1007,4 +1021,140 @@ export function stripCitations(llmResponse: string): string {
   // Strip <<<CITATION_DATA>>> block (if present), then remove [N] markers
   const visibleText = extractVisibleText(llmResponse);
   return replaceCitationMarkers(visibleText);
+}
+
+/**
+ * Wrapper pairs recognised around a trailing `sourceMatch` — the canonical
+ * table that both {@link stripClaimText} and {@link extractTrailingClaimText}
+ * derive from. Ordered longest-first so composites (e.g. `**\`x\`**`) match
+ * before their constituents.
+ */
+const CLAIM_WRAPPERS: ReadonlyArray<readonly [string, string]> = [
+  ["**`", "`**"], // **`code`**
+  ["*`", "`*"], // *`code`*
+  ["**", "**"], // **bold**
+  ["*", "*"], // *italic*
+  ["`", "`"], // `code`
+  ['"', '"'], // "straight double"
+  ["'", "'"], // 'straight single'
+  ["“", "”"], // “smart double”
+  ["‘", "’"], // ‘smart single’
+];
+
+/** Pre-escaped CLAIM_WRAPPERS pairs so stripClaimText doesn't re-escape per call. */
+const CLAIM_WRAPPER_ESCAPES: ReadonlyArray<readonly [string, string]> = CLAIM_WRAPPERS.map(
+  ([open, close]) => [escapeForRegex(open), escapeForRegex(close)] as const,
+);
+
+/**
+ * Pre-compiled patterns for extractTrailingClaimText's sourceMatch-agnostic
+ * fallback — derived from the quote-like single-char entries of
+ * {@link CLAIM_WRAPPERS} so the canonical table remains the single source of
+ * truth. Markdown emphasis (`*`, `**`) is excluded: `*x*` is ambiguous
+ * between italic and a quoted value, so we only trigger the fallback for
+ * unambiguous quote-like delimiters.
+ */
+const FALLBACK_PATTERNS: readonly RegExp[] = CLAIM_WRAPPERS.filter(
+  ([open, close]) => [...open].length === 1 && [...close].length === 1 && open !== "*",
+).map(([open, close]) => {
+  const eo = escapeForRegex(open);
+  const ec = escapeForRegex(close);
+  // Content excludes BOTH delimiters + newline so a later span can't bridge
+  // across an earlier one (e.g. "`first` middle `last`" → extracts "last").
+  // Symmetric pairs (`` ` ``) collapse to a one-char class; asymmetric pairs
+  // (e.g. “…”) keep both chars distinct in the class — same guarantee.
+  return new RegExp(`${eo}([^${eo}${ec}\\n]+?)${ec}\\s*$`);
+});
+
+/** Bounded LRU for per-sourceMatch stripClaimText patterns. */
+const STRIP_PATTERN_CACHE_CAP = 128;
+const stripPatternCache = new Map<string, readonly RegExp[]>();
+
+function getStripPatterns(sourceMatch: string): readonly RegExp[] {
+  const cached = stripPatternCache.get(sourceMatch);
+  if (cached) {
+    stripPatternCache.delete(sourceMatch);
+    stripPatternCache.set(sourceMatch, cached);
+    return cached;
+  }
+  const esc = escapeForRegex(sourceMatch);
+  const patterns: RegExp[] = CLAIM_WRAPPER_ESCAPES.map(([eo, ec]) => new RegExp(`${eo}${esc}${ec}\\s*$`));
+  patterns.push(new RegExp(`${esc}\\s*$`));
+  if (stripPatternCache.size >= STRIP_PATTERN_CACHE_CAP) {
+    const firstKey = stripPatternCache.keys().next().value;
+    if (firstKey !== undefined) stripPatternCache.delete(firstKey);
+  }
+  stripPatternCache.set(sourceMatch, patterns);
+  return patterns;
+}
+
+function stripExactClaimMatch(segment: string, sourceMatch: string): string | null {
+  if (!sourceMatch) return null;
+  for (const pat of getStripPatterns(sourceMatch)) {
+    const m = safeMatch(segment, pat);
+    if (m && m.index !== undefined) return segment.slice(0, m.index);
+  }
+  return null;
+}
+
+/**
+ * Strips `sourceMatch` text from the tail of a markdown segment.
+ *
+ * Recognises the match whether it is plain or wrapped in any of the pairs
+ * listed in {@link CLAIM_WRAPPERS} (markdown emphasis, inline code, straight
+ * or curly quotes, and the `**\`…\`**` / `*\`…\`*` composites LLMs often emit
+ * for tabular values).
+ *
+ * @param segment - The markdown text segment (everything before the `[N]` token)
+ * @param sourceMatch - The citation's source match text to strip
+ * @returns The segment with the trailing `sourceMatch` (and its wrapper) removed, or `null` if not found
+ *
+ * @deprecated Prefer {@link extractTrailingClaimText}: it also returns the
+ * extracted claim text, which is needed when the LLM's wrapped value diverges
+ * from the verified `sourceMatch`.
+ */
+export function stripClaimText(segment: string, sourceMatch: string): string | null {
+  return stripExactClaimMatch(segment, sourceMatch);
+}
+
+/**
+ * Strips a trailing claim span from a markdown segment and returns both the
+ * stripped segment and the claim text the model wrote.
+ *
+ * Matching strategy (first hit wins):
+ *   1. Exact `sourceMatch` match (supports every wrapper in
+ *      {@link CLAIM_WRAPPERS}) — returns `{ stripped, claimText: sourceMatch }`.
+ *   2. **Content-agnostic fallback**: if the segment ends with any recognized
+ *      quote-like wrapper ({@link FALLBACK_PATTERNS}), strip the wrapper and
+ *      return its inner content as `claimText` regardless of whether it
+ *      matches `sourceMatch`. This captures LLM "off-script" output such as
+ *      `` `Austin, TX 73301` [14] `` where the wrapped value diverges from
+ *      the citation's verified `sourceMatch`.
+ *
+ * Callers should pass `claimText` as the `claimText` prop on
+ * `CitationComponent`: the trigger then shows what the model wrote while the
+ * popover continues to display the verified `sourceMatch` (with a variance
+ * annotation when they differ).
+ *
+ * @param segment - The markdown text segment (everything before the `[N]` token)
+ * @param sourceMatch - Optional verified source match; enables the exact-match path
+ * @returns `{ stripped, claimText }` or `null` if no trailing claim was found
+ */
+export function extractTrailingClaimText(
+  segment: string,
+  sourceMatch?: string | null,
+): { stripped: string; claimText: string } | null {
+  if (sourceMatch) {
+    const stripped = stripExactClaimMatch(segment, sourceMatch);
+    if (stripped !== null) {
+      return { stripped, claimText: sourceMatch };
+    }
+  }
+  for (const pat of FALLBACK_PATTERNS) {
+    const m = safeMatch(segment, pat);
+    if (m && m.index !== undefined && m[1]) {
+      return { stripped: segment.slice(0, m.index), claimText: m[1] };
+    }
+  }
+  return null;
 }
