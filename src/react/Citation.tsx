@@ -1179,11 +1179,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const handlePopoverOpenChange = useCallback(
       (open: boolean) => {
         if (!open && !isAnyOverlayOpenRef.current) {
-          if (viewState.ref.current !== "summary") return;
+          if (viewState.ref.current !== "summary") {
+            viewState.transition("summary");
+            return;
+          }
           closePopover();
         }
       },
-      [closePopover],
+      [closePopover, viewState],
     );
 
     const handlePopoverBackdropClick = useCallback(
