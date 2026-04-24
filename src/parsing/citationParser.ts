@@ -1055,12 +1055,14 @@ const CLAIM_WRAPPER_ESCAPES: ReadonlyArray<readonly [string, string]> = CLAIM_WR
  * unambiguous quote-like delimiters.
  */
 const FALLBACK_PATTERNS: readonly RegExp[] = CLAIM_WRAPPERS.filter(
-  ([open, close]) => [...open].length === 1 && [...close].length === 1 && open !== "*" && open !== "_",
+  ([open, close]) => [...open].length === 1 && [...close].length === 1 && open !== "*",
 ).map(([open, close]) => {
   const eo = escapeForRegex(open);
   const ec = escapeForRegex(close);
-  // Content excludes both delimiters + newline so a later span can't bridge
+  // Content excludes BOTH delimiters + newline so a later span can't bridge
   // across an earlier one (e.g. "`first` middle `last`" → extracts "last").
+  // Symmetric pairs (`` ` ``) collapse to a one-char class; asymmetric pairs
+  // (e.g. “…”) keep both chars distinct in the class — same guarantee.
   return new RegExp(`${eo}([^${eo}${ec}\\n]+?)${ec}\\s*$`);
 });
 

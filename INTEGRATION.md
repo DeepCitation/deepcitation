@@ -126,14 +126,26 @@ const result = parseCitationResponse(llmOutput);
 </ReactMarkdown>
 ```
 
-> **Absorbing claim text into the citation component**: When your LLM outputs `**claim text** [N]` (claim before marker), the best UX is to strip the claim text from the surrounding markdown and render the Citation with `variant="text"` — the component then renders `sourceMatch` as the single interactive citation element (colored, hoverable, with verification indicator). Strip the tail of the preceding text segment that matches `sourceMatch` (accounting for `**` or `*` markdown decorators), then pass `variant="text"` to the component. If stripping is not viable, use `variant="superscript"` (shows a small superscript number only — no text duplication). Avoid `variant="brackets"` without `content="number"` — it shows `[sourceMatch]`, not `[N]`:
+> **Absorbing claim text into the citation component**: When your LLM outputs `**claim text** [N]` (claim before marker), the best UX is to strip the claim text from the surrounding markdown and render the Citation with `variant="text"` — the component then renders the claim as the single interactive citation element (colored, hoverable, with verification indicator). Use [`extractTrailingClaimText`](./docs/agents/canonical-exports.md) to peel a trailing wrapped value off the preceding text node — it handles `**bold**`, `*italic*`, `` `code` ``, the `**\`…\`**` composite, and straight/curly quotes. The helper returns `{ stripped, claimText }`: feed `stripped` back into the segment and pass `claimText` to `<CitationComponent>` via the `claimText` prop. If stripping is not viable, fall back to `variant="superscript"` (small superscript number only — no text duplication). Avoid `variant="brackets"` without `content="number"` — it shows `[sourceMatch]`, not `[N]`:
 >
 > ```tsx
-> // Best — absorb claim text; citation component renders it once as an interactive element
-> // (strip "**Revenue grew**" from preceding segment first, then:)
-> return <CitationComponent citation={citation} verification={verifications[key] ?? null} variant="text" />;
+> import { extractTrailingClaimText } from "deepcitation";
 >
-> // Fallback — superscript when claim text cannot be cleanly stripped
+> // Best — absorb claim text; citation component renders it once as an interactive element
+> const peeled = extractTrailingClaimText(precedingTextNode.value, citation.sourceMatch);
+> if (peeled) {
+>   precedingTextNode.value = peeled.stripped;
+>   return (
+>     <CitationComponent
+>       citation={citation}
+>       verification={verifications[key] ?? null}
+>       claimText={peeled.claimText}
+>       variant="text"
+>     />
+>   );
+> }
+>
+> // Fallback — superscript when no trailing claim was found
 > return <CitationComponent citation={citation} verification={verifications[key] ?? null} variant="superscript" />;
 > ```
 

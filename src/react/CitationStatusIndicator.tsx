@@ -241,25 +241,30 @@ export const CitationStatusIndicator = ({
   }
 
   // Default: icon variant — pulse animation.
-  // "slow" stage uses a longer period + reduced opacity to signal "still working".
+  // "slow" stage uses a longer period + lower base opacity to signal "still working".
+  // Wrapper carries the base opacity; inner span carries the pulse animation.
+  // CSS animations override inline `opacity` on the same element, so the two must
+  // live on different elements — opacities then multiply through the hierarchy
+  // (active 0.7 × pulse 1↔0.5 = 0.7↔0.35; slow 0.5 × pulse 1↔0.5 = 0.5↔0.25).
   if (shouldShowSpinner) {
     return (
       <span
-        className={cn(
-          "inline-flex ml-1 align-middle [text-decoration:none] transition-opacity duration-[350ms]",
-          spinnerStage === "active" && "animate-pulse motion-reduce:animate-none",
-          spinnerStage === "slow" && "animate-[pulse_2.5s_ease-in-out_infinite] motion-reduce:animate-none",
-        )}
-        style={{
-          ...INDICATOR_SIZE_STYLE,
-          ...PENDING_COLOR_STYLE,
-          opacity: spinnerStage === "slow" ? 0.5 : 0.7,
-        }}
+        className="inline-flex ml-1 align-middle [text-decoration:none] transition-opacity duration-[350ms]"
+        style={{ opacity: spinnerStage === "slow" ? 0.5 : 0.7 }}
         data-dc-indicator="pending"
         aria-hidden="true"
         title={spinnerStage === "slow" ? t("indicator.stillVerifying") : undefined}
       >
-        <SpinnerIcon />
+        <span
+          className={cn(
+            "inline-flex",
+            spinnerStage === "active" && "animate-pulse motion-reduce:animate-none",
+            spinnerStage === "slow" && "animate-[pulse_2.5s_ease-in-out_infinite] motion-reduce:animate-none",
+          )}
+          style={{ ...INDICATOR_SIZE_STYLE, ...PENDING_COLOR_STYLE }}
+        >
+          <SpinnerIcon />
+        </span>
       </span>
     );
   }
