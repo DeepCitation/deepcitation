@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`CitationStatusIndicator` reduced-motion guard** — restored `motion-reduce:animate-none` on both pulse stages and the caret-variant spinner. The spin→pulse animation refactor dropped the implicit `prefers-reduced-motion` block that the previous `dc-spin-ease` keyframe provided, so users with reduced-motion preferences saw the indicator pulsing.
+- **`CitationStatusIndicator` reduced-motion guard** — restored `motion-reduce:animate-none` on both pulse stages and the caret-variant spinner. The spin→pulse animation refactor dropped the implicit `prefers-reduced-motion` block that the previous `dc-spin-ease` keyframe provided, so users with reduced-motion preferences saw the indicator pulsing. (#441)
 
 ## [0.4.3] - 2026-04-16
 

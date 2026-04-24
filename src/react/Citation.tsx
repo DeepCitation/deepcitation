@@ -1175,7 +1175,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Extracted from inline JSX arrows so the React Compiler can cache them.
     // All three read refs (event-time, not render-time) — safe for useCallback.
     // Placed before the early return to satisfy the Rules of Hooks (consistent call order).
-    // biome-ignore lint/correctness/useExhaustiveDependencies: viewState.ref is a stable ref read at call time, not a render-time dep
     const handlePopoverOpenChange = useCallback(
       (open: boolean) => {
         if (!open && !isAnyOverlayOpenRef.current) {
@@ -1186,7 +1185,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           closePopover();
         }
       },
-      [closePopover, viewState],
+      // biome-ignore lint/correctness/useExhaustiveDependencies: both viewState and viewState.transition are intentionally listed for hook stability (matches the pattern at the action handler above)
+      [closePopover, viewState.transition, viewState],
     );
 
     const handlePopoverBackdropClick = useCallback(
