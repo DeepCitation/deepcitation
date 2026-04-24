@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import {
   citationDataToCitation,
   extractCitationsFromMarkers,
+  extractTrailingClaimText,
   extractVisibleText,
   getAllCitationsFromNumericResponse,
   getCitationMarkerIds,
@@ -9,12 +10,14 @@ import {
   parseCitationData,
   replaceCitationMarkers,
   stripCitations,
+  stripClaimText,
 } from "../parsing/citationParser.js";
 import {
   CITATION_DATA_END_DELIMITER,
   CITATION_DATA_START_DELIMITER,
   type CitationData,
 } from "../prompts/citationPrompts.js";
+import type { SearchStatus } from "../types/search.js";
 import { getCitationKey } from "../utils/citationKey.js";
 
 describe("parseCitationData", () => {
@@ -1184,7 +1187,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 });
 
 describe("replaceCitationMarkers with verifications", () => {
-  const makeVerification = (status: string, citationNumber: number) => ({
+  const makeVerification = (status: SearchStatus, citationNumber: number) => ({
     status,
     citation: {
       type: "document" as const,
@@ -1305,6 +1308,142 @@ describe("stripCitations", () => {
   it("does not strip XML cite tags (numeric-only)", () => {
     const xmlInput = `Text <cite attachment_id='abc' source_context='foo' source_match='bar' /> more`;
     expect(stripCitations(xmlInput)).toBe(xmlInput);
+  });
+});
+
+describe("stripClaimText", () => {
+  it("returns null when sourceMatch is empty", () => {
+    expect(stripClaimText("Date: 01/11/2025 ", "")).toBeNull();
+  });
+
+  it("strips plain trailing sourceMatch", () => {
+    expect(stripClaimText("Date: 01/11/2025 ", "01/11/2025")).toBe("Date: ");
+  });
+
+  it("strips **bold** wrapper", () => {
+    expect(stripClaimText("Date: **01/11/2025** ", "01/11/2025")).toBe("Date: ");
+  });
+
+  it("strips *italic* wrapper", () => {
+    expect(stripClaimText("Date: *01/11/2025* ", "01/11/2025")).toBe("Date: ");
+  });
+
+  it("strips `code` wrapper (LLM tabular output)", () => {
+    expect(stripClaimText("Date: `01/11/2025` ", "01/11/2025")).toBe("Date: ");
+  });
+
+  it("strips 'single quote' wrapper", () => {
+    expect(stripClaimText("Date: '01/11/2025' ", "01/11/2025")).toBe("Date: ");
+  });
+
+  it('strips "double quote" wrapper', () => {
+    expect(stripClaimText('Date: "01/11/2025" ', "01/11/2025")).toBe("Date: ");
+  });
+
+  it("strips curly-single-quote wrapper", () => {
+    expect(stripClaimText("Date: ‘01/11/2025’ ", "01/11/2025")).toBe("Date: ");
+  });
+
+  it("strips curly-double-quote wrapper", () => {
+    expect(stripClaimText("Date: “01/11/2025” ", "01/11/2025")).toBe("Date: ");
+  });
+
+  it("strips **`code`** composite wrapper", () => {
+    expect(stripClaimText("Total: **`$19.40`** ", "$19.40")).toBe("Total: ");
+  });
+
+  it("strips *`code`* composite wrapper", () => {
+    expect(stripClaimText("Total: *`$19.40`* ", "$19.40")).toBe("Total: ");
+  });
+
+  it("returns null when sourceMatch is asymmetrically wrapped", () => {
+    // Guardrail: mismatched wrappers must not be stripped.
+    expect(stripClaimText("Date: `01/11/2025' ", "01/11/2025")).toBeNull();
+  });
+
+  it("handles the USPS receipt backtick case end-to-end", () => {
+    // Reproduces the segment passed to stripClaimText by parseMarkdown.tsx
+    // when the LLM emits: `Priority Mail® Flat Rate Env` [3]
+    const segment = "*   `Priority Mail® Flat Rate Env`";
+    expect(stripClaimText(segment, "Priority Mail® Flat Rate Env")).toBe("*   ");
+  });
+});
+
+describe("extractTrailingClaimText", () => {
+  it("returns null for an empty segment", () => {
+    expect(extractTrailingClaimText("", "x")).toBeNull();
+  });
+
+  it("returns null when there is no trailing wrapper or sourceMatch", () => {
+    expect(extractTrailingClaimText("plain text with no wrap", "x")).toBeNull();
+  });
+
+  it("prefers exact sourceMatch when it is present (plain)", () => {
+    expect(extractTrailingClaimText("Date: 01/11/2025 ", "01/11/2025")).toEqual({
+      stripped: "Date: ",
+      claimText: "01/11/2025",
+    });
+  });
+
+  it("prefers exact sourceMatch when it is wrapped in backticks", () => {
+    expect(extractTrailingClaimText("Date: `01/11/2025` ", "01/11/2025")).toEqual({
+      stripped: "Date: ",
+      claimText: "01/11/2025",
+    });
+  });
+
+  it("falls back to wrapped content when sourceMatch is only a prefix of the wrap", () => {
+    // Treasury row: LLM wrapped "Department of the Treasury Internal Revenue Service"
+    // but the citation's sourceMatch is just "Department of the Treasury".
+    // Exact match fails → fallback returns the full wrapped content as claimText.
+    const segment = "Sent To: 'Department of the Treasury Internal Revenue Service' ";
+    expect(extractTrailingClaimText(segment, "Department of the Treasury")).toEqual({
+      stripped: "Sent To: ",
+      claimText: "Department of the Treasury Internal Revenue Service",
+    });
+  });
+
+  it("falls back to wrapped content when sourceMatch is unrelated (LLM mis-citation)", () => {
+    // Austin row: LLM wrapped "Austin, TX 73301-0215" but the citation's
+    // sourceMatch is "Department of the Treasury" (an LLM mis-citation).
+    // The parser honors what the LLM wrote so the consumer can pass it
+    // via claimText prop; the popover still shows the verified sourceMatch.
+    const segment = "Address: 'Austin, TX 73301-0215' ";
+    expect(extractTrailingClaimText(segment, "Department of the Treasury")).toEqual({
+      stripped: "Address: ",
+      claimText: "Austin, TX 73301-0215",
+    });
+  });
+
+  it("falls back with no sourceMatch at all", () => {
+    expect(extractTrailingClaimText("x: `value` ", undefined)).toEqual({
+      stripped: "x: ",
+      claimText: "value",
+    });
+  });
+
+  it("falls back for curly quotes", () => {
+    expect(extractTrailingClaimText("x: “quoted” ", null)).toEqual({
+      stripped: "x: ",
+      claimText: "quoted",
+    });
+  });
+
+  it("does not bridge across two adjacent backtick spans", () => {
+    // Regex-safety: the content run must not span across an earlier `…`
+    // span. Only the last wrap should be extracted.
+    expect(extractTrailingClaimText("`first` middle `last` ", null)).toEqual({
+      stripped: "`first` middle ",
+      claimText: "last",
+    });
+  });
+
+  it("ignores asymmetric wrappers", () => {
+    expect(extractTrailingClaimText("Date: `01/11/2025' ", null)).toBeNull();
+  });
+
+  it("ignores newline-crossing wrappers", () => {
+    expect(extractTrailingClaimText("line1 `wrap with\nnewline` ", null)).toBeNull();
   });
 });
 

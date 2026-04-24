@@ -1024,24 +1024,116 @@ export function stripCitations(llmResponse: string): string {
 }
 
 /**
- * Strips `sourceMatch` text from the tail of a markdown segment.
- * Recognises **bold**, *italic*, and plain text forms of the match.
+ * Wrapper pairs recognised by {@link stripClaimText} around a trailing `sourceMatch`.
  *
- * Used when rendering `[N]` markers: if the segment immediately before the
- * marker ends with the citation's `sourceMatch`, strip it so the citation
- * component can absorb and render the claim text as a single interactive element.
+ * Ordered longest-first so composite wrappers (e.g. `**\`x\`**`) match before
+ * their constituents. Each tuple is `[open, close]`; both sides are matched as
+ * literal characters so straight/curly quote distinctions are preserved.
+ */
+const CLAIM_WRAPPERS: ReadonlyArray<readonly [string, string]> = [
+  ["**`", "`**"], // **`code`**
+  ["*`", "`*"], // *`code`*
+  ["**", "**"], // **bold**
+  ["*", "*"], // *italic*
+  ["`", "`"], // `code`
+  ['"', '"'], // "straight double"
+  ["'", "'"], // 'straight single'
+  ["“", "”"], // “smart double”
+  ["‘", "’"], // ‘smart single’
+];
+
+/**
+ * Single-character quote-like wrappers used by {@link extractTrailingClaimText}
+ * in its sourceMatch-agnostic fallback. The third tuple element lists the
+ * characters excluded from the content run (both delimiters) so the regex
+ * cannot bridge across adjacent wrapper spans.
+ *
+ * Restricted to single-char pairs because character-class exclusions can't
+ * express "not the two-character sequence `**`", and multi-char wrappers
+ * already get exact-match coverage via {@link stripClaimText}.
+ */
+const FALLBACK_WRAPPERS: ReadonlyArray<readonly [string, string, string]> = [
+  ["`", "`", "`"],
+  ["'", "'", "'"],
+  ['"', '"', '"'],
+  ["‘", "’", "‘’"],
+  ["“", "”", "“”"],
+];
+
+/**
+ * Strips `sourceMatch` text from the tail of a markdown segment.
+ *
+ * Recognises the match whether it is plain or wrapped in any of the pairs
+ * listed in {@link CLAIM_WRAPPERS} (markdown emphasis, inline code, straight
+ * or curly quotes, and the `**\`…\`**` / `*\`…\`*` composites LLMs often emit
+ * for tabular values). Used when rendering `[N]` markers: if the segment
+ * immediately before the marker ends with the citation's `sourceMatch`, strip
+ * it so the citation component can absorb and render the claim text as a
+ * single interactive element.
  *
  * @param segment - The markdown text segment (everything before the `[N]` token)
  * @param sourceMatch - The citation's source match text to strip
- * @returns The segment with the trailing `sourceMatch` removed, or `null` if not found
+ * @returns The segment with the trailing `sourceMatch` (and its wrapper) removed, or `null` if not found
+ *
+ * @remarks Prefer {@link extractTrailingClaimText} for new callers: it also
+ * returns the extracted claim text (the content inside the wrapper), which is
+ * needed to handle LLM output where the wrapped value diverges from the
+ * verified `sourceMatch` (e.g. the row's wrapped value is `"Austin, TX 73301"`
+ * while the citation's `sourceMatch` is `"Department of the Treasury"`).
  */
 export function stripClaimText(segment: string, sourceMatch: string): string | null {
   if (!sourceMatch) return null;
   const esc = escapeForRegex(sourceMatch);
-  const patterns = [new RegExp(`\\*\\*${esc}\\*\\*\\s*$`), new RegExp(`\\*${esc}\\*\\s*$`), new RegExp(`${esc}\\s*$`)];
+  const patterns: RegExp[] = CLAIM_WRAPPERS.map(
+    ([open, close]) => new RegExp(`${escapeForRegex(open)}${esc}${escapeForRegex(close)}\\s*$`),
+  );
+  patterns.push(new RegExp(`${esc}\\s*$`));
   for (const pat of patterns) {
     const m = safeMatch(segment, pat);
     if (m && m.index !== undefined) return segment.slice(0, m.index);
+  }
+  return null;
+}
+
+/**
+ * Strips a trailing claim span from a markdown segment and returns both the
+ * stripped segment and the claim text the model wrote.
+ *
+ * Matching strategy (first hit wins):
+ *   1. Exact `sourceMatch` match via {@link stripClaimText} — returns
+ *      `{ stripped, claimText: sourceMatch }`.
+ *   2. **Content-agnostic fallback**: if the segment ends with any recognized
+ *      single-char quote-like wrapper ({@link FALLBACK_WRAPPERS}), strip the
+ *      wrapper and return its inner content as `claimText` regardless of
+ *      whether it matches `sourceMatch`. This captures LLM "off-script" output
+ *      such as `` `Austin, TX 73301` [14] `` where the wrapped value diverges
+ *      from the citation's verified `sourceMatch`.
+ *
+ * Callers should pass `claimText` as the `claimText` prop on
+ * `CitationComponent`: the trigger then shows what the model wrote while the
+ * popover continues to display the verified `sourceMatch` (with a variance
+ * annotation when they differ).
+ *
+ * @param segment - The markdown text segment (everything before the `[N]` token)
+ * @param sourceMatch - Optional verified source match; enables the exact-match path
+ * @returns `{ stripped, claimText }` or `null` if no trailing claim was found
+ */
+export function extractTrailingClaimText(
+  segment: string,
+  sourceMatch?: string | null,
+): { stripped: string; claimText: string } | null {
+  if (sourceMatch) {
+    const stripped = stripClaimText(segment, sourceMatch);
+    if (stripped !== null) {
+      return { stripped, claimText: sourceMatch };
+    }
+  }
+  for (const [open, close, excl] of FALLBACK_WRAPPERS) {
+    const pat = new RegExp(`${escapeForRegex(open)}([^${excl}\\n]+?)${escapeForRegex(close)}\\s*$`);
+    const m = safeMatch(segment, pat);
+    if (m && m.index !== undefined && m[1]) {
+      return { stripped: segment.slice(0, m.index), claimText: m[1] };
+    }
   }
   return null;
 }

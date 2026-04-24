@@ -71,6 +71,7 @@ export {
   CITATION_MARKER_PATTERN,
   citationDataToCitation,
   extractCitationsFromMarkers,
+  extractTrailingClaimText,
   extractVisibleText,
   getCitationMarkerIds,
   hasCitationData,
