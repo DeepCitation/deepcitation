@@ -65,6 +65,8 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `resolveEvidenceSrc()` | `src/react/evidence/resolvers.ts` | Resolve evidence crop image (keyhole source) |
 | `resolveExpandedImage()` | `src/react/evidence/resolvers.ts` | Resolve best image source for expanded view |
 | `EvidenceTray` | `src/react/evidence/EvidenceTray.tsx` | Evidence display with keyhole viewer (re-exported from `EvidenceTray.tsx` barrel) |
+| `EvidenceKeyholeRenderProps` | `src/react/evidence/EvidenceTray.tsx` | Type passed to host-supplied `renderEvidenceKeyhole` slot (re-exported from `EvidenceTray.tsx` barrel and the package root) |
+| `CitationAnnotationOverlay` | `src/react/CitationAnnotationOverlay.tsx` | CSS spotlight + brackets + anchor-highlight overlay for live page renders (server-rendered images already bake this in) |
 | `InlineExpandedImage` | `src/react/evidence/InlineExpandedImage.tsx` | Expanded page image viewer with zoom + arrow-key pan |
 | `DefaultPopoverContent` | `src/react/DefaultPopoverContent.tsx` | Three-zone popover layout (success/partial/miss) |
 | `CitationStatusIndicator` | `src/react/CitationStatusIndicator.tsx` | Unified status indicator component |

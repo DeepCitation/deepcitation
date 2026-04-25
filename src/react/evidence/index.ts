@@ -1,5 +1,5 @@
 export { EvidenceKeyhole } from "./EvidenceKeyhole.js";
-export { EvidenceTray } from "./EvidenceTray.js";
+export { type EvidenceKeyholeRenderProps, EvidenceTray } from "./EvidenceTray.js";
 export { InlineExpandedImage } from "./InlineExpandedImage.js";
 export {
   type ExpandedImageSource,

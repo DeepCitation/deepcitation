@@ -167,6 +167,37 @@ export function EvidenceTrayFooter({
 }
 
 /**
+ * Props passed to a host-supplied keyhole renderer. Mirrors the props
+ * `EvidenceKeyhole` consumes so the host can either delegate to it or render
+ * an alternative (e.g. a live PDF mini-viewer).
+ *
+ * Accessibility: the host takes over the entire keyhole strip and is
+ * responsible for the ARIA contract the default keyhole provides (button
+ * role, aria-label, focus order). Wrap interactive content in a `<button>`
+ * and call `onImageClick` on activation; failing to do so degrades keyboard
+ * and screen-reader UX. See `docs/agents/a11y-patterns.md` for the focus
+ * and keyboard patterns the default keyhole follows.
+ */
+export interface EvidenceKeyholeRenderProps {
+  verification: Verification | null;
+  /** JPEG fallback src — `resolveEvidenceSrc(verification)` for hits, or the
+   *  miss/partial page image when no evidence crop is available. Empty string
+   *  when neither is present (the host is expected to render purely from
+   *  out-of-band data, e.g. a cached PDF blob). */
+  fallbackSrc: string;
+  onImageClick?: () => void;
+  onPageExpand?: () => void;
+  /** Reports the rendered keyhole's pixel width to the popover so it can
+   *  size the expanded view to match. Call once after layout settles. */
+  onKeyholeWidth?: (width: number) => void;
+  /** Reports the host's current scroll offset (natural-image pixel
+   *  coordinates) at the moment of click, so the expanded view can preserve
+   *  the user's scroll position when transitioning. Optional — omit if the
+   *  host's keyhole is non-scrollable. */
+  onScrollCapture?: (left: number, top: number) => void;
+}
+
+/**
  * Evidence tray — the "proof zone" at the bottom of the summary popover.
  * For verified/partial: Shows keyhole image with hover expand icon + footer with CTA.
  * For not-found: Shows search analysis summary + footer with log toggle + CTA.
@@ -186,6 +217,7 @@ export function EvidenceTray({
   onKeyholeWidth,
   onScrollCapture,
   escapeInterceptRef,
+  renderEvidenceKeyhole,
 }: {
   verification: Verification | null;
   status: CitationStatus;
@@ -201,6 +233,13 @@ export function EvidenceTray({
   onScrollCapture?: (left: number, top: number) => void;
   /** Ref the parent reads in its Escape handler — set to a collapse fn when the search log is open. */
   escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
+  /**
+   * Optional host-supplied renderer that replaces the default
+   * `<EvidenceKeyhole src=...>` strip. When provided and returns non-null,
+   * its return value is rendered instead of the JPEG keyhole. Falls back to
+   * the default when the function is absent or returns null/undefined.
+   */
+  renderEvidenceKeyhole?: (props: EvidenceKeyholeRenderProps) => React.ReactNode;
 }) {
   const t = useTranslation();
   const resolvedEvidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
@@ -224,6 +263,13 @@ export function EvidenceTray({
   const trayMouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
   const trayRootRef = useRef<HTMLDivElement>(null);
   const pageExpandSourceRef = useRef<HTMLElement | null>(null);
+  // Stable ref callback for the custom-keyhole wrapper — needed because
+  // pageExpandSourceRef (typed `HTMLElement | null`) doesn't satisfy a `<div>`'s
+  // `Ref<HTMLDivElement>` (writable refs are invariant). Using a callback also
+  // avoids re-attaching the ref on every parent render.
+  const attachPageExpandSource = useCallback((el: HTMLDivElement | null) => {
+    pageExpandSourceRef.current = el;
+  }, []);
 
   const handlePageExpand = useCallback(() => {
     primeEvidencePageExpandSource(pageExpandSourceRef.current);
@@ -419,31 +465,63 @@ export function EvidenceTray({
     />
   );
 
+  const fallbackSrc =
+    resolvedEvidenceSrc ?? ((isMiss || isPartialMatch) && isValidProofImageSrc(pageImageSrc) ? pageImageSrc : "");
+  const customKeyholeOutput = renderEvidenceKeyhole
+    ? renderEvidenceKeyhole({
+        verification,
+        fallbackSrc,
+        onImageClick,
+        onPageExpand: onExpand ? handlePageExpand : undefined,
+        onKeyholeWidth,
+        onScrollCapture,
+      })
+    : null;
+  // false is what `cond && <X/>` returns when cond is false — treat it as "use the default".
+  const hasCustomKeyholeOutput = customKeyholeOutput != null && customKeyholeOutput !== false;
+
+  // Dev-only warning when the slot is registered but produces no output across
+  // renders — the popover otherwise shows an interactive expand CTA over an
+  // empty keyhole strip, which looks like a bug.
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && renderEvidenceKeyhole && !hasCustomKeyholeOutput) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[deepcitation] renderEvidenceKeyhole returned null/undefined/false; " +
+          "default JPEG keyhole used as fallback. If this is intentional, omit the prop instead.",
+      );
+    }
+  }, [renderEvidenceKeyhole, hasCustomKeyholeOutput]);
+
+  let keyholeNode: React.ReactNode = null;
+  if (hasCustomKeyholeOutput) {
+    // Internal wrapper holds the page-expand source ref so the view-transition
+    // pipeline can morph from the host's content without exposing a ref to the
+    // public API. The host's renderer remains responsible for its own sizing.
+    keyholeNode = (
+      <div ref={attachPageExpandSource} data-dc-page-expand-source="">
+        {customKeyholeOutput}
+      </div>
+    );
+  } else if (fallbackSrc) {
+    keyholeNode = (
+      <EvidenceKeyhole
+        key={fallbackSrc}
+        src={fallbackSrc}
+        verification={resolvedEvidenceSrc ? verification : null}
+        onImageClick={onImageClick}
+        onPageExpand={onExpand ? handlePageExpand : undefined}
+        onKeyholeWidth={onKeyholeWidth}
+        onScrollCapture={onScrollCapture}
+        pageExpandSourceRef={pageExpandSourceRef}
+      />
+    );
+  }
+
   // Shared inner content
   const content = (
     <>
-      {resolvedEvidenceSrc ? (
-        <EvidenceKeyhole
-          key={resolvedEvidenceSrc}
-          src={resolvedEvidenceSrc}
-          verification={verification}
-          onImageClick={onImageClick}
-          onPageExpand={onExpand ? handlePageExpand : undefined}
-          onKeyholeWidth={onKeyholeWidth}
-          onScrollCapture={onScrollCapture}
-          pageExpandSourceRef={pageExpandSourceRef}
-        />
-      ) : (isMiss || isPartialMatch) && isValidProofImageSrc(pageImageSrc) ? (
-        <EvidenceKeyhole
-          key={pageImageSrc}
-          src={pageImageSrc}
-          onImageClick={onImageClick}
-          onPageExpand={onExpand ? handlePageExpand : undefined}
-          onKeyholeWidth={onKeyholeWidth}
-          onScrollCapture={onScrollCapture}
-          pageExpandSourceRef={pageExpandSourceRef}
-        />
-      ) : null}
+      {keyholeNode}
       {/* Imprecise location note: verified citation but input lacked page/line precision */}
       {isImpreciseLocation && (
         <div className="px-3 py-1.5 text-[11px] text-dc-subtle-foreground italic">

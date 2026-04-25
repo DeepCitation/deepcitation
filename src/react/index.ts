@@ -50,8 +50,10 @@ export {
   MemoizedUrlCitationComponent,
   UrlCitationComponent,
 } from "./Citation.js";
-// Citation Annotation Overlay Types
+// Citation Annotation Overlay — CSS spotlight + brackets + anchor highlight
+// for live page renders (server-rendered images already have these baked in).
 export type { AdditionalHighlight } from "./CitationAnnotationOverlay.js";
+export { CitationAnnotationOverlay } from "./CitationAnnotationOverlay.js";
 // Citation Drawer (ChatGPT-style bottom sheet)
 export {
   CitationDrawer,
@@ -138,7 +140,7 @@ export {
   type PopoverContentProps,
   type PopoverViewState,
 } from "./DefaultPopoverContent.js";
-export { type ExpandedImageSource, resolveExpandedImage } from "./EvidenceTray.js";
+export { type EvidenceKeyholeRenderProps, type ExpandedImageSource, resolveExpandedImage } from "./EvidenceTray.js";
 // Accessibility Hooks
 export { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 export type {

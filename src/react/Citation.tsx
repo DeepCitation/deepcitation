@@ -22,7 +22,7 @@ import {
   TOUCH_CLICK_DEBOUNCE_MS,
 } from "./constants.js";
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
-import { resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
+import { type EvidenceKeyholeRenderProps, resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { usePopoverPosition } from "./hooks/usePopoverPosition.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
@@ -155,6 +155,20 @@ export interface CitationComponentProps extends BaseCitationProps {
     verification: Verification | null;
     status: CitationStatus;
   }) => React.ReactNode;
+  /**
+   * Optional host-supplied renderer for the popover summary keyhole strip.
+   * Use this to swap the default JPEG keyhole for an alternative (e.g. a live
+   * PDF mini-viewer that draws highlights from the actual document). Returning
+   * `null`, `undefined`, or `false` falls back to the default JPEG keyhole.
+   *
+   * Wrap in `useCallback` to keep stable identity across parent renders;
+   * inline arrows defeat the popover's `memo` and re-create internal callbacks
+   * each render.
+   *
+   * Ignored when `renderPopoverContent` is provided (the host already controls
+   * the entire popover body).
+   */
+  renderEvidenceKeyhole?: (props: EvidenceKeyholeRenderProps) => React.ReactNode;
   /**
    * Number of additional citations grouped with this one (for source variant).
    * Shows as "+N" suffix (e.g., "Wikipedia +2")
@@ -314,6 +328,7 @@ function useKeyboardOpenTracking(isHovering: boolean, popoverContentRef: React.R
  */
 const PopoverContentRenderer = memo(function PopoverContentRenderer({
   renderPopoverContent,
+  renderEvidenceKeyhole,
   citation,
   verification,
   status,
@@ -333,6 +348,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   customPopoverActions,
 }: {
   renderPopoverContent?: CitationComponentProps["renderPopoverContent"];
+  renderEvidenceKeyhole?: CitationComponentProps["renderEvidenceKeyhole"];
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
   status: CitationStatus;
@@ -379,6 +395,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
         download={download}
         escapeInterceptRef={escapeInterceptRef}
         customPopoverActions={customPopoverActions}
+        renderEvidenceKeyhole={renderEvidenceKeyhole}
       />
     </CitationErrorBoundary>
   );
@@ -423,6 +440,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       renderContent,
       popoverPosition = "bottom",
       renderPopoverContent,
+      renderEvidenceKeyhole,
       additionalCount,
       faviconUrl,
       indicatorVariant = "icon",
@@ -1326,6 +1344,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       const popoverContentElement = (
         <PopoverContentRenderer
           renderPopoverContent={renderPopoverContent}
+          renderEvidenceKeyhole={renderEvidenceKeyhole}
           citation={citation}
           verification={verification ?? null}
           status={status}

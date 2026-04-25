@@ -27,7 +27,13 @@ import {
   VT_EVIDENCE_DIP_OPACITY,
   VT_EVIDENCE_EXPAND_MS,
 } from "./constants.js";
-import { EvidenceTray, InlineExpandedImage, resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
+import {
+  type EvidenceKeyholeRenderProps,
+  EvidenceTray,
+  InlineExpandedImage,
+  resolveEvidenceSrc,
+  resolveExpandedImage,
+} from "./EvidenceTray.js";
 import { getExpandedPopoverWidth, getSummaryPopoverWidth } from "./expandedWidthPolicy.js";
 import { HighlightedSourceContext } from "./HighlightedSourceContext.js";
 import { useAnimatedHeight } from "./hooks/useAnimatedHeight.js";
@@ -114,6 +120,12 @@ export interface PopoverContentProps {
   customPopoverActions?: import("./types.js").PopoverAction[];
   /** Optional ref to the outer popover shell, used by the CDN wrapper for transition capture. */
   popoverContentRef?: Ref<HTMLDivElement>;
+  /**
+   * Optional host-supplied renderer for the summary keyhole strip. Passed
+   * straight through to `EvidenceTray`; see `EvidenceKeyholeRenderProps` for
+   * the contract. When omitted, the default JPEG keyhole is used.
+   */
+  renderEvidenceKeyhole?: (props: EvidenceKeyholeRenderProps) => React.ReactNode;
 }
 
 // =============================================================================
@@ -694,11 +706,18 @@ export function DefaultPopoverContent({
   escapeInterceptRef,
   customPopoverActions,
   popoverContentRef,
+  renderEvidenceKeyhole,
 }: PopoverContentProps) {
   const t = useTranslation();
   // Resolve evidence src up-front so hasImage reflects only actually-renderable images.
   const evidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
-  const hasImage = !!evidenceSrc || (pageImages != null && pageImages.length > 0);
+  // Stable boolean for callback deps — avoids re-creating handlers when hosts pass
+  // an inline `renderEvidenceKeyhole` arrow that changes identity every render.
+  const hasKeyholeSlot = !!renderEvidenceKeyhole;
+  // A host-supplied keyhole counts as "has image" — the host owns the visual and
+  // may have data (e.g. a cached PDF blob) we don't see here. The host is expected
+  // to consistently render content when it registers this slot.
+  const hasImage = !!evidenceSrc || (pageImages != null && pageImages.length > 0) || hasKeyholeSlot;
   const expandCtaLabel = isImageSource(verification) ? t("action.viewImage") : undefined;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
@@ -848,11 +867,10 @@ export function DefaultPopoverContent({
       onViewStateChange?.("summary");
       return;
     }
-    if (!evidenceSrc) return;
-    // Capture natural width synchronously from the currently visible keyhole image.
-    // This removes the intermediate "same-width but re-positioned" frame by letting
-    // expanded-keyhole sizing resolve in the same event batch as the view-state switch.
-    if (typeof document !== "undefined") {
+    if (!evidenceSrc && !hasKeyholeSlot) return;
+    // Skipped when we have no JPEG src (custom-keyhole-only path) — the host
+    // renderer owns its own sizing and the popover will measure on next layout.
+    if (evidenceSrc && typeof document !== "undefined") {
       const keyholeImg = document.querySelector("[data-dc-keyhole] img") as HTMLImageElement | null;
       const width = keyholeImg?.naturalWidth ?? 0;
       if (Number.isFinite(width) && width > 0) {
@@ -863,7 +881,7 @@ export function DefaultPopoverContent({
       }
     }
     onViewStateChange?.("expanded-keyhole");
-  }, [viewState, evidenceSrc, onExpandedWidthChange, onViewStateChange]);
+  }, [viewState, evidenceSrc, hasKeyholeSlot, onExpandedWidthChange, onViewStateChange]);
 
   const handleExpand = useCallback(() => {
     if (!canExpandToPage) return;
@@ -1003,7 +1021,7 @@ export function DefaultPopoverContent({
           status={status}
           onExpand={canExpandToPage ? handleExpand : undefined}
           onImageClick={
-            evidenceSrc
+            evidenceSrc || hasKeyholeSlot
               ? (isMiss || isPartialMatch) && canExpandToPage
                 ? handleExpand
                 : handleKeyholeClick
@@ -1016,6 +1034,7 @@ export function DefaultPopoverContent({
           pageImageSrc={expandedImage?.src}
           onKeyholeWidth={setKeyholeDisplayedWidth}
           escapeInterceptRef={escapeInterceptRef}
+          renderEvidenceKeyhole={renderEvidenceKeyhole}
         />
       ) : null;
 
