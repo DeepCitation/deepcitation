@@ -158,8 +158,12 @@ export interface CitationComponentProps extends BaseCitationProps {
   /**
    * Optional host-supplied renderer for the popover summary keyhole strip.
    * Use this to swap the default JPEG keyhole for an alternative (e.g. a live
-   * PDF mini-viewer that draws highlights from the actual document). When the
-   * function returns null/undefined, the default keyhole is used.
+   * PDF mini-viewer that draws highlights from the actual document). Returning
+   * `null`, `undefined`, or `false` falls back to the default JPEG keyhole.
+   *
+   * Wrap in `useCallback` to keep stable identity across parent renders;
+   * inline arrows defeat the popover's `memo` and re-create internal callbacks
+   * each render.
    *
    * Ignored when `renderPopoverContent` is provided (the host already controls
    * the entire popover body).

@@ -711,9 +711,13 @@ export function DefaultPopoverContent({
   const t = useTranslation();
   // Resolve evidence src up-front so hasImage reflects only actually-renderable images.
   const evidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
-  // A host-supplied keyhole renderer counts as "has image" too — the host owns
-  // the visual, and it may have data (e.g. a cached PDF blob) we don't see here.
-  const hasImage = !!evidenceSrc || (pageImages != null && pageImages.length > 0) || !!renderEvidenceKeyhole;
+  // Stable boolean for callback deps — avoids re-creating handlers when hosts pass
+  // an inline `renderEvidenceKeyhole` arrow that changes identity every render.
+  const hasCustomKeyhole = !!renderEvidenceKeyhole;
+  // A host-supplied keyhole counts as "has image" — the host owns the visual and
+  // may have data (e.g. a cached PDF blob) we don't see here. The host is expected
+  // to consistently render content when it registers this slot.
+  const hasImage = !!evidenceSrc || (pageImages != null && pageImages.length > 0) || hasCustomKeyhole;
   const expandCtaLabel = isImageSource(verification) ? t("action.viewImage") : undefined;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
@@ -863,12 +867,8 @@ export function DefaultPopoverContent({
       onViewStateChange?.("summary");
       return;
     }
-    // Bail only when there is no keyhole at all. A host-supplied renderer counts as a keyhole.
-    if (!evidenceSrc && !renderEvidenceKeyhole) return;
-    // Capture natural width synchronously from the currently visible keyhole image.
-    // This removes the intermediate "same-width but re-positioned" frame by letting
-    // expanded-keyhole sizing resolve in the same event batch as the view-state switch.
-    // Skipped when we have no JPEG src (renderEvidenceKeyhole-only path) — the host
+    if (!evidenceSrc && !hasCustomKeyhole) return;
+    // Skipped when we have no JPEG src (custom-keyhole-only path) — the host
     // renderer owns its own sizing and the popover will measure on next layout.
     if (evidenceSrc && typeof document !== "undefined") {
       const keyholeImg = document.querySelector("[data-dc-keyhole] img") as HTMLImageElement | null;
@@ -881,7 +881,7 @@ export function DefaultPopoverContent({
       }
     }
     onViewStateChange?.("expanded-keyhole");
-  }, [viewState, evidenceSrc, renderEvidenceKeyhole, onExpandedWidthChange, onViewStateChange]);
+  }, [viewState, evidenceSrc, hasCustomKeyhole, onExpandedWidthChange, onViewStateChange]);
 
   const handleExpand = useCallback(() => {
     if (!canExpandToPage) return;
@@ -1021,7 +1021,7 @@ export function DefaultPopoverContent({
           status={status}
           onExpand={canExpandToPage ? handleExpand : undefined}
           onImageClick={
-            evidenceSrc || renderEvidenceKeyhole
+            evidenceSrc || hasCustomKeyhole
               ? (isMiss || isPartialMatch) && canExpandToPage
                 ? handleExpand
                 : handleKeyholeClick

@@ -171,11 +171,11 @@ export function EvidenceTrayFooter({
  * `EvidenceKeyhole` consumes so the host can either delegate to it or render
  * an alternative (e.g. a live PDF mini-viewer).
  *
- * Accessibility: the host renderer takes over the entire keyhole strip and
- * is responsible for the ARIA contract the default keyhole provides
- * (button role, aria-label, focus order). Wrap interactive content in a
- * `<button>` and call `onImageClick` on activation; failing to do so degrades
- * keyboard and screen-reader UX.
+ * Accessibility: the host takes over the entire keyhole strip and is
+ * responsible for the ARIA contract the default keyhole provides (button
+ * role, aria-label, focus order). Wrap interactive content in a `<button>`
+ * and call `onImageClick` on activation; failing to do so degrades keyboard
+ * and screen-reader UX.
  */
 export interface EvidenceKeyholeRenderProps {
   verification: Verification | null;
@@ -188,7 +188,6 @@ export interface EvidenceKeyholeRenderProps {
   onPageExpand?: () => void;
   onKeyholeWidth?: (width: number) => void;
   onScrollCapture?: (left: number, top: number) => void;
-  pageExpandSourceRef: React.MutableRefObject<HTMLElement | null>;
 }
 
 /**
@@ -453,53 +452,55 @@ export function EvidenceTray({
     />
   );
 
-  // The host can render its own keyhole (e.g. a live PDF mini-viewer) via the
-  // `renderEvidenceKeyhole` slot. The fallbackSrc mirrors what the default
-  // keyhole would have used: the evidence crop for hits, or the page image for
-  // miss/partial only — never a page image for hits without a crop, since the
-  // default keyhole renders nothing in that case.
   const fallbackSrc =
     resolvedEvidenceSrc ?? ((isMiss || isPartialMatch) && isValidProofImageSrc(pageImageSrc) ? pageImageSrc : "");
-  const customKeyhole = renderEvidenceKeyhole?.({
-    verification,
-    fallbackSrc,
-    onImageClick,
-    onPageExpand: onExpand ? handlePageExpand : undefined,
-    onKeyholeWidth,
-    onScrollCapture,
-    pageExpandSourceRef,
-  });
-  // null/undefined/false fall back to the default keyhole — `false` is the
-  // common return when hosts use `condition && <X/>` and want the JPEG fallback.
-  const useCustomKeyhole = customKeyhole != null && customKeyhole !== false;
+  const customKeyhole = renderEvidenceKeyhole
+    ? renderEvidenceKeyhole({
+        verification,
+        fallbackSrc,
+        onImageClick,
+        onPageExpand: onExpand ? handlePageExpand : undefined,
+        onKeyholeWidth,
+        onScrollCapture,
+      })
+    : null;
+  // false is what `cond && <X/>` returns when cond is false — treat it as "use the default".
+  const hasCustomKeyhole = customKeyhole != null && customKeyhole !== false;
+
+  let keyholeNode: React.ReactNode = null;
+  if (hasCustomKeyhole) {
+    // Internal wrapper holds the page-expand source ref so the view-transition
+    // pipeline can morph from the host's content without exposing a ref to the
+    // public API. The host's renderer remains responsible for its own sizing.
+    keyholeNode = (
+      <div
+        ref={el => {
+          pageExpandSourceRef.current = el;
+        }}
+        data-dc-page-expand-source=""
+      >
+        {customKeyhole}
+      </div>
+    );
+  } else if (fallbackSrc) {
+    keyholeNode = (
+      <EvidenceKeyhole
+        key={fallbackSrc}
+        src={fallbackSrc}
+        verification={resolvedEvidenceSrc ? verification : null}
+        onImageClick={onImageClick}
+        onPageExpand={onExpand ? handlePageExpand : undefined}
+        onKeyholeWidth={onKeyholeWidth}
+        onScrollCapture={onScrollCapture}
+        pageExpandSourceRef={pageExpandSourceRef}
+      />
+    );
+  }
 
   // Shared inner content
   const content = (
     <>
-      {useCustomKeyhole ? (
-        customKeyhole
-      ) : resolvedEvidenceSrc ? (
-        <EvidenceKeyhole
-          key={resolvedEvidenceSrc}
-          src={resolvedEvidenceSrc}
-          verification={verification}
-          onImageClick={onImageClick}
-          onPageExpand={onExpand ? handlePageExpand : undefined}
-          onKeyholeWidth={onKeyholeWidth}
-          onScrollCapture={onScrollCapture}
-          pageExpandSourceRef={pageExpandSourceRef}
-        />
-      ) : (isMiss || isPartialMatch) && isValidProofImageSrc(pageImageSrc) ? (
-        <EvidenceKeyhole
-          key={pageImageSrc}
-          src={pageImageSrc}
-          onImageClick={onImageClick}
-          onPageExpand={onExpand ? handlePageExpand : undefined}
-          onKeyholeWidth={onKeyholeWidth}
-          onScrollCapture={onScrollCapture}
-          pageExpandSourceRef={pageExpandSourceRef}
-        />
-      ) : null}
+      {keyholeNode}
       {/* Imprecise location note: verified citation but input lacked page/line precision */}
       {isImpreciseLocation && (
         <div className="px-3 py-1.5 text-[11px] text-dc-subtle-foreground italic">
