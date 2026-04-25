@@ -164,9 +164,7 @@ export interface CitationComponentProps extends BaseCitationProps {
    * Ignored when `renderPopoverContent` is provided (the host already controls
    * the entire popover body).
    */
-  renderEvidenceKeyhole?: (
-    props: import("./EvidenceTray.js").EvidenceKeyholeRenderProps,
-  ) => React.ReactNode;
+  renderEvidenceKeyhole?: (props: import("./EvidenceTray.js").EvidenceKeyholeRenderProps) => React.ReactNode;
   /**
    * Number of additional citations grouped with this one (for source variant).
    * Shows as "+N" suffix (e.g., "Wikipedia +2")

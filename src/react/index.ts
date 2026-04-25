@@ -52,8 +52,8 @@ export {
 } from "./Citation.js";
 // Citation Annotation Overlay — CSS spotlight + brackets + anchor highlight
 // for live page renders (server-rendered images already have these baked in).
-export { CitationAnnotationOverlay } from "./CitationAnnotationOverlay.js";
 export type { AdditionalHighlight } from "./CitationAnnotationOverlay.js";
+export { CitationAnnotationOverlay } from "./CitationAnnotationOverlay.js";
 // Citation Drawer (ChatGPT-style bottom sheet)
 export {
   CitationDrawer,

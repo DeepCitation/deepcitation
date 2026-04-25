@@ -713,8 +713,7 @@ export function DefaultPopoverContent({
   const evidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
   // A host-supplied keyhole renderer counts as "has image" too — the host owns
   // the visual, and it may have data (e.g. a cached PDF blob) we don't see here.
-  const hasImage =
-    !!evidenceSrc || (pageImages != null && pageImages.length > 0) || !!renderEvidenceKeyhole;
+  const hasImage = !!evidenceSrc || (pageImages != null && pageImages.length > 0) || !!renderEvidenceKeyhole;
   const expandCtaLabel = isImageSource(verification) ? t("action.viewImage") : undefined;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
@@ -864,11 +863,14 @@ export function DefaultPopoverContent({
       onViewStateChange?.("summary");
       return;
     }
-    if (!evidenceSrc) return;
+    // Bail only when there is no keyhole at all. A host-supplied renderer counts as a keyhole.
+    if (!evidenceSrc && !renderEvidenceKeyhole) return;
     // Capture natural width synchronously from the currently visible keyhole image.
     // This removes the intermediate "same-width but re-positioned" frame by letting
     // expanded-keyhole sizing resolve in the same event batch as the view-state switch.
-    if (typeof document !== "undefined") {
+    // Skipped when we have no JPEG src (renderEvidenceKeyhole-only path) — the host
+    // renderer owns its own sizing and the popover will measure on next layout.
+    if (evidenceSrc && typeof document !== "undefined") {
       const keyholeImg = document.querySelector("[data-dc-keyhole] img") as HTMLImageElement | null;
       const width = keyholeImg?.naturalWidth ?? 0;
       if (Number.isFinite(width) && width > 0) {
@@ -879,7 +881,7 @@ export function DefaultPopoverContent({
       }
     }
     onViewStateChange?.("expanded-keyhole");
-  }, [viewState, evidenceSrc, onExpandedWidthChange, onViewStateChange]);
+  }, [viewState, evidenceSrc, renderEvidenceKeyhole, onExpandedWidthChange, onViewStateChange]);
 
   const handleExpand = useCallback(() => {
     if (!canExpandToPage) return;

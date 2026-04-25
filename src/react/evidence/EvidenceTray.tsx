@@ -167,6 +167,31 @@ export function EvidenceTrayFooter({
 }
 
 /**
+ * Props passed to a host-supplied keyhole renderer. Mirrors the props
+ * `EvidenceKeyhole` consumes so the host can either delegate to it or render
+ * an alternative (e.g. a live PDF mini-viewer).
+ *
+ * Accessibility: the host renderer takes over the entire keyhole strip and
+ * is responsible for the ARIA contract the default keyhole provides
+ * (button role, aria-label, focus order). Wrap interactive content in a
+ * `<button>` and call `onImageClick` on activation; failing to do so degrades
+ * keyboard and screen-reader UX.
+ */
+export interface EvidenceKeyholeRenderProps {
+  verification: Verification | null;
+  /** JPEG fallback src — `resolveEvidenceSrc(verification)` for hits, or the
+   *  miss/partial page image when no evidence crop is available. Empty string
+   *  when neither is present (the host is expected to render purely from
+   *  out-of-band data, e.g. a cached PDF blob). */
+  fallbackSrc: string;
+  onImageClick?: () => void;
+  onPageExpand?: () => void;
+  onKeyholeWidth?: (width: number) => void;
+  onScrollCapture?: (left: number, top: number) => void;
+  pageExpandSourceRef: React.MutableRefObject<HTMLElement | null>;
+}
+
+/**
  * Evidence tray — the "proof zone" at the bottom of the summary popover.
  * For verified/partial: Shows keyhole image with hover expand icon + footer with CTA.
  * For not-found: Shows search analysis summary + footer with log toggle + CTA.
@@ -175,23 +200,6 @@ export function EvidenceTrayFooter({
  * @param pageImageSrc - Full-page page image used as keyhole source for miss states
  *   when no evidence crop is available from verification.
  */
-/**
- * Props passed to a host-supplied keyhole renderer. Mirrors the props
- * EvidenceKeyhole consumes so the host can either delegate to it or render
- * an alternative (e.g. a live PDF mini-viewer).
- */
-export interface EvidenceKeyholeRenderProps {
-  verification: Verification | null;
-  /** JPEG fallback src — `resolveEvidenceSrc(verification)` for hits, or the
-   *  page image for miss/partial. May be empty when the host is expected to
-   *  render purely from out-of-band data (e.g. a cached PDF blob). */
-  fallbackSrc: string;
-  onImageClick?: () => void;
-  onPageExpand?: () => void;
-  onKeyholeWidth?: (width: number) => void;
-  onScrollCapture?: (left: number, top: number) => void;
-  pageExpandSourceRef: React.MutableRefObject<HTMLElement | null>;
-}
 
 export function EvidenceTray({
   verification,
@@ -446,24 +454,31 @@ export function EvidenceTray({
   );
 
   // The host can render its own keyhole (e.g. a live PDF mini-viewer) via the
-  // `renderEvidenceKeyhole` slot. Returning null/undefined falls back to the
-  // default JPEG keyhole below.
-  const customKeyhole = renderEvidenceKeyhole
-    ? renderEvidenceKeyhole({
-        verification,
-        fallbackSrc: resolvedEvidenceSrc ?? (pageImageSrc && isValidProofImageSrc(pageImageSrc) ? pageImageSrc : ""),
-        onImageClick,
-        onPageExpand: onExpand ? handlePageExpand : undefined,
-        onKeyholeWidth,
-        onScrollCapture,
-        pageExpandSourceRef,
-      })
-    : null;
+  // `renderEvidenceKeyhole` slot. The fallbackSrc mirrors what the default
+  // keyhole would have used: the evidence crop for hits, or the page image for
+  // miss/partial only — never a page image for hits without a crop, since the
+  // default keyhole renders nothing in that case.
+  const fallbackSrc =
+    resolvedEvidenceSrc ?? ((isMiss || isPartialMatch) && isValidProofImageSrc(pageImageSrc) ? pageImageSrc : "");
+  const customKeyhole = renderEvidenceKeyhole?.({
+    verification,
+    fallbackSrc,
+    onImageClick,
+    onPageExpand: onExpand ? handlePageExpand : undefined,
+    onKeyholeWidth,
+    onScrollCapture,
+    pageExpandSourceRef,
+  });
+  // null/undefined/false fall back to the default keyhole — `false` is the
+  // common return when hosts use `condition && <X/>` and want the JPEG fallback.
+  const useCustomKeyhole = customKeyhole != null && customKeyhole !== false;
 
   // Shared inner content
   const content = (
     <>
-      {customKeyhole ?? (resolvedEvidenceSrc ? (
+      {useCustomKeyhole ? (
+        customKeyhole
+      ) : resolvedEvidenceSrc ? (
         <EvidenceKeyhole
           key={resolvedEvidenceSrc}
           src={resolvedEvidenceSrc}
@@ -484,7 +499,7 @@ export function EvidenceTray({
           onScrollCapture={onScrollCapture}
           pageExpandSourceRef={pageExpandSourceRef}
         />
-      ) : null)}
+      ) : null}
       {/* Imprecise location note: verified citation but input lacked page/line precision */}
       {isImpreciseLocation && (
         <div className="px-3 py-1.5 text-[11px] text-dc-subtle-foreground italic">
