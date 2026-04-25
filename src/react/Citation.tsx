@@ -22,7 +22,7 @@ import {
   TOUCH_CLICK_DEBOUNCE_MS,
 } from "./constants.js";
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
-import { resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
+import { type EvidenceKeyholeRenderProps, resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { usePopoverPosition } from "./hooks/usePopoverPosition.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
@@ -168,7 +168,7 @@ export interface CitationComponentProps extends BaseCitationProps {
    * Ignored when `renderPopoverContent` is provided (the host already controls
    * the entire popover body).
    */
-  renderEvidenceKeyhole?: (props: import("./EvidenceTray.js").EvidenceKeyholeRenderProps) => React.ReactNode;
+  renderEvidenceKeyhole?: (props: EvidenceKeyholeRenderProps) => React.ReactNode;
   /**
    * Number of additional citations grouped with this one (for source variant).
    * Shows as "+N" suffix (e.g., "Wikipedia +2")

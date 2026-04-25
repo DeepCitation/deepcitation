@@ -713,11 +713,11 @@ export function DefaultPopoverContent({
   const evidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
   // Stable boolean for callback deps — avoids re-creating handlers when hosts pass
   // an inline `renderEvidenceKeyhole` arrow that changes identity every render.
-  const hasCustomKeyhole = !!renderEvidenceKeyhole;
+  const hasKeyholeSlot = !!renderEvidenceKeyhole;
   // A host-supplied keyhole counts as "has image" — the host owns the visual and
   // may have data (e.g. a cached PDF blob) we don't see here. The host is expected
   // to consistently render content when it registers this slot.
-  const hasImage = !!evidenceSrc || (pageImages != null && pageImages.length > 0) || hasCustomKeyhole;
+  const hasImage = !!evidenceSrc || (pageImages != null && pageImages.length > 0) || hasKeyholeSlot;
   const expandCtaLabel = isImageSource(verification) ? t("action.viewImage") : undefined;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
@@ -867,7 +867,7 @@ export function DefaultPopoverContent({
       onViewStateChange?.("summary");
       return;
     }
-    if (!evidenceSrc && !hasCustomKeyhole) return;
+    if (!evidenceSrc && !hasKeyholeSlot) return;
     // Skipped when we have no JPEG src (custom-keyhole-only path) — the host
     // renderer owns its own sizing and the popover will measure on next layout.
     if (evidenceSrc && typeof document !== "undefined") {
@@ -881,7 +881,7 @@ export function DefaultPopoverContent({
       }
     }
     onViewStateChange?.("expanded-keyhole");
-  }, [viewState, evidenceSrc, hasCustomKeyhole, onExpandedWidthChange, onViewStateChange]);
+  }, [viewState, evidenceSrc, hasKeyholeSlot, onExpandedWidthChange, onViewStateChange]);
 
   const handleExpand = useCallback(() => {
     if (!canExpandToPage) return;
@@ -1021,7 +1021,7 @@ export function DefaultPopoverContent({
           status={status}
           onExpand={canExpandToPage ? handleExpand : undefined}
           onImageClick={
-            evidenceSrc || hasCustomKeyhole
+            evidenceSrc || hasKeyholeSlot
               ? (isMiss || isPartialMatch) && canExpandToPage
                 ? handleExpand
                 : handleKeyholeClick

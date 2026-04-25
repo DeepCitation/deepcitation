@@ -175,7 +175,8 @@ export function EvidenceTrayFooter({
  * responsible for the ARIA contract the default keyhole provides (button
  * role, aria-label, focus order). Wrap interactive content in a `<button>`
  * and call `onImageClick` on activation; failing to do so degrades keyboard
- * and screen-reader UX.
+ * and screen-reader UX. See `docs/agents/a11y-patterns.md` for the focus
+ * and keyboard patterns the default keyhole follows.
  */
 export interface EvidenceKeyholeRenderProps {
   verification: Verification | null;
@@ -186,7 +187,13 @@ export interface EvidenceKeyholeRenderProps {
   fallbackSrc: string;
   onImageClick?: () => void;
   onPageExpand?: () => void;
+  /** Reports the rendered keyhole's pixel width to the popover so it can
+   *  size the expanded view to match. Call once after layout settles. */
   onKeyholeWidth?: (width: number) => void;
+  /** Reports the host's current scroll offset (natural-image pixel
+   *  coordinates) at the moment of click, so the expanded view can preserve
+   *  the user's scroll position when transitioning. Optional — omit if the
+   *  host's keyhole is non-scrollable. */
   onScrollCapture?: (left: number, top: number) => void;
 }
 
@@ -199,7 +206,6 @@ export interface EvidenceKeyholeRenderProps {
  * @param pageImageSrc - Full-page page image used as keyhole source for miss states
  *   when no evidence crop is available from verification.
  */
-
 export function EvidenceTray({
   verification,
   status,
@@ -257,6 +263,13 @@ export function EvidenceTray({
   const trayMouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
   const trayRootRef = useRef<HTMLDivElement>(null);
   const pageExpandSourceRef = useRef<HTMLElement | null>(null);
+  // Stable ref callback for the custom-keyhole wrapper — needed because
+  // pageExpandSourceRef (typed `HTMLElement | null`) doesn't satisfy a `<div>`'s
+  // `Ref<HTMLDivElement>` (writable refs are invariant). Using a callback also
+  // avoids re-attaching the ref on every parent render.
+  const attachPageExpandSource = useCallback((el: HTMLDivElement | null) => {
+    pageExpandSourceRef.current = el;
+  }, []);
 
   const handlePageExpand = useCallback(() => {
     primeEvidencePageExpandSource(pageExpandSourceRef.current);
@@ -454,7 +467,7 @@ export function EvidenceTray({
 
   const fallbackSrc =
     resolvedEvidenceSrc ?? ((isMiss || isPartialMatch) && isValidProofImageSrc(pageImageSrc) ? pageImageSrc : "");
-  const customKeyhole = renderEvidenceKeyhole
+  const customKeyholeOutput = renderEvidenceKeyhole
     ? renderEvidenceKeyhole({
         verification,
         fallbackSrc,
@@ -465,21 +478,29 @@ export function EvidenceTray({
       })
     : null;
   // false is what `cond && <X/>` returns when cond is false — treat it as "use the default".
-  const hasCustomKeyhole = customKeyhole != null && customKeyhole !== false;
+  const hasCustomKeyholeOutput = customKeyholeOutput != null && customKeyholeOutput !== false;
+
+  // Dev-only warning when the slot is registered but produces no output across
+  // renders — the popover otherwise shows an interactive expand CTA over an
+  // empty keyhole strip, which looks like a bug.
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && renderEvidenceKeyhole && !hasCustomKeyholeOutput) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[deepcitation] renderEvidenceKeyhole returned null/undefined/false; " +
+          "default JPEG keyhole used as fallback. If this is intentional, omit the prop instead.",
+      );
+    }
+  }, [renderEvidenceKeyhole, hasCustomKeyholeOutput]);
 
   let keyholeNode: React.ReactNode = null;
-  if (hasCustomKeyhole) {
+  if (hasCustomKeyholeOutput) {
     // Internal wrapper holds the page-expand source ref so the view-transition
     // pipeline can morph from the host's content without exposing a ref to the
     // public API. The host's renderer remains responsible for its own sizing.
     keyholeNode = (
-      <div
-        ref={el => {
-          pageExpandSourceRef.current = el;
-        }}
-        data-dc-page-expand-source=""
-      >
-        {customKeyhole}
+      <div ref={attachPageExpandSource} data-dc-page-expand-source="">
+        {customKeyholeOutput}
       </div>
     );
   } else if (fallbackSrc) {
