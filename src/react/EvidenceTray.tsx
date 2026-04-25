@@ -8,6 +8,7 @@
 export {
   type EvidenceImages,
   EvidenceKeyhole,
+  type EvidenceKeyholeRenderProps,
   EvidenceTray,
   type ExpandedImageSource,
   InlineExpandedImage,

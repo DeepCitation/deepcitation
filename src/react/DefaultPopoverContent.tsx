@@ -27,7 +27,13 @@ import {
   VT_EVIDENCE_DIP_OPACITY,
   VT_EVIDENCE_EXPAND_MS,
 } from "./constants.js";
-import { EvidenceTray, InlineExpandedImage, resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
+import {
+  type EvidenceKeyholeRenderProps,
+  EvidenceTray,
+  InlineExpandedImage,
+  resolveEvidenceSrc,
+  resolveExpandedImage,
+} from "./EvidenceTray.js";
 import { getExpandedPopoverWidth, getSummaryPopoverWidth } from "./expandedWidthPolicy.js";
 import { HighlightedSourceContext } from "./HighlightedSourceContext.js";
 import { useAnimatedHeight } from "./hooks/useAnimatedHeight.js";
@@ -114,6 +120,12 @@ export interface PopoverContentProps {
   customPopoverActions?: import("./types.js").PopoverAction[];
   /** Optional ref to the outer popover shell, used by the CDN wrapper for transition capture. */
   popoverContentRef?: Ref<HTMLDivElement>;
+  /**
+   * Optional host-supplied renderer for the summary keyhole strip. Passed
+   * straight through to `EvidenceTray`; see `EvidenceKeyholeRenderProps` for
+   * the contract. When omitted, the default JPEG keyhole is used.
+   */
+  renderEvidenceKeyhole?: (props: EvidenceKeyholeRenderProps) => React.ReactNode;
 }
 
 // =============================================================================
@@ -694,11 +706,15 @@ export function DefaultPopoverContent({
   escapeInterceptRef,
   customPopoverActions,
   popoverContentRef,
+  renderEvidenceKeyhole,
 }: PopoverContentProps) {
   const t = useTranslation();
   // Resolve evidence src up-front so hasImage reflects only actually-renderable images.
   const evidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
-  const hasImage = !!evidenceSrc || (pageImages != null && pageImages.length > 0);
+  // A host-supplied keyhole renderer counts as "has image" too — the host owns
+  // the visual, and it may have data (e.g. a cached PDF blob) we don't see here.
+  const hasImage =
+    !!evidenceSrc || (pageImages != null && pageImages.length > 0) || !!renderEvidenceKeyhole;
   const expandCtaLabel = isImageSource(verification) ? t("action.viewImage") : undefined;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
@@ -1003,7 +1019,7 @@ export function DefaultPopoverContent({
           status={status}
           onExpand={canExpandToPage ? handleExpand : undefined}
           onImageClick={
-            evidenceSrc
+            evidenceSrc || renderEvidenceKeyhole
               ? (isMiss || isPartialMatch) && canExpandToPage
                 ? handleExpand
                 : handleKeyholeClick
@@ -1016,6 +1032,7 @@ export function DefaultPopoverContent({
           pageImageSrc={expandedImage?.src}
           onKeyholeWidth={setKeyholeDisplayedWidth}
           escapeInterceptRef={escapeInterceptRef}
+          renderEvidenceKeyhole={renderEvidenceKeyhole}
         />
       ) : null;
 

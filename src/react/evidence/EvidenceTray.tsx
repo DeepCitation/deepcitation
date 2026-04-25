@@ -175,6 +175,24 @@ export function EvidenceTrayFooter({
  * @param pageImageSrc - Full-page page image used as keyhole source for miss states
  *   when no evidence crop is available from verification.
  */
+/**
+ * Props passed to a host-supplied keyhole renderer. Mirrors the props
+ * EvidenceKeyhole consumes so the host can either delegate to it or render
+ * an alternative (e.g. a live PDF mini-viewer).
+ */
+export interface EvidenceKeyholeRenderProps {
+  verification: Verification | null;
+  /** JPEG fallback src — `resolveEvidenceSrc(verification)` for hits, or the
+   *  page image for miss/partial. May be empty when the host is expected to
+   *  render purely from out-of-band data (e.g. a cached PDF blob). */
+  fallbackSrc: string;
+  onImageClick?: () => void;
+  onPageExpand?: () => void;
+  onKeyholeWidth?: (width: number) => void;
+  onScrollCapture?: (left: number, top: number) => void;
+  pageExpandSourceRef: React.MutableRefObject<HTMLElement | null>;
+}
+
 export function EvidenceTray({
   verification,
   status,
@@ -186,6 +204,7 @@ export function EvidenceTray({
   onKeyholeWidth,
   onScrollCapture,
   escapeInterceptRef,
+  renderEvidenceKeyhole,
 }: {
   verification: Verification | null;
   status: CitationStatus;
@@ -201,6 +220,13 @@ export function EvidenceTray({
   onScrollCapture?: (left: number, top: number) => void;
   /** Ref the parent reads in its Escape handler — set to a collapse fn when the search log is open. */
   escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
+  /**
+   * Optional host-supplied renderer that replaces the default
+   * `<EvidenceKeyhole src=...>` strip. When provided and returns non-null,
+   * its return value is rendered instead of the JPEG keyhole. Falls back to
+   * the default when the function is absent or returns null/undefined.
+   */
+  renderEvidenceKeyhole?: (props: EvidenceKeyholeRenderProps) => React.ReactNode;
 }) {
   const t = useTranslation();
   const resolvedEvidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
@@ -419,10 +445,25 @@ export function EvidenceTray({
     />
   );
 
+  // The host can render its own keyhole (e.g. a live PDF mini-viewer) via the
+  // `renderEvidenceKeyhole` slot. Returning null/undefined falls back to the
+  // default JPEG keyhole below.
+  const customKeyhole = renderEvidenceKeyhole
+    ? renderEvidenceKeyhole({
+        verification,
+        fallbackSrc: resolvedEvidenceSrc ?? (pageImageSrc && isValidProofImageSrc(pageImageSrc) ? pageImageSrc : ""),
+        onImageClick,
+        onPageExpand: onExpand ? handlePageExpand : undefined,
+        onKeyholeWidth,
+        onScrollCapture,
+        pageExpandSourceRef,
+      })
+    : null;
+
   // Shared inner content
   const content = (
     <>
-      {resolvedEvidenceSrc ? (
+      {customKeyhole ?? (resolvedEvidenceSrc ? (
         <EvidenceKeyhole
           key={resolvedEvidenceSrc}
           src={resolvedEvidenceSrc}
@@ -443,7 +484,7 @@ export function EvidenceTray({
           onScrollCapture={onScrollCapture}
           pageExpandSourceRef={pageExpandSourceRef}
         />
-      ) : null}
+      ) : null)}
       {/* Imprecise location note: verified citation but input lacked page/line precision */}
       {isImpreciseLocation && (
         <div className="px-3 py-1.5 text-[11px] text-dc-subtle-foreground italic">
