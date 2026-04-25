@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Canonical `markerMap` from `parseCitationResponse`** — `parseCitationResponse` now returns a `markerMap: Record<string, string>` alongside `citations`, mapping each citation marker to its canonical citation ID; eliminates per-component marker lookups and fixes hover/nav state drift in multi-marker responses. (#991)
 - **`extractTrailingClaimText(segment, sourceMatch?)`** — richer successor to `stripClaimText` that returns `{ stripped, claimText }`. Recognises additional wrappers around LLM-emitted claim values (backticks, straight and curly quotes, `` **`code`** `` / `` *`code`* `` composites) and falls back to sourceMatch-agnostic extraction when the LLM's wrapped value diverges from the citation's verified `sourceMatch`. Callers can forward `claimText` to `CitationComponent.claimText` so the trigger shows what the model wrote while the popover continues to display the verified claim.
+- **`onClickBeforeDefault` and `onDoubleClick` event hooks** on `CitationComponent` — intercept the click before default popover behavior or handle double-click for custom drill-down. (#439)
 
 ### Changed
 
@@ -23,7 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Popover outside-click collapse** — clicking outside an expanded popover now collapses to summary first before closing; previously the outside-click was silently swallowed in the expanded state. (#442)
+- **Text-variant trigger hover overlay** — the hover tint is now applied to the outer span only; the previous behaviour applied the overlay to both the inner and outer span, producing a visible double-outline on hover. (#442)
 - **`CitationStatusIndicator` reduced-motion guard** — restored `motion-reduce:animate-none` on both pulse stages and the caret-variant spinner. The spin→pulse animation refactor dropped the implicit `prefers-reduced-motion` block that the previous `dc-spin-ease` keyframe provided, so users with reduced-motion preferences saw the indicator pulsing. (#441)
+- **Ghost morph anchor symmetry** — unified the ghost morph pipeline so expand and collapse share the same anchor centering, eliminating drift between the two directions. (#435)
+- **Anchor-center ghost snapshots for expanded-keyhole paths** — view-transition snapshots now correctly center on the anchor when transitioning from an already-expanded keyhole, fixing offset jumps during nested page-expand. (#437)
 
 ## [0.4.3] - 2026-04-16
 
