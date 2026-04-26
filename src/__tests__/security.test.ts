@@ -522,13 +522,20 @@ describe("Security Tests", () => {
         ).toBe(true);
       });
 
-      it("should reject sibling googleapis.com subdomains", () => {
+      it("should reject sibling storage.googleapis.com host", () => {
         expect(isValidProofImageSrc("https://storage.googleapis.com/bucket/img.png")).toBe(false);
+      });
+
+      it("should reject bare googleapis.com host", () => {
         expect(isValidProofImageSrc("https://googleapis.com/img.png")).toBe(false);
       });
 
       it("should reject firebasestorage.googleapis.com.evil.com spoofing", () => {
         expect(isValidProofImageSrc("https://firebasestorage.googleapis.com.evil.com/img.png")).toBe(false);
+      });
+
+      it("should reject http on firebasestorage.googleapis.com", () => {
+        expect(isValidProofImageSrc("http://firebasestorage.googleapis.com/img.png")).toBe(false);
       });
     });
 
