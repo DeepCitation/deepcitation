@@ -534,6 +534,10 @@ describe("Security Tests", () => {
         expect(isValidProofImageSrc("https://firebasestorage.googleapis.com.evil.com/img.png")).toBe(false);
       });
 
+      it("should reject sub-subdomain of firebasestorage.googleapis.com", () => {
+        expect(isValidProofImageSrc("https://cdn.firebasestorage.googleapis.com/img.png")).toBe(false);
+      });
+
       it("should reject http on firebasestorage.googleapis.com", () => {
         expect(isValidProofImageSrc("http://firebasestorage.googleapis.com/img.png")).toBe(false);
       });
