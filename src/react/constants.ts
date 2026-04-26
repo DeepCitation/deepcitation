@@ -418,12 +418,19 @@ export const SAFE_DATA_IMAGE_PREFIXES = [
 /** Base trusted CDN hostnames for proof images (always included).
  *  "deepcitation.com" adds trust for the bare domain itself (e.g.
  *  https://deepcitation.com/img.png); the subdomain entries were already
- *  validated independently via isDomainMatch. */
+ *  validated independently via isDomainMatch.
+ *
+ *  "firebasestorage.googleapis.com" is included because DeepCitation hosts
+ *  proof images in Firebase Storage; these URLs have the form
+ *  https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<path>?alt=media&token=<token>.
+ *  isDomainMatch's exact-hostname rule means only that specific host is
+ *  trusted — sibling googleapis.com subdomains do not inherit trust. */
 const BASE_TRUSTED_IMAGE_HOSTS = [
   "deepcitation.com",
   "api.deepcitation.com",
   "cdn.deepcitation.com",
   "proof.deepcitation.com",
+  "firebasestorage.googleapis.com",
 ] as const;
 
 /**

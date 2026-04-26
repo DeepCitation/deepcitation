@@ -513,6 +513,34 @@ describe("Security Tests", () => {
       it("should accept images from bare deepcitation.com", () => {
         expect(isValidProofImageSrc("https://deepcitation.com/img.png")).toBe(true);
       });
+
+      it("should accept Firebase Storage URLs", () => {
+        expect(
+          isValidProofImageSrc(
+            "https://firebasestorage.googleapis.com/v0/b/example.appspot.com/o/proof%2Fpage-1.avif?alt=media&token=abc123",
+          ),
+        ).toBe(true);
+      });
+
+      it("should reject sibling storage.googleapis.com host", () => {
+        expect(isValidProofImageSrc("https://storage.googleapis.com/bucket/img.png")).toBe(false);
+      });
+
+      it("should reject bare googleapis.com host", () => {
+        expect(isValidProofImageSrc("https://googleapis.com/img.png")).toBe(false);
+      });
+
+      it("should reject firebasestorage.googleapis.com.evil.com spoofing", () => {
+        expect(isValidProofImageSrc("https://firebasestorage.googleapis.com.evil.com/img.png")).toBe(false);
+      });
+
+      it("should reject sub-subdomain of firebasestorage.googleapis.com", () => {
+        expect(isValidProofImageSrc("https://cdn.firebasestorage.googleapis.com/img.png")).toBe(false);
+      });
+
+      it("should reject http on firebasestorage.googleapis.com", () => {
+        expect(isValidProofImageSrc("http://firebasestorage.googleapis.com/img.png")).toBe(false);
+      });
     });
 
     describe("localhost and relative paths", () => {
