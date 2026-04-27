@@ -19,7 +19,6 @@ export interface PagePickerProps {
    * For neighbors and dots, the parent opens the expanded-page view for that page.
    */
   onPageClick: (page: number) => void;
-  colorScheme: "green" | "amber" | "red" | "gray";
   isImage?: boolean;
   /**
    * True when the popover is currently in expanded-page view.
@@ -48,14 +47,7 @@ const PILL_MUTED_CLASSES = "bg-dc-muted text-dc-muted-foreground border-dc-borde
  *
  * The strip can overflow horizontally inside its container — acceptable for v1.
  */
-export function PagePicker({
-  pages,
-  activePage,
-  onPageClick,
-  colorScheme: _colorScheme,
-  isImage,
-  isExpanded,
-}: PagePickerProps) {
+export function PagePicker({ pages, activePage, onPageClick, isImage, isExpanded }: PagePickerProps) {
   const t = useTranslation();
 
   if (pages.length === 0) return null;
@@ -68,6 +60,7 @@ export function PagePicker({
         className="flex items-center gap-1 overflow-x-auto"
         style={HIDE_SCROLLBAR_STYLE}
         role="group"
+        aria-label={t("aria.pageNavigation")}
       >
         {pages.map(page => {
           const isActive = page === activePage;
@@ -139,6 +132,7 @@ export function PagePicker({
             <button
               key={page}
               type="button"
+              data-dc-page-dot=""
               aria-label={t("aria.gotoPageNum", { pageNumber: page })}
               onClick={e => {
                 e.stopPropagation();
@@ -148,6 +142,7 @@ export function PagePicker({
                 "relative w-1.5 h-1.5 rounded-full shrink-0 cursor-pointer transition-colors duration-120",
                 "bg-dc-muted-foreground/40 hover:bg-dc-primary",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dc-ring/40",
+                HITBOX_EXTEND_8x14,
               )}
             />
           );

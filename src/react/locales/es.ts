@@ -118,6 +118,7 @@ export const esOverrides = {
   "aria.closeImageView": "Cerrar vista de imagen",
   "aria.closePageView": "Cerrar vista de página",
   "aria.closePageViewNum": "Cerrar vista de página {pageNumber}",
+  "aria.pageNavigation": "Navegación de páginas",
   "aria.downloadSource": "Descargar fuente",
   "aria.downloadSourceName": "Descargar {name}",
   "aria.downloadStarted": "Descargando fuente",

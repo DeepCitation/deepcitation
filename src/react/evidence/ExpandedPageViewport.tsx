@@ -125,13 +125,12 @@ export function ExpandedPageViewport({
     const maxPageWidth =
       viewportWidth > 0 ? viewportWidth - 32 - EXPANDED_IMAGE_SHELL_PX - pad : containerSize.width - pad;
     const fitZoomW = maxPageWidth / width;
-    const fitZoomH = (containerSize.height - pad) / height;
-    const fit = Math.min(fitZoomW, fitZoomH);
+    const fit = fitZoomW;
     return {
       readable: Math.min(1, Math.max(EXPANDED_MIN_READABLE_ZOOM, fit)),
       floor: Math.min(EXPANDED_ZOOM_MIN, Math.min(1, Math.max(0.1, fit))),
     };
-  }, [contentReady, width, height, containerSize, viewportWidth]);
+  }, [contentReady, width, containerSize, viewportWidth]);
 
   const zoom = manualZoom ?? fittedZoom?.readable ?? 1;
   const zoomFloor = fittedZoom?.floor ?? EXPANDED_ZOOM_MIN;
@@ -238,6 +237,7 @@ export function ExpandedPageViewport({
       if (initialScroll) {
         const el = containerRef.current;
         if (el) {
+          // Force layout so the first scroll write lands after display:none → visible.
           void el.scrollHeight;
           el.scrollLeft = initialScroll.left * zoom + CANVAS_PADDING_PX;
           el.scrollTop = initialScroll.top * zoom + CANVAS_PADDING_PX;

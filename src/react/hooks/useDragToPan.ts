@@ -426,15 +426,22 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
       touchHistory.length = 0;
     };
 
+    const onTouchCancel = () => {
+      cancelMomentum();
+      wasDraggingRef.current = false;
+      phase = "undecided";
+      touchHistory.length = 0;
+    };
+
     el.addEventListener("touchstart", onTouchStart, { passive: true });
     el.addEventListener("touchmove", onTouchMove, { passive: false });
     el.addEventListener("touchend", onTouchEnd, { passive: true });
-    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchCancel, { passive: true });
     return () => {
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchmove", onTouchMove);
       el.removeEventListener("touchend", onTouchEnd);
-      el.removeEventListener("touchcancel", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchCancel);
     };
   }, [direction, cancelMomentum, updateScrollState]);
 
@@ -522,15 +529,22 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
       touchHistory.length = 0;
     };
 
+    const onTouchCancel = () => {
+      cancelMomentum();
+      wasDraggingRef.current = false;
+      phase = "undecided";
+      touchHistory.length = 0;
+    };
+
     el.addEventListener("touchstart", onTouchStart, { passive: true });
     el.addEventListener("touchmove", onTouchMove, { passive: false });
     el.addEventListener("touchend", onTouchEnd, { passive: true });
-    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchCancel, { passive: true });
     return () => {
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchmove", onTouchMove);
       el.removeEventListener("touchend", onTouchEnd);
-      el.removeEventListener("touchcancel", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchCancel);
     };
   }, [direction, cancelMomentum, updateScrollState]);
 

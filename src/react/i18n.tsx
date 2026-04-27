@@ -200,6 +200,7 @@ export const defaultMessages = {
   "aria.closeImageView": "Close image view",
   "aria.closePageView": "Close page view",
   "aria.closePageViewNum": "Close page {pageNumber} view",
+  "aria.pageNavigation": "Page navigation",
   "aria.downloadSource": "Download source",
   "aria.downloadSourceName": "Download {name}",
   "aria.downloadStarted": "Downloading source",

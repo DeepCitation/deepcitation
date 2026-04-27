@@ -120,6 +120,7 @@ export const viOverrides = {
   "aria.closeImageView": "Đóng chế độ xem hình",
   "aria.closePageView": "Đóng chế độ xem trang",
   "aria.closePageViewNum": "Đóng chế độ xem trang {pageNumber}",
+  "aria.pageNavigation": "Điều hướng trang",
   "aria.downloadSource": "Tải nguồn",
   "aria.downloadSourceName": "Tải {name}",
   "aria.downloadStarted": "Đang tải nguồn",

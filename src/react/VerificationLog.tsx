@@ -650,12 +650,11 @@ export function SourceContextHeader({
       </div>
       {/* Right: Proof link (expanded view) + Page pill / picker */}
       <div className="flex items-center gap-3">
-        {showPagePill && pages && pages.length > 1 && onPageClick ? (
+        {showPagePill && pages && pages.length > 1 && onPageClick && pageNumber != null ? (
           <PagePicker
             pages={pages}
-            activePage={pageNumber ?? 0}
+            activePage={pageNumber}
             onPageClick={onPageClick}
-            colorScheme={colorScheme}
             isImage={isImage}
             isExpanded={!!onClose}
           />
