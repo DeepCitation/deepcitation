@@ -140,6 +140,7 @@ export const esOverrides = {
   "aria.announcement.verifiedExact": "Cita verificada - coincidencia exacta encontrada",
   "aria.announcement.notFound": "Verificación completa - no se encontró la cita en la fuente",
   "aria.announcement.partial": "Verificación completa - se encontró coincidencia parcial",
+  "aria.gotoPageNum": "Ir a la página {pageNumber}",
   "urlAccess.paywall.title": "Paywall detectado",
   "urlAccess.paywall.description": "Este sitio requiere una suscripción de pago para acceder.",
   "urlAccess.paywall.suggestion": "Puedes verificar esta cita visitando la URL directamente si tienes suscripción.",

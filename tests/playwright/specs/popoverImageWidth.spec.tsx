@@ -155,7 +155,7 @@ test.describe("Popover Image Keyhole Strip", () => {
     expect(hasEdgeRing).toBe(true);
   });
 
-  test("strip container has horizontal overflow scroll", async ({ mount, page }) => {
+  test("strip container uses overflow:hidden for drag-only panning", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
         <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
@@ -168,44 +168,15 @@ test.describe("Popover Image Keyhole Strip", () => {
     const popover = page.locator("[data-dc-popover-wrapper]");
     await expect(popover).toBeVisible();
 
-    // Find the keyhole strip container
     const strip = popover.locator("[data-dc-keyhole]");
     await expect(strip).toBeVisible();
 
-    // Container should have overflow-x: auto
-    const overflowX = await strip.evaluate(el =>
-      window.getComputedStyle(el as HTMLElement).overflowX
-    );
-    expect(overflowX).toBe("auto");
-
-    // Container should have overflow-y: hidden
-    const overflowY = await strip.evaluate(el =>
-      window.getComputedStyle(el as HTMLElement).overflowY
-    );
+    // Drag-to-pan owns scrollLeft/scrollTop directly; native scroll is disabled
+    // on both axes so no scrollbar can appear and wheel input cannot mutate scroll.
+    const overflowX = await strip.evaluate(el => window.getComputedStyle(el as HTMLElement).overflowX);
+    expect(overflowX).toBe("hidden");
+    const overflowY = await strip.evaluate(el => window.getComputedStyle(el as HTMLElement).overflowY);
     expect(overflowY).toBe("hidden");
-  });
-
-  test("strip has hidden scrollbar", async ({ mount, page }) => {
-    await mount(
-      <div style={{ padding: "100px" }}>
-        <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
-      </div>,
-    );
-
-    const citation = page.locator("[data-citation-id]");
-    await citation.click();
-
-    const popover = page.locator("[data-dc-popover-wrapper]");
-    await expect(popover).toBeVisible();
-
-    const strip = popover.locator("[data-dc-keyhole]");
-    await expect(strip).toBeVisible();
-
-    // Scrollbar should be hidden via scrollbar-width: none
-    const scrollbarWidth = await strip.evaluate(el =>
-      window.getComputedStyle(el as HTMLElement).scrollbarWidth
-    );
-    expect(scrollbarWidth).toBe("none");
   });
 });
 

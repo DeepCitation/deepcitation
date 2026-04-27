@@ -32,6 +32,7 @@ type PopoverContentProps = React.HTMLAttributes<HTMLDivElement> & {
   side?: PopoverSide;
   sideOffset?: number;
   alignOffset?: number;
+  portalToBody?: boolean;
   onCloseAutoFocus?: (event: Event) => void;
   onEscapeKeyDown?: (event: KeyboardEvent) => void;
 };
@@ -83,6 +84,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       side = "bottom",
       sideOffset = 8,
       alignOffset = 0,
+      portalToBody = false,
       style,
       onCloseAutoFocus,
       onEscapeKeyDown,
@@ -121,6 +123,10 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
     const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
     React.useLayoutEffect(() => {
       if (typeof window === "undefined") return;
+      if (portalToBody) {
+        setPortalContainer(document.body);
+        return;
+      }
       const trigger = triggerRef.current;
       if (!trigger) return;
       let cleanupPosition: (() => void) | undefined;
@@ -150,7 +156,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       }
       setPortalContainer(document.body);
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [triggerRef]); // triggerRef is a stable ref object; runs once on mount
+    }, [triggerRef, portalToBody]); // triggerRef is a stable ref object; reruns only when portal strategy changes
 
     const recomputePosition = React.useCallback(() => {
       if (!open) return;
