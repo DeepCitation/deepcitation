@@ -120,6 +120,7 @@ export const viOverrides = {
   "aria.closeImageView": "Đóng chế độ xem hình",
   "aria.closePageView": "Đóng chế độ xem trang",
   "aria.closePageViewNum": "Đóng chế độ xem trang {pageNumber}",
+  "aria.pageNavigation": "Điều hướng trang",
   "aria.downloadSource": "Tải nguồn",
   "aria.downloadSourceName": "Tải {name}",
   "aria.downloadStarted": "Đang tải nguồn",
@@ -144,6 +145,7 @@ export const viOverrides = {
   "aria.announcement.verifiedExact": "Trích dẫn đã xác minh — tìm thấy khớp chính xác",
   "aria.announcement.notFound": "Xác minh hoàn tất — không tìm thấy trích dẫn trong nguồn",
   "aria.announcement.partial": "Xác minh hoàn tất — tìm thấy khớp một phần",
+  "aria.gotoPageNum": "Đến trang {pageNumber}",
   "urlAccess.paywall.title": "Phát hiện paywall",
   "urlAccess.paywall.description": "Trang này yêu cầu gói trả phí để truy cập.",
   "urlAccess.paywall.suggestion":

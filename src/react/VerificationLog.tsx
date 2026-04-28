@@ -36,6 +36,7 @@ import {
   XIcon,
 } from "./icons.js";
 import { useFaviconSrc } from "./imageUtils.js";
+import { PagePicker } from "./PagePicker.js";
 import type { DownloadInfo, IndicatorVariant } from "./types.js";
 import { mapSearchStatusToFetchStatus } from "./urlAccessExplanation.js";
 import { sanitizeUrl } from "./urlUtils.js";
@@ -99,6 +100,17 @@ export interface SourceContextHeaderProps {
    * Custom action buttons rendered in the header alongside the download button.
    */
   customActions?: import("./types.js").PopoverAction[];
+  /**
+   * All available page numbers for this citation's attachment.
+   * When provided alongside `onPageClick` and the array has more than one entry,
+   * renders a `PagePicker` strip instead of the single `PagePill`.
+   */
+  pages?: number[];
+  /**
+   * Called when the user clicks a page target in the `PagePicker`.
+   * Required when `pages` is provided.
+   */
+  onPageClick?: (page: number) => void;
 }
 
 const DOWNLOAD_IFRAME_DATA_ATTR = "data-deepcitation-download-frame";
@@ -459,6 +471,8 @@ export function SourceContextHeader({
   onClose,
   download,
   customActions,
+  pages,
+  onPageClick,
 }: SourceContextHeaderProps) {
   const t = useTranslation();
   const isUrl = isUrlCitation(citation);
@@ -634,19 +648,33 @@ export function SourceContextHeader({
           ),
         )}
       </div>
-      {/* Right: Proof link (expanded view) + Page pill */}
+      {/* Right: Proof link (expanded view) + Page pill / picker */}
       <div className="flex items-center gap-3">
-        {showPagePill && (
-          <PagePill
-            pageNumber={pageNumber ?? undefined}
-            colorScheme={colorScheme}
-            onClick={onExpand}
-            onClose={onClose}
+        {showPagePill && pages && pages.length > 1 && onPageClick && pageNumber != null ? (
+          <PagePicker
+            pages={pages}
+            activePage={pageNumber}
+            onPageClick={onPageClick}
             isImage={isImage}
+            isExpanded={!!onClose}
           />
-        )}
-        {!showPagePill && pageLineText && (
-          <span className="text-[10px] text-dc-subtle-foreground shrink-0 uppercase tracking-wide">{pageLineText}</span>
+        ) : (
+          <>
+            {showPagePill && (
+              <PagePill
+                pageNumber={pageNumber ?? undefined}
+                colorScheme={colorScheme}
+                onClick={onExpand}
+                onClose={onClose}
+                isImage={isImage}
+              />
+            )}
+            {!showPagePill && pageLineText && (
+              <span className="text-[10px] text-dc-subtle-foreground shrink-0 uppercase tracking-wide">
+                {pageLineText}
+              </span>
+            )}
+          </>
         )}
       </div>
     </div>

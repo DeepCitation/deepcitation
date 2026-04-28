@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
-import { renderHook } from "@testing-library/react";
+import { act, fireEvent, render, renderHook } from "@testing-library/react";
+import { createElement } from "react";
 import { useDragToPan } from "../react/hooks/useDragToPan";
 
 describe("useDragToPan", () => {
@@ -21,5 +22,35 @@ describe("useDragToPan", () => {
     expect(result.current.scrollState.scrollLeft).toBe(0);
     expect(result.current.scrollState.canScrollLeft).toBe(false);
     expect(result.current.scrollState.canScrollRight).toBe(false);
+  });
+
+  test("touchcancel clears drag state without suppressing the next click", () => {
+    let hookApi: ReturnType<typeof useDragToPan> | null = null;
+
+    function Harness() {
+      hookApi = useDragToPan({ direction: "xy" });
+      return createElement(
+        "div",
+        { ref: hookApi.containerRef, "data-testid": "target" },
+        createElement("div", { style: { width: "400px", height: "400px" } }),
+      );
+    }
+
+    const { getByTestId } = render(createElement(Harness));
+    const target = getByTestId("target") as HTMLElement;
+    if (!hookApi) throw new Error("hook did not initialize");
+
+    Object.defineProperty(target, "clientWidth", { value: 200, configurable: true });
+    Object.defineProperty(target, "clientHeight", { value: 200, configurable: true });
+    Object.defineProperty(target, "scrollWidth", { value: 400, configurable: true });
+    Object.defineProperty(target, "scrollHeight", { value: 400, configurable: true });
+
+    act(() => {
+      fireEvent.touchStart(target, { touches: [{ clientX: 0, clientY: 0 }] });
+      fireEvent.touchMove(target, { touches: [{ clientX: -20, clientY: -20 }] });
+      fireEvent.touchCancel(target, { touches: [] });
+    });
+
+    expect(hookApi.wasDraggingRef.current).toBe(false);
   });
 });

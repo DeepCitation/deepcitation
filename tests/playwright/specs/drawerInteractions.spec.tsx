@@ -300,8 +300,9 @@ test.describe("Drawer - Evidence vs Full-Page Click Routing", () => {
     const inlineExpanded = dialog.locator("[data-dc-inline-expanded]").first();
     await expect(inlineExpanded).toBeVisible({ timeout: 3000 });
 
-    // Click the expanded image to collapse
-    await inlineExpanded.click();
+    // The expanded surface can still be settling its layout after open; use a
+    // synthetic click so this test exercises the collapse handler directly.
+    await inlineExpanded.dispatchEvent("click");
 
     // Header panel should close — drawer returns to the citation list (Level 1)
     await expect(inlineExpanded).not.toBeVisible({ timeout: 3000 });

@@ -170,6 +170,12 @@ export interface CitationComponentProps extends BaseCitationProps {
    */
   renderEvidenceKeyhole?: (props: EvidenceKeyholeRenderProps) => React.ReactNode;
   /**
+   * Optional host-supplied renderer for the expanded-page slot. When provided,
+   * `canExpandToPage` becomes true even without pre-rendered JPEG page images.
+   * Called with `{ onCollapse }` when the popover transitions to expanded-page state.
+   */
+  renderExpandedPage?: (props: { onCollapse: () => void }) => React.ReactNode;
+  /**
    * Number of additional citations grouped with this one (for source variant).
    * Shows as "+N" suffix (e.g., "Wikipedia +2")
    */
@@ -329,6 +335,7 @@ function useKeyboardOpenTracking(isHovering: boolean, popoverContentRef: React.R
 const PopoverContentRenderer = memo(function PopoverContentRenderer({
   renderPopoverContent,
   renderEvidenceKeyhole,
+  renderExpandedPage,
   citation,
   verification,
   status,
@@ -342,6 +349,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   expandedImageSrcOverride,
   onExpandedWidthChange,
   pageImages,
+  availablePages,
   prevBeforeExpandedPageRef,
   download,
   escapeInterceptRef,
@@ -349,6 +357,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
 }: {
   renderPopoverContent?: CitationComponentProps["renderPopoverContent"];
   renderEvidenceKeyhole?: CitationComponentProps["renderEvidenceKeyhole"];
+  renderExpandedPage?: CitationComponentProps["renderExpandedPage"];
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
   status: CitationStatus;
@@ -362,6 +371,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   expandedImageSrcOverride: string | null;
   onExpandedWidthChange?: (width: number | null, source?: "expanded-keyhole" | "expanded-page" | null) => void;
   pageImages?: PageImage[];
+  availablePages?: number[];
   prevBeforeExpandedPageRef: React.RefObject<"summary" | "expanded-keyhole">;
   download?: DownloadInfo;
   escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
@@ -391,11 +401,13 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
         expandedImageSrcOverride={expandedImageSrcOverride}
         onExpandedWidthChange={onExpandedWidthChange}
         pageImages={pageImages}
+        availablePages={availablePages}
         prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
         download={download}
         escapeInterceptRef={escapeInterceptRef}
         customPopoverActions={customPopoverActions}
         renderEvidenceKeyhole={renderEvidenceKeyhole}
+        renderExpandedPage={renderExpandedPage}
       />
     </CitationErrorBoundary>
   );
@@ -441,6 +453,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       popoverPosition = "bottom",
       renderPopoverContent,
       renderEvidenceKeyhole,
+      renderExpandedPage,
       additionalCount,
       faviconUrl,
       indicatorVariant = "icon",
@@ -475,6 +488,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       if (!attachmentId || !pageImagesByAttachmentId) return undefined;
       return pageImagesByAttachmentId[attachmentId];
     }, [pageImagesByAttachmentId, verification]);
+
+    const availablePages = useMemo(
+      () => (pageImages ? Array.from(new Set(pageImages.map(p => p.pageNumber))).sort((a, b) => a - b) : undefined),
+      [pageImages],
+    );
 
     const download = useMemo(() => {
       const dl = originalDownload ?? convertedDownload;
@@ -1345,6 +1363,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         <PopoverContentRenderer
           renderPopoverContent={renderPopoverContent}
           renderEvidenceKeyhole={renderEvidenceKeyhole}
+          renderExpandedPage={renderExpandedPage}
           citation={citation}
           verification={verification ?? null}
           status={status}
@@ -1358,6 +1377,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           expandedImageSrcOverride={customExpandedSrc}
           onExpandedWidthChange={viewState.onExpandedWidthChange}
           pageImages={pageImages}
+          availablePages={availablePages}
           prevBeforeExpandedPageRef={viewState.prevBeforeExpandedPageRef}
           download={download}
           escapeInterceptRef={viewState.escapeInterceptRef}
@@ -1404,6 +1424,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                 align="start"
                 sideOffset={expandedPageSideOffset}
                 alignOffset={popoverAlignOffset}
+                portalToBody={viewState.current === "expanded-page"}
                 onCloseAutoFocus={handleCloseAutoFocus}
                 onEscapeKeyDown={viewState.onEscapeKeyDown}
                 style={

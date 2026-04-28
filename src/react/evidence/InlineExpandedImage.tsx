@@ -28,6 +28,7 @@ import { cn, isImageSource } from "../utils.js";
 import { DC_EVIDENCE_VT_NAME, primeEvidencePageExpandSource } from "../viewTransition.js";
 import { ZoomToolbar } from "../ZoomToolbar.js";
 import { EvidenceTrayFooter } from "./EvidenceTray.js";
+import { ExpandedPageViewport } from "./ExpandedPageViewport.js";
 import { IDENTITY_RENDER_SCALE, resolveEvidenceSourceAnchorRatio } from "./resolvers.js";
 import { useRetryPendingRender } from "./useRetryPendingRender.js";
 
@@ -806,6 +807,69 @@ export function InlineExpandedImage({
       />
     </div>
   );
+
+  if (fill) {
+    return (
+      <ExpandedPageViewport
+        width={imageLoaded ? naturalWidth : null}
+        height={imageLoaded ? naturalHeight : null}
+        renderScale={effectiveRenderScale}
+        verification={verification}
+        onCollapse={onCollapse}
+        contentKey={retrySrc}
+        highlightItem={highlightItem}
+        anchorItem={anchorItem}
+        initialOverlayHidden={initialOverlayHidden}
+        showOverlay={showOverlay}
+        initialScroll={initialScroll}
+        expectedDimensions={expectedDimensions}
+        onDisplayedSizeChange={onNaturalSize}
+        isDark={isDarkContent}
+        footer={footerEl}
+      >
+        {() => (
+          <>
+            {(!imageLoaded || isRetrying) && (
+              <div
+                className="animate-pulse rounded bg-dc-muted"
+                style={{
+                  width: "100%",
+                  ...(expectedDimensions && expectedDimensions.width > 0 && expectedDimensions.height > 0
+                    ? { aspectRatio: `${expectedDimensions.width} / ${expectedDimensions.height}` }
+                    : { height: "6rem" }),
+                }}
+              />
+            )}
+            <img
+              ref={expandedImgRef}
+              src={isValidProofImageSrc(retrySrc) ? retrySrc : undefined}
+              alt={t("aria.verificationEvidence")}
+              className={cn("block", DOCUMENT_IMAGE_EDGE_CLASSES, !imageLoaded && "hidden")}
+              style={naturalWidth ? { width: naturalWidth, maxWidth: "none" } : { maxWidth: "none" }}
+              onLoad={e => {
+                if (imageLoaded) return;
+                const w = e.currentTarget.naturalWidth;
+                const h = e.currentTarget.naturalHeight;
+                if (onRetryImageLoaded(w, h)) return;
+                setImageLoaded(true);
+                setNaturalWidth(w);
+                setNaturalHeight(h);
+              }}
+              onError={e => {
+                handleImageError(e);
+                const willRetry = onRetryImageError();
+                if (!willRetry) setImageLoaded(true);
+              }}
+              draggable={false}
+            />
+            {process.env.NODE_ENV !== "production" && imageLoaded ? (
+              <PageAimOverlay imgRef={expandedImgRef} verification={verification} />
+            ) : null}
+          </>
+        )}
+      </ExpandedPageViewport>
+    );
+  }
 
   return (
     <div

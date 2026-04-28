@@ -118,6 +118,7 @@ export const frOverrides = {
   "aria.closeImageView": "Fermer la vue image",
   "aria.closePageView": "Fermer la vue page",
   "aria.closePageViewNum": "Fermer la vue page {pageNumber}",
+  "aria.pageNavigation": "Navigation des pages",
   "aria.downloadSource": "Télécharger la source",
   "aria.downloadSourceName": "Télécharger {name}",
   "aria.downloadStarted": "Téléchargement de la source",
@@ -140,6 +141,7 @@ export const frOverrides = {
   "aria.announcement.verifiedExact": "Citation vérifiée — correspondance exacte trouvée",
   "aria.announcement.notFound": "Vérification terminée — citation introuvable dans la source",
   "aria.announcement.partial": "Vérification terminée — correspondance partielle trouvée",
+  "aria.gotoPageNum": "Aller à la page {pageNumber}",
   "urlAccess.paywall.title": "Paywall détecté",
   "urlAccess.paywall.description": "Ce site requiert un abonnement payant pour y accéder.",
   "urlAccess.paywall.suggestion":

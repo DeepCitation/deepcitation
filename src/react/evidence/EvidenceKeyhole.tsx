@@ -1,11 +1,10 @@
 import type React from "react";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Verification } from "../../types/verification.js";
 import {
   buildKeyholeMaskImage,
   DOCUMENT_CANVAS_BG_CLASSES,
   DOCUMENT_IMAGE_EDGE_CLASSES,
-  HIDE_SCROLLBAR_STYLE,
   KEYHOLE_FADE_WIDTH,
   KEYHOLE_SKIP_THRESHOLD,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
@@ -28,7 +27,7 @@ import { IDENTITY_RENDER_SCALE, resolveEvidenceSourceAnchorRatio } from "./resol
  * match region. CSS gradient fades indicate overflow on each edge.
  *
  * - **Never squashes or stretches** the image.
- * - **Drag to pan** horizontally (mouse). Touch uses native overflow scroll.
+ * - **Drag to pan** horizontally and vertically (mouse and touch).
  * - **Click** to expand to full-size overlay.
  * - **Hover** shows a darkened overlay with magnifying glass icon.
  *
@@ -93,6 +92,21 @@ export function EvidenceKeyhole({
   /** Cancel handle for the current `animateScrollLeft` rAF loop (if any). */
   const cancelPanRef = useRef<(() => void) | null>(null);
   const keyholeInitAppliedRef = useRef(false);
+
+  // Non-passive wheel listener: overflow-hidden removes native scroll, but the
+  // browser still mutates scrollLeft/scrollTop on wheel events. Block that so
+  // the drag-to-pan model owns all scroll mutations.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, [containerRef]);
 
   // Set initial scroll position after image loads.
   // useLayoutEffect guarantees refs are populated and runs before paint,
@@ -333,20 +347,17 @@ export function EvidenceKeyhole({
               "data-dc-source-anchor-x": sourceAnchorRatio.x.toFixed(4),
               "data-dc-source-anchor-y": sourceAnchorRatio.y.toFixed(4),
             })}
-            className={cn(DOCUMENT_CANVAS_BG_CLASSES, "overflow-x-auto overflow-y-hidden")}
+            className={cn(DOCUMENT_CANVAS_BG_CLASSES, "overflow-hidden")}
             style={{
               viewTransitionName: DC_EVIDENCE_VT_NAME,
               height: stripHeightStyle,
               // Horizontal fade mask — indicates pannable content left/right.
               WebkitMaskImage: maskImage,
               maskImage,
-              ...HIDE_SCROLLBAR_STYLE,
               cursor: interactionCursor,
             }}
             {...handlers}
           >
-            {/* Hide webkit scrollbar via inline style tag scoped to this container */}
-            <style>{`[data-dc-keyhole]::-webkit-scrollbar { display: none; }`}</style>
             <div ref={imageWrapperRef} style={{ display: "inline-block", position: "relative" }}>
               <img
                 ref={imageRef}

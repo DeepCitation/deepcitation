@@ -117,7 +117,7 @@ function startMomentumCoast(
  *
  * - **Mouse**: drag to pan (grab cursor). Click suppression when drag > 5px.
  * - **Touch (x)**: direction-locked with edge passthrough to popover handler.
- * - **Touch (xy)**: relies on native overflow scrolling.
+ * - **Touch (xy)**: JS-controlled panning on both axes with edge passthrough.
  * - **Scroll state**: tracks canScrollLeft/canScrollRight for fade mask updates.
  * - **Momentum**: on mouse release, applies deceleration physics if velocity exceeds threshold.
  * - **direction**: `"x"` (default) for horizontal-only; `"xy"` for both axes.
@@ -338,11 +338,10 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
   // for page scrolling (vertical). At scroll edges, panning transitions to
   // passthrough so continued swiping scrolls the page.
 
-  // Disable native touch scroll so our direction lock has full control.
-  // Only for direction="x" — the "xy" case (InlineExpandedImage) uses native scroll.
+  // Disable native touch scroll so our JS gesture handlers have full control.
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || direction !== "x") return;
+    if (!el || (direction !== "x" && direction !== "xy")) return;
     const prev = el.style.touchAction;
     el.style.touchAction = "none";
     return () => {
@@ -350,7 +349,7 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
     };
   }, [direction]);
 
-  // Touch event handlers for direction-locked panning + edge passthrough.
+  // Touch event handlers for direction-locked panning + edge passthrough (direction="x").
   useEffect(() => {
     const el = containerRef.current;
     if (!el || direction !== "x") return;
@@ -427,15 +426,125 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
       touchHistory.length = 0;
     };
 
+    const onTouchCancel = () => {
+      cancelMomentum();
+      wasDraggingRef.current = false;
+      phase = "undecided";
+      touchHistory.length = 0;
+    };
+
     el.addEventListener("touchstart", onTouchStart, { passive: true });
     el.addEventListener("touchmove", onTouchMove, { passive: false });
     el.addEventListener("touchend", onTouchEnd, { passive: true });
-    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchCancel, { passive: true });
     return () => {
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchmove", onTouchMove);
       el.removeEventListener("touchend", onTouchEnd);
-      el.removeEventListener("touchcancel", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchCancel);
+    };
+  }, [direction, cancelMomentum, updateScrollState]);
+
+  // Touch event handlers for two-axis panning (direction="xy").
+  // Both axes are valid pan directions so no axis-lock decision is needed.
+  // Edge passthrough: when a move would be clamped (already at a boundary and
+  // continuing in the same direction), switch to passthrough so outer handlers
+  // can pick up the gesture.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || direction !== "xy") return;
+
+    type Phase = "undecided" | "panning" | "passthrough";
+    let phase: Phase = "undecided";
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartScrollLeft = 0;
+    let touchStartScrollTop = 0;
+    let lastClampedLeft = 0;
+    let lastClampedTop = 0;
+    const touchHistory: MoveSample[] = [];
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      cancelMomentum();
+      const t = e.touches[0];
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      touchStartScrollLeft = el.scrollLeft;
+      touchStartScrollTop = el.scrollTop;
+      lastClampedLeft = el.scrollLeft;
+      lastClampedTop = el.scrollTop;
+      phase = "undecided";
+      touchHistory.length = 0;
+      touchHistory.push({ x: t.clientX, y: t.clientY, t: Date.now() });
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const dx = t.clientX - touchStartX;
+      const dy = t.clientY - touchStartY;
+
+      if (phase === "undecided") {
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < TOUCH_LOCK_PX) return;
+        phase = "panning";
+      }
+
+      if (phase === "passthrough") return;
+
+      // --- Phase: panning ---
+      const maxScrollLeft = el.scrollWidth - el.clientWidth;
+      const maxScrollTop = el.scrollHeight - el.clientHeight;
+
+      const targetLeft = Math.max(0, Math.min(touchStartScrollLeft - dx, maxScrollLeft));
+      const targetTop = Math.max(0, Math.min(touchStartScrollTop - dy, maxScrollTop));
+
+      // Edge passthrough: if further motion is clamped on both axes (or the
+      // only moving axis), the gesture has reached all reachable edges.
+      const leftClamped = targetLeft === lastClampedLeft && targetLeft !== touchStartScrollLeft - dx;
+      const topClamped = targetTop === lastClampedTop && targetTop !== touchStartScrollTop - dy;
+      if (leftClamped && topClamped) {
+        phase = "passthrough";
+        return;
+      }
+
+      e.preventDefault();
+      el.scrollLeft = targetLeft;
+      el.scrollTop = targetTop;
+      lastClampedLeft = targetLeft;
+      lastClampedTop = targetTop;
+
+      const now = Date.now();
+      touchHistory.push({ x: t.clientX, y: t.clientY, t: now });
+      if (touchHistory.length > VELOCITY_SAMPLE_COUNT) touchHistory.shift();
+    };
+
+    const onTouchEnd = () => {
+      if (phase === "panning") {
+        wasDraggingRef.current = true;
+        startMomentumCoast([...touchHistory], el, "xy", momentumRafRef, updateScrollState);
+      }
+      phase = "undecided";
+      touchHistory.length = 0;
+    };
+
+    const onTouchCancel = () => {
+      cancelMomentum();
+      wasDraggingRef.current = false;
+      phase = "undecided";
+      touchHistory.length = 0;
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchCancel, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchCancel);
     };
   }, [direction, cancelMomentum, updateScrollState]);
 

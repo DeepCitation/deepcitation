@@ -90,11 +90,18 @@ export { getStatusFromVerification, getStatusLabel } from "./citationStatus.js";
 // Constants - Shared styling and configuration
 export {
   COPY_FEEDBACK_DURATION_MS,
+  DOCUMENT_CANVAS_BG_CLASSES,
   DOT_INDICATOR_FIXED_SIZE_STYLE,
   DOT_INDICATOR_SIZE_STYLE,
   ERROR_COLOR_DEFAULT,
   ERROR_COLOR_STYLE,
   ERROR_COLOR_VAR,
+  EXPANDED_IMAGE_SHELL_PX,
+  EXPANDED_MIN_READABLE_ZOOM,
+  EXPANDED_POPOVER_HEIGHT,
+  EXPANDED_ZOOM_MAX,
+  EXPANDED_ZOOM_MIN,
+  EXPANDED_ZOOM_STEP,
   getPortalContainer,
   INDICATOR_SIZE_STYLE,
   isValidProofImageSrc,
@@ -121,6 +128,7 @@ export {
   VERIFIED_COLOR_VAR,
   WAVY_UNDERLINE_COLOR_VAR,
   WAVY_UNDERLINE_DEFAULT_COLOR,
+  WHEEL_ZOOM_SENSITIVITY,
   Z_INDEX_BACKDROP_DEFAULT,
   Z_INDEX_DRAWER_BACKDROP_VAR,
   Z_INDEX_DRAWER_VAR,
@@ -140,9 +148,26 @@ export {
   type PopoverContentProps,
   type PopoverViewState,
 } from "./DefaultPopoverContent.js";
-export { type EvidenceKeyholeRenderProps, type ExpandedImageSource, resolveExpandedImage } from "./EvidenceTray.js";
+export {
+  type EvidenceKeyholeRenderProps,
+  type ExpandedImageSource,
+  ExpandedPageViewport,
+  type ExpandedPageViewportProps,
+  type ExpandedPageViewportRenderProps,
+  resolveExpandedImage,
+} from "./EvidenceTray.js";
+// Interaction Hooks
+export { type ScrollState, useDragToPan } from "./hooks/useDragToPan.js";
 // Accessibility Hooks
 export { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
+// Wheel Zoom Hook
+export {
+  applyGestureTransform,
+  type UseWheelZoomOptions,
+  type UseWheelZoomReturn,
+  useWheelZoom,
+  type WheelZoomAnchor,
+} from "./hooks/useWheelZoom.js";
 export type {
   DeepCitationI18nProviderProps,
   DeepCitationMessages,
@@ -333,3 +358,5 @@ export {
 } from "./VerificationLog.js";
 // Verification Tabs Component
 export { VerificationTabs } from "./VerificationTabs.js";
+// Zoom Toolbar — Google Maps-style floating +/− zoom control
+export { ZoomToolbar, type ZoomToolbarProps } from "./ZoomToolbar.js";

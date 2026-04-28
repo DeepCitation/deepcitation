@@ -200,6 +200,7 @@ export const defaultMessages = {
   "aria.closeImageView": "Close image view",
   "aria.closePageView": "Close page view",
   "aria.closePageViewNum": "Close page {pageNumber} view",
+  "aria.pageNavigation": "Page navigation",
   "aria.downloadSource": "Download source",
   "aria.downloadSourceName": "Download {name}",
   "aria.downloadStarted": "Downloading source",
@@ -225,6 +226,7 @@ export const defaultMessages = {
   "aria.announcement.verifiedExact": "Citation verified - exact match found",
   "aria.announcement.notFound": "Verification complete - citation not found in source",
   "aria.announcement.partial": "Verification complete - partial match found",
+  "aria.gotoPageNum": "Go to page {pageNumber}",
 
   // ── Search method display names ────────────────────────────────
   "search.method.exactLineMatch": "Exact location",

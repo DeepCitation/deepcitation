@@ -17,6 +17,7 @@ import { getStatusLabel } from "./citationStatus.js";
 import {
   BLINK_ENTER_EASING,
   EASE_COLLAPSE,
+  EXPANDED_POPOVER_HEIGHT,
   FONT_FAMILY_VAR,
   isValidProofImageSrc,
   POPOVER_CONTAINER_BASE_CLASSES,
@@ -33,6 +34,7 @@ import {
   InlineExpandedImage,
   resolveEvidenceSrc,
   resolveExpandedImage,
+  resolveExpandedImageForPage,
 } from "./EvidenceTray.js";
 import { getExpandedPopoverWidth, getSummaryPopoverWidth } from "./expandedWidthPolicy.js";
 import { HighlightedSourceContext } from "./HighlightedSourceContext.js";
@@ -77,6 +79,8 @@ export interface PopoverContentProps {
   verification: Verification | null;
   /** Page images for the current attachment (used for expanded page view). */
   pageImages?: PageImage[];
+  /** All available page numbers derived from pageImages. Enables the pagePicker in the header. */
+  availablePages?: number[];
   status: CitationStatus;
   isLoading?: boolean;
   /** Whether the popover is currently visible (used for Activity prefetching) */
@@ -126,6 +130,12 @@ export interface PopoverContentProps {
    * the contract. When omitted, the default JPEG keyhole is used.
    */
   renderEvidenceKeyhole?: (props: EvidenceKeyholeRenderProps) => React.ReactNode;
+  /**
+   * Optional host-supplied renderer for the expanded-page slot. When provided,
+   * `canExpandToPage` becomes true even without pre-rendered JPEG page images.
+   * Called with `{ onCollapse }` when `viewState` transitions to `"expanded-page"`.
+   */
+  renderExpandedPage?: (props: { onCollapse: () => void }) => React.ReactNode;
 }
 
 // =============================================================================
@@ -203,7 +213,7 @@ function PopoverLayoutShell({
             display: "flex",
             flexDirection: "column" as const,
             overflowY: "hidden" as const,
-            maxHeight: "inherit",
+            height: EXPANDED_POPOVER_HEIGHT,
           }),
         }}
       >
@@ -337,6 +347,7 @@ function EvidenceZone({
   summaryContent,
   keyholeInitialScroll,
   escapeInterceptRef,
+  renderExpandedPage,
 }: {
   viewState: PopoverViewState;
   evidenceSrc: string | null;
@@ -359,6 +370,7 @@ function EvidenceZone({
   /** Natural-pixel scroll position captured from the keyhole strip on last expand click. */
   keyholeInitialScroll?: { left: number; top: number } | null;
   escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
+  renderExpandedPage?: (props: { onCollapse: () => void }) => React.ReactNode;
 }) {
   const slotBRef = useRef<HTMLDivElement>(null);
   const slotCRef = useRef<HTMLDivElement>(null);
@@ -491,13 +503,14 @@ function EvidenceZone({
       </div>
       {/* Slot C: expanded-page — wrapper div always rendered for React 19 fiber
           stability (constant fiber position). InlineExpandedImage mounts inside once
-          expandedImage is resolved. */}
+          expandedImage is resolved; renderExpandedPage is used as fallback when no
+          JPEG page image is available (e.g. live PDF keyhole). */}
       <div
         ref={slotCRef}
         className="flex flex-col flex-1 min-h-0"
         style={viewState !== "expanded-page" ? { display: "none" } : undefined}
       >
-        {expandedImage?.src && (
+        {expandedImage?.src ? (
           <InlineExpandedImage
             src={expandedImage.src}
             onCollapse={handlePageCollapse}
@@ -508,6 +521,8 @@ function EvidenceZone({
             expectedDimensions={expandedImage.dimensions}
             initialScroll={keyholeInitialScroll ?? undefined}
           />
+        ) : (
+          (renderExpandedPage?.({ onCollapse: handlePageCollapse }) ?? null)
         )}
       </div>
     </>
@@ -691,6 +706,7 @@ export function DefaultPopoverContent({
   citation,
   verification,
   pageImages,
+  availablePages,
   status,
   isLoading = false,
   isVisible = true,
@@ -707,6 +723,7 @@ export function DefaultPopoverContent({
   customPopoverActions,
   popoverContentRef,
   renderEvidenceKeyhole,
+  renderExpandedPage,
 }: PopoverContentProps) {
   const t = useTranslation();
   // Resolve evidence src up-front so hasImage reflects only actually-renderable images.
@@ -759,7 +776,7 @@ export function DefaultPopoverContent({
 
   // Suppress page expand when page image dimensions are known and already fit within
   // the evidence view constraints (≤480px wide, ≤600px tall) — expanding adds no value.
-  const canExpandToPage = !!expandedImage;
+  const canExpandToPage = !!expandedImage || !!renderExpandedPage;
 
   // Content-adaptive summary width: pre-seed from verification dimensions to avoid
   // a width flash, then confirm/correct when the keyhole image actually renders.
@@ -907,6 +924,45 @@ export function DefaultPopoverContent({
     pageNaturalWidth,
   ]);
 
+  // Expands to full-page view, optionally targeting a specific page number.
+  // When pageNumber is provided, resolves the matching PageImage and seeds shell width.
+  // When absent, falls through to the default expanded image (verified page).
+  // Active-page click while already in expanded-page view collapses back to summary.
+  const handlePageExpand = useCallback(
+    (pageNumber?: number) => {
+      if (!canExpandToPage) return;
+      // Active-page pill (X button) in expanded view → collapse
+      const verifiedPage = verification?.document?.verifiedPageNumber ?? undefined;
+      if (viewState === "expanded-page" && pageNumber != null && pageNumber === verifiedPage) {
+        onViewStateChange?.(prevBeforeExpandedPageRef.current);
+        return;
+      }
+      const targetImage =
+        pageNumber != null ? resolveExpandedImageForPage(verification, pageNumber, pageImages) : expandedImage;
+      const targetWidth =
+        expandedPageShellWidth ?? pageNaturalWidth ?? keyholeImageNaturalWidth ?? keyholeNaturalWidthSeed;
+      if (targetWidth != null && targetImage?.src) {
+        setExpandedPageShell(prev => (prev ? prev : { width: targetWidth, src: targetImage.src }));
+      }
+      onExpandedWidthChange?.(targetWidth, "expanded-page");
+      onViewStateChange?.("expanded-page");
+    },
+    [
+      canExpandToPage,
+      viewState,
+      expandedPageShellWidth,
+      expandedImage,
+      keyholeImageNaturalWidth,
+      keyholeNaturalWidthSeed,
+      onExpandedWidthChange,
+      onViewStateChange,
+      pageNaturalWidth,
+      pageImages,
+      prevBeforeExpandedPageRef,
+      verification,
+    ],
+  );
+
   // Prefetch images imperatively when the popover becomes visible.
   // Keyhole image: preload as soon as the popover opens (user is hovering).
   // Page image: preload now so it's ready when the user clicks to expand.
@@ -1022,7 +1078,7 @@ export function DefaultPopoverContent({
           onExpand={canExpandToPage ? handleExpand : undefined}
           onImageClick={
             evidenceSrc || hasKeyholeSlot
-              ? (isMiss || isPartialMatch) && canExpandToPage
+              ? (isMiss || isPartialMatch || hasKeyholeSlot) && canExpandToPage
                 ? handleExpand
                 : handleKeyholeClick
               : canExpandToPage
@@ -1048,7 +1104,7 @@ export function DefaultPopoverContent({
           summaryWidth={summaryWidth}
           popoverContentRef={popoverContentRef}
         >
-          <div style={viewState === "summary" ? { maxWidth: summaryWidth } : undefined}>
+          <div style={viewState === "summary" ? { maxWidth: summaryWidth } : { flexShrink: 0 }}>
             {/* Zone 1: Metadata Header */}
             <SourceContextHeader
               citation={citation}
@@ -1059,6 +1115,8 @@ export function DefaultPopoverContent({
               onClose={isFullPage ? handleCollapseFromExpandedPage : undefined}
               download={download}
               customActions={customPopoverActions}
+              pages={availablePages}
+              onPageClick={canExpandToPage ? handlePageExpand : undefined}
             />
             {/* Zone 2: Claim Body — Status + highlighted phrase */}
             <StatusHeader
@@ -1117,6 +1175,7 @@ export function DefaultPopoverContent({
             summaryContent={summaryContent}
             keyholeInitialScroll={keyholeInitialScroll}
             escapeInterceptRef={escapeInterceptRef}
+            renderExpandedPage={renderExpandedPage}
           />
         </PopoverLayoutShell>
       </>
