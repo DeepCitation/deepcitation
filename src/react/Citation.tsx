@@ -883,6 +883,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             closePopover();
             break;
           case "expandImage":
+            announceActivePopover(citationInstanceId);
             viewState.transition("expanded-page");
             break;
         }
@@ -1114,6 +1115,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     //
     // Touch has its own handler above with tap-vs-scroll detection; this mouse
     // path covers actual clicks without interfering with trigger/popup clicks.
+    //
+    // On hybrid touch/mouse devices, a tap can fire both touchend and a synthetic
+    // mousedown — closePopover() is idempotent so the double-call is harmless.
     //
     // Note: We still check isAnyOverlayOpenRef to keep the popover open when image overlay is shown.
     useEffect(() => {
