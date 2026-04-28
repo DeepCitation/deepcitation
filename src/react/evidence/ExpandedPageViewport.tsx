@@ -7,6 +7,7 @@ import { CitationAnnotationOverlay } from "../CitationAnnotationOverlay.js";
 import { getStatusFromVerification } from "../citationStatus.js";
 import {
   DOCUMENT_CANVAS_BG_CLASSES,
+  EXPANDED_PAGE_CANVAS_PADDING_PX,
   EXPANDED_ZOOM_MAX,
   EXPANDED_ZOOM_MIN,
   EXPANDED_ZOOM_STEP,
@@ -23,7 +24,6 @@ import { ZoomToolbar } from "../ZoomToolbar.js";
 import { computeExpandedPageFittedZoom } from "./expandedPageViewportGeometry.js";
 import { IDENTITY_RENDER_SCALE } from "./resolvers.js";
 
-const CANVAS_PADDING_PX = 16;
 const DRIFT_THRESHOLD_PX = 15;
 
 function normalizeWheelDelta(event: WheelEvent): { x: number; y: number } {
@@ -174,7 +174,7 @@ export function ExpandedPageViewport({
 
   useEffect(() => {
     if (!contentReady || !containerSize || containerSize.width <= 0 || containerSize.height <= 0) return;
-    const reportedW = Math.round(width * zoom) + CANVAS_PADDING_PX * 2;
+    const reportedW = Math.round(width * zoom) + EXPANDED_PAGE_CANVAS_PADDING_PX * 2;
     const reportedH = Math.round(height * zoom);
     const last = lastReportedSizeRef.current;
     if (!last || last.w !== reportedW || last.h !== reportedH) {
@@ -206,8 +206,8 @@ export function ExpandedPageViewport({
       viewBoxOriginY,
     );
     if (!target) return;
-    const sl = target.scrollLeft + CANVAS_PADDING_PX;
-    const st = target.scrollTop + CANVAS_PADDING_PX;
+    const sl = target.scrollLeft + EXPANDED_PAGE_CANVAS_PADDING_PX;
+    const st = target.scrollTop + EXPANDED_PAGE_CANVAS_PADDING_PX;
     annotationScrollTargetRef.current = { left: sl, top: st };
     isAnimatingScrollRef.current = true;
     setLocateDirty(false);
@@ -235,8 +235,8 @@ export function ExpandedPageViewport({
         if (el) {
           // Force layout so the first scroll write lands after display:none → visible.
           void el.scrollHeight;
-          el.scrollLeft = initialScroll.left * zoom + CANVAS_PADDING_PX;
-          el.scrollTop = initialScroll.top * zoom + CANVAS_PADDING_PX;
+          el.scrollLeft = initialScroll.left * zoom + EXPANDED_PAGE_CANVAS_PADDING_PX;
+          el.scrollTop = initialScroll.top * zoom + EXPANDED_PAGE_CANVAS_PADDING_PX;
         }
       }
       setPageExpandReady(true);
@@ -441,10 +441,10 @@ export function ExpandedPageViewport({
       const wx = anchor.mx + anchor.sx - (anchor.wrapperOffsetLeft ?? 0);
       const wy = anchor.my + anchor.sy - (anchor.wrapperOffsetTop ?? 0);
       const newZoomedWidth = width * zoom;
-      const availableWidth = el.clientWidth - CANVAS_PADDING_PX * 2;
+      const availableWidth = el.clientWidth - EXPANDED_PAGE_CANVAS_PADDING_PX * 2;
       const newMarginLeft = newZoomedWidth < availableWidth ? Math.round((availableWidth - newZoomedWidth) / 2) : 0;
-      const rawLeft = CANVAS_PADDING_PX + newMarginLeft + wx * ratio - anchor.mx;
-      const rawTop = CANVAS_PADDING_PX + wy * ratio - anchor.my;
+      const rawLeft = EXPANDED_PAGE_CANVAS_PADDING_PX + newMarginLeft + wx * ratio - anchor.mx;
+      const rawTop = EXPANDED_PAGE_CANVAS_PADDING_PX + wy * ratio - anchor.my;
       el.scrollLeft = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, rawLeft));
       el.scrollTop = Math.max(0, Math.min(el.scrollHeight - el.clientHeight, rawTop));
     }
@@ -455,7 +455,7 @@ export function ExpandedPageViewport({
   const marginLeft = useMemo(() => {
     if (!contentReady || !containerSize) return 0;
     const zoomedW = width * zoom;
-    const availableWidth = containerSize.width - CANVAS_PADDING_PX * 2;
+    const availableWidth = containerSize.width - EXPANDED_PAGE_CANVAS_PADDING_PX * 2;
     return zoomedW < availableWidth ? Math.round((availableWidth - zoomedW) / 2) : 0;
   }, [contentReady, containerSize, width, zoom]);
 
@@ -463,8 +463,8 @@ export function ExpandedPageViewport({
     if (!contentReady) return { position: "relative", minWidth: "100%", minHeight: "100%" };
     return {
       position: "relative",
-      width: Math.max(containerSize?.width ?? 0, width * zoom + CANVAS_PADDING_PX * 2),
-      height: Math.max(containerSize?.height ?? 0, height * zoom + CANVAS_PADDING_PX * 2),
+      width: Math.max(containerSize?.width ?? 0, width * zoom + EXPANDED_PAGE_CANVAS_PADDING_PX * 2),
+      height: Math.max(containerSize?.height ?? 0, height * zoom + EXPANDED_PAGE_CANVAS_PADDING_PX * 2),
     };
   }, [contentReady, width, height, zoom, containerSize]);
 
@@ -572,8 +572,8 @@ export function ExpandedPageViewport({
               ref={contentWrapperRef}
               style={{
                 position: contentReady ? "absolute" : "relative",
-                left: contentReady ? marginLeft + CANVAS_PADDING_PX : undefined,
-                top: contentReady ? CANVAS_PADDING_PX : undefined,
+                left: contentReady ? marginLeft + EXPANDED_PAGE_CANVAS_PADDING_PX : undefined,
+                top: contentReady ? EXPANDED_PAGE_CANVAS_PADDING_PX : undefined,
                 width: contentReady ? width * zoom : undefined,
                 height: contentReady ? height * zoom : undefined,
                 overflow: contentReady ? "hidden" : undefined,

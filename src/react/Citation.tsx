@@ -981,7 +981,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const handleMouseEnter = useCallback(() => {
       // Don't trigger hover popover if any image overlay is expanded
       if (isAnyOverlayOpen) return;
-      // Don't show popover on hover - only on click (lazy mode behavior)
+      // Hover does NOT call setIsHovering(true) — the popover is click-to-open only.
+      // This means announceActivePopover is not needed here; all open paths go through
+      // handleTapAction (showPopover/expandImage) or the setImageExpanded branch, which
+      // all call announceActivePopover before setting isHovering.
       if (behaviorConfig?.onHover?.onEnter) {
         behaviorConfig.onHover.onEnter(getBehaviorContext());
       }
