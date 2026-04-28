@@ -55,6 +55,23 @@ export type {
 /** Tracks which deprecation warnings have already been emitted (dev-mode only). */
 const deprecationWarned = new Set<string>();
 
+type ActivePopoverListener = (activeInstanceId: string) => void;
+
+const activePopoverListeners = new Set<ActivePopoverListener>();
+
+function announceActivePopover(citationInstanceId: string): void {
+  for (const listener of activePopoverListeners) {
+    listener(citationInstanceId);
+  }
+}
+
+function subscribeToActivePopover(listener: ActivePopoverListener): () => void {
+  activePopoverListeners.add(listener);
+  return () => {
+    activePopoverListeners.delete(listener);
+  };
+}
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -149,6 +166,8 @@ export interface CitationComponentProps extends BaseCitationProps {
   renderContent?: (props: CitationRenderProps) => React.ReactNode;
   /** Position of popover. Use "hidden" to disable. */
   popoverPosition?: "top" | "bottom" | "hidden";
+  /** Portal the popover to document.body so clipped host containers cannot crop it. */
+  popoverPortalToBody?: boolean;
   /** Custom render function for popover content */
   renderPopoverContent?: (props: {
     citation: BaseCitationProps["citation"];
@@ -174,7 +193,10 @@ export interface CitationComponentProps extends BaseCitationProps {
    * `canExpandToPage` becomes true even without pre-rendered JPEG page images.
    * Called with `{ onCollapse }` when the popover transitions to expanded-page state.
    */
-  renderExpandedPage?: (props: { onCollapse: () => void }) => React.ReactNode;
+  renderExpandedPage?: (props: {
+    onCollapse: () => void;
+    onDisplayedSizeChange?: (width: number, height: number) => void;
+  }) => React.ReactNode;
   /**
    * Number of additional citations grouped with this one (for source variant).
    * Shows as "+N" suffix (e.g., "Wikipedia +2")
@@ -451,6 +473,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       renderIndicator,
       renderContent,
       popoverPosition = "bottom",
+      popoverPortalToBody = false,
       renderPopoverContent,
       renderEvidenceKeyhole,
       renderExpandedPage,
@@ -620,6 +643,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const citationKey = useMemo(() => getCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
 
+    useEffect(() => {
+      return subscribeToActivePopover(activeInstanceId => {
+        if (activeInstanceId !== citationInstanceId) {
+          closePopover();
+        }
+      });
+    }, [citationInstanceId, closePopover]);
+
     // ========== TtC Timing ==========
     const { firstSeenAtRef } = useCitationTiming(
       citationKey,
@@ -772,6 +803,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             closePopover();
           } else if (actions.setImageExpanded) {
             // Open: show popover in expanded (full page) view
+            announceActivePopover(citationInstanceId);
             setIsHovering(true);
             viewState.transition("expanded-page");
             // If a custom image URL was provided, validate before storing
@@ -782,7 +814,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         }
       },
       // biome-ignore lint/correctness/useExhaustiveDependencies: both viewState and viewState.transition are intentionally listed for hook stability
-      [closePopover, viewState.transition, viewState],
+      [citationInstanceId, closePopover, viewState.transition, viewState],
     );
 
     // Shared tap/click action handler - used by both click and touch handlers.
@@ -844,12 +876,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             // the geometry of the state the user was viewing.
             viewState.resetToSummary();
             setCustomExpandedSrc(null);
+            announceActivePopover(citationInstanceId);
             setIsHovering(true);
             break;
           case "hidePopover":
             closePopover();
             break;
           case "expandImage":
+            announceActivePopover(citationInstanceId);
             viewState.transition("expanded-page");
             break;
         }
@@ -860,6 +894,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         behaviorConfig,
         eventHandlers,
         citation,
+        citationInstanceId,
         citationKey,
         getBehaviorContext,
         applyBehaviorActions,
@@ -946,7 +981,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const handleMouseEnter = useCallback(() => {
       // Don't trigger hover popover if any image overlay is expanded
       if (isAnyOverlayOpen) return;
-      // Don't show popover on hover - only on click (lazy mode behavior)
+      // Hover does NOT call setIsHovering(true) — the popover is click-to-open only.
+      // This means announceActivePopover is not needed here; all open paths go through
+      // handleTapAction (showPopover/expandImage) or the setImageExpanded branch, which
+      // all call announceActivePopover before setting isHovering.
       if (behaviorConfig?.onHover?.onEnter) {
         behaviorConfig.onHover.onEnter(getBehaviorContext());
       }
@@ -1072,19 +1110,21 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       };
     }, [isMobile, isHovering, closePopover]);
 
-    // Desktop click-outside dismiss handler
+    // Mouse click-outside dismiss handler
     //
-    // On desktop, clicking outside the citation trigger or popover should dismiss the popover.
-    // This is separate from the mouse-leave handler because clicks should always be
-    // respected immediately, even during hover close delays.
+    // Clicking outside the citation trigger or popover should dismiss the popover.
+    // Keep this active even in mobile/touch mode for hybrid environments and
+    // desktop browser surfaces that report coarse pointer capability.
     //
-    // Why separate from mobile handler:
-    // - Desktop uses mousedown (not touchstart) for better UX consistency with other web apps
-    // - Mobile has its own touch handler above with different timing characteristics
+    // Touch has its own handler above with tap-vs-scroll detection; this mouse
+    // path covers actual clicks without interfering with trigger/popup clicks.
+    //
+    // On hybrid touch/mouse devices, a tap can fire both touchend and a synthetic
+    // mousedown — closePopover() is idempotent so the double-call is harmless.
     //
     // Note: We still check isAnyOverlayOpenRef to keep the popover open when image overlay is shown.
     useEffect(() => {
-      if (isMobile || !isHovering) return;
+      if (!isHovering) return;
 
       // Snapshot triggerRef at effect setup time — the trigger element is always mounted
       // and the ref is guaranteed non-null when effects run (after DOM commit + ref attach).
@@ -1139,7 +1179,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           capture: true,
         });
       };
-    }, [isMobile, isHovering, closePopover]);
+    }, [isHovering, closePopover]);
 
     // Touch start handler for mobile - captures popover state before touch ends.
     // Reads isHoveringRef.current (which is kept in sync with isHovering state above)
@@ -1424,7 +1464,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                 align="start"
                 sideOffset={expandedPageSideOffset}
                 alignOffset={popoverAlignOffset}
-                portalToBody={viewState.current === "expanded-page"}
+                portalToBody={popoverPortalToBody || viewState.current === "expanded-page"}
                 onCloseAutoFocus={handleCloseAutoFocus}
                 onEscapeKeyDown={viewState.onEscapeKeyDown}
                 style={

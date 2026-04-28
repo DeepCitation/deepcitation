@@ -595,6 +595,11 @@ export const EXPANDED_ZOOM_MAX = 3.0;
  *  further via the slider (floor set by fitZoom, not this constant). */
 export const EXPANDED_MIN_READABLE_ZOOM = 0.5;
 
+/** Padding (px) between the expanded-page canvas edges and its scroll container.
+ *  Used both for canvas layout (ExpandedPageViewport) and zoom calculation
+ *  (computeExpandedPageFittedZoom). Keep in sync if changed. */
+export const EXPANDED_PAGE_CANVAS_PADDING_PX = 16;
+
 /** Width ratio threshold for keyhole width-fit mode.
  *  When image at height-fit scale is narrower than this fraction of the
  *  container, switch to width-fit mode for readability. */

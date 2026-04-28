@@ -7,8 +7,7 @@ import { CitationAnnotationOverlay } from "../CitationAnnotationOverlay.js";
 import { getStatusFromVerification } from "../citationStatus.js";
 import {
   DOCUMENT_CANVAS_BG_CLASSES,
-  EXPANDED_IMAGE_SHELL_PX,
-  EXPANDED_MIN_READABLE_ZOOM,
+  EXPANDED_PAGE_CANVAS_PADDING_PX,
   EXPANDED_ZOOM_MAX,
   EXPANDED_ZOOM_MIN,
   EXPANDED_ZOOM_STEP,
@@ -22,10 +21,19 @@ import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercen
 import { cn, isImageSource } from "../utils.js";
 import { DC_EVIDENCE_VT_NAME } from "../viewTransition.js";
 import { ZoomToolbar } from "../ZoomToolbar.js";
+import { computeExpandedPageFittedZoom } from "./expandedPageViewportGeometry.js";
 import { IDENTITY_RENDER_SCALE } from "./resolvers.js";
 
-const CANVAS_PADDING_PX = 16;
 const DRIFT_THRESHOLD_PX = 15;
+
+function normalizeWheelDelta(event: WheelEvent): { x: number; y: number } {
+  const pageHeight = typeof window !== "undefined" ? window.innerHeight : 768;
+  const multiplier = event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? pageHeight : 1;
+  return {
+    x: event.deltaX * multiplier,
+    y: event.deltaY * multiplier,
+  };
+}
 
 export interface ExpandedPageViewportRenderProps {
   scale: number;
@@ -87,7 +95,6 @@ export function ExpandedPageViewport({
 
   const [manualZoom, setManualZoom] = useState<number | null>(null);
   const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
-  const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 0));
   const [overlayHidden, setOverlayHidden] = useState(initialOverlayHidden);
   const [locateDirty, setLocateDirty] = useState(false);
   const [locatePulseKey, setLocatePulseKey] = useState(0);
@@ -113,24 +120,13 @@ export function ExpandedPageViewport({
       (isStrategyOverride(vAnchor, vPhrase) && shouldHighlightSourceMatch(vAnchor, effectivePhraseItem?.text)));
   const scrollTarget = anchorHighlightActive ? effectiveAnchorItems[0] : effectivePhraseItem;
 
-  useEffect(() => {
-    const onResize = () => setViewportWidth(window.innerWidth);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
   const fittedZoom = useMemo(() => {
-    if (!contentReady || !containerSize || containerSize.width <= 0 || containerSize.height <= 0) return null;
-    const pad = CANVAS_PADDING_PX * 2;
-    const maxPageWidth =
-      viewportWidth > 0 ? viewportWidth - 32 - EXPANDED_IMAGE_SHELL_PX - pad : containerSize.width - pad;
-    const fitZoomW = maxPageWidth / width;
-    const fit = fitZoomW;
-    return {
-      readable: Math.min(1, Math.max(EXPANDED_MIN_READABLE_ZOOM, fit)),
-      floor: Math.min(EXPANDED_ZOOM_MIN, Math.min(1, Math.max(0.1, fit))),
-    };
-  }, [contentReady, width, containerSize, viewportWidth]);
+    return computeExpandedPageFittedZoom({
+      contentReady,
+      width,
+      containerWidth: containerSize?.width ?? null,
+    });
+  }, [contentReady, width, containerSize]);
 
   const zoom = manualZoom ?? fittedZoom?.readable ?? 1;
   const zoomFloor = fittedZoom?.floor ?? EXPANDED_ZOOM_MIN;
@@ -178,7 +174,7 @@ export function ExpandedPageViewport({
 
   useEffect(() => {
     if (!contentReady || !containerSize || containerSize.width <= 0 || containerSize.height <= 0) return;
-    const reportedW = Math.round(width * zoom) + CANVAS_PADDING_PX * 2;
+    const reportedW = Math.round(width * zoom) + EXPANDED_PAGE_CANVAS_PADDING_PX * 2;
     const reportedH = Math.round(height * zoom);
     const last = lastReportedSizeRef.current;
     if (!last || last.w !== reportedW || last.h !== reportedH) {
@@ -210,8 +206,8 @@ export function ExpandedPageViewport({
       viewBoxOriginY,
     );
     if (!target) return;
-    const sl = target.scrollLeft + CANVAS_PADDING_PX;
-    const st = target.scrollTop + CANVAS_PADDING_PX;
+    const sl = target.scrollLeft + EXPANDED_PAGE_CANVAS_PADDING_PX;
+    const st = target.scrollTop + EXPANDED_PAGE_CANVAS_PADDING_PX;
     annotationScrollTargetRef.current = { left: sl, top: st };
     isAnimatingScrollRef.current = true;
     setLocateDirty(false);
@@ -239,8 +235,8 @@ export function ExpandedPageViewport({
         if (el) {
           // Force layout so the first scroll write lands after display:none → visible.
           void el.scrollHeight;
-          el.scrollLeft = initialScroll.left * zoom + CANVAS_PADDING_PX;
-          el.scrollTop = initialScroll.top * zoom + CANVAS_PADDING_PX;
+          el.scrollLeft = initialScroll.left * zoom + EXPANDED_PAGE_CANVAS_PADDING_PX;
+          el.scrollTop = initialScroll.top * zoom + EXPANDED_PAGE_CANVAS_PADDING_PX;
         }
       }
       setPageExpandReady(true);
@@ -305,6 +301,41 @@ export function ExpandedPageViewport({
     requireCtrl: true,
     onZoomCommit: setManualZoom,
   });
+
+  // Trackpad/mouse-wheel pan for the expanded page.
+  //
+  // The expanded viewer lives inside PopoverContent, whose wheel passthrough
+  // forwards unhandled vertical scroll to the host page. Mixed-axis trackpad
+  // gestures often include a small deltaY alongside the user's intended deltaX;
+  // if the popover sees that first, horizontal panning can be lost. Own normal
+  // wheel panning here and leave Ctrl-wheel for useWheelZoom above.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is stable
+  useEffect(() => {
+    if (!contentReady) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onWheelPan = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey) return;
+      if (event.deltaX === 0 && event.deltaY === 0) return;
+
+      const { x, y } = normalizeWheelDelta(event);
+      const maxLeft = Math.max(0, el.scrollWidth - el.clientWidth);
+      const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
+      const nextLeft = Math.max(0, Math.min(maxLeft, el.scrollLeft + x));
+      const nextTop = Math.max(0, Math.min(maxTop, el.scrollTop + y));
+
+      if (Math.abs(nextLeft - el.scrollLeft) <= 0.5 && Math.abs(nextTop - el.scrollTop) <= 0.5) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      el.scrollLeft = nextLeft;
+      el.scrollTop = nextTop;
+    };
+
+    el.addEventListener("wheel", onWheelPan, { passive: false });
+    return () => el.removeEventListener("wheel", onWheelPan);
+  }, [contentReady]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: refs are stable and zoom is mirrored via zoomRef
   useEffect(() => {
@@ -410,10 +441,10 @@ export function ExpandedPageViewport({
       const wx = anchor.mx + anchor.sx - (anchor.wrapperOffsetLeft ?? 0);
       const wy = anchor.my + anchor.sy - (anchor.wrapperOffsetTop ?? 0);
       const newZoomedWidth = width * zoom;
-      const availableWidth = el.clientWidth - CANVAS_PADDING_PX * 2;
+      const availableWidth = el.clientWidth - EXPANDED_PAGE_CANVAS_PADDING_PX * 2;
       const newMarginLeft = newZoomedWidth < availableWidth ? Math.round((availableWidth - newZoomedWidth) / 2) : 0;
-      const rawLeft = CANVAS_PADDING_PX + newMarginLeft + wx * ratio - anchor.mx;
-      const rawTop = CANVAS_PADDING_PX + wy * ratio - anchor.my;
+      const rawLeft = EXPANDED_PAGE_CANVAS_PADDING_PX + newMarginLeft + wx * ratio - anchor.mx;
+      const rawTop = EXPANDED_PAGE_CANVAS_PADDING_PX + wy * ratio - anchor.my;
       el.scrollLeft = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, rawLeft));
       el.scrollTop = Math.max(0, Math.min(el.scrollHeight - el.clientHeight, rawTop));
     }
@@ -424,7 +455,7 @@ export function ExpandedPageViewport({
   const marginLeft = useMemo(() => {
     if (!contentReady || !containerSize) return 0;
     const zoomedW = width * zoom;
-    const availableWidth = containerSize.width - CANVAS_PADDING_PX * 2;
+    const availableWidth = containerSize.width - EXPANDED_PAGE_CANVAS_PADDING_PX * 2;
     return zoomedW < availableWidth ? Math.round((availableWidth - zoomedW) / 2) : 0;
   }, [contentReady, containerSize, width, zoom]);
 
@@ -432,8 +463,8 @@ export function ExpandedPageViewport({
     if (!contentReady) return { position: "relative", minWidth: "100%", minHeight: "100%" };
     return {
       position: "relative",
-      width: Math.max(containerSize?.width ?? 0, width * zoom + CANVAS_PADDING_PX * 2),
-      height: Math.max(containerSize?.height ?? 0, height * zoom + CANVAS_PADDING_PX * 2),
+      width: Math.max(containerSize?.width ?? 0, width * zoom + EXPANDED_PAGE_CANVAS_PADDING_PX * 2),
+      height: Math.max(containerSize?.height ?? 0, height * zoom + EXPANDED_PAGE_CANVAS_PADDING_PX * 2),
     };
   }, [contentReady, width, height, zoom, containerSize]);
 
@@ -475,8 +506,8 @@ export function ExpandedPageViewport({
   const showLocate = contentReady && !!(scrollTarget ?? effectivePhraseItem) && !!effectiveRenderScale;
 
   return (
-    <div className={cn("relative flex flex-col flex-1 min-h-0 mx-3 mb-3", className)}>
-      <div className="relative flex flex-col flex-1 min-h-0">
+    <div className={cn("relative flex flex-col flex-1 min-h-0 min-w-0 w-full mx-3 mb-3", className)}>
+      <div className="relative flex flex-col flex-1 min-h-0 min-w-0 w-full">
         <div
           ref={containerRef}
           data-dc-inline-expanded=""
@@ -484,7 +515,10 @@ export function ExpandedPageViewport({
           role="button"
           tabIndex={0}
           aria-label={ariaLabel ?? t("aria.expandedImageViewer")}
-          className={cn("relative select-none overflow-auto rounded-t-sm flex-1 min-h-0", DOCUMENT_CANVAS_BG_CLASSES)}
+          className={cn(
+            "relative select-none overflow-auto rounded-t-sm flex-1 min-h-0 min-w-0 w-full",
+            DOCUMENT_CANVAS_BG_CLASSES,
+          )}
           style={{
             ...(!annotationVtRect ? { viewTransitionName: DC_EVIDENCE_VT_NAME } : {}),
             overscrollBehavior: "none",
@@ -538,8 +572,8 @@ export function ExpandedPageViewport({
               ref={contentWrapperRef}
               style={{
                 position: contentReady ? "absolute" : "relative",
-                left: contentReady ? marginLeft + CANVAS_PADDING_PX : undefined,
-                top: contentReady ? CANVAS_PADDING_PX : undefined,
+                left: contentReady ? marginLeft + EXPANDED_PAGE_CANVAS_PADDING_PX : undefined,
+                top: contentReady ? EXPANDED_PAGE_CANVAS_PADDING_PX : undefined,
                 width: contentReady ? width * zoom : undefined,
                 height: contentReady ? height * zoom : undefined,
                 overflow: contentReady ? "hidden" : undefined,

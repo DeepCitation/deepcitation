@@ -245,14 +245,14 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
     isDraggingRef.current = isDragging;
   }, [isDragging]);
 
-  const onMouseMove = useCallback(
-    (e: React.MouseEvent) => {
+  const applyMouseMove = useCallback(
+    (clientX: number, clientY: number) => {
       if (!isPressed.current) return;
       const el = containerRef.current;
       if (!el) return;
 
-      const dx = e.clientX - startX.current;
-      const dy = e.clientY - startY.current;
+      const dx = clientX - startX.current;
+      const dy = clientY - startY.current;
       // For xy mode use the larger axis; for x-only keep original horizontal-only check
       // so vertical jitter doesn't suppress clicks on the keyhole strip.
       dragDistance.current = direction === "xy" ? Math.max(Math.abs(dx), Math.abs(dy)) : Math.abs(dx);
@@ -269,12 +269,19 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
       // Record move sample for velocity estimation (ring buffer)
       const now = Date.now();
       const history = moveHistoryRef.current;
-      history.push({ x: e.clientX, y: e.clientY, t: now });
+      history.push({ x: clientX, y: clientY, t: now });
       if (history.length > VELOCITY_SAMPLE_COUNT) {
         history.shift();
       }
     },
     [direction],
+  );
+
+  const onMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      applyMouseMove(e.clientX, e.clientY);
+    },
+    [applyMouseMove],
   );
 
   const finishDrag = useCallback(() => {
@@ -313,18 +320,27 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
     finishDragRef.current = finishDrag;
   }, [finishDrag]);
 
-  // Global mouseup catches releases outside the container (image drags, mouse leaving window, etc.)
-  // Without this, isPressed stays true and any future mousemove causes phantom panning.
+  // Global mouse move/up keeps drag-to-pan active even when the pointer crosses
+  // child overlays, hidden-scrollbar edges, or leaves the scroll container.
+  // Without this, expanded popover panning can appear locked to one axis because
+  // the element stops receiving React mousemove events mid-gesture.
   // Also handles native HTML5 dragend which can steal the pointer stream and skip mouseup.
   useEffect(() => {
-    const handler = () => finishDragRef.current();
-    document.addEventListener("mouseup", handler);
-    document.addEventListener("dragend", handler);
-    return () => {
-      document.removeEventListener("mouseup", handler);
-      document.removeEventListener("dragend", handler);
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isPressed.current) return;
+      event.preventDefault();
+      applyMouseMove(event.clientX, event.clientY);
     };
-  }, []);
+    const handleFinish = () => finishDragRef.current();
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleFinish);
+    document.addEventListener("dragend", handleFinish);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleFinish);
+      document.removeEventListener("dragend", handleFinish);
+    };
+  }, [applyMouseMove]);
 
   const onMouseUp = finishDrag;
   const onMouseLeave = finishDrag;
