@@ -282,6 +282,41 @@ describe("CitationComponent behaviorConfig", () => {
       await waitForPopoverDismissed(container);
     });
 
+    it("closes the first popover when a second citation opens", async () => {
+      const secondCitation: Citation = {
+        citationNumber: 2,
+        sourceMatch: "second citation",
+        sourceContext: "This is another test citation phrase",
+      };
+
+      const { container } = render(
+        <>
+          <CitationComponent citation={baseCitation} verification={verificationWithImage} />
+          <CitationComponent citation={secondCitation} verification={verificationWithImage} />
+        </>,
+      );
+
+      const citations = container.querySelectorAll("[data-citation-id]");
+      expect(citations).toHaveLength(2);
+
+      await act(async () => {
+        fireEvent.click(citations[0] as HTMLElement);
+      });
+      await waitFor(() => {
+        expect(container.querySelectorAll('[data-state="open"]')).toHaveLength(1);
+      });
+
+      await act(async () => {
+        fireEvent.click(citations[1] as HTMLElement);
+      });
+
+      await waitFor(() => {
+        expect(container.querySelectorAll('[data-state="open"]')).toHaveLength(1);
+      });
+      expect(citations[0]).toHaveAttribute("aria-expanded", "false");
+      expect(citations[1]).toHaveAttribute("aria-expanded", "true");
+    });
+
     it("does not open image overlay on click when no image is available", async () => {
       const { container } = render(
         <CitationComponent citation={baseCitation} verification={verificationWithoutImage} />,
@@ -2439,6 +2474,25 @@ describe("CitationComponent interactionMode", () => {
       });
 
       // Popover should close immediately (no delay)
+      await waitForPopoverDismissed(container);
+    });
+
+    it("dismisses popover on mouse outside click even when mobile mode is active", async () => {
+      const { container } = render(
+        <CitationComponent citation={baseCitation} verification={verificationWithImage} isMobile={true} />,
+      );
+
+      const trigger = container.querySelector("[data-citation-id]") as HTMLElement;
+
+      await act(async () => {
+        fireEvent.click(trigger);
+      });
+      await waitForPopoverVisible(container);
+
+      await act(async () => {
+        fireEvent.mouseDown(document.body);
+      });
+
       await waitForPopoverDismissed(container);
     });
 

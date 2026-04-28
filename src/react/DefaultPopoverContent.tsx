@@ -135,7 +135,10 @@ export interface PopoverContentProps {
    * `canExpandToPage` becomes true even without pre-rendered JPEG page images.
    * Called with `{ onCollapse }` when `viewState` transitions to `"expanded-page"`.
    */
-  renderExpandedPage?: (props: { onCollapse: () => void }) => React.ReactNode;
+  renderExpandedPage?: (props: {
+    onCollapse: () => void;
+    onDisplayedSizeChange?: (width: number, height: number) => void;
+  }) => React.ReactNode;
 }
 
 // =============================================================================
@@ -342,6 +345,7 @@ function EvidenceZone({
   expandCtaLabel,
   handlePageImageLoad,
   handleKeyholeImageLoad,
+  handleExpandedPageDisplayedSizeChange,
   prevBeforeExpandedPageRef,
   verification,
   summaryContent,
@@ -370,7 +374,11 @@ function EvidenceZone({
   /** Natural-pixel scroll position captured from the keyhole strip on last expand click. */
   keyholeInitialScroll?: { left: number; top: number } | null;
   escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
-  renderExpandedPage?: (props: { onCollapse: () => void }) => React.ReactNode;
+  handleExpandedPageDisplayedSizeChange?: (width: number, height: number) => void;
+  renderExpandedPage?: (props: {
+    onCollapse: () => void;
+    onDisplayedSizeChange?: (width: number, height: number) => void;
+  }) => React.ReactNode;
 }) {
   const slotBRef = useRef<HTMLDivElement>(null);
   const slotCRef = useRef<HTMLDivElement>(null);
@@ -507,7 +515,7 @@ function EvidenceZone({
           JPEG page image is available (e.g. live PDF keyhole). */}
       <div
         ref={slotCRef}
-        className="flex flex-col flex-1 min-h-0"
+        className="flex flex-col flex-1 min-h-0 min-w-0 w-full"
         style={viewState !== "expanded-page" ? { display: "none" } : undefined}
       >
         {expandedImage?.src ? (
@@ -522,7 +530,10 @@ function EvidenceZone({
             initialScroll={keyholeInitialScroll ?? undefined}
           />
         ) : (
-          (renderExpandedPage?.({ onCollapse: handlePageCollapse }) ?? null)
+          (renderExpandedPage?.({
+            onCollapse: handlePageCollapse,
+            onDisplayedSizeChange: handleExpandedPageDisplayedSizeChange,
+          }) ?? null)
         )}
       </div>
     </>
@@ -830,6 +841,13 @@ export function DefaultPopoverContent({
     // because of the optional chaining property access pattern. Stable ref identity
     // means this rarely triggers extra re-creation.
     [viewState, expandedImage],
+  );
+  const handleExpandedPageDisplayedSizeChange = useCallback(
+    (width: number, _height: number) => {
+      if (!Number.isFinite(width) || width <= 0) return;
+      onExpandedWidthChange?.(width, "expanded-page");
+    },
+    [onExpandedWidthChange],
   );
 
   const keyholeImageNaturalWidth =
@@ -1170,6 +1188,7 @@ export function DefaultPopoverContent({
             expandCtaLabel={expandCtaLabel}
             handlePageImageLoad={handlePageImageLoad}
             handleKeyholeImageLoad={handleKeyholeImageLoad}
+            handleExpandedPageDisplayedSizeChange={handleExpandedPageDisplayedSizeChange}
             prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
             verification={verification}
             summaryContent={summaryContent}
