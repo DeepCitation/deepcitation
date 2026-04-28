@@ -27,7 +27,8 @@ const CANVAS_PADDING_PX = 16;
 const DRIFT_THRESHOLD_PX = 15;
 
 function normalizeWheelDelta(event: WheelEvent): { x: number; y: number } {
-  const multiplier = event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? window.innerHeight : 1;
+  const pageHeight = typeof window !== "undefined" ? window.innerHeight : 768;
+  const multiplier = event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? pageHeight : 1;
   return {
     x: event.deltaX * multiplier,
     y: event.deltaY * multiplier,
