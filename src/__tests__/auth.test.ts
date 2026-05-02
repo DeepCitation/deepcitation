@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";

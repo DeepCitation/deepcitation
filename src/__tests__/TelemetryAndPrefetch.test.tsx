@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import type React from "react";
 
 // Mock createPortal to render content in place instead of portal.

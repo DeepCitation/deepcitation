@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import type React from "react";
 import { createRef } from "react";

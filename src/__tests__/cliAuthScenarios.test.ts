@@ -13,7 +13,7 @@
  * - Network errors after auth succeeds (are error messages helpful?)
  */
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
