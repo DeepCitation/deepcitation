@@ -13,11 +13,11 @@
  * - Network errors after auth succeeds (are error messages helpful?)
  */
 
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "@jest/globals";
 
 const CLI = resolve(__dirname, "../../lib/cli.js");
 const BASE_DIR = join(tmpdir(), `dc-auth-scenarios-${Date.now()}`);
@@ -32,8 +32,33 @@ function run(
   args: string[],
   opts?: { env?: Record<string, string | undefined>; cwd?: string; stdin?: string; timeout?: number },
 ): RunResult {
-  // Build clean env: start from process.env, overlay opts.env, remove undefined keys
-  const env: Record<string, string> = { ...process.env } as Record<string, string>;
+  // Build a stable subprocess env instead of copying the test runner's mutable
+  // process.env wholesale. Bun runs files in one process, so earlier tests can
+  // leave auth/browser flags behind and change these scenarios.
+  const env: Record<string, string> = {};
+  for (const key of [
+    "PATH",
+    "HOME",
+    "TMPDIR",
+    "TMP",
+    "TEMP",
+    "USER",
+    "LOGNAME",
+    "LANG",
+    "LC_ALL",
+    "TERM",
+    "SHELL",
+    "PWD",
+    "CI",
+    "NODE_ENV",
+    "NODE_NO_WARNINGS",
+    "HTTPS_PROXY",
+    "HTTP_PROXY",
+    "NO_PROXY",
+  ]) {
+    const value = process.env[key];
+    if (value) env[key] = value;
+  }
   if (opts?.env) {
     for (const [k, v] of Object.entries(opts.env)) {
       if (v === undefined) {

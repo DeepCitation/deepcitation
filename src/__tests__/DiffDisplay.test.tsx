@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, within } from "@testing-library/react";
 import DiffDisplay from "../react/DiffDisplay";
 

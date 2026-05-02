@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import type { Mock } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { DeepCitation } from "../../client/DeepCitation.js";
 import { ServerError, ValidationError } from "../../client/errors.js";
 
-const mockFetch = jest.fn() as jest.Mock;
+const mockFetch = mock(() => {}) as Mock<typeof fetch>;
 global.fetch = mockFetch;
 
 const TEST_API_KEY = "sk-dc-test-key-00000001";

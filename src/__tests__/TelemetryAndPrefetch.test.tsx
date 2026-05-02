@@ -1,13 +1,13 @@
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
-import { act, cleanup, render } from "@testing-library/react";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import type React from "react";
 
 // Mock createPortal to render content in place instead of portal.
-jest.mock("react-dom", () => {
-  const actual = jest.requireActual("react-dom") as typeof import("react-dom");
+mock.module("react-dom", () => {
+  const actual = require("react-dom") as typeof import("react-dom");
   return { ...actual, createPortal: (node: React.ReactNode) => node };
 });
 
+import { act, cleanup, render } from "@testing-library/react";
 import { CitationComponent } from "../react/Citation";
 import type { Citation } from "../types/citation";
 
@@ -29,7 +29,7 @@ describe("disableTelemetry and prefetch props", () => {
   });
 
   it("fires timing events by default", async () => {
-    const onTimingEvent = jest.fn();
+    const onTimingEvent = mock(() => {});
     render(
       <CitationComponent citation={baseCitation} verification={foundVerification} onTimingEvent={onTimingEvent} />,
     );
@@ -41,7 +41,7 @@ describe("disableTelemetry and prefetch props", () => {
   });
 
   it("suppresses timing events when disableTelemetry is true", async () => {
-    const onTimingEvent = jest.fn();
+    const onTimingEvent = mock(() => {});
     render(
       <CitationComponent
         citation={baseCitation}
@@ -82,7 +82,7 @@ describe("disableTelemetry and prefetch props", () => {
   });
 
   it("disableTelemetry and prefetch are independent", async () => {
-    const onTimingEvent = jest.fn();
+    const onTimingEvent = mock(() => {});
     render(
       <CitationComponent
         citation={baseCitation}

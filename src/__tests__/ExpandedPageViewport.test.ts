@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, test } from "bun:test";
 import { computeExpandedPageFittedZoom } from "../react/evidence/expandedPageViewportGeometry";
 
 describe("computeExpandedPageFittedZoom", () => {

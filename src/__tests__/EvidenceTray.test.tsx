@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import type React from "react";
 import { createRef } from "react";
@@ -22,7 +22,7 @@ const baseVerification: Verification = {
 
 describe("EvidenceTray interaction styles", () => {
   afterEach(() => {
-    jest.useRealTimers();
+    mock.restore();
     cleanup();
   });
 
@@ -122,7 +122,7 @@ describe("EvidenceTray interaction styles", () => {
       isPartialMatch: false,
       isPending: false,
     };
-    const onExpand = jest.fn<() => void>();
+    const onExpand = mock(() => {});
     const missVerification: Verification = {
       status: "not_found",
       citation: {
@@ -283,7 +283,7 @@ describe("EvidenceTray interaction styles", () => {
   });
 
   it("suppresses keyhole expansion when image is at the 2.0x near-fit threshold", async () => {
-    const onImageClick = jest.fn<() => void>();
+    const onImageClick = mock(() => {});
     const { container } = render(
       <EvidenceTray verification={baseVerification} status={baseStatus} onImageClick={onImageClick} />,
     );
@@ -306,7 +306,7 @@ describe("EvidenceTray interaction styles", () => {
   });
 
   it("allows keyhole expansion when image exceeds the 2.0x near-fit threshold", async () => {
-    const onImageClick = jest.fn<() => void>();
+    const onImageClick = mock(() => {});
     const { container } = render(
       <EvidenceTray verification={baseVerification} status={baseStatus} onImageClick={onImageClick} />,
     );
@@ -343,16 +343,19 @@ describe("InlineExpandedImage onNaturalSize", () => {
     target: document.createElement("div"),
   };
 
-  const mockResizeObserver = jest.fn<(cb: ResizeObserverCallback) => ResizeObserver>().mockImplementation(cb => {
+  const mockResizeObserver = mock((cb: ResizeObserverCallback) => {
     observerCallback = cb;
     return {
-      observe: jest.fn<ResizeObserver["observe"]>().mockImplementation(() => {
-        // Fire immediately with a 600×400 rect
-        const mockObserver: ResizeObserver = { observe: jest.fn(), unobserve: jest.fn(), disconnect: jest.fn() };
+      observe: mock(() => {
+        const mockObserver: ResizeObserver = {
+          observe: mock(() => {}),
+          unobserve: mock(() => {}),
+          disconnect: mock(() => {}),
+        };
         observerCallback([mockEntry], mockObserver);
       }),
-      unobserve: jest.fn<ResizeObserver["unobserve"]>(),
-      disconnect: jest.fn<ResizeObserver["disconnect"]>(),
+      unobserve: mock(() => {}),
+      disconnect: mock(() => {}),
     };
   });
 
@@ -362,7 +365,7 @@ describe("InlineExpandedImage onNaturalSize", () => {
 
   afterEach(() => {
     cleanup();
-    jest.restoreAllMocks();
+    mock.restore();
   });
 
   /** Simulate the browser firing the <img> onLoad with given natural dimensions. */
@@ -377,7 +380,7 @@ describe("InlineExpandedImage onNaturalSize", () => {
   }
 
   it("calls onNaturalSize after image load in fill mode", () => {
-    const onNaturalSize = jest.fn<(w: number, h: number) => void>();
+    const onNaturalSize = mock(() => {});
     const { container } = render(
       <InlineExpandedImage
         src="https://proof.deepcitation.com/page1.avif"
@@ -394,7 +397,7 @@ describe("InlineExpandedImage onNaturalSize", () => {
   });
 
   it("re-fires onNaturalSize after src changes (ref reset)", () => {
-    const onNaturalSize = jest.fn<(w: number, h: number) => void>();
+    const onNaturalSize = mock(() => {});
     const { container, rerender } = render(
       <InlineExpandedImage
         src="https://proof.deepcitation.com/page1.avif"
@@ -426,10 +429,10 @@ describe("InlineExpandedImage onNaturalSize", () => {
 
 describe("InlineExpandedImage View page CTA", () => {
   beforeEach(() => {
-    globalThis.ResizeObserver = jest.fn<(cb: ResizeObserverCallback) => ResizeObserver>().mockImplementation(() => ({
-      observe: jest.fn<ResizeObserver["observe"]>(),
-      unobserve: jest.fn<ResizeObserver["unobserve"]>(),
-      disconnect: jest.fn<ResizeObserver["disconnect"]>(),
+    globalThis.ResizeObserver = mock(() => ({
+      observe: mock(() => {}),
+      unobserve: mock(() => {}),
+      disconnect: mock(() => {}),
     })) as unknown as typeof ResizeObserver;
   });
 
@@ -442,7 +445,7 @@ describe("InlineExpandedImage View page CTA", () => {
   });
 
   it("renders 'View page' CTA when onExpand is provided", () => {
-    const onExpand = jest.fn();
+    const onExpand = mock(() => {});
     const { container } = render(
       <InlineExpandedImage src="https://proof.deepcitation.com/page1.avif" onCollapse={() => {}} onExpand={onExpand} />,
     );

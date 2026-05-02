@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { useWheelZoom } from "../react/hooks/useWheelZoom";
 
@@ -81,7 +81,7 @@ describe("useWheelZoom", () => {
   it("commits zoom after 150ms debounce", async () => {
     const container = createMockContainer();
     const wrapper = createMockWrapper(container);
-    const onZoomCommit = jest.fn<(z: number) => void>();
+    const onZoomCommit = mock<(z: number) => void>(() => {});
 
     renderHook(() =>
       useWheelZoom({
@@ -123,7 +123,7 @@ describe("useWheelZoom", () => {
     // Track committed zoom values — intentionally do NOT re-render (simulating
     // the window between commit timeout and React's render).
     let lastCommittedZoom = 1.0;
-    const onZoomCommit = jest.fn<(z: number) => void>().mockImplementation(z => {
+    const onZoomCommit = mock<(z: number) => void>((z: number) => {
       lastCommittedZoom = z;
     });
 
@@ -179,7 +179,7 @@ describe("useWheelZoom", () => {
     const wrapper = createMockWrapper(container);
 
     let lastCommittedZoom = 1.0;
-    const onZoomCommit = jest.fn<(z: number) => void>().mockImplementation(z => {
+    const onZoomCommit = mock<(z: number) => void>((z: number) => {
       lastCommittedZoom = z;
     });
 
@@ -235,7 +235,7 @@ describe("useWheelZoom", () => {
   it("does not intercept horizontal-only wheel events", async () => {
     const container = createMockContainer();
     const wrapper = createMockWrapper(container);
-    const onZoomCommit = jest.fn<(z: number) => void>();
+    const onZoomCommit = mock<(z: number) => void>(() => {});
 
     const { result } = renderHook(() =>
       useWheelZoom({

@@ -7,8 +7,8 @@
  * handler and its correctness follows from the helper being correct.
  */
 
+import { describe, expect, it } from "bun:test";
 import { basename, dirname, resolve } from "node:path";
-import { describe, expect, it } from "@jest/globals";
 import { deriveVerifyResponseSidecarPath } from "../cli/commands.js";
 
 describe("deriveVerifyResponseSidecarPath", () => {

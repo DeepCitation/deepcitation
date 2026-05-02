@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { detectSourceType, getPlatformName, sourceCitationsToListItems } from "../react/SourcesListComponent.utils.js";
 import type { Citation } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";

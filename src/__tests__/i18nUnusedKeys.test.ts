@@ -16,9 +16,9 @@
  * Run: bun run --cwd packages/deepcitation jest src/__tests__/i18nUnusedKeys.test.ts
  */
 
+import { describe, it } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { describe, it } from "@jest/globals";
 import { defaultMessages } from "../react/i18n";
 
 // =============================================================================

@@ -6,11 +6,11 @@ Use progressive disclosure: keep this file minimal and load focused guidance onl
 
 ## Environment
 
-- Package manager: `npm`
+- Package manager: `bun`
 - Node: `>=18`
-- Build: `npm run build`
-- Lint/format: `npm run check:fix` then `npm run lint`
-- Tests: `npm test` and `npm run test:ct`
+- Build: `bun run build`
+- Lint/format: `bun run check:fix` then `bun run lint`
+- Tests: `bun run test` and `bun run test:ct`
 
 ## Always-Applicable Invariants
 

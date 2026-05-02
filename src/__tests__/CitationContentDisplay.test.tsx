@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { render } from "@testing-library/react";
 import type { CitationStatusIndicatorProps, SpinnerStage } from "../react/CitationStatusIndicator";
 import { CitationTriggerContent, type CitationTriggerContentProps } from "../react/CitationTriggerContent";

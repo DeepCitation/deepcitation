@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { extractMarkersFromBody, findAnchorWithFallback, getAllLines, toCompactPageId } from "../cli/cite.js";
 import type { LineMap } from "../cli/hydrate.js";
 

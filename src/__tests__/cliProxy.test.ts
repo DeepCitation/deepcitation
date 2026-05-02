@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 
 import { decodeChunked, detectProxyUrl } from "../utils/proxy.js";
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { groupSearchAttempts } from "../analysis/grouping";
 import type { SearchAttempt } from "../types/search";
 

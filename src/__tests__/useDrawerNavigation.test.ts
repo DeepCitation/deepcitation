@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { useDrawerNavigation } from "../react/hooks/useDrawerNavigation";
 
 const FAKE_KEY_TO_PAGE = new Map<string, number>();
 
-function setup(onClose = jest.fn()) {
+function setup(onClose = mock(() => {})) {
   return renderHook(() => useDrawerNavigation({ isBottomSheet: true, keyToPage: FAKE_KEY_TO_PAGE, onClose }));
 }
 
@@ -87,7 +87,7 @@ describe("useDrawerNavigation — closeInline / handlePageDeactivate", () => {
 
 describe("useDrawerNavigation — Escape key cascade", () => {
   it("Level 3 → 2: Escape closes inline header without collapsing accordion", () => {
-    const onClose = jest.fn();
+    const onClose = mock(() => {});
     const { result } = setup(onClose);
 
     act(() => result.current.toggleItem("k1"));
@@ -101,7 +101,7 @@ describe("useDrawerNavigation — Escape key cascade", () => {
   });
 
   it("Level 2 → 1: Escape collapses accordion when no inline header is open", () => {
-    const onClose = jest.fn();
+    const onClose = mock(() => {});
     const { result } = setup(onClose);
 
     act(() => result.current.toggleItem("k1"));
@@ -113,7 +113,7 @@ describe("useDrawerNavigation — Escape key cascade", () => {
   });
 
   it("Level 1 → closed: Escape calls onClose when drawer is at base level", () => {
-    const onClose = jest.fn();
+    const onClose = mock(() => {});
     setup(onClose);
 
     pressEscape();
@@ -122,7 +122,7 @@ describe("useDrawerNavigation — Escape key cascade", () => {
   });
 
   it("full 3-level cascade: Escape steps back through all levels", () => {
-    const onClose = jest.fn();
+    const onClose = mock(() => {});
     const { result } = setup(onClose);
 
     // Level 3
@@ -143,8 +143,8 @@ describe("useDrawerNavigation — Escape key cascade", () => {
 
 describe("useDrawerNavigation — event listener cleanup", () => {
   it("removes the keydown listener on unmount", () => {
-    const onClose = jest.fn();
-    const removeSpy = jest.spyOn(document, "removeEventListener");
+    const onClose = mock(() => {});
+    const removeSpy = spyOn(document, "removeEventListener");
 
     const { unmount } = setup(onClose);
     unmount();
@@ -169,7 +169,7 @@ describe("useDrawerNavigation — isFullPage", () => {
 
   it("is false when not a bottom sheet", () => {
     const { result } = renderHook(() =>
-      useDrawerNavigation({ isBottomSheet: false, keyToPage: FAKE_KEY_TO_PAGE, onClose: jest.fn() }),
+      useDrawerNavigation({ isBottomSheet: false, keyToPage: FAKE_KEY_TO_PAGE, onClose: mock(() => {}) }),
     );
     act(() => result.current.onInlineExpand("k1", "src.jpg"));
     expect(result.current.isFullPage).toBe(false);

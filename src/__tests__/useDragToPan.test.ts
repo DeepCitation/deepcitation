@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, test } from "bun:test";
 import { act, fireEvent, render, renderHook } from "@testing-library/react";
 import { createElement } from "react";
 import { useDragToPan } from "../react/hooks/useDragToPan";

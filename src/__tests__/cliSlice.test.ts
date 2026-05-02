@@ -9,10 +9,10 @@
  *   - error paths (missing file, bad parts, parts > page count)
  */
 
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { computeChunkRanges, slice } from "../cli/slice.js";
 
 function makePage(num: number): string {
@@ -82,22 +82,22 @@ describe("slice", () => {
   let tmp: string;
   const logLines: string[] = [];
   const errorLines: string[] = [];
-  let mockLog: jest.SpiedFunction<typeof console.log>;
-  let mockError: jest.SpiedFunction<typeof console.error>;
-  let mockExit: jest.SpiedFunction<typeof process.exit>;
+  let mockLog: ReturnType<typeof spyOn<typeof console, "log">>;
+  let mockError: ReturnType<typeof spyOn<typeof console, "error">>;
+  let mockExit: ReturnType<typeof spyOn<typeof process, "exit">>;
 
   beforeEach(() => {
     tmp = join(tmpdir(), `dc-slice-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     mkdirSync(tmp, { recursive: true });
     logLines.length = 0;
     errorLines.length = 0;
-    mockLog = jest.spyOn(console, "log").mockImplementation(((...args: unknown[]) => {
+    mockLog = spyOn(console, "log").mockImplementation(((...args: unknown[]) => {
       logLines.push(args.map(String).join(" "));
     }) as never);
-    mockError = jest.spyOn(console, "error").mockImplementation(((...args: unknown[]) => {
+    mockError = spyOn(console, "error").mockImplementation(((...args: unknown[]) => {
       errorLines.push(args.map(String).join(" "));
     }) as never);
-    mockExit = jest.spyOn(process, "exit").mockImplementation(((code?: number) => {
+    mockExit = spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`process.exit(${code ?? 0})`);
     }) as never);
   });

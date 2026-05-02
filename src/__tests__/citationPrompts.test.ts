@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import {
   AV_CITATION_PROMPT,
   CITATION_AV_JSON_OUTPUT_FORMAT,

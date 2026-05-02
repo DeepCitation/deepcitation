@@ -3,8 +3,7 @@
  * Tunnels HTTPS through an HTTP CONNECT proxy using only Node.js built-ins.
  */
 
-import { request as httpRequest } from "node:http";
-import type { Socket } from "node:net";
+import { createConnection, type Socket } from "node:net";
 import { type TLSSocket, connect as tlsConnect } from "node:tls";
 import { decodeChunked } from "../utils/proxy.js";
 
@@ -31,6 +30,14 @@ const TIMEOUTS = {
   idleData: parseTimeoutEnv("DC_IDLE_DATA_MS", 30000),
   overall: parseTimeoutEnv("DC_REQUEST_TIMEOUT_MS", 90000),
 };
+
+export interface ProxyFetchTimeoutOverrides {
+  proxyConnect?: number;
+  tlsHandshake?: number;
+  headers?: number;
+  idleData?: number;
+  overall?: number;
+}
 
 /**
  * Structured error class for transport-layer timeouts.
@@ -74,8 +81,10 @@ export class TimeoutError extends Error {
  */
 export function createProxyFetch(
   proxyUrl: string,
+  options: { timeouts?: ProxyFetchTimeoutOverrides } = {},
 ): (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> {
   const proxy = new URL(proxyUrl);
+  const timeouts = { ...TIMEOUTS, ...(options.timeouts ?? {}) };
 
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const startTime = Date.now();
@@ -121,39 +130,84 @@ export function createProxyFetch(
       overallTimer = setTimeout(() => {
         teardown();
         rej(new TimeoutError("request_overall", Date.now() - startTime, proxyUrl, targetDescriptor));
-      }, TIMEOUTS.overall);
+      }, timeouts.overall);
       overallTimer.unref?.();
     });
 
     const inner = (async (): Promise<Response> => {
       // Phase 1: establish CONNECT tunnel through the proxy.
       const socket = await new Promise<Socket>((res, rej) => {
-        const req = httpRequest({
+        const connectTimeout = setTimeout(() => {
+          cleanup();
+          sock.destroy();
+          rej(new TimeoutError("proxy_connect", Date.now() - startTime, proxyUrl, targetDescriptor));
+        }, timeouts.proxyConnect);
+        connectTimeout.unref?.();
+
+        const sock = createConnection({
           host: proxy.hostname,
           port: Number(proxy.port) || 3128,
-          method: "CONNECT",
-          path: `${targetHost}:${targetPort}`,
-          timeout: TIMEOUTS.proxyConnect,
         });
-        req.on("timeout", () => {
-          req.destroy();
-          rej(new TimeoutError("proxy_connect", Date.now() - startTime, proxyUrl, targetDescriptor));
-        });
-        req.on("connect", (_res, sock) => {
-          if (_res.statusCode === 200) {
-            res(sock);
-          } else {
-            sock.destroy();
-            rej(
+        const separator = Buffer.from("\r\n\r\n");
+        let buffered = Buffer.alloc(0);
+        let settled = false;
+
+        const cleanup = () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(connectTimeout);
+          sock.off("data", onData);
+          sock.off("error", onError);
+          sock.off("connect", onConnect);
+        };
+
+        const fail = (err: unknown) => {
+          if (settled) return;
+          cleanup();
+          sock.destroy();
+          rej(err);
+        };
+
+        const onError = (err: unknown) => fail(err);
+        const onConnect = () => {
+          const connectRequest =
+            `CONNECT ${targetHost}:${targetPort} HTTP/1.1\r\n` +
+            `Host: ${targetHost}:${targetPort}\r\n` +
+            "Proxy-Connection: keep-alive\r\n" +
+            "\r\n";
+          sock.write(connectRequest);
+        };
+        const onData = (chunk: Buffer) => {
+          buffered = Buffer.concat([buffered, chunk]);
+          const headerEnd = buffered.indexOf(separator);
+          if (headerEnd === -1) return;
+
+          const headerSection = buffered.subarray(0, headerEnd).toString("ascii");
+          const remaining = buffered.subarray(headerEnd + separator.byteLength);
+          const [statusLine] = headerSection.split("\r\n");
+          const statusMatch = statusLine.match(/^HTTP\/[\d.]+ (\d+)/);
+          const status = statusMatch ? Number(statusMatch[1]) : 0;
+
+          if (status !== 200) {
+            fail(
               new Error(
-                `Proxy CONNECT failed with status ${_res.statusCode}. ` +
+                `Proxy CONNECT failed with status ${status}. ` +
                   `Try bypassing the proxy with: NO_PROXY=api.deepcitation.com npx deepcitation <command>`,
               ),
             );
+            return;
           }
-        });
-        req.on("error", rej);
-        req.end();
+
+          cleanup();
+          if (remaining.length > 0) {
+            sock.unshift(remaining);
+          }
+          res(sock);
+        };
+
+        sock.once("connect", onConnect);
+        sock.once("error", onError);
+        sock.on("data", onData);
       });
       openSocket = socket;
 
@@ -168,7 +222,7 @@ export function createProxyFetch(
             socket.destroy();
           } catch {}
           rej(new TimeoutError("tls_handshake", Date.now() - startTime, proxyUrl, targetDescriptor));
-        }, TIMEOUTS.tlsHandshake);
+        }, timeouts.tlsHandshake);
         tlsTimer.unref?.();
         ts.on("secureConnect", () => {
           clearTimeout(tlsTimer);
@@ -242,7 +296,7 @@ export function createProxyFetch(
         const headersTimer: NodeJS.Timeout = setTimeout(() => {
           tlsSocket.destroy();
           rej(new TimeoutError("response_headers", Date.now() - startTime, proxyUrl, targetDescriptor));
-        }, TIMEOUTS.headers);
+        }, timeouts.headers);
         headersTimer.unref?.();
 
         // Idle-data timer: reset on every `data` event.
@@ -252,7 +306,7 @@ export function createProxyFetch(
           idleTimer = setTimeout(() => {
             tlsSocket.destroy();
             rej(new TimeoutError("response_idle", Date.now() - startTime, proxyUrl, targetDescriptor));
-          }, TIMEOUTS.idleData);
+          }, timeouts.idleData);
           idleTimer.unref?.();
         };
 

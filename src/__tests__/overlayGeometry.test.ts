@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, test } from "bun:test";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "../react/overlayGeometry";
 
 // Helper: a standard annotation item and rendering context for tests.

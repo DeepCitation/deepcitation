@@ -9,7 +9,7 @@
  * 5. Depth limit for recursive traversal (prevents stack overflow)
  */
 
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
 import { cleanRepeatingLastSentence } from "../parsing/parseWorkAround.js";
 import { diffLines, diffWordsWithSpace } from "../utils/diff.js";
@@ -139,10 +139,10 @@ describe("Performance Fixes", () => {
 });
 
 describe("Data Loss Fix - Citations Without AttachmentId", () => {
-  let consoleWarnSpy: ReturnType<typeof jest.spyOn>;
+  let consoleWarnSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
-    consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    consoleWarnSpy = spyOn(console, "warn").mockImplementation(() => {});
   });
 
   afterEach(() => {

@@ -1,12 +1,4 @@
 /**
- * @jest-environment node
- *
- * Runs in Node env (not jsdom) so we get Node's native Blob with `arrayBuffer()`.
- * jsdom's polyfilled Blob lacks that method, which is what `encodeMultipart`
- * calls on file entries. The CLI only ever runs in real Node anyway.
- */
-
-/**
  * Tests for `encodeMultipart` (src/cli/proxy.ts) — the RFC 7578 serializer that
  * lets `createProxyFetch` carry FormData uploads over the hand-rolled CONNECT
  * tunnel without depending on `undici`. The Cowork sandbox can't `import("undici")`,
@@ -17,7 +9,7 @@
  * cosmetic changes don't break the suite.
  */
 
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { encodeMultipart } from "../cli/proxy.js";
 
 describe("encodeMultipart", () => {
@@ -41,8 +33,8 @@ describe("encodeMultipart", () => {
   it("encodes a Blob field with Content-Type and filename", async () => {
     const fd = new FormData();
     const bytes = new Uint8Array([0xde, 0xad, 0xbe, 0xef]);
-    const blob = new Blob([bytes], { type: "application/octet-stream" });
-    fd.append("file", blob, "payload.bin");
+    const file = new File([bytes], "payload.bin", { type: "application/octet-stream" });
+    fd.append("file", file);
 
     const { body, contentType } = await encodeMultipart(fd);
     const boundary = contentType.split("boundary=")[1];
@@ -65,7 +57,7 @@ describe("encodeMultipart", () => {
   it("encodes mixed string + Blob fields in iteration order", async () => {
     const fd = new FormData();
     fd.append("title", "Hello");
-    fd.append("attachment", new Blob([new Uint8Array([1, 2, 3])], { type: "text/plain" }), "a.txt");
+    fd.append("attachment", new File([new Uint8Array([1, 2, 3])], "a.txt", { type: "text/plain" }));
     fd.append("trailing", "End");
 
     const { body, contentType } = await encodeMultipart(fd);
@@ -88,9 +80,8 @@ describe("encodeMultipart", () => {
   it("escapes CR/LF/double-quote in field names and filenames per browser behavior", async () => {
     const fd = new FormData();
     fd.append('weird"name', "v1");
-    // File with embedded quote in filename
-    const blob = new Blob([new Uint8Array([0])], { type: "application/octet-stream" });
-    fd.append("file", blob, 'a"b.bin');
+    const file = new File([new Uint8Array([0])], 'a"b.bin', { type: "application/octet-stream" });
+    fd.append("file", file);
 
     const { body } = await encodeMultipart(fd);
     const s = body.toString("utf8");

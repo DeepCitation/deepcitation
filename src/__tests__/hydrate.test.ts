@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { denseAnnotatePage } from "../cli/cite.js";
 import { hydrateCitations, parseSummaryToLineMap } from "../cli/hydrate.js";
 import type { CitationData } from "../prompts/citationPrompts.js";
