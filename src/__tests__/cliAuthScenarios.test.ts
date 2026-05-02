@@ -32,8 +32,18 @@ function run(
   args: string[],
   opts?: { env?: Record<string, string | undefined>; cwd?: string; stdin?: string; timeout?: number },
 ): RunResult {
-  // Build clean env: start from process.env, overlay opts.env, remove undefined keys
-  const env: Record<string, string> = { ...process.env } as Record<string, string>;
+  // Build a stable subprocess env instead of copying the test runner's mutable
+  // process.env wholesale. Bun runs files in one process, so earlier tests can
+  // leave auth/browser flags behind and change these scenarios.
+  const env: Record<string, string> = {};
+  for (const key of ["PATH", "HOME", "TMPDIR", "TMP", "TEMP", "USER", "LOGNAME", "LANG", "LC_ALL", "TERM", "SHELL", "PWD"]) {
+    const value = process.env[key];
+    if (value) env[key] = value;
+  }
+  for (const key of ["CI", "NODE_ENV", "NODE_NO_WARNINGS", "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY"]) {
+    const value = process.env[key];
+    if (value) env[key] = value;
+  }
   if (opts?.env) {
     for (const [k, v] of Object.entries(opts.env)) {
       if (v === undefined) {

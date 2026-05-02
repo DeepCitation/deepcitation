@@ -1,5 +1,5 @@
 [test]
-preload = ["./happydom.setup.ts", "./jest.setup.ts"]
+preload = ["./happydom.setup.ts", "./test.setup.ts"]
 coverage = false
 
 # Exclude playwright component tests - they should be run with `bun run test:ct`

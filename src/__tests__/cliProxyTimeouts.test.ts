@@ -14,14 +14,6 @@
 import { createServer, type Server, type Socket } from "node:net";
 import { afterEach, describe, expect, it } from "bun:test";
 
-// Set short timeouts BEFORE importing proxy.ts (the constants are read at module load).
-process.env.DC_PROXY_CONNECT_MS = "300";
-process.env.DC_TLS_HANDSHAKE_MS = "300";
-process.env.DC_HEADERS_TIMEOUT_MS = "500";
-process.env.DC_IDLE_DATA_MS = "500";
-process.env.DC_REQUEST_TIMEOUT_MS = "1500";
-
-// Import after env vars are set (TimeoutError is used as a runtime value via instanceof)
 import { createProxyFetch, TimeoutError } from "../cli/proxy.js";
 
 // Track sockets opened by the mock server so afterEach can force-close them.
@@ -32,6 +24,8 @@ type MockServerHandle = {
   proxyUrl: string;
   sockets: Set<Socket>;
 };
+
+let handle: MockServerHandle | undefined;
 
 function startMockServer(onConnection: (socket: Socket) => void): Promise<MockServerHandle> {
   return new Promise((resolve, reject) => {
@@ -68,8 +62,6 @@ function stopServer(handle: MockServerHandle): Promise<void> {
 }
 
 describe("createProxyFetch timeouts", () => {
-  let handle: MockServerHandle | undefined;
-
   afterEach(async () => {
     if (handle) {
       await stopServer(handle);
@@ -85,7 +77,15 @@ describe("createProxyFetch timeouts", () => {
       // Do nothing — leave the socket hanging.
     });
 
-    const fetch = createProxyFetch(handle.proxyUrl);
+    const fetch = createProxyFetch(handle.proxyUrl, {
+      timeouts: {
+        proxyConnect: 300,
+        tlsHandshake: 300,
+        headers: 500,
+        idleData: 500,
+        overall: 1500,
+      },
+    });
     const start = Date.now();
     let caught: unknown;
     try {
@@ -114,7 +114,15 @@ describe("createProxyFetch timeouts", () => {
       });
     });
 
-    const fetch = createProxyFetch(handle.proxyUrl);
+    const fetch = createProxyFetch(handle.proxyUrl, {
+      timeouts: {
+        proxyConnect: 300,
+        tlsHandshake: 300,
+        headers: 500,
+        idleData: 500,
+        overall: 1500,
+      },
+    });
     const start = Date.now();
     let caught: unknown;
     try {
@@ -139,7 +147,15 @@ describe("createProxyFetch timeouts", () => {
       // hang forever
     });
 
-    const fetch = createProxyFetch(handle.proxyUrl);
+    const fetch = createProxyFetch(handle.proxyUrl, {
+      timeouts: {
+        proxyConnect: 300,
+        tlsHandshake: 300,
+        headers: 500,
+        idleData: 500,
+        overall: 1500,
+      },
+    });
     const start = Date.now();
     let caught: unknown;
     try {
@@ -173,12 +189,18 @@ describe("createProxyFetch timeouts", () => {
   });
 });
 
-describe("createProxyFetch env-var overrides", () => {
-  it("DC_REQUEST_TIMEOUT_MS env var was honored at module load", () => {
-    // Sanity check: this test file set DC_REQUEST_TIMEOUT_MS=1500 before importing.
-    // We can't directly inspect TIMEOUTS (not exported), but the timeout tests above
-    // implicitly verify that the override took effect — they'd time out the test
-    // runner if the default 90_000ms ceiling were active.
-    expect(process.env.DC_REQUEST_TIMEOUT_MS).toBe("1500");
+describe("createProxyFetch timeout overrides", () => {
+  it("per-call timeout overrides are honored", async () => {
+    handle = await startMockServer(_socket => {
+      // Do nothing — leave the socket hanging.
+    });
+
+    const fetch = createProxyFetch(handle.proxyUrl, {
+      timeouts: { proxyConnect: 25, tlsHandshake: 25, headers: 25, idleData: 25, overall: 50 },
+    });
+
+    const start = Date.now();
+    await expect(fetch("https://api.deepcitation.com/health")).rejects.toBeInstanceOf(TimeoutError);
+    expect(Date.now() - start).toBeLessThan(1000);
   });
 });
