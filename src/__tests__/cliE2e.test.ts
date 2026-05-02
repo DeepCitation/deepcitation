@@ -8,10 +8,10 @@
  *   REFRESH_FIXTURES=1 DEEPCITATION_API_KEY=sk-dc-... bun test cliE2e
  */
 
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 
 import { DeepCitation } from "../client/DeepCitation.js";
 import { cachedFixture, canRunE2e, hasApiKey } from "./fixtures/fixtureCache.js";

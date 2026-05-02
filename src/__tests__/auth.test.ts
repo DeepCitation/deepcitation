@@ -1,8 +1,8 @@
+import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 
 mock.module("node:child_process", () => ({
   execFile: mock(() => {}),
@@ -402,7 +402,7 @@ describe("openBrowser", () => {
 
     openBrowser("https://deepcitation.com/auth?token=abc&nonce=xyz");
 
-    const execFileMock = (childProcess.execFile as ReturnType<typeof mock>);
+    const execFileMock = childProcess.execFile as ReturnType<typeof mock>;
     expect(execFileMock).toHaveBeenCalledTimes(1);
     expect(execFileMock).toHaveBeenCalledWith(
       "explorer.exe",
@@ -418,7 +418,7 @@ describe("openBrowser", () => {
 
     openBrowser("https://deepcitation.com");
 
-    expect((childProcess.execFile as ReturnType<typeof mock>)).toHaveBeenCalledWith(
+    expect(childProcess.execFile as ReturnType<typeof mock>).toHaveBeenCalledWith(
       "open",
       ["https://deepcitation.com"],
       expect.any(Function),
@@ -430,7 +430,7 @@ describe("openBrowser", () => {
 
     openBrowser("https://deepcitation.com");
 
-    expect((childProcess.execFile as ReturnType<typeof mock>)).toHaveBeenCalledWith(
+    expect(childProcess.execFile as ReturnType<typeof mock>).toHaveBeenCalledWith(
       "wslview",
       ["https://deepcitation.com"],
       expect.any(Function),
@@ -443,6 +443,6 @@ describe("openBrowser", () => {
 
     openBrowser("https://deepcitation.com");
 
-    expect((childProcess.execFile as ReturnType<typeof mock>)).not.toHaveBeenCalled();
+    expect(childProcess.execFile as ReturnType<typeof mock>).not.toHaveBeenCalled();
   });
 });

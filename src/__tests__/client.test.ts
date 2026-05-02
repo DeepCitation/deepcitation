@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { Mock } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { DeepCitation, fetchWithRetry } from "../client/DeepCitation.js";
 import { makeNumericResponse } from "./testHelpers.js";
 
@@ -578,14 +578,12 @@ describe("DeepCitation Client", () => {
       };
 
       // First request with a very short timeout — should time out before the 50ms fetch resolves
-      await expect(
-        client.verifyAttachment("file_abc", citations, { requestTimeoutMs: 1 }),
-      ).rejects.toThrow("Request timed out after 1ms");
+      await expect(client.verifyAttachment("file_abc", citations, { requestTimeoutMs: 1 })).rejects.toThrow(
+        "Request timed out after 1ms",
+      );
 
       // Second request with a longer timeout — should succeed
-      await expect(
-        client.verifyAttachment("file_abc", citations, { requestTimeoutMs: 500 }),
-      ).resolves.toMatchObject({
+      await expect(client.verifyAttachment("file_abc", citations, { requestTimeoutMs: 500 })).resolves.toMatchObject({
         verifications: {
           "1": { status: "found" },
         },

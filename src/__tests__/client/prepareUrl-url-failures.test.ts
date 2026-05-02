@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { Mock } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { DeepCitation } from "../../client/DeepCitation.js";
 import { ServerError, ValidationError } from "../../client/errors.js";
 

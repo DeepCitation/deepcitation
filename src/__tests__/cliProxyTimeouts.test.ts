@@ -11,8 +11,8 @@
  * in under a few seconds rather than 90s+.
  */
 
-import { createServer, type Server, type Socket } from "node:net";
 import { afterEach, describe, expect, it } from "bun:test";
+import { createServer, type Server, type Socket } from "node:net";
 
 import { createProxyFetch, TimeoutError } from "../cli/proxy.js";
 
@@ -190,6 +190,13 @@ describe("createProxyFetch timeouts", () => {
 });
 
 describe("createProxyFetch timeout overrides", () => {
+  afterEach(async () => {
+    if (handle) {
+      await stopServer(handle);
+      handle = undefined;
+    }
+  });
+
   it("per-call timeout overrides are honored", async () => {
     handle = await startMockServer(_socket => {
       // Do nothing — leave the socket hanging.

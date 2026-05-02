@@ -347,7 +347,11 @@ describe("InlineExpandedImage onNaturalSize", () => {
     observerCallback = cb;
     return {
       observe: mock(() => {
-        const mockObserver: ResizeObserver = { observe: mock(() => {}), unobserve: mock(() => {}), disconnect: mock(() => {}) };
+        const mockObserver: ResizeObserver = {
+          observe: mock(() => {}),
+          unobserve: mock(() => {}),
+          disconnect: mock(() => {}),
+        };
         observerCallback([mockEntry], mockObserver);
       }),
       unobserve: mock(() => {}),

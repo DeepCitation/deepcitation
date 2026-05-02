@@ -5,11 +5,11 @@
  * selection, --out file write, error when input file is missing.
  */
 
+import type { Mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import type { Mock } from "bun:test";
 import { text } from "../cli/text.js";
 
 function makePage(num: number): string {

@@ -1,8 +1,8 @@
+import type { Mock } from "bun:test";
+import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
-import type { Mock } from "bun:test";
 
 mock.module("node:fs", () => ({
   existsSync: mock(() => false),

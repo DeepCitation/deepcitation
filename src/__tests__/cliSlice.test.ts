@@ -9,10 +9,10 @@
  *   - error paths (missing file, bad parts, parts > page count)
  */
 
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { computeChunkRanges, slice } from "../cli/slice.js";
 
 function makePage(num: number): string {
