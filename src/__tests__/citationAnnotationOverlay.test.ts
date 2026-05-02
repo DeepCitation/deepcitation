@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { computeBracketTarget, shouldHighlightSourceMatch } from "../drawing/citationDrawing";
 import { isValidOverlayGeometry, toPercentRect, wordCount } from "../react/overlayGeometry";
 import type { DeepTextItem } from "../types/boxes";

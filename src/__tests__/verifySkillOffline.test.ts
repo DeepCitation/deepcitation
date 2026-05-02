@@ -16,7 +16,7 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 
 import { parseCitationData } from "../parsing/citationParser.js";
 import type { CitationData } from "../prompts/citationPrompts.js";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { alignOffset, expandedPageOffset, guardClamp, lockSide } from "../shared/popoverGeometry";
 
 describe("lockSide", () => {

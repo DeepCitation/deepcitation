@@ -3,7 +3,7 @@
  * to verify document citations get the resolved sourceLabelMap name
  * at every stage.
  */
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import type { CitationDrawerItem } from "../react/CitationDrawer.types";
 import {
   flattenCitations,

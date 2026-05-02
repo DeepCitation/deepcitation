@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest, mock } from "bun:test";
+import type { Mock } from "bun:test";
 import { DeepCitation, fetchWithRetry } from "../client/DeepCitation.js";
 import { makeNumericResponse } from "./testHelpers.js";
 
 // Mock global fetch
-const mockFetch = jest.fn() as jest.Mock;
+const mockFetch = mock(() => {}) as Mock<typeof fetch>;
 global.fetch = mockFetch;
 
 describe("DeepCitation Client", () => {

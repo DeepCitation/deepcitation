@@ -1,5 +1,4 @@
-import "@testing-library/jest-dom";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
 import { VerificationTabs } from "../react/VerificationTabs";
 
@@ -97,7 +96,7 @@ describe("VerificationTabs", () => {
     });
 
     it("stops event propagation on tab click", () => {
-      const onClick = jest.fn();
+      const onClick = mock(() => {});
       const { container } = render(
         <div
           role="button"
@@ -135,7 +134,7 @@ describe("VerificationTabs", () => {
     });
 
     it("renders copy button for expected text when provided", () => {
-      const renderCopyButton = jest.fn((_text, position) => <button type="button">Copy {position}</button>);
+      const renderCopyButton = mock((_text, position) => <button type="button">Copy {position}</button>);
 
       const { container } = render(
         <VerificationTabs expected="Hello world" actual="Hello universe" renderCopyButton={renderCopyButton} />,
@@ -218,7 +217,7 @@ describe("VerificationTabs", () => {
     });
 
     it("renders copy button for found text when provided", () => {
-      const renderCopyButton = jest.fn((_text, position) => <button type="button">Copy {position}</button>);
+      const renderCopyButton = mock((_text, position) => <button type="button">Copy {position}</button>);
 
       const { container } = render(
         <VerificationTabs expected="Expected" actual="Actual" renderCopyButton={renderCopyButton} />,
@@ -264,7 +263,7 @@ describe("VerificationTabs", () => {
     });
 
     it("renders custom copy button for expected tab", () => {
-      const renderCopyButton = jest.fn(text => (
+      const renderCopyButton = mock(text => (
         <button type="button" data-testid="custom-copy">
           {text}
         </button>
@@ -282,7 +281,7 @@ describe("VerificationTabs", () => {
     });
 
     it("renders custom copy button for found tab", () => {
-      const renderCopyButton = jest.fn(text => (
+      const renderCopyButton = mock(text => (
         <button type="button" data-testid="custom-copy">
           {text}
         </button>

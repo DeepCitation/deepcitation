@@ -17,7 +17,7 @@
  * cosmetic changes don't break the suite.
  */
 
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { encodeMultipart } from "../cli/proxy.js";
 
 describe("encodeMultipart", () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { compressPromptIds, decompressPromptIds } from "../prompts/promptCompression.js";
 
 describe("promptCompression compress/decompress cycles", () => {

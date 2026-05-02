@@ -18,7 +18,7 @@
  * the safety timer (fires at SETTLE_MS≈136ms), which is what we're asserting.
  */
 
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, jest, spyOn } from "bun:test";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import type React from "react";
 import type { PopoverViewState } from "../react/DefaultPopoverContent";
@@ -38,7 +38,7 @@ import { useViewportBoundaryGuard } from "../react/hooks/useViewportBoundaryGuar
  */
 function makeOutOfBoundsEl(): HTMLElement {
   const el = document.createElement("div");
-  jest.spyOn(el, "getBoundingClientRect").mockReturnValue({
+  spyOn(el, "getBoundingClientRect").mockReturnValue({
     left: -10,
     top: -20,
     right: 290,

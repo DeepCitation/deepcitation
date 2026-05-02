@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { parseCitationResponse } from "../parsing/parseCitationResponse.js";
 import { CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 import type { VerificationRecord } from "../types/citation.js";

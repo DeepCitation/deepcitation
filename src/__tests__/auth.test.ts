@@ -1,10 +1,14 @@
-import * as childProcess from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 
+mock.module("node:child_process", () => ({
+  execFile: mock(() => {}),
+}));
+
+import * as childProcess from "node:child_process";
 import {
   type CallbackPayload,
   type Credentials,
@@ -15,8 +19,6 @@ import {
   sourceLabel,
   startCallbackServer,
 } from "../auth.js";
-
-jest.mock("node:child_process");
 
 /** Make an HTTP request using node:http (bypasses happy-dom's same-origin policy) */
 function req(
@@ -381,7 +383,7 @@ describe("openBrowser", () => {
   const origPlatformDesc = Object.getOwnPropertyDescriptor(process, "platform");
 
   afterEach(() => {
-    jest.clearAllMocks();
+    (childProcess.execFile as ReturnType<typeof mock>).mockClear();
     delete process.env.DC_NO_BROWSER;
     if (origPlatformDesc) {
       Object.defineProperty(process, "platform", origPlatformDesc);
@@ -400,7 +402,7 @@ describe("openBrowser", () => {
 
     openBrowser("https://deepcitation.com/auth?token=abc&nonce=xyz");
 
-    const execFileMock = jest.mocked(childProcess.execFile);
+    const execFileMock = (childProcess.execFile as ReturnType<typeof mock>);
     expect(execFileMock).toHaveBeenCalledTimes(1);
     expect(execFileMock).toHaveBeenCalledWith(
       "explorer.exe",
@@ -416,7 +418,7 @@ describe("openBrowser", () => {
 
     openBrowser("https://deepcitation.com");
 
-    expect(jest.mocked(childProcess.execFile)).toHaveBeenCalledWith(
+    expect((childProcess.execFile as ReturnType<typeof mock>)).toHaveBeenCalledWith(
       "open",
       ["https://deepcitation.com"],
       expect.any(Function),
@@ -428,7 +430,7 @@ describe("openBrowser", () => {
 
     openBrowser("https://deepcitation.com");
 
-    expect(jest.mocked(childProcess.execFile)).toHaveBeenCalledWith(
+    expect((childProcess.execFile as ReturnType<typeof mock>)).toHaveBeenCalledWith(
       "wslview",
       ["https://deepcitation.com"],
       expect.any(Function),
@@ -441,6 +443,6 @@ describe("openBrowser", () => {
 
     openBrowser("https://deepcitation.com");
 
-    expect(jest.mocked(childProcess.execFile)).not.toHaveBeenCalled();
+    expect((childProcess.execFile as ReturnType<typeof mock>)).not.toHaveBeenCalled();
   });
 });

@@ -1,10 +1,9 @@
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import { act, cleanup, fireEvent, render, renderHook } from "@testing-library/react";
 import type React from "react";
 
-// Mock createPortal to render content in place instead of portal.
-jest.mock("react-dom", () => {
-  const actual = jest.requireActual("react-dom") as typeof import("react-dom");
+mock.module("react-dom", () => {
+  const actual = require("react-dom") as typeof import("react-dom");
   return { ...actual, createPortal: (node: React.ReactNode) => node };
 });
 
@@ -372,7 +371,7 @@ describe("CitationDrawerItemComponent", () => {
   });
 
   it("calls onClick when clicked", () => {
-    const onClick = jest.fn();
+    const onClick = mock(() => {});
     const item = createItem();
 
     const { container } = render(<CitationDrawerItemComponent item={item} onClick={onClick} />);
@@ -428,7 +427,7 @@ describe("CitationDrawerItemComponent", () => {
   });
 
   it("handles keyboard navigation", () => {
-    const onClick = jest.fn();
+    const onClick = mock(() => {});
     const item = createItem();
 
     const { container } = render(<CitationDrawerItemComponent item={item} onClick={onClick} />);
@@ -526,7 +525,7 @@ describe("CitationDrawer", () => {
   });
 
   it("calls onClose when backdrop clicked", () => {
-    const onClose = jest.fn();
+    const onClose = mock(() => {});
 
     const { container } = render(
       <CitationDrawer isOpen={true} onClose={onClose} citationGroups={[createGroup("Test", 1)]} />,
@@ -542,7 +541,7 @@ describe("CitationDrawer", () => {
   });
 
   it("calls onClose on Escape key", () => {
-    const onClose = jest.fn();
+    const onClose = mock(() => {});
 
     render(<CitationDrawer isOpen={true} onClose={onClose} citationGroups={[createGroup("Test", 1)]} />);
 
@@ -604,7 +603,7 @@ describe("CitationDrawer", () => {
   });
 
   it("calls onCitationClick when item clicked", () => {
-    const onCitationClick = jest.fn();
+    const onCitationClick = mock(() => {});
     const groups = [
       {
         sourceName: "Test",
@@ -929,7 +928,7 @@ describe("CitationDrawerTrigger", () => {
   });
 
   it("calls onClick when clicked", () => {
-    const onClick = jest.fn();
+    const onClick = mock(() => {});
     const groups = [createGroup("Test", 1)];
     const { getByTestId } = render(<CitationDrawerTrigger citationGroups={groups} onClick={onClick} />);
 
@@ -1008,7 +1007,7 @@ describe("CitationDrawerTrigger", () => {
   });
 
   it("calls onSourceClick when evidence thumbnail is clicked in tooltip", () => {
-    const onSourceClick = jest.fn();
+    const onSourceClick = mock(() => {});
     const groups: SourceCitationGroup[] = [
       {
         sourceName: "TestSource",
@@ -1337,7 +1336,7 @@ describe("CitationDrawer accordion", () => {
   });
 
   it("Escape key collapses expanded item before closing drawer", () => {
-    const onClose = jest.fn();
+    const onClose = mock(() => {});
     const groups = [createGroupWithMultiple(2)];
     const { container } = render(<CitationDrawer isOpen={true} onClose={onClose} citationGroups={groups} />);
 

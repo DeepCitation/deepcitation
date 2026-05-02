@@ -11,7 +11,7 @@
  * when the ghost fades to the real page citation.
  */
 
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { resolveEvidenceSourceAnchorRatio } from "../react/evidence/resolvers";
 import type { Verification } from "../types/verification";
 

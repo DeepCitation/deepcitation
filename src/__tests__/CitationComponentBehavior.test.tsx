@@ -1,10 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import type React from "react";
 
-// Mock createPortal to render content in place instead of portal.
-jest.mock("react-dom", () => {
-  const actual = jest.requireActual("react-dom") as typeof import("react-dom");
+mock.module("react-dom", () => {
+  const actual = require("react-dom") as typeof import("react-dom");
   return { ...actual, createPortal: (node: React.ReactNode) => node };
 });
 
@@ -332,7 +331,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("always calls eventHandlers.onClick", async () => {
-      const onClick = jest.fn();
+      const onClick = mock(() => {});
 
       const { container } = render(
         <CitationComponent citation={baseCitation} verification={verificationWithImage} eventHandlers={{ onClick }} />,
@@ -354,7 +353,7 @@ describe("CitationComponent behaviorConfig", () => {
 
   describe("onClick replaces default behavior", () => {
     it("prevents image from opening when onClick is provided (returns void)", async () => {
-      const customOnClick = jest.fn();
+      const customOnClick = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -375,7 +374,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("prevents image from opening when onClick returns false", async () => {
-      const customOnClick = jest.fn(() => false);
+      const customOnClick = mock(() => false);
 
       const { container } = render(
         <CitationComponent
@@ -399,8 +398,8 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("still calls eventHandlers.onClick when onClick is provided", async () => {
-      const eventHandlerOnClick = jest.fn();
-      const customOnClick = jest.fn();
+      const eventHandlerOnClick = mock(() => {});
+      const customOnClick = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -427,7 +426,7 @@ describe("CitationComponent behaviorConfig", () => {
 
   describe("custom onClick handler", () => {
     it("receives correct context", async () => {
-      const customOnClick = jest.fn();
+      const customOnClick = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -454,7 +453,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("replaces default behavior when returning void", async () => {
-      const customOnClick = jest.fn(() => {
+      const customOnClick = mock(() => {
         // Return nothing - no state changes
       });
 
@@ -479,7 +478,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("prevents any state changes when returning false", async () => {
-      const customOnClick = jest.fn(() => false);
+      const customOnClick = mock(() => false);
 
       const { container } = render(
         <CitationComponent
@@ -502,7 +501,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("applies returned actions to open image", async () => {
-      const customOnClick = jest.fn(
+      const customOnClick = mock(
         (): CitationBehaviorActions => ({
           setImageExpanded: true,
         }),
@@ -534,7 +533,7 @@ describe("CitationComponent behaviorConfig", () => {
 
     it("can apply setImageExpanded with string src", async () => {
       const customImageSrc = "data:image/png;base64,customImage";
-      const customOnClick = jest.fn(
+      const customOnClick = mock(
         (): CitationBehaviorActions => ({
           setImageExpanded: customImageSrc,
         }),
@@ -562,7 +561,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("rejects setImageExpanded string with javascript: URI (does not update src)", async () => {
-      const customOnClick = jest.fn(
+      const customOnClick = mock(
         (): CitationBehaviorActions => ({
           setImageExpanded: "javascript:alert(1)",
         }),
@@ -589,7 +588,7 @@ describe("CitationComponent behaviorConfig", () => {
 
     it("rejects setImageExpanded string with SVG data URI", async () => {
       const svgUri = "data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9ImFsZXJ0KDEpIj48L3N2Zz4=";
-      const customOnClick = jest.fn((): CitationBehaviorActions => ({ setImageExpanded: svgUri }));
+      const customOnClick = mock((): CitationBehaviorActions => ({ setImageExpanded: svgUri }));
 
       const { container } = render(
         <CitationComponent
@@ -610,7 +609,7 @@ describe("CitationComponent behaviorConfig", () => {
 
     it("accepts setImageExpanded with trusted CDN URL", async () => {
       const trustedSrc = "https://cdn.deepcitation.com/proof/page1.avif";
-      const customOnClick = jest.fn((): CitationBehaviorActions => ({ setImageExpanded: trustedSrc }));
+      const customOnClick = mock((): CitationBehaviorActions => ({ setImageExpanded: trustedSrc }));
 
       const { container } = render(
         <CitationComponent
@@ -634,7 +633,7 @@ describe("CitationComponent behaviorConfig", () => {
 
     it("can close image with setImageExpanded: false", async () => {
       // Use custom onClick to explicitly open image (since default behavior is lazy mode)
-      const customOnClick = jest.fn(
+      const customOnClick = mock(
         (): CitationBehaviorActions => ({
           setImageExpanded: true,
         }),
@@ -667,8 +666,8 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("still calls eventHandlers.onClick when custom handler returns actions", async () => {
-      const eventHandlerOnClick = jest.fn();
-      const customOnClick = jest.fn(
+      const eventHandlerOnClick = mock(() => {});
+      const customOnClick = mock(
         (): CitationBehaviorActions => ({
           setImageExpanded: true,
         }),
@@ -693,8 +692,8 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("still calls eventHandlers.onClick when custom handler returns false", async () => {
-      const eventHandlerOnClick = jest.fn();
-      const customOnClick = jest.fn(() => false);
+      const eventHandlerOnClick = mock(() => {});
+      const customOnClick = mock(() => false);
 
       const { container } = render(
         <CitationComponent
@@ -781,7 +780,7 @@ describe("CitationComponent behaviorConfig", () => {
 
   describe("eventHandlers.onClickAfterDefault", () => {
     it("runs after default click behavior and keeps popover interactions", async () => {
-      const onClickAfterDefault = jest.fn();
+      const onClickAfterDefault = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -802,8 +801,8 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("does not run when click behavior is replaced by eventHandlers.onClick", async () => {
-      const onClick = jest.fn();
-      const onClickAfterDefault = jest.fn();
+      const onClick = mock(() => {});
+      const onClickAfterDefault = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -823,8 +822,8 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("does not run when click behavior is replaced by behaviorConfig.onClick", async () => {
-      const customOnClick = jest.fn();
-      const onClickAfterDefault = jest.fn();
+      const customOnClick = mock(() => {});
+      const onClickAfterDefault = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -851,7 +850,7 @@ describe("CitationComponent behaviorConfig", () => {
 
   describe("custom onHover handlers", () => {
     it("calls onHover.onEnter on mouse enter", async () => {
-      const onEnter = jest.fn();
+      const onEnter = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -870,7 +869,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("calls onHover.onLeave on mouse leave", async () => {
-      const onLeave = jest.fn();
+      const onLeave = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -889,7 +888,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("provides correct context to onHover.onEnter", async () => {
-      const onEnter = jest.fn();
+      const onEnter = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -912,7 +911,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("provides correct context to onHover.onLeave", async () => {
-      const onLeave = jest.fn();
+      const onLeave = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -933,8 +932,8 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("still calls eventHandlers.onMouseEnter", async () => {
-      const behaviorOnEnter = jest.fn();
-      const eventHandlerOnEnter = jest.fn();
+      const behaviorOnEnter = mock(() => {});
+      const eventHandlerOnEnter = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -955,8 +954,8 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("still calls eventHandlers.onMouseLeave", async () => {
-      const behaviorOnLeave = jest.fn();
-      const eventHandlerOnLeave = jest.fn();
+      const behaviorOnLeave = mock(() => {});
+      const eventHandlerOnLeave = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -977,7 +976,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("works with only onEnter provided", async () => {
-      const onEnter = jest.fn();
+      const onEnter = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -999,7 +998,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("works with only onLeave provided", async () => {
-      const onLeave = jest.fn();
+      const onLeave = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -1027,7 +1026,7 @@ describe("CitationComponent behaviorConfig", () => {
 
   describe("combined configurations", () => {
     it("custom onClick returning actions applies them", async () => {
-      const customOnClick = jest.fn(
+      const customOnClick = mock(
         (): CitationBehaviorActions => ({
           setImageExpanded: true,
         }),
@@ -1053,9 +1052,9 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("onHover works independently of click configuration", async () => {
-      const onEnter = jest.fn();
-      const onLeave = jest.fn();
-      const customOnClick = jest.fn(); // onClick provided, so default click behavior is replaced
+      const onEnter = mock(() => {});
+      const onLeave = mock(() => {});
+      const customOnClick = mock(() => {}); // onClick provided, so default click behavior is replaced
 
       const { container } = render(
         <CitationComponent
@@ -1091,7 +1090,7 @@ describe("CitationComponent behaviorConfig", () => {
 
     it("context is updated between clicks when using custom onClick", async () => {
       const contexts: CitationBehaviorContext[] = [];
-      const customOnClick = jest.fn((context: CitationBehaviorContext): CitationBehaviorActions => {
+      const customOnClick = mock((context: CitationBehaviorContext): CitationBehaviorActions => {
         contexts.push({ ...context });
         // Toggle image
         if (context.isImageExpanded) {
@@ -1169,7 +1168,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("handles verification without image correctly in context", async () => {
-      const onEnter = jest.fn();
+      const onEnter = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -1189,7 +1188,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("handles null verification correctly in context", async () => {
-      const onEnter = jest.fn();
+      const onEnter = mock(() => {});
 
       const { container } = render(
         <CitationComponent citation={baseCitation} verification={null} behaviorConfig={{ onHover: { onEnter } }} />,
@@ -1206,7 +1205,7 @@ describe("CitationComponent behaviorConfig", () => {
     });
 
     it("handles miss verification correctly", async () => {
-      const customOnClick = jest.fn();
+      const customOnClick = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -1451,15 +1450,15 @@ describe("CitationComponent mobile/touch detection", () => {
     });
     Object.defineProperty(window, "matchMedia", {
       writable: true,
-      value: jest.fn().mockImplementation((query: string) => ({
+      value: mock(() => {}).mockImplementation((query: string) => ({
         matches: isTouch && query === "(pointer: coarse)",
         media: query,
         onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
+        addListener: mock(() => {}),
+        removeListener: mock(() => {}),
+        addEventListener: mock(() => {}),
+        removeEventListener: mock(() => {}),
+        dispatchEvent: mock(() => {}),
       })),
     });
   }
@@ -1742,7 +1741,7 @@ describe("CitationComponent mobile/touch detection", () => {
     it("custom behaviorConfig.onClick receives TouchEvent on mobile", async () => {
       mockTouchDevice(true);
 
-      const onClickMock = jest.fn();
+      const onClickMock = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -2083,7 +2082,7 @@ describe("CitationComponent interactionMode", () => {
 
   describe("deprecated eager mode (now uses lazy behavior)", () => {
     it("does NOT show popover on hover (deprecated eager mode uses lazy behavior)", async () => {
-      const onEnter = jest.fn();
+      const onEnter = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -2171,7 +2170,7 @@ describe("CitationComponent interactionMode", () => {
 
   describe("lazy mode", () => {
     it("does NOT show popover on hover", async () => {
-      const onEnter = jest.fn();
+      const onEnter = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -2286,7 +2285,7 @@ describe("CitationComponent interactionMode", () => {
     });
 
     it("still triggers eventHandlers.onClick on both clicks", async () => {
-      const onClick = jest.fn();
+      const onClick = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -2365,7 +2364,7 @@ describe("CitationComponent interactionMode", () => {
 
   describe("interactionMode with behaviorConfig", () => {
     it("custom onClick overrides lazy mode behavior", async () => {
-      const customOnClick = jest.fn();
+      const customOnClick = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -2389,7 +2388,7 @@ describe("CitationComponent interactionMode", () => {
     });
 
     it("custom onClick returning actions works in lazy mode", async () => {
-      const customOnClick = jest.fn(
+      const customOnClick = mock(
         (): CitationBehaviorActions => ({
           setImageExpanded: true,
         }),
@@ -2414,7 +2413,7 @@ describe("CitationComponent interactionMode", () => {
     });
 
     it("onHover callbacks still work in lazy mode", async () => {
-      const onEnter = jest.fn();
+      const onEnter = mock(() => {});
 
       const { container } = render(
         <CitationComponent
@@ -2445,13 +2444,13 @@ describe("CitationComponent interactionMode", () => {
     beforeEach(() => {
       Object.defineProperty(window, "matchMedia", {
         writable: true,
-        value: jest.fn().mockImplementation(query => ({
+        value: mock(() => {}).mockImplementation(query => ({
           matches: query === "(pointer: fine)", // Desktop
           media: query,
           onchange: null,
-          addEventListener: jest.fn(),
-          removeEventListener: jest.fn(),
-          dispatchEvent: jest.fn(),
+          addEventListener: mock(() => {}),
+          removeEventListener: mock(() => {}),
+          dispatchEvent: mock(() => {}),
         })),
       });
     });

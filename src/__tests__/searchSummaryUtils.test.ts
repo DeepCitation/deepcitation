@@ -8,7 +8,7 @@
  * - Groups attempts by distinct searchPhrase (query-centric)
  */
 
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { buildIntentSummary, buildSearchSummary, deriveContextWindow } from "../analysis/intent";
 import type { DeepTextItem } from "../types/boxes";
 import type { SearchAttempt } from "../types/search";

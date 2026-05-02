@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import type { Citation, DocumentCitation, UrlCitation } from "../types/citation.js";
 import { getCitationKey } from "../utils/citationKey.js";
 

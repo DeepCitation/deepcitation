@@ -8,7 +8,8 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import type { Mock } from "bun:test";
 import { text } from "../cli/text.js";
 
 function makePage(num: number): string {
@@ -32,23 +33,23 @@ function writePrepareFile(tmp: string, pageCount: number): string {
 
 describe("text", () => {
   let tmp: string;
-  let stdoutSpy: jest.SpiedFunction<typeof process.stdout.write>;
-  let mockError: jest.SpiedFunction<typeof console.error>;
-  let mockLog: jest.SpiedFunction<typeof console.log>;
-  let mockExit: jest.SpiedFunction<typeof process.exit>;
+  let stdoutSpy: Mock<typeof process.stdout.write>;
+  let mockError: Mock<typeof console.error>;
+  let mockLog: Mock<typeof console.log>;
+  let mockExit: Mock<typeof process.exit>;
   const stdoutChunks: string[] = [];
 
   beforeEach(() => {
     tmp = join(tmpdir(), `dc-text-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     mkdirSync(tmp, { recursive: true });
     stdoutChunks.length = 0;
-    stdoutSpy = jest.spyOn(process.stdout, "write").mockImplementation(((chunk: unknown) => {
+    stdoutSpy = spyOn(process.stdout, "write").mockImplementation(((chunk: unknown) => {
       stdoutChunks.push(String(chunk));
       return true;
     }) as never);
-    mockError = jest.spyOn(console, "error").mockImplementation(() => undefined);
-    mockLog = jest.spyOn(console, "log").mockImplementation(() => undefined);
-    mockExit = jest.spyOn(process, "exit").mockImplementation(((code?: number) => {
+    mockError = spyOn(console, "error").mockImplementation(() => undefined);
+    mockLog = spyOn(console, "log").mockImplementation(() => undefined);
+    mockExit = spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`process.exit(${code ?? 0})`);
     }) as never);
   });

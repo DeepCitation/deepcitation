@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { renderCitationsForTerminal } from "../../rendering/terminal/terminalRenderer.js";
 import type { Verification } from "../../types/verification.js";
 import { getCitationKey } from "../../utils/citationKey.js";

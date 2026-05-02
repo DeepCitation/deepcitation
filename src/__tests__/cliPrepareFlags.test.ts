@@ -10,7 +10,7 @@
  * These are pure helpers, so the tests avoid the network path entirely.
  */
 
-import { describe, expect, it, jest } from "@jest/globals";
+import { describe, expect, it, spyOn } from "bun:test";
 import { normalizeShortFlags } from "../cli/cliUtils.js";
 import {
   parseFormatMode,
@@ -66,10 +66,10 @@ describe("parseLineIdsMode", () => {
   });
 
   it("rejects 'every=6' because hydrate assumes every-5 is the ceiling", () => {
-    const mockExit = jest.spyOn(process, "exit").mockImplementation(((code?: number) => {
+    const mockExit = spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`exit(${code ?? 0})`);
     }) as never);
-    const mockError = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const mockError = spyOn(console, "error").mockImplementation(() => undefined);
     try {
       expect(() => parseLineIdsMode("every=6")).toThrow("exit(1)");
       expect(mockError.mock.calls.some(call => String(call[0]).includes("ceiling"))).toBe(true);
@@ -80,10 +80,10 @@ describe("parseLineIdsMode", () => {
   });
 
   it("rejects unknown values", () => {
-    const mockExit = jest.spyOn(process, "exit").mockImplementation(((code?: number) => {
+    const mockExit = spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`exit(${code ?? 0})`);
     }) as never);
-    const mockError = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const mockError = spyOn(console, "error").mockImplementation(() => undefined);
     try {
       expect(() => parseLineIdsMode("something")).toThrow("exit(1)");
     } finally {
@@ -106,10 +106,10 @@ describe("parseFormatMode", () => {
   });
 
   it("rejects unknown values with a clear error", () => {
-    const mockExit = jest.spyOn(process, "exit").mockImplementation(((code?: number) => {
+    const mockExit = spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`exit(${code ?? 0})`);
     }) as never);
-    const mockError = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const mockError = spyOn(console, "error").mockImplementation(() => undefined);
     try {
       expect(() => parseFormatMode("yaml", "json")).toThrow("exit(1)");
     } finally {
@@ -147,10 +147,10 @@ describe("resolvePageSpec", () => {
   });
 
   it("rejects specs that match no pages", () => {
-    const mockExit = jest.spyOn(process, "exit").mockImplementation(((code?: number) => {
+    const mockExit = spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`exit(${code ?? 0})`);
     }) as never);
-    const mockError = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const mockError = spyOn(console, "error").mockImplementation(() => undefined);
     try {
       expect(() => resolvePageSpec("50-60", 10)).toThrow("exit(1)");
     } finally {

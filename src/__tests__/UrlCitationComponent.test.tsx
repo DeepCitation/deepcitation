@@ -1,10 +1,9 @@
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import type React from "react";
 
-// Mock createPortal to render content in place instead of portal.
-jest.mock("react-dom", () => {
-  const actual = jest.requireActual("react-dom") as typeof import("react-dom");
+mock.module("react-dom", () => {
+  const actual = require("react-dom") as typeof import("react-dom");
   return { ...actual, createPortal: (node: React.ReactNode) => node };
 });
 
@@ -149,7 +148,7 @@ describe("UrlCitationComponent", () => {
 
   describe("interactions", () => {
     it("opens URL on click by default", () => {
-      const windowOpenSpy = jest.spyOn(window, "open").mockImplementation(() => null);
+      const windowOpenSpy = spyOn(window, "open").mockImplementation(() => null);
 
       const { getByRole } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
 
@@ -167,7 +166,7 @@ describe("UrlCitationComponent", () => {
     });
 
     it("calls custom onUrlClick when provided", () => {
-      const onUrlClick = jest.fn();
+      const onUrlClick = mock(() => {});
 
       const { getByRole } = render(<UrlCitationComponent urlMeta={createUrlMeta()} onUrlClick={onUrlClick} />);
 
@@ -191,7 +190,7 @@ describe("UrlCitationComponent", () => {
     });
 
     it("opens URL via external link button when clicked", () => {
-      const windowOpenSpy = jest.spyOn(window, "open").mockImplementation(() => null);
+      const windowOpenSpy = spyOn(window, "open").mockImplementation(() => null);
 
       const { getByLabelText } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
 
@@ -209,7 +208,7 @@ describe("UrlCitationComponent", () => {
     });
 
     it("triggers click handler on Enter key press (keyboard accessibility)", () => {
-      const onUrlClick = jest.fn();
+      const onUrlClick = mock(() => {});
 
       const { getByRole } = render(<UrlCitationComponent urlMeta={createUrlMeta()} onUrlClick={onUrlClick} />);
 
@@ -220,7 +219,7 @@ describe("UrlCitationComponent", () => {
     });
 
     it("triggers click handler on Space key press (keyboard accessibility)", () => {
-      const onUrlClick = jest.fn();
+      const onUrlClick = mock(() => {});
 
       const { getByRole } = render(<UrlCitationComponent urlMeta={createUrlMeta()} onUrlClick={onUrlClick} />);
 
@@ -231,7 +230,7 @@ describe("UrlCitationComponent", () => {
     });
 
     it("opens URL on Enter key press", () => {
-      const windowOpenSpy = jest.spyOn(window, "open").mockImplementation(() => null);
+      const windowOpenSpy = spyOn(window, "open").mockImplementation(() => null);
 
       const { getByRole } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
 

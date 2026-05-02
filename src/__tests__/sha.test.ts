@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from "@jest/globals";
+import { describe, expect, it, spyOn } from "bun:test";
 import { sha1Hash } from "../utils/sha.js";
 
 describe("sha1Hash", () => {
@@ -57,7 +57,7 @@ describe("sha1Hash", () => {
     circularObj.self = circularObj;
 
     // Spy on console.error to verify it's called
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
 
     const result = sha1Hash(circularObj);
 
@@ -81,7 +81,7 @@ describe("sha1Hash", () => {
     };
     (obj.level1 as Record<string, unknown>).level2 = obj;
 
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
 
     const result = sha1Hash(obj);
     expect(result).toBe("");
@@ -94,7 +94,7 @@ describe("sha1Hash", () => {
     const arr: unknown[] = [1, 2, 3];
     arr.push(arr);
 
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
 
     const result = sha1Hash(arr);
     expect(result).toBe("");

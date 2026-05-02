@@ -7,7 +7,7 @@
  * degrades gracefully.
  */
 
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { analyzeVerification, classifySearch } from "../analysis/searchAnalysis";
 import { STATUS_MAP } from "../analysis/statusRegistry";
 import type { SearchAttempt, SearchStatus } from "../types/search";

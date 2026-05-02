@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from "@jest/globals";
+import { describe, expect, it, spyOn } from "bun:test";
 import {
   CITATION_X_PADDING,
   CITATION_Y_PADDING,
@@ -30,7 +30,7 @@ describe("react utils", () => {
   });
 
   it("creates unique instance ids with a random suffix", () => {
-    const randomSpy = jest.spyOn(Math, "random").mockReturnValue(0.123456789);
+    const randomSpy = spyOn(Math, "random").mockReturnValue(0.123456789);
     const key = "key-123";
     const expectedSuffix = (0.123456789).toString(36).substr(2, 9);
     expect(generateCitationInstanceId(key)).toBe(`${key}-${expectedSuffix}`);

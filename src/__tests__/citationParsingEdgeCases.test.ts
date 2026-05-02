@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
 import { makeNumericResponse } from "./testHelpers.js";
 

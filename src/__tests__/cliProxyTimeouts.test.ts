@@ -12,7 +12,7 @@
  */
 
 import { createServer, type Server, type Socket } from "node:net";
-import { afterEach, describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it } from "bun:test";
 
 // Set short timeouts BEFORE importing proxy.ts (the constants are read at module load).
 process.env.DC_PROXY_CONNECT_MS = "300";

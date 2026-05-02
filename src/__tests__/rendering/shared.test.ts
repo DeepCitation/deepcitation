@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import type { ParsedCitationResult } from "../../parsing/parseCitationResponse.js";
 import { resolveSourceLabel, type TextSegment, walkCitationSegments } from "../../rendering/shared.js";
 

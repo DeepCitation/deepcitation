@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { buildCdnComparisonShowcaseHtml, markdownToHtml, wrapCitationMarkers } from "../cli/markdownToHtml.js";
 
 // ── wrapCitationMarkers ───────────────────────────────────────────

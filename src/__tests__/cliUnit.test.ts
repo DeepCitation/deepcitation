@@ -1,7 +1,21 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
+import type { Mock } from "bun:test";
+
+mock.module("node:fs", () => ({
+  existsSync: mock(() => false),
+  mkdirSync: mock(() => {}),
+  readFileSync: mock(() => {
+    throw new Error("ENOENT");
+  }),
+  writeFileSync: mock(() => {}),
+}));
+mock.module("node:os", () => ({
+  homedir: mock(() => "/tmp/test-home"),
+}));
+
 import {
   CLAUDE_COWORK_DOMAIN_HINT,
   checkForUpdate,
@@ -12,18 +26,6 @@ import {
 } from "../cli/cliUtils.js";
 import { TimeoutError } from "../cli/proxy.js";
 import { PaymentRequiredError } from "../client/errors.js";
-
-jest.mock("node:fs", () => ({
-  existsSync: jest.fn(() => false),
-  mkdirSync: jest.fn(),
-  readFileSync: jest.fn(() => {
-    throw new Error("ENOENT");
-  }),
-  writeFileSync: jest.fn(),
-}));
-jest.mock("node:os", () => ({
-  homedir: jest.fn(() => "/tmp/test-home"),
-}));
 
 // ── parseArgs ─────────────────────────────────────────────────────
 
@@ -56,10 +58,10 @@ describe("parseArgs", () => {
   });
 
   it("exits with 0 on -h", () => {
-    const exitSpy = jest.spyOn(process, "exit").mockImplementation((() => {
+    const exitSpy = spyOn(process, "exit").mockImplementation((() => {
       throw new Error("exit");
     }) as never);
-    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    const logSpy = spyOn(console, "log").mockImplementation(() => {});
     try {
       parseArgs(["-h"], HELP);
     } catch {
@@ -72,10 +74,10 @@ describe("parseArgs", () => {
   });
 
   it("exits with 0 on --help", () => {
-    const exitSpy = jest.spyOn(process, "exit").mockImplementation((() => {
+    const exitSpy = spyOn(process, "exit").mockImplementation((() => {
       throw new Error("exit");
     }) as never);
-    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    const logSpy = spyOn(console, "log").mockImplementation(() => {});
     try {
       parseArgs(["--help"], HELP);
     } catch {
@@ -372,8 +374,8 @@ describe("checkForUpdate", () => {
   const stampPath = join("/tmp/test-home", ".deepcitation", "update-check");
 
   afterEach(() => {
-    jest.restoreAllMocks();
-    (readFileSync as jest.Mock).mockImplementation(() => {
+    mock.restore();
+    (readFileSync as Mock).mockImplementation(() => {
       throw new Error("ENOENT");
     });
   });
@@ -383,7 +385,7 @@ describe("checkForUpdate", () => {
       .spyOn(globalThis, "fetch")
       .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "0.3.10" }) } as globalThis.Response);
     // Stamp is 1 minute old
-    (readFileSync as jest.Mock).mockReturnValue(String(Date.now() - 60_000));
+    (readFileSync as Mock).mockReturnValue(String(Date.now() - 60_000));
 
     await checkForUpdate("0.3.10");
 
@@ -396,7 +398,7 @@ describe("checkForUpdate", () => {
       .spyOn(globalThis, "fetch")
       .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "0.3.10" }) } as globalThis.Response);
     // Stamp is 25 hours old
-    (readFileSync as jest.Mock).mockReturnValue(String(Date.now() - 25 * 60 * 60 * 1000));
+    (readFileSync as Mock).mockReturnValue(String(Date.now() - 25 * 60 * 60 * 1000));
 
     await checkForUpdate("0.3.10");
 
@@ -419,7 +421,7 @@ describe("checkForUpdate", () => {
   });
 
   it("writes stderr when a newer version is available", async () => {
-    const stderrSpy = jest.spyOn(process.stderr, "write").mockReturnValue(true);
+    const stderrSpy = spyOn(process.stderr, "write").mockReturnValue(true);
     jest
       .spyOn(globalThis, "fetch")
       .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "99.0.0" }) } as globalThis.Response);
@@ -431,7 +433,7 @@ describe("checkForUpdate", () => {
   });
 
   it("does not write stderr when versions match", async () => {
-    const stderrSpy = jest.spyOn(process.stderr, "write").mockReturnValue(true);
+    const stderrSpy = spyOn(process.stderr, "write").mockReturnValue(true);
     jest
       .spyOn(globalThis, "fetch")
       .mockResolvedValue({ ok: true, json: () => Promise.resolve({ version: "0.3.10" }) } as globalThis.Response);

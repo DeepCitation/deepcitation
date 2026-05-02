@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { renderHook } from "@testing-library/react";
 import { useSmartDiff } from "../react/useSmartDiff";
 

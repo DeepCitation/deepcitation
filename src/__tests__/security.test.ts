@@ -3,7 +3,7 @@
  * Tests for ReDoS prevention, prototype pollution, URL validation, and log injection.
  */
 
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { isValidProofImageSrc } from "../react/constants";
 import { createLogEntry, sanitizeForLog, sanitizeJsonForLog } from "../utils/logSafety";
 import { createSafeObject, isSafeKey, safeAssign, safeAssignBulk, safeMerge } from "../utils/objectSafety";

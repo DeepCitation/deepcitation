@@ -11,7 +11,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 
 import { DeepCitation } from "../client/DeepCitation.js";
 import { cachedFixture, canRunE2e, hasApiKey } from "./fixtures/fixtureCache.js";

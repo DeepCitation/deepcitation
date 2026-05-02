@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { buildSearchNarrative } from "../analysis/narrative";
 import { getVariationLabel } from "../analysis/variationLabels";
@@ -703,7 +703,7 @@ describe("SourceContextHeader", () => {
         pageNumber: 3,
         sourceContext: "Revenue grew 15%",
       };
-      const appendChildSpy = jest.spyOn(document.body, "appendChild");
+      const appendChildSpy = spyOn(document.body, "appendChild");
 
       const { getByRole } = render(
         <SourceContextHeader citation={citation} download={{ url: "https://example.com/file.pdf" }} />,
@@ -725,7 +725,7 @@ describe("SourceContextHeader", () => {
         pageNumber: 1,
         sourceContext: "Test phrase",
       };
-      const parentClick = jest.fn();
+      const parentClick = mock(() => {});
 
       const { getByRole } = render(
         <div
@@ -957,14 +957,13 @@ describe("FaviconImage", () => {
 describe("download domain-trust gate", () => {
   afterEach(() => {
     cleanup();
-    jest.restoreAllMocks();
   });
 
   it("always uses anchor path in HappyDOM for any download URL", async () => {
     // In HappyDOM the isHappyDom fast-path always runs synchronously.
     // In jsdom the trusted-host fetch path runs, fetch rejects, and anchorDownload()
     // fires asynchronously. waitFor handles both environments.
-    const appendChildSpy = jest.spyOn(document.body, "appendChild");
+    const appendChildSpy = spyOn(document.body, "appendChild");
 
     const citation: Citation = {
       type: "document",
@@ -988,7 +987,7 @@ describe("download domain-trust gate", () => {
   });
 
   it("passes filename to anchor download element", async () => {
-    const appendChildSpy = jest.spyOn(document.body, "appendChild");
+    const appendChildSpy = spyOn(document.body, "appendChild");
 
     const citation: Citation = {
       type: "document",

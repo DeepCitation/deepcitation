@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { EXPANDED_IMAGE_SHELL_PX, POPOVER_WIDTH, POPOVER_WIDTH_MIN_PX } from "../react/constants.js";
 import {
   EXPANDED_POPOVER_MID_WIDTH,

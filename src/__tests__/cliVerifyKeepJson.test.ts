@@ -8,7 +8,7 @@
  */
 
 import { basename, dirname, resolve } from "node:path";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { deriveVerifyResponseSidecarPath } from "../cli/commands.js";
 
 describe("deriveVerifyResponseSidecarPath", () => {

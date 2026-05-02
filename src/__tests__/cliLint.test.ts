@@ -18,7 +18,7 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { lint } from "../cli/lint.js";
 import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 
@@ -42,9 +42,9 @@ const VALID = sectionWithBlock(
 
 describe("lint", () => {
   let tmp: string;
-  let mockExit: jest.SpiedFunction<typeof process.exit>;
-  let mockError: jest.SpiedFunction<typeof console.error>;
-  let mockLog: jest.SpiedFunction<typeof console.log>;
+  let mockExit: ReturnType<typeof spyOn<typeof process, "exit">>;
+  let mockError: ReturnType<typeof spyOn<typeof console, "error">>;
+  let mockLog: ReturnType<typeof spyOn<typeof console, "log">>;
   const errorLines: string[] = [];
   const logLines: string[] = [];
 
@@ -53,13 +53,13 @@ describe("lint", () => {
     mkdirSync(tmp, { recursive: true });
     errorLines.length = 0;
     logLines.length = 0;
-    mockExit = jest.spyOn(process, "exit").mockImplementation(((code?: number) => {
+    mockExit = spyOn(process, "exit").mockImplementation(((code?: number) => {
       throw new Error(`process.exit(${code ?? 0})`);
     }) as never);
-    mockError = jest.spyOn(console, "error").mockImplementation(((...args: unknown[]) => {
+    mockError = spyOn(console, "error").mockImplementation(((...args: unknown[]) => {
       errorLines.push(args.map(String).join(" "));
     }) as never);
-    mockLog = jest.spyOn(console, "log").mockImplementation(((...args: unknown[]) => {
+    mockLog = spyOn(console, "log").mockImplementation(((...args: unknown[]) => {
       logLines.push(args.map(String).join(" "));
     }) as never);
   });

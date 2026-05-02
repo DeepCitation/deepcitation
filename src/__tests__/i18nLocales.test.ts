@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { defaultMessages } from "../react/i18n";
 import { esMessages, esOverrides } from "../react/locales/es";
 import { frMessages, frOverrides } from "../react/locales/fr";

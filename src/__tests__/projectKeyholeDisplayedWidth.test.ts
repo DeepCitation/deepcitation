@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, test } from "bun:test";
 import { KEYHOLE_STRIP_HEIGHT_DEFAULT, projectKeyholeDisplayedWidth } from "../react/constants";
 
 // This helper is load-bearing for popover width stability: it feeds both the

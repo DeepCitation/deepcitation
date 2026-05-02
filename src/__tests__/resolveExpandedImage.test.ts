@@ -3,7 +3,7 @@
  * for the expanded page viewer's image source.
  */
 
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "bun:test";
 import { resolveExpandedImage } from "../react/EvidenceTray";
 import type { Verification } from "../types/verification";
 

@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, describe, expect, it, mock } from "bun:test";
+import type { Mock } from "bun:test";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { PagePicker } from "../react/PagePicker";
 
@@ -8,7 +9,7 @@ afterEach(() => {
 
 describe("PagePicker", () => {
   it("renders descriptive pills for active and neighbor pages, dots for distant pages (expanded state)", () => {
-    const onPageClick = jest.fn<(page: number) => void>();
+    const onPageClick = mock(() => {});
     const { getAllByRole } = render(
       <PagePicker pages={[1, 2, 3, 4, 5, 6]} activePage={3} onPageClick={onPageClick} isExpanded={true} />,
     );
@@ -36,7 +37,7 @@ describe("PagePicker", () => {
   });
 
   it("active pill shows chevron (expand) label when not in expanded state", () => {
-    const onPageClick = jest.fn<(page: number) => void>();
+    const onPageClick = mock(() => {});
     const { getAllByRole } = render(
       <PagePicker pages={[1, 2, 3, 4, 5, 6]} activePage={3} onPageClick={onPageClick} isExpanded={false} />,
     );
@@ -52,7 +53,7 @@ describe("PagePicker", () => {
   });
 
   it("fires onPageClick with the correct page when a neighbor pill is clicked", () => {
-    const onPageClick = jest.fn<(page: number) => void>();
+    const onPageClick = mock(() => {});
     const { getAllByRole } = render(
       <PagePicker pages={[1, 2, 3, 4, 5, 6]} activePage={3} onPageClick={onPageClick} isExpanded={true} />,
     );
@@ -62,12 +63,12 @@ describe("PagePicker", () => {
     expect(neighbor4).toBeTruthy();
     if (neighbor4) fireEvent.click(neighbor4);
 
-    const calls = (onPageClick as jest.MockedFunction<(page: number) => void>).mock.calls;
+    const calls = (onPageClick as Mock<(page: number) => void>).mock.calls;
     expect(calls.some(([page]) => page === 4)).toBe(true);
   });
 
   it("fires onPageClick with the correct page when a dot is clicked", () => {
-    const onPageClick = jest.fn<(page: number) => void>();
+    const onPageClick = mock(() => {});
     const { getAllByRole } = render(
       <PagePicker pages={[1, 2, 3, 4, 5, 6]} activePage={3} onPageClick={onPageClick} isExpanded={true} />,
     );
@@ -76,12 +77,12 @@ describe("PagePicker", () => {
     expect(dot1).toBeTruthy();
     if (dot1) fireEvent.click(dot1);
 
-    const calls = (onPageClick as jest.MockedFunction<(page: number) => void>).mock.calls;
+    const calls = (onPageClick as Mock<(page: number) => void>).mock.calls;
     expect(calls.some(([page]) => page === 1)).toBe(true);
   });
 
   it("two-page input renders two descriptive pills with no dots", () => {
-    const onPageClick = jest.fn<(page: number) => void>();
+    const onPageClick = mock(() => {});
     const { getAllByRole } = render(
       <PagePicker pages={[2, 3]} activePage={2} onPageClick={onPageClick} isExpanded={true} />,
     );
