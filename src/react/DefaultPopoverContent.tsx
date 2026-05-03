@@ -10,9 +10,10 @@
 
 import { type ReactNode, type Ref, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { analyzeVerification } from "../analysis/searchAnalysis.js";
-import type { CitationStatus } from "../types/citation.js";
+import type { CitationStatus, SupportingFact } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
+import { getCitationKey } from "../utils/citationKey.js";
 import { getStatusLabel } from "./citationStatus.js";
 import {
   BLINK_ENTER_EASING,
@@ -45,6 +46,7 @@ import { useTranslation } from "./i18n.js";
 import { SpinnerIcon } from "./icons.js";
 import { getBlinkContainerMotionStyle } from "./motion/blinkAnimation.js";
 import { SnippetZone } from "./SnippetZone.js";
+import { SupportingFactsPills } from "./SupportingFactsPills.js";
 import type { BaseCitationProps, DownloadInfo, IndicatorVariant } from "./types.js";
 import { UrlAccessExplanationSection } from "./UrlAccessExplanationSection.js";
 import {
@@ -124,6 +126,12 @@ export interface PopoverContentProps {
   customPopoverActions?: import("./types.js").PopoverAction[];
   /** Optional ref to the outer popover shell, used by the CDN wrapper for transition capture. */
   popoverContentRef?: Ref<HTMLDivElement>;
+  /** Supporting facts for multi-fact citations. */
+  supportingFacts?: SupportingFact[];
+  /** Verifications for supporting facts, ordered by childIndex. */
+  supportingFactVerifications?: (Verification | undefined)[];
+  /** Instance ID of the parent citation (used for parent-stays-open behavior on child pills). */
+  parentCitationInstanceId?: string;
   /**
    * Optional host-supplied renderer for the summary keyhole strip. Passed
    * straight through to `EvidenceTray`; see `EvidenceKeyholeRenderProps` for
@@ -735,6 +743,9 @@ export function DefaultPopoverContent({
   popoverContentRef,
   renderEvidenceKeyhole,
   renderExpandedPage,
+  supportingFacts,
+  supportingFactVerifications,
+  parentCitationInstanceId,
 }: PopoverContentProps) {
   const t = useTranslation();
   // Resolve evidence src up-front so hasImage reflects only actually-renderable images.
@@ -749,6 +760,8 @@ export function DefaultPopoverContent({
   const expandCtaLabel = isImageSource(verification) ? t("action.viewImage") : undefined;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
+  const parentKey = useMemo(() => getCitationKey(citation), [citation]);
+  const hasSupportingFacts = !!(supportingFacts && supportingFacts.length > 0);
 
   // A.5.3 Track previous pending state so we can announce transitions to screen readers.
   // Uses a ref (not state) to track previous isPending — avoids setState-during-render
@@ -1176,6 +1189,15 @@ export function DefaultPopoverContent({
                 </div>
               )}
             </AnimatedHeightWrapper>
+            {hasSupportingFacts && (
+              <SupportingFactsPills
+                parentCitation={citation}
+                parentKey={parentKey}
+                supportingFacts={supportingFacts!}
+                supportingFactVerifications={supportingFactVerifications}
+                parentCitationInstanceId={parentCitationInstanceId}
+              />
+            )}
           </div>
           {/* Zone 3: Evidence */}
           <EvidenceZone

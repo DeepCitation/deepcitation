@@ -138,6 +138,7 @@ export type {
   ImageFormat,
   // Source types for categorization
   SourceType,
+  SupportingFact,
   UrlCitation,
   VerificationRecord,
   VerifyCitationRequest,
@@ -173,8 +174,15 @@ export type {
   Verification,
 } from "./types/verification.js";
 // Utilities
-export { getCitationKey, getVerificationKey } from "./utils/citationKey.js";
+export { getCitationKey, getChildCitationKey, getVerificationKey } from "./utils/citationKey.js";
 export { getCitationStatus, PARTIAL_STATUSES } from "./utils/citationStatus.js";
+export {
+  childCitationFromFact,
+  expandSupportingFactsForVerification,
+  getSupportingFactVerifications,
+  type ParentChildKeyMap,
+} from "./utils/supportingFactExpansion.js";
+export { computeCompositeStatus } from "./utils/worstChildStatus.js";
 export {
   getFieldAliases,
   normalizeCitationFields,

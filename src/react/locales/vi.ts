@@ -50,6 +50,7 @@ export const viOverrides = {
   "popover.lookingOnPage": "Đang tìm trên tr. {pageNumber}",
   "popover.searchingImage": "Đang tìm trong hình ảnh…",
   "popover.claimedAs": "hiển thị là \u201c{label}\u201d",
+  "popover.supportingFacts": "Dữ kiện hỗ trợ",
   "tab.expected": "Kỳ vọng",
   "tab.diff": "Khác biệt",
   "tab.found": "Đã tìm thấy",

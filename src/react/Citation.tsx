@@ -1,8 +1,9 @@
 import type React from "react";
 import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { CitationStatus } from "../types/citation.js";
+import type { CitationStatus, SupportingFact } from "../types/citation.js";
 import type { FileDownload, PageImage, Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
+import { computeCompositeStatus } from "../utils/worstChildStatus.js";
 import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import type { CitationStatusIndicatorProps, SpinnerStage } from "./CitationStatusIndicator.js";
@@ -235,6 +236,18 @@ export interface CitationComponentProps extends BaseCitationProps {
    */
   experimentalHaptics?: boolean;
   /**
+   * Verifications for supporting facts (children), ordered by childIndex.
+   * When present, the status badge uses worst-child-wins composite status
+   * and the popover renders supporting fact pills.
+   */
+  supportingFactVerifications?: (Verification | undefined)[];
+  /**
+   * When set, this citation is a child rendered inside a parent popover.
+   * Suppresses announceActivePopover so the parent stays open when
+   * the child's popover opens on top.
+   */
+  parentInstanceId?: string;
+  /**
    * Custom action buttons rendered in the popover header alongside the download button.
    * Each action appears as an icon-only button following the same reveal-on-hover pattern.
    */
@@ -376,6 +389,9 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   download,
   escapeInterceptRef,
   customPopoverActions,
+  supportingFacts,
+  supportingFactVerifications,
+  parentCitationInstanceId,
 }: {
   renderPopoverContent?: CitationComponentProps["renderPopoverContent"];
   renderEvidenceKeyhole?: CitationComponentProps["renderEvidenceKeyhole"];
@@ -398,6 +414,9 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   download?: DownloadInfo;
   escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
   customPopoverActions?: import("./types.js").PopoverAction[];
+  supportingFacts?: SupportingFact[];
+  supportingFactVerifications?: (Verification | undefined)[];
+  parentCitationInstanceId?: string;
 }) {
   if (renderPopoverContent) {
     const CustomContent = renderPopoverContent;
@@ -428,6 +447,9 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
         download={download}
         escapeInterceptRef={escapeInterceptRef}
         customPopoverActions={customPopoverActions}
+        supportingFacts={supportingFacts}
+        supportingFactVerifications={supportingFactVerifications}
+        parentCitationInstanceId={parentCitationInstanceId}
         renderEvidenceKeyhole={renderEvidenceKeyhole}
         renderExpandedPage={renderExpandedPage}
       />
@@ -489,6 +511,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       disableTelemetry = false,
       prefetch: prefetchMode = "eager",
       customPopoverActions,
+      supportingFactVerifications,
+      parentInstanceId,
     },
     ref,
   ) => {
@@ -644,12 +668,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
 
     useEffect(() => {
+      if (parentInstanceId) return;
       return subscribeToActivePopover(activeInstanceId => {
         if (activeInstanceId !== citationInstanceId) {
           closePopover();
         }
       });
-    }, [citationInstanceId, closePopover]);
+    }, [citationInstanceId, closePopover, parentInstanceId]);
 
     // ========== TtC Timing ==========
     const { firstSeenAtRef } = useCitationTiming(
@@ -716,8 +741,18 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     }, [isHovering, citationKey, disableTelemetry]);
 
     // Derive status from verification object
-    const status = useMemo(() => getStatusFromVerification(verification), [verification]);
+    const status = useMemo(
+      () =>
+        supportingFactVerifications?.length
+          ? computeCompositeStatus(verification, supportingFactVerifications)
+          : getStatusFromVerification(verification),
+      [verification, supportingFactVerifications],
+    );
     const { isMiss, isPartialMatch, isVerified, isPending } = status;
+
+    const announceAsActive = useCallback(() => {
+      if (!parentInstanceId) announceActivePopover(citationInstanceId);
+    }, [citationInstanceId, parentInstanceId]);
 
     // Resolve the evidence snippet image source for spinner finalization logic.
     const resolvedImageSrc = verification?.evidence?.src ?? null;
@@ -803,7 +838,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             closePopover();
           } else if (actions.setImageExpanded) {
             // Open: show popover in expanded (full page) view
-            announceActivePopover(citationInstanceId);
+            announceAsActive();
             setIsHovering(true);
             viewState.transition("expanded-page");
             // If a custom image URL was provided, validate before storing
@@ -814,7 +849,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         }
       },
       // biome-ignore lint/correctness/useExhaustiveDependencies: both viewState and viewState.transition are intentionally listed for hook stability
-      [citationInstanceId, closePopover, viewState.transition, viewState],
+      [announceAsActive, closePopover, viewState.transition, viewState],
     );
 
     // Shared tap/click action handler - used by both click and touch handlers.
@@ -876,14 +911,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             // the geometry of the state the user was viewing.
             viewState.resetToSummary();
             setCustomExpandedSrc(null);
-            announceActivePopover(citationInstanceId);
+            announceAsActive();
             setIsHovering(true);
             break;
           case "hidePopover":
             closePopover();
             break;
           case "expandImage":
-            announceActivePopover(citationInstanceId);
+            announceAsActive();
             viewState.transition("expanded-page");
             break;
         }
@@ -894,7 +929,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         behaviorConfig,
         eventHandlers,
         citation,
-        citationInstanceId,
+        announceAsActive,
         citationKey,
         getBehaviorContext,
         applyBehaviorActions,
@@ -1422,6 +1457,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           download={download}
           escapeInterceptRef={viewState.escapeInterceptRef}
           customPopoverActions={customPopoverActions}
+          supportingFacts={citation?.supportingFacts}
+          supportingFactVerifications={supportingFactVerifications}
+          parentCitationInstanceId={citationInstanceId}
         />
       );
 
