@@ -143,6 +143,39 @@ function isValidCitationData(obj: unknown): obj is CitationData {
 }
 
 /**
+ * Normalizes a single key-value pair from compact/alias format to canonical CitationData format.
+ * Handles timestamps (nested s/e keys) and line_ids (string-to-int coercion).
+ *
+ * @returns The canonical key and normalized value, or null if the key is unsafe.
+ */
+function normalizeKeyValue(rawKey: string, value: unknown): { fullKey: string; normalizedValue: unknown } | null {
+  const fullKey = KEY_ALIAS_MAP[rawKey] || COMPACT_KEY_MAP[rawKey] || rawKey;
+  if (!isSafeKey(fullKey)) return null;
+
+  // Handle timestamps specially (nested object with s/e keys)
+  if ((rawKey === "t" || fullKey === "timestamps") && value && typeof value === "object") {
+    const ts = value as Record<string, unknown>;
+    return {
+      fullKey: "timestamps",
+      normalizedValue: {
+        start_time: ts.s ?? ts.start_time ?? ts.startTime,
+        end_time: ts.e ?? ts.end_time ?? ts.endTime,
+      },
+    };
+  }
+
+  // Coerce line_ids to integers — LLMs sometimes output ["452"] instead of [452]
+  if (fullKey === "line_ids" && Array.isArray(value)) {
+    return {
+      fullKey,
+      normalizedValue: value.map((v: unknown) => (typeof v === "string" ? parseInt(v, 10) : v)),
+    };
+  }
+
+  return { fullKey, normalizedValue: value };
+}
+
+/**
  * Expands compact citation data to the full CitationData format.
  * Handles both compact keys (n, a, r, f, k, p, l, t) and full keys.
  *
@@ -158,64 +191,31 @@ function expandCompactKeys(
   const result = createSafeObject<unknown>();
 
   for (const [key, value] of Object.entries(data)) {
-    // Check if this is a compact key
-    const fullKey = KEY_ALIAS_MAP[key] || COMPACT_KEY_MAP[key] || key;
-
-    // Only assign if key is safe (prevents prototype pollution)
-    if (!isSafeKey(fullKey)) {
-      continue;
-    }
-
-    // Handle timestamps specially (nested object with s/e keys)
-    if ((key === "t" || fullKey === "timestamps") && value && typeof value === "object") {
-      const ts = value as Record<string, unknown>;
-      result.timestamps = {
-        start_time: ts.s ?? ts.start_time ?? ts.startTime,
-        end_time: ts.e ?? ts.end_time ?? ts.endTime,
-      };
-      continue;
-    }
-
-    // Coerce line_ids to integers — LLMs sometimes output ["452"] instead of [452]
-    if (fullKey === "line_ids" && Array.isArray(value)) {
-      result[fullKey] = value.map((v: unknown) => (typeof v === "string" ? parseInt(v, 10) : v));
-      continue;
-    }
-
     // Recursively expand children array — each child uses the same compact keys
-    if (fullKey === "children" && Array.isArray(value)) {
+    if ((KEY_ALIAS_MAP[key] || COMPACT_KEY_MAP[key] || key) === "children" && Array.isArray(value)) {
       result.children = value
         .filter((child): child is Record<string, unknown> => typeof child === "object" && child !== null)
         .map(child => {
           const expanded = createSafeObject<unknown>();
           for (const [ck, cv] of Object.entries(child)) {
-            const childFullKey = KEY_ALIAS_MAP[ck] || COMPACT_KEY_MAP[ck] || ck;
-            if (!isSafeKey(childFullKey)) continue;
-
-            if ((ck === "t" || childFullKey === "timestamps") && cv && typeof cv === "object") {
-              const ts = cv as Record<string, unknown>;
-              expanded.timestamps = {
-                start_time: ts.s ?? ts.start_time ?? ts.startTime,
-                end_time: ts.e ?? ts.end_time ?? ts.endTime,
-              };
-              continue;
-            }
-
-            if (childFullKey === "line_ids" && Array.isArray(cv)) {
-              expanded[childFullKey] = cv.map((v: unknown) => (typeof v === "string" ? parseInt(v, 10) : v));
-              continue;
-            }
-
-            expanded[childFullKey] = cv;
+            const normalized = normalizeKeyValue(ck, cv);
+            if (!normalized) continue;
+            if (normalized.fullKey === "children") continue;
+            // fullKey is guaranteed safe by isSafeKey check in normalizeKeyValue
+            // lgtm[js/remote-property-injection]
+            expanded[normalized.fullKey] = normalized.normalizedValue;
           }
           return expanded;
         });
       continue;
     }
 
-    // fullKey is guaranteed safe by isSafeKey check above (line 79)
+    const normalized = normalizeKeyValue(key, value);
+    if (!normalized) continue;
+
+    // fullKey is guaranteed safe by isSafeKey check in normalizeKeyValue
     // lgtm[js/remote-property-injection]
-    result[fullKey] = value;
+    result[normalized.fullKey] = normalized.normalizedValue;
   }
 
   // Inject attachment_id if provided (from grouped format)

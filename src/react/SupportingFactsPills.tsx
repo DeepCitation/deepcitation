@@ -29,7 +29,7 @@ export function SupportingFactsPills({
           <CitationComponent
             key={getChildCitationKey(parentKey, fact.childIndex)}
             citation={childCitationFromFact(fact, parentCitation)}
-            verification={supportingFactVerifications?.[i] ?? null}
+            verification={supportingFactVerifications?.[fact.childIndex] ?? null}
             variant="chip"
             indicatorVariant="dot"
             popoverPortalToBody
