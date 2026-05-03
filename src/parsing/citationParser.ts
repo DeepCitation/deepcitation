@@ -20,7 +20,7 @@ import {
   type CompactCitationData,
   type ParsedCitationResponse,
 } from "../prompts/citationPrompts.js";
-import type { AudioVideoCitation, Citation } from "../types/citation.js";
+import type { AudioVideoCitation, Citation, SupportingFact } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
@@ -41,6 +41,7 @@ const COMPACT_KEY_MAP: Record<string, keyof CitationData> = {
   p: "page_id",
   l: "line_ids",
   t: "timestamps",
+  c: "children",
 } as const;
 
 /**
@@ -178,6 +179,39 @@ function expandCompactKeys(
     // Coerce line_ids to integers — LLMs sometimes output ["452"] instead of [452]
     if (fullKey === "line_ids" && Array.isArray(value)) {
       result[fullKey] = value.map((v: unknown) => (typeof v === "string" ? parseInt(v, 10) : v));
+      continue;
+    }
+
+    // Recursively expand children array — each child uses the same compact keys
+    if (fullKey === "children" && Array.isArray(value)) {
+      result.children = value
+        .filter((child): child is Record<string, unknown> => typeof child === "object" && child !== null)
+        .map((child) => {
+          const expanded = createSafeObject<unknown>();
+          for (const [ck, cv] of Object.entries(child)) {
+            const childFullKey = KEY_ALIAS_MAP[ck] || COMPACT_KEY_MAP[ck] || ck;
+            if (!isSafeKey(childFullKey)) continue;
+
+            if ((ck === "t" || childFullKey === "timestamps") && cv && typeof cv === "object") {
+              const ts = cv as Record<string, unknown>;
+              expanded.timestamps = {
+                start_time: ts.s ?? ts.start_time ?? ts.startTime,
+                end_time: ts.e ?? ts.end_time ?? ts.endTime,
+              };
+              continue;
+            }
+
+            if (childFullKey === "line_ids" && Array.isArray(cv)) {
+              expanded[childFullKey] = cv.map((v: unknown) =>
+                typeof v === "string" ? parseInt(v, 10) : v,
+              );
+              continue;
+            }
+
+            expanded[childFullKey] = cv;
+          }
+          return expanded;
+        });
       continue;
     }
 
@@ -578,6 +612,8 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
   // Sort lineIds if present
   const lineIds = data.line_ids?.length ? [...data.line_ids].sort((a, b) => a - b) : undefined;
 
+  const supportingFacts = mapChildrenToSupportingFacts(data.children);
+
   // AV citation: timestamps present means this is an audio/video citation.
   if (data.timestamps) {
     return {
@@ -591,6 +627,7 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
         startTime: data.timestamps.start_time,
         endTime: data.timestamps.end_time,
       },
+      ...(supportingFacts && { supportingFacts }),
     } as AudioVideoCitation;
   }
 
@@ -604,7 +641,46 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
     citationNumber: citationNumber ?? data.id,
     lineIds,
     reasoning: data.reasoning,
+    ...(supportingFacts && { supportingFacts }),
   };
+}
+
+function mapChildrenToSupportingFacts(
+  children: CitationData[] | undefined,
+): SupportingFact[] | undefined {
+  if (!children?.length) return undefined;
+
+  return children.map((child, index): SupportingFact => {
+    let childPageNumber: number | undefined;
+    let childStartPageId: string | undefined;
+    if (child.page_id) {
+      const parsed = parsePageId(child.page_id);
+      childPageNumber = parsed.pageNumber;
+      childStartPageId = parsed.startPageId;
+    }
+
+    const childLineIds = child.line_ids?.length
+      ? [...child.line_ids].sort((a, b) => a - b)
+      : undefined;
+
+    return {
+      childIndex: index,
+      claimText: child.claim_text,
+      sourceContext: child.source_context,
+      sourceMatch: child.source_match,
+      pageNumber: childPageNumber,
+      lineIds: childLineIds,
+      startPageId: childStartPageId,
+      reasoning: child.reasoning,
+      attachmentId: child.attachment_id,
+      ...(child.timestamps && {
+        timestamps: {
+          startTime: child.timestamps.start_time,
+          endTime: child.timestamps.end_time,
+        },
+      }),
+    };
+  });
 }
 
 /**

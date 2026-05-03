@@ -1,0 +1,61 @@
+{
+  "_comment": "Example multi-fact (supporting-fact) citations showing the children/c compact key format. Each scenario demonstrates a different real-world pattern where facts are semantically coupled.",
+
+  "scenarios": [
+    {
+      "name": "Legal: Court order directive with date and scope (cross-page)",
+      "description": "The directive 'preserve and segregate' is the primary fact. The scope ('all output log data') and the date ('May 13, 2025') are supporting facts — the date is on a different page (signature block).",
+      "llm_output": "OpenAI was directed to **preserve and segregate all output log data** [1], per the court order dated May 13, 2025.\n\n<<<CITATION_DATA>>>\n{\"courtorder-abc123\": [{\"n\": 1, \"k\": \"preserve and segregate\", \"f\": \"Accordingly, OpenAI is NOW DIRECTED to preserve and segregate all output log data that would otherwise be deleted on a going forward basis until further order of the Court\", \"p\": \"page_number_2_index_1\", \"l\": [12, 13, 14], \"r\": \"Court's directive to OpenAI regarding log preservation\", \"c\": [{\"k\": \"output log data\", \"f\": \"preserve and segregate all output log data that would otherwise be deleted\", \"p\": \"page_number_2_index_1\", \"l\": [12, 13]}, {\"k\": \"May 13, 2025\", \"f\": \"Dated: May 13, 2025\\nNew York, New York\\nUnited States Magistrate Judge\", \"p\": \"page_number_5_index_4\", \"l\": [38, 39, 40], \"r\": \"Filing date from signature block on final page\"}]}]}\n<<<END_CITATION_DATA>>>"
+    },
+    {
+      "name": "Financial: Revenue claim with amount, growth, and period (same page)",
+      "description": "The growth rate '45% year-over-year' is the primary fact. The dollar amount ('$2.3 billion') and the period ('Q4 2024') are supporting facts, all on the same page of the earnings report.",
+      "llm_output": "Acme Corp reported **45% year-over-year revenue growth** [1] in its latest quarterly filing.\n\n<<<CITATION_DATA>>>\n{\"earnings-10k-xyz\": [{\"n\": 1, \"k\": \"45% year-over-year\", \"f\": \"Total revenue for the quarter ended December 31, 2024 was $2.3 billion, representing 45% year-over-year growth compared to $1.59 billion in Q4 2023.\", \"p\": \"page_number_12_index_11\", \"l\": [8, 9], \"r\": \"Revenue growth percentage from earnings summary\", \"c\": [{\"k\": \"$2.3 billion\", \"f\": \"Total revenue for the quarter ended December 31, 2024 was $2.3 billion\", \"p\": \"page_number_12_index_11\", \"l\": [8]}, {\"k\": \"Q4 2024\", \"f\": \"for the quarter ended December 31, 2024\", \"p\": \"page_number_12_index_11\", \"l\": [8]}]}]}\n<<<END_CITATION_DATA>>>"
+    },
+    {
+      "name": "Cross-document: Contract clause referencing an exhibit",
+      "description": "The indemnification obligation is the primary fact from the main contract. The liability cap ('$5 million') is a supporting fact from a different document (Exhibit B). Note the child uses a different attachment_id.",
+      "llm_output": "The vendor's **indemnification obligation** [1] is subject to a contractual liability cap.\n\n<<<CITATION_DATA>>>\n{\"contract-main-001\": [{\"n\": 1, \"k\": \"indemnification obligation\", \"f\": \"Vendor shall indemnify, defend, and hold harmless the Client from any third-party claims arising from Vendor's breach of this Agreement, subject to the limitations set forth in Exhibit B.\", \"p\": \"page_number_8_index_7\", \"l\": [15, 16, 17], \"r\": \"Core indemnification clause in main agreement\", \"c\": [{\"k\": \"$5 million\", \"f\": \"The aggregate liability of Vendor under Section 8 (Indemnification) shall not exceed $5,000,000 (Five Million US Dollars).\", \"a\": \"exhibit-b-002\", \"p\": \"page_number_2_index_1\", \"l\": [4, 5], \"r\": \"Liability cap from Exhibit B, a separate attachment\"}]}]}\n<<<END_CITATION_DATA>>>"
+    },
+    {
+      "name": "Medical: Drug dosage with frequency and duration",
+      "description": "The antibiotic recommendation is the primary fact. The specific dosage ('500 mg'), frequency ('tid'), and duration ('8 days') are supporting facts that a clinician must verify independently.",
+      "llm_output": "The report recommends adjunctive **Amoxicillin therapy** [1] based on the patient's bacterial profile.\n\n<<<CITATION_DATA>>>\n{\"lab-report-dental\": [{\"n\": 1, \"k\": \"Amoxicillin therapy\", \"f\": \"Published guidelines suggest the following as a possible adjunct to treatment: Amoxicillin 500 mg tid 8 days and Metronidazole 500 mg bid 8 days.\", \"p\": \"page_number_2_index_1\", \"l\": [15, 16], \"r\": \"Antibiotic recommendation from lab report\", \"c\": [{\"k\": \"500 mg\", \"f\": \"Amoxicillin 500 mg tid 8 days\", \"p\": \"page_number_2_index_1\", \"l\": [15]}, {\"k\": \"tid 8 days\", \"f\": \"Amoxicillin 500 mg tid 8 days\", \"p\": \"page_number_2_index_1\", \"l\": [15], \"r\": \"Dosing frequency and treatment duration\"}]}]}\n<<<END_CITATION_DATA>>>"
+    },
+    {
+      "name": "URL: News article with statistic and attribution",
+      "description": "A URL citation where the primary fact is a statistic and the supporting fact is the attribution/source of that statistic, from a different section of the same article.",
+      "llm_output": "Global AI spending is projected to reach **$200 billion by 2025** [1], according to recent industry analysis.\n\n<<<CITATION_DATA>>>\n[{\"n\": 1, \"type\": \"url\", \"url\": \"https://example.com/ai-spending-forecast\", \"domain\": \"example.com\", \"title\": \"AI Spending Forecast 2025\", \"k\": \"$200 billion\", \"f\": \"Worldwide spending on artificial intelligence is forecast to reach $200 billion in 2025, up from $154 billion in 2024.\", \"l\": [12], \"r\": \"Headline spending projection figure\", \"c\": [{\"k\": \"by 2025\", \"f\": \"is forecast to reach $200 billion in 2025, up from $154 billion in 2024\", \"l\": [12]}, {\"k\": \"IDC\", \"f\": \"according to the International Data Corporation (IDC) Worldwide AI Spending Guide published in March 2025\", \"l\": [45], \"r\": \"Attribution — the statistic comes from a specific IDC report\"}]}]\n<<<END_CITATION_DATA>>>"
+    }
+  ],
+
+  "_expanded_example": {
+    "_comment": "Same as scenario 1 above, but shown in fully expanded (non-compact) JSON for documentation clarity.",
+    "attachment_id": "courtorder-abc123",
+    "citations": [
+      {
+        "id": 1,
+        "source_match": "preserve and segregate",
+        "source_context": "Accordingly, OpenAI is NOW DIRECTED to preserve and segregate all output log data that would otherwise be deleted on a going forward basis until further order of the Court",
+        "page_id": "page_number_2_index_1",
+        "line_ids": [12, 13, 14],
+        "reasoning": "Court's directive to OpenAI regarding log preservation",
+        "children": [
+          {
+            "source_match": "output log data",
+            "source_context": "preserve and segregate all output log data that would otherwise be deleted",
+            "page_id": "page_number_2_index_1",
+            "line_ids": [12, 13]
+          },
+          {
+            "source_match": "May 13, 2025",
+            "source_context": "Dated: May 13, 2025\nNew York, New York\nUnited States Magistrate Judge",
+            "page_id": "page_number_5_index_4",
+            "line_ids": [38, 39, 40],
+            "reasoning": "Filing date from signature block on final page"
+          }
+        ]
+      }
+    ]
+  }
+}
