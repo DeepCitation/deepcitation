@@ -1189,11 +1189,11 @@ export function DefaultPopoverContent({
                 </div>
               )}
             </AnimatedHeightWrapper>
-            {hasSupportingFacts && (
+            {hasSupportingFacts && supportingFacts && (
               <SupportingFactsPills
                 parentCitation={citation}
                 parentKey={parentKey}
-                supportingFacts={supportingFacts!}
+                supportingFacts={supportingFacts}
                 supportingFactVerifications={supportingFactVerifications}
                 parentCitationInstanceId={parentCitationInstanceId}
               />

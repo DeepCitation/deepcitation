@@ -1714,16 +1714,17 @@ describe("citationDataToCitation — children → supportingFacts", () => {
     expect(citation.supportingFacts).toBeDefined();
     expect(citation.supportingFacts).toHaveLength(2);
 
-    const [fact0, fact1] = citation.supportingFacts!;
-    expect(fact0!.childIndex).toBe(0);
-    expect(fact0!.sourceMatch).toBe("output log data");
-    expect(fact0!.pageNumber).toBe(2);
-    expect(fact0!.lineIds).toEqual([12]);
+    const facts = citation.supportingFacts ?? [];
+    const [fact0, fact1] = facts;
+    expect(fact0?.childIndex).toBe(0);
+    expect(fact0?.sourceMatch).toBe("output log data");
+    expect(fact0?.pageNumber).toBe(2);
+    expect(fact0?.lineIds).toEqual([12]);
 
-    expect(fact1!.childIndex).toBe(1);
-    expect(fact1!.sourceMatch).toBe("May 13, 2025");
-    expect(fact1!.pageNumber).toBe(5);
-    expect(fact1!.lineIds).toEqual([38, 39]);
+    expect(fact1?.childIndex).toBe(1);
+    expect(fact1?.sourceMatch).toBe("May 13, 2025");
+    expect(fact1?.pageNumber).toBe(5);
+    expect(fact1?.lineIds).toEqual([38, 39]);
   });
 
   it("omits supportingFacts when no children present", () => {
@@ -1754,7 +1755,7 @@ describe("citationDataToCitation — children → supportingFacts", () => {
     };
 
     const citation = citationDataToCitation(data);
-    expect(citation.supportingFacts![0]!.attachmentId).toBe("exhibit-b");
+    expect(citation.supportingFacts?.[0]?.attachmentId).toBe("exhibit-b");
   });
 
   it("sorts child lineIds", () => {
@@ -1765,7 +1766,7 @@ describe("citationDataToCitation — children → supportingFacts", () => {
       children: [{ id: 0, source_match: "child", line_ids: [5, 2, 8] }],
     };
     const citation = citationDataToCitation(data);
-    expect(citation.supportingFacts![0]!.lineIds).toEqual([2, 5, 8]);
+    expect(citation.supportingFacts?.[0]?.lineIds).toEqual([2, 5, 8]);
   });
 });
 
@@ -1791,12 +1792,12 @@ describe("parseCitationData — compact children round-trip", () => {
     expect(result.success).toBe(true);
     expect(result.citations).toHaveLength(1);
 
-    const citationData = result.citations[0]!;
-    expect(citationData.children).toBeDefined();
-    expect(citationData.children).toHaveLength(2);
-    expect(citationData.children![0]!.source_match).toBe("output log data");
-    expect(citationData.children![1]!.source_match).toBe("May 13, 2025");
-    expect(citationData.children![1]!.page_id).toBe("5_0");
+    const citationData = result.citations[0];
+    expect(citationData?.children).toBeDefined();
+    expect(citationData?.children).toHaveLength(2);
+    expect(citationData?.children?.[0]?.source_match).toBe("output log data");
+    expect(citationData?.children?.[1]?.source_match).toBe("May 13, 2025");
+    expect(citationData?.children?.[1]?.page_id).toBe("5_0");
   });
 
   it("handles children with string line_ids (coercion)", () => {
@@ -1811,7 +1812,7 @@ describe("parseCitationData — compact children round-trip", () => {
     const llmOutput = `Text [1].\n<<<CITATION_DATA>>>\n${json}\n<<<END_CITATION_DATA>>>`;
 
     const result = parseCitationData(llmOutput);
-    expect(result.citations[0]!.children![0]!.line_ids).toEqual([42, 99]);
+    expect(result.citations[0]?.children?.[0]?.line_ids).toEqual([42, 99]);
   });
 
   it("getAllCitationsFromNumericResponse maps compact children to supportingFacts", () => {
@@ -1822,9 +1823,7 @@ describe("parseCitationData — compact children round-trip", () => {
         k: "primary fact",
         f: "the primary fact context",
         p: "1_0",
-        c: [
-          { k: "supporting detail", f: "supporting detail context", p: "3_0", l: [10] },
-        ],
+        c: [{ k: "supporting detail", f: "supporting detail context", p: "3_0", l: [10] }],
       },
     ]);
     const llmOutput = `Analysis [1].\n<<<CITATION_DATA>>>\n${json}\n<<<END_CITATION_DATA>>>`;
@@ -1833,10 +1832,10 @@ describe("parseCitationData — compact children round-trip", () => {
     const keys = Object.keys(citations);
     expect(keys).toHaveLength(1);
 
-    const citation = Object.values(citations)[0]!;
-    expect(citation.supportingFacts).toHaveLength(1);
-    expect(citation.supportingFacts![0]!.sourceMatch).toBe("supporting detail");
-    expect(citation.supportingFacts![0]!.pageNumber).toBe(3);
-    expect(citation.supportingFacts![0]!.childIndex).toBe(0);
+    const citation = Object.values(citations)[0];
+    expect(citation?.supportingFacts).toHaveLength(1);
+    expect(citation?.supportingFacts?.[0]?.sourceMatch).toBe("supporting detail");
+    expect(citation?.supportingFacts?.[0]?.pageNumber).toBe(3);
+    expect(citation?.supportingFacts?.[0]?.childIndex).toBe(0);
   });
 });

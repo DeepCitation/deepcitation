@@ -186,7 +186,7 @@ function expandCompactKeys(
     if (fullKey === "children" && Array.isArray(value)) {
       result.children = value
         .filter((child): child is Record<string, unknown> => typeof child === "object" && child !== null)
-        .map((child) => {
+        .map(child => {
           const expanded = createSafeObject<unknown>();
           for (const [ck, cv] of Object.entries(child)) {
             const childFullKey = KEY_ALIAS_MAP[ck] || COMPACT_KEY_MAP[ck] || ck;
@@ -202,9 +202,7 @@ function expandCompactKeys(
             }
 
             if (childFullKey === "line_ids" && Array.isArray(cv)) {
-              expanded[childFullKey] = cv.map((v: unknown) =>
-                typeof v === "string" ? parseInt(v, 10) : v,
-              );
+              expanded[childFullKey] = cv.map((v: unknown) => (typeof v === "string" ? parseInt(v, 10) : v));
               continue;
             }
 
@@ -645,9 +643,7 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
   };
 }
 
-function mapChildrenToSupportingFacts(
-  children: CitationData[] | undefined,
-): SupportingFact[] | undefined {
+function mapChildrenToSupportingFacts(children: CitationData[] | undefined): SupportingFact[] | undefined {
   if (!children?.length) return undefined;
 
   return children.map((child, index): SupportingFact => {
@@ -659,9 +655,7 @@ function mapChildrenToSupportingFacts(
       childStartPageId = parsed.startPageId;
     }
 
-    const childLineIds = child.line_ids?.length
-      ? [...child.line_ids].sort((a, b) => a - b)
-      : undefined;
+    const childLineIds = child.line_ids?.length ? [...child.line_ids].sort((a, b) => a - b) : undefined;
 
     return {
       childIndex: index,

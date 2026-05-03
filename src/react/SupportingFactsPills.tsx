@@ -23,9 +23,7 @@ export function SupportingFactsPills({
 
   return (
     <div className="dc-supporting-facts px-3 pb-2" role="region" aria-label={t("popover.supportingFacts")}>
-      <div className="text-[11px] font-medium text-dc-subtle-foreground mb-1.5">
-        {t("popover.supportingFacts")}
-      </div>
+      <div className="text-[11px] font-medium text-dc-subtle-foreground mb-1.5">{t("popover.supportingFacts")}</div>
       <div className="flex flex-wrap gap-1.5">
         {supportingFacts.map((fact, i) => (
           <CitationComponent

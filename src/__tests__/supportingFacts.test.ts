@@ -83,8 +83,10 @@ describe("getChildCitationKey", () => {
 // ---------------------------------------------------------------------------
 
 describe("childCitationFromFact", () => {
+  const facts = parentCitation.supportingFacts ?? [];
+
   it("inherits parent type and attachmentId", () => {
-    const child = childCitationFromFact(parentCitation.supportingFacts![0]!, parentCitation);
+    const child = childCitationFromFact(facts[0], parentCitation);
     expect(child.type).toBe("document");
     expect(child.attachmentId).toBe("court-order-abc");
   });
@@ -95,13 +97,13 @@ describe("childCitationFromFact", () => {
   });
 
   it("uses child sourceMatch and pageNumber", () => {
-    const child = childCitationFromFact(parentCitation.supportingFacts![1]!, parentCitation);
+    const child = childCitationFromFact(facts[1], parentCitation);
     expect(child.sourceMatch).toBe("May 13, 2025");
     expect(child.pageNumber).toBe(5);
   });
 
   it("strips supportingFacts to prevent recursive nesting", () => {
-    const child = childCitationFromFact(parentCitation.supportingFacts![0]!, parentCitation);
+    const child = childCitationFromFact(facts[0], parentCitation);
     expect((child as Citation & { supportingFacts?: unknown }).supportingFacts).toBeUndefined();
   });
 
@@ -130,9 +132,9 @@ describe("expandSupportingFactsForVerification", () => {
     const childKeys = parentChildMap.parent1;
     expect(childKeys).toHaveLength(2);
 
-    for (const childKey of childKeys!) {
+    for (const childKey of childKeys ?? []) {
       expect(expanded[childKey]).toBeDefined();
-      expect(expanded[childKey]!.type).toBe("document");
+      expect(expanded[childKey]?.type).toBe("document");
     }
   });
 

@@ -1,7 +1,6 @@
-import type { Citation, CitationRecord, SupportingFact } from "../types/citation.js";
-import type { VerificationRecord } from "../types/citation.js";
+import type { Citation, CitationRecord, SupportingFact, VerificationRecord } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import { getChildCitationKey, getCitationKey } from "./citationKey.js";
+import { getChildCitationKey } from "./citationKey.js";
 
 /** Maps a parent citation key to its child verification keys (ordered by childIndex). */
 export type ParentChildKeyMap = Record<string, string[]>;
@@ -45,7 +44,7 @@ export function getSupportingFactVerifications(
 ): (Verification | undefined)[] {
   const childKeys = parentChildMap[parentKey];
   if (!childKeys) return [];
-  return childKeys.map((k) => verifications[k]);
+  return childKeys.map(k => verifications[k]);
 }
 
 /**
