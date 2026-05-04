@@ -11,7 +11,7 @@ mock.module("react-dom", () => {
 });
 
 import { SupportingFactsPills } from "../react/SupportingFactsPills.js";
-import { getChildCitationKey, getCitationKey } from "../utils/citationKey.js";
+import { getCitationKey } from "../utils/citationKey.js";
 
 const parentCitation: Citation = {
   type: "document",
