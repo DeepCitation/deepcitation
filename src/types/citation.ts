@@ -73,6 +73,31 @@ export type SourceType =
   | "unknown";
 
 /**
+ * A verifiable detail that supports a parent citation's primary claim.
+ * Each supporting fact is verified independently and may reference a different
+ * page or even a different document (via attachmentId override).
+ */
+export interface SupportingFact {
+  /** Position in parent's supportingFacts array (0-based, assigned during parsing). */
+  childIndex: number;
+  /** Domain A: display text override (claimText). */
+  claimText?: string;
+  /** Domain B: verbatim quote from source. */
+  sourceContext?: string;
+  /** Domain B: 1-4 word key phrase within sourceContext. */
+  sourceMatch?: string;
+  /** May differ from parent (cross-page supporting facts). */
+  pageNumber?: number;
+  lineIds?: number[];
+  startPageId?: string;
+  reasoning?: string;
+  /** May differ from parent (cross-document supporting facts). */
+  attachmentId?: string;
+  /** AV-only: timestamps for this supporting fact. */
+  timestamps?: { startTime?: string; endTime?: string };
+}
+
+/**
  * Common fields shared by all citation types.
  * Page-location fields (attachmentId, pageNumber, lineIds, startPageId) exist on the
  * base because URL citations are converted to PDFs for verification.
@@ -87,6 +112,8 @@ interface CitationBase {
   sourceMatch?: string;
   citationNumber?: number;
   reasoning?: string;
+  /** Supporting facts for multi-fact citations. Absent or empty for single-fact citations. */
+  supportingFacts?: SupportingFact[];
 }
 
 /** Document citation — PDF or uploaded document. */

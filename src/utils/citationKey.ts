@@ -47,6 +47,14 @@ export function getCitationKey(citation: Citation | null | undefined): string {
 }
 
 /**
+ * Returns a deterministic key for a supporting fact (child) within a parent citation.
+ * Derived from the parent key and the child's index to guarantee uniqueness.
+ */
+export function getChildCitationKey(parentKey: string, childIndex: number): string {
+  return sha1Hash(`${parentKey}|child|${childIndex}`).slice(0, 16);
+}
+
+/**
  * Returns a deterministic content-hash key for a verification.
  *
  * Verifications are always server-generated responses (never raw LLM output),

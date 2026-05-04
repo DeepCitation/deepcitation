@@ -50,6 +50,7 @@ export const frOverrides = {
   "popover.lookingOnPage": "Recherche p. {pageNumber}",
   "popover.searchingImage": "Recherche dans l'image…",
   "popover.claimedAs": "affiché comme \u201c{label}\u201d",
+  "popover.supportingFacts": "Faits à l'appui",
   "tab.expected": "Attendu",
   "tab.diff": "Différence",
   "tab.found": "Trouvé",

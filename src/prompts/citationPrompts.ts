@@ -58,7 +58,7 @@ At the END of your response, append a citation block. Group citations by attachm
 \`\`\`
 
 ### Shorthand Keys (Optional)
-To save tokens: n=id, r=reasoning, f=source_context, k=source_match, p=page_id, l=line_ids
+To save tokens: n=id, r=reasoning, f=source_context, k=source_match, p=page_id, l=line_ids, c=children
 
 ### JSON Field Rules
 
@@ -92,6 +92,26 @@ The company reported **strong growth** [1] in the quarter. Revenue reached **$2.
   ]
 }
 <<<END_CITATION_DATA>>>
+
+### Supporting Facts (Optional)
+When a claim has 2+ verifiable details from the source (dates, amounts, scope qualifiers), group them under the primary fact using a "children" array.
+
+Use ONLY when:
+- A claim references multiple verifiable details backed by source text
+- The details genuinely support or qualify the primary fact
+
+Each child uses the same field keys (reasoning, source_context, source_match, page_id, line_ids) and optionally attachment_id if the supporting fact is from a different document. Children inherit the parent's attachment_id when not specified.
+
+Default: one fact per citation. Only use children for genuine multi-part evidence.
+
+Example:
+\`\`\`
+{"id": 1, "reasoning": "court order directive with date", "source_context": "ordered to preserve and segregate all output log data", "source_match": "preserve and segregate", "page_id": "page_number_2_index_0", "line_ids": [12, 13],
+ "children": [
+   {"source_match": "output log data", "source_context": "preserve and segregate all output log data", "page_id": "page_number_2_index_0", "line_ids": [12]},
+   {"source_match": "May 13, 2025", "source_context": "Dated: May 13, 2025", "page_id": "page_number_5_index_0", "line_ids": [38]}
+ ]}
+\`\`\`
 </citation-instructions>
 
 `;
@@ -504,6 +524,26 @@ The **Discount Rate** [1] is applied to the conversion price. Revenue grew **45%
   ]
 }
 <<<END_CITATION_DATA>>>
+
+### Supporting Facts (Optional, compact key: c)
+When a claim has 2+ verifiable details from the source (dates, amounts, scope qualifiers), group them under the primary fact using a children array (compact key: c).
+
+Use ONLY when:
+- A claim references multiple verifiable details backed by source text
+- The details genuinely support or qualify the primary fact
+
+Each child uses the same compact keys (k, p, l, r) and optionally a (attachment_id) if the supporting fact is from a different document. Children inherit n and a from the parent.
+
+Default: one fact per citation. Only use c for genuine multi-part evidence.
+
+Example:
+\`\`\`
+{"n": 1, "k": "preserve and segregate", "p": "2_0", "l": [12, 13],
+ "c": [
+   {"k": "output log data", "p": "2_0", "l": [12]},
+   {"k": "May 13, 2025", "p": "5_0", "l": [38], "a": "other-doc-id"}
+ ]}
+\`\`\`
 </citation-instructions>
 
 `;
@@ -609,6 +649,9 @@ At the END of your response:
 1. Is k a contiguous substring of the source? (Can I ctrl+F find it?)
 2. Is k ≤4 words? (≤7 for compounds?)
 3. Does [N] appear after the right claim in the text?
+
+### Supporting Facts (Optional, compact key: c)
+When a claim has 2+ verifiable details from the source, group them under the primary fact using a children array (c). Each child uses the same compact keys (k, p, l) and optionally a (attachment_id) for cross-document facts. Children inherit n and a from the parent. Only use c for genuine multi-part evidence.
 </citation-instructions>
 
 `;
@@ -716,6 +759,8 @@ export interface CompactCitationData {
     /** End time (e) */
     e?: string;
   };
+  /** Children (c) - supporting facts for multi-fact citations */
+  c?: CompactCitationData[];
 }
 
 /**
@@ -747,6 +792,8 @@ export interface CitationData {
     /** End time. Compact key: e */
     end_time?: string;
   };
+  /** Supporting facts for multi-fact citations. Compact key: c */
+  children?: CitationData[];
 }
 
 /**

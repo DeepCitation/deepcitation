@@ -20,7 +20,7 @@ import {
   type CompactCitationData,
   type ParsedCitationResponse,
 } from "../prompts/citationPrompts.js";
-import type { AudioVideoCitation, Citation } from "../types/citation.js";
+import type { Citation, SupportingFact } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
@@ -41,6 +41,7 @@ const COMPACT_KEY_MAP: Record<string, keyof CitationData> = {
   p: "page_id",
   l: "line_ids",
   t: "timestamps",
+  c: "children",
 } as const;
 
 /**
@@ -142,6 +143,39 @@ function isValidCitationData(obj: unknown): obj is CitationData {
 }
 
 /**
+ * Normalizes a single key-value pair from compact/alias format to canonical CitationData format.
+ * Handles timestamps (nested s/e keys) and line_ids (string-to-int coercion).
+ *
+ * @returns The canonical key and normalized value, or null if the key is unsafe.
+ */
+function normalizeKeyValue(rawKey: string, value: unknown): { fullKey: string; normalizedValue: unknown } | null {
+  const fullKey = KEY_ALIAS_MAP[rawKey] || COMPACT_KEY_MAP[rawKey] || rawKey;
+  if (!isSafeKey(fullKey)) return null;
+
+  // Handle timestamps specially (nested object with s/e keys)
+  if ((rawKey === "t" || fullKey === "timestamps") && value && typeof value === "object") {
+    const ts = value as Record<string, unknown>;
+    return {
+      fullKey: "timestamps",
+      normalizedValue: {
+        start_time: ts.s ?? ts.start_time ?? ts.startTime,
+        end_time: ts.e ?? ts.end_time ?? ts.endTime,
+      },
+    };
+  }
+
+  // Coerce line_ids to integers — LLMs sometimes output ["452"] instead of [452]
+  if (fullKey === "line_ids" && Array.isArray(value)) {
+    return {
+      fullKey,
+      normalizedValue: value.map((v: unknown) => (typeof v === "string" ? parseInt(v, 10) : v)),
+    };
+  }
+
+  return { fullKey, normalizedValue: value };
+}
+
+/**
  * Expands compact citation data to the full CitationData format.
  * Handles both compact keys (n, a, r, f, k, p, l, t) and full keys.
  *
@@ -157,33 +191,32 @@ function expandCompactKeys(
   const result = createSafeObject<unknown>();
 
   for (const [key, value] of Object.entries(data)) {
-    // Check if this is a compact key
-    const fullKey = KEY_ALIAS_MAP[key] || COMPACT_KEY_MAP[key] || key;
-
-    // Only assign if key is safe (prevents prototype pollution)
-    if (!isSafeKey(fullKey)) {
+    // Shallow (one-level) expansion of the children array — each child uses the same compact keys.
+    // Children-of-children are intentionally stripped (line 203 below) to prevent recursive nesting.
+    if ((KEY_ALIAS_MAP[key] || COMPACT_KEY_MAP[key] || key) === "children" && Array.isArray(value)) {
+      result.children = value
+        .filter((child): child is Record<string, unknown> => typeof child === "object" && child !== null)
+        .map(child => {
+          const expanded = createSafeObject<unknown>();
+          for (const [ck, cv] of Object.entries(child)) {
+            const normalized = normalizeKeyValue(ck, cv);
+            if (!normalized) continue;
+            if (normalized.fullKey === "children") continue;
+            // fullKey is guaranteed safe by isSafeKey check in normalizeKeyValue
+            // lgtm[js/remote-property-injection]
+            expanded[normalized.fullKey] = normalized.normalizedValue;
+          }
+          return expanded;
+        });
       continue;
     }
 
-    // Handle timestamps specially (nested object with s/e keys)
-    if ((key === "t" || fullKey === "timestamps") && value && typeof value === "object") {
-      const ts = value as Record<string, unknown>;
-      result.timestamps = {
-        start_time: ts.s ?? ts.start_time ?? ts.startTime,
-        end_time: ts.e ?? ts.end_time ?? ts.endTime,
-      };
-      continue;
-    }
+    const normalized = normalizeKeyValue(key, value);
+    if (!normalized) continue;
 
-    // Coerce line_ids to integers — LLMs sometimes output ["452"] instead of [452]
-    if (fullKey === "line_ids" && Array.isArray(value)) {
-      result[fullKey] = value.map((v: unknown) => (typeof v === "string" ? parseInt(v, 10) : v));
-      continue;
-    }
-
-    // fullKey is guaranteed safe by isSafeKey check above (line 79)
+    // fullKey is guaranteed safe by isSafeKey check in normalizeKeyValue
     // lgtm[js/remote-property-injection]
-    result[fullKey] = value;
+    result[normalized.fullKey] = normalized.normalizedValue;
   }
 
   // Inject attachment_id if provided (from grouped format)
@@ -578,7 +611,10 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
   // Sort lineIds if present
   const lineIds = data.line_ids?.length ? [...data.line_ids].sort((a, b) => a - b) : undefined;
 
+  const supportingFacts = mapChildrenToSupportingFacts(data.children);
+
   // AV citation: timestamps present means this is an audio/video citation.
+  // `supportingFacts` is valid here — AudioVideoCitation extends CitationBase which has supportingFacts?.
   if (data.timestamps) {
     return {
       type: "audio" as const,
@@ -591,7 +627,8 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
         startTime: data.timestamps.start_time,
         endTime: data.timestamps.end_time,
       },
-    } as AudioVideoCitation;
+      ...(supportingFacts && { supportingFacts }),
+    };
   }
 
   return {
@@ -604,7 +641,42 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
     citationNumber: citationNumber ?? data.id,
     lineIds,
     reasoning: data.reasoning,
+    ...(supportingFacts && { supportingFacts }),
   };
+}
+
+function mapChildrenToSupportingFacts(children: CitationData[] | undefined): SupportingFact[] | undefined {
+  if (!children?.length) return undefined;
+
+  return children.map((child, index): SupportingFact => {
+    let childPageNumber: number | undefined;
+    let childStartPageId: string | undefined;
+    if (child.page_id) {
+      const parsed = parsePageId(child.page_id);
+      childPageNumber = parsed.pageNumber;
+      childStartPageId = parsed.startPageId;
+    }
+
+    const childLineIds = child.line_ids?.length ? [...child.line_ids].sort((a, b) => a - b) : undefined;
+
+    return {
+      childIndex: index,
+      claimText: child.claim_text,
+      sourceContext: child.source_context,
+      sourceMatch: child.source_match,
+      pageNumber: childPageNumber,
+      lineIds: childLineIds,
+      startPageId: childStartPageId,
+      reasoning: child.reasoning,
+      attachmentId: child.attachment_id,
+      ...(child.timestamps && {
+        timestamps: {
+          startTime: child.timestamps.start_time,
+          endTime: child.timestamps.end_time,
+        },
+      }),
+    };
+  });
 }
 
 /**
