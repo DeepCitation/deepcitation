@@ -27,6 +27,7 @@ export function computeCompositeStatus(
   if (hasMiss) return { isVerified: false, isMiss: true, isPartialMatch: false, isPending: false };
   if (hasPending) return { isVerified: false, isMiss: false, isPartialMatch: false, isPending: true };
   if (hasPartial) return { isVerified: true, isMiss: false, isPartialMatch: true, isPending: false };
+  // Reachable only when !hasMiss && !hasPending && !hasPartial — i.e. every status is fully verified with no partial matches.
   if (allVerified) return { isVerified: true, isMiss: false, isPartialMatch: false, isPending: false };
 
   return { isVerified: false, isMiss: false, isPartialMatch: false, isPending: false };

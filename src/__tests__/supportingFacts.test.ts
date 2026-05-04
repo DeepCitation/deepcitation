@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import type { Citation, CitationRecord, SupportingFact } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getChildCitationKey, getCitationKey } from "../utils/citationKey.js";

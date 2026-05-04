@@ -61,7 +61,7 @@ describe("SupportingFactsPills", () => {
     expect(buttons).toHaveLength(facts.length);
   });
 
-  it("looks up verification by childIndex — fact at index 1 receives its own verification", () => {
+  it("renders pills without throwing when supportingFactVerifications is provided", () => {
     const v0: Verification = { status: "not_found" };
     const v1: Verification = { status: "found" };
 
