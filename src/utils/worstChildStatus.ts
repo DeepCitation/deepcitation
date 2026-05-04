@@ -8,6 +8,10 @@ import { getCitationStatus } from "./citationStatus.js";
  * the composite reflects the worst status.
  *
  * Priority: isMiss > isPending > isPartialMatch > isVerified.
+ *
+ * Note: when `isPartialMatch` is true, `isVerified` is also true — partial match
+ * is a sub-state of verified ("found, but only source text matched, not context").
+ * These two flags are not mutually exclusive.
  */
 export function computeCompositeStatus(
   parentVerification: Verification | null | undefined,

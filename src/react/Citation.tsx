@@ -391,7 +391,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   customPopoverActions,
   supportingFacts,
   supportingFactVerifications,
-  parentCitationInstanceId,
+  parentInstanceId,
 }: {
   renderPopoverContent?: CitationComponentProps["renderPopoverContent"];
   renderEvidenceKeyhole?: CitationComponentProps["renderEvidenceKeyhole"];
@@ -416,7 +416,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   customPopoverActions?: import("./types.js").PopoverAction[];
   supportingFacts?: SupportingFact[];
   supportingFactVerifications?: (Verification | undefined)[];
-  parentCitationInstanceId?: string;
+  parentInstanceId?: string;
 }) {
   if (renderPopoverContent) {
     const CustomContent = renderPopoverContent;
@@ -449,7 +449,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
         customPopoverActions={customPopoverActions}
         supportingFacts={supportingFacts}
         supportingFactVerifications={supportingFactVerifications}
-        parentCitationInstanceId={parentCitationInstanceId}
+        parentInstanceId={parentInstanceId}
         renderEvidenceKeyhole={renderEvidenceKeyhole}
         renderExpandedPage={renderExpandedPage}
       />
@@ -1459,7 +1459,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           customPopoverActions={customPopoverActions}
           supportingFacts={citation?.supportingFacts}
           supportingFactVerifications={supportingFactVerifications}
-          parentCitationInstanceId={citationInstanceId}
+          parentInstanceId={citationInstanceId}
         />
       );
 

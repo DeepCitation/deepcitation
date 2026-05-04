@@ -131,7 +131,7 @@ export interface PopoverContentProps {
   /** Verifications for supporting facts, ordered by childIndex. */
   supportingFactVerifications?: (Verification | undefined)[];
   /** Instance ID of the parent citation (used for parent-stays-open behavior on child pills). */
-  parentCitationInstanceId?: string;
+  parentInstanceId?: string;
   /**
    * Optional host-supplied renderer for the summary keyhole strip. Passed
    * straight through to `EvidenceTray`; see `EvidenceKeyholeRenderProps` for
@@ -745,7 +745,7 @@ export function DefaultPopoverContent({
   renderExpandedPage,
   supportingFacts,
   supportingFactVerifications,
-  parentCitationInstanceId,
+  parentInstanceId,
 }: PopoverContentProps) {
   const t = useTranslation();
   // Resolve evidence src up-front so hasImage reflects only actually-renderable images.
@@ -760,7 +760,7 @@ export function DefaultPopoverContent({
   const expandCtaLabel = isImageSource(verification) ? t("action.viewImage") : undefined;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
-  const parentKey = useMemo(() => getCitationKey(citation), [citation]);
+  const parentKey = getCitationKey(citation);
   const hasSupportingFacts = !!(supportingFacts && supportingFacts.length > 0);
 
   // A.5.3 Track previous pending state so we can announce transitions to screen readers.
@@ -1195,7 +1195,7 @@ export function DefaultPopoverContent({
                 parentKey={parentKey}
                 supportingFacts={supportingFacts}
                 supportingFactVerifications={supportingFactVerifications}
-                parentCitationInstanceId={parentCitationInstanceId}
+                parentInstanceId={parentInstanceId}
               />
             )}
           </div>

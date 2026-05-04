@@ -20,7 +20,7 @@ import {
   type CompactCitationData,
   type ParsedCitationResponse,
 } from "../prompts/citationPrompts.js";
-import type { AudioVideoCitation, Citation, SupportingFact } from "../types/citation.js";
+import type { Citation, SupportingFact } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
@@ -191,7 +191,8 @@ function expandCompactKeys(
   const result = createSafeObject<unknown>();
 
   for (const [key, value] of Object.entries(data)) {
-    // Recursively expand children array — each child uses the same compact keys
+    // Shallow (one-level) expansion of the children array — each child uses the same compact keys.
+    // Children-of-children are intentionally stripped (line 203 below) to prevent recursive nesting.
     if ((KEY_ALIAS_MAP[key] || COMPACT_KEY_MAP[key] || key) === "children" && Array.isArray(value)) {
       result.children = value
         .filter((child): child is Record<string, unknown> => typeof child === "object" && child !== null)
@@ -613,6 +614,7 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
   const supportingFacts = mapChildrenToSupportingFacts(data.children);
 
   // AV citation: timestamps present means this is an audio/video citation.
+  // `supportingFacts` is valid here — AudioVideoCitation extends CitationBase which has supportingFacts?.
   if (data.timestamps) {
     return {
       type: "audio" as const,
@@ -626,7 +628,7 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
         endTime: data.timestamps.end_time,
       },
       ...(supportingFacts && { supportingFacts }),
-    } as AudioVideoCitation;
+    };
   }
 
   return {

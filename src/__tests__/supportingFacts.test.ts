@@ -256,4 +256,11 @@ describe("computeCompositeStatus", () => {
     const status = computeCompositeStatus(verified, []);
     expect(status.isVerified).toBe(true);
   });
+
+  it("returns partial when parent is partial and all children are verified", () => {
+    const status = computeCompositeStatus(partial, [verified]);
+    expect(status.isPartialMatch).toBe(true);
+    expect(status.isVerified).toBe(true);
+    expect(status.isMiss).toBe(false);
+  });
 });
