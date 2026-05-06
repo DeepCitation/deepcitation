@@ -756,7 +756,7 @@ export function DefaultPopoverContent({
   // A host-supplied keyhole counts as "has image" — the host owns the visual and
   // may have data (e.g. a cached PDF blob) we don't see here. The host is expected
   // to consistently render content when it registers this slot.
-  const hasImage = !!evidenceSrc || (pageImages != null && pageImages.length > 0) || hasKeyholeSlot;
+  const hasImage = !!evidenceSrc || (pageImages != null && pageImages.length > 0) || hasKeyholeSlot || !!renderExpandedPage;
   const expandCtaLabel = isImageSource(verification) ? t("action.viewImage") : undefined;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
