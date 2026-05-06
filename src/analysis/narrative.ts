@@ -128,6 +128,7 @@ const METHOD_KEY_MAP: Record<SearchMethod, MessageKey> = {
   fourth_quarter_fallback: "search.method.fourthQuarterFallback",
   longest_word_fallback: "search.method.longestWordFallback",
   content_word_match: "search.method.contentWordMatch",
+  corrected_text_match: "search.method.correctedTextMatch",
   custom_phrase_fallback: "search.method.customPhraseFallback",
   keyspan_fallback: "search.method.keyspanFallback",
 };

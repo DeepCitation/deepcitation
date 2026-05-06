@@ -32,6 +32,7 @@ export type SearchMethod =
   | "fourth_quarter_fallback"
   | "longest_word_fallback"
   | "content_word_match"
+  | "corrected_text_match"
   | "custom_phrase_fallback"
   | "keyspan_fallback";
 

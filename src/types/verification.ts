@@ -1,7 +1,7 @@
 import type { DeepTextItem, ScreenBox } from "./boxes.js";
 import type { Citation } from "./citation.js";
 import type { LlmSearchAttempt } from "./llmAttempt.js";
-import type { SearchAttempt, SearchStatus } from "./search.js";
+import type { SearchAttempt, SearchMethod, SearchStatus } from "./search.js";
 
 // ==========================================================================
 // File / download artifact types
@@ -240,6 +240,9 @@ export interface Verification {
 
   /** Custom highlight color override */
   highlightColor?: string;
+
+  /** Which search strategy produced this match (e.g. "exact_line_match", "corrected_text_match") */
+  matchMethod?: SearchMethod;
 
   // ========== Shared verified text results ==========
   verifiedTimestamps?: { startTime?: string; endTime?: string };

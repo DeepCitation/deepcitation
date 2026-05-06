@@ -23,7 +23,7 @@ import { formatCaptureDate } from "../dateUtils.js";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion.js";
 import { type TranslateFunction, tPlural, useLocale, useTranslation } from "../i18n.js";
 import { ChevronRightIcon } from "../icons.js";
-import { cn } from "../utils.js";
+import { cn, isImageSource } from "../utils.js";
 import { VerificationLogTimeline } from "../VerificationLog.js";
 import { primeEvidencePageExpandSource } from "../viewTransition.js";
 import { EvidenceKeyhole } from "./EvidenceKeyhole.js";
@@ -466,7 +466,7 @@ export function EvidenceTray({
   );
 
   const fallbackSrc =
-    resolvedEvidenceSrc ?? ((isMiss || isPartialMatch) && isValidProofImageSrc(pageImageSrc) ? pageImageSrc : "");
+    resolvedEvidenceSrc ?? (isValidProofImageSrc(pageImageSrc) ? pageImageSrc : "");
   const customKeyholeOutput = renderEvidenceKeyhole
     ? renderEvidenceKeyhole({
         verification,
@@ -508,7 +508,7 @@ export function EvidenceTray({
       <EvidenceKeyhole
         key={fallbackSrc}
         src={fallbackSrc}
-        verification={resolvedEvidenceSrc ? verification : null}
+        verification={resolvedEvidenceSrc || isImageSource(verification) ? verification : null}
         onImageClick={onImageClick}
         onPageExpand={onExpand ? handlePageExpand : undefined}
         onKeyholeWidth={onKeyholeWidth}

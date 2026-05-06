@@ -989,8 +989,18 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         e.preventDefault(); // prevents browser text-selection on double-click
         e.stopPropagation();
         eventHandlers.onDoubleClick(citation, citationKey, e);
+        // Toggle the popover directly — bypasses onClickBeforeDefault which
+        // already ran (and returned false) for the two underlying click events.
+        if (!isHoveringRef.current) {
+          viewState.resetToSummary();
+          setCustomExpandedSrc(null);
+          announceAsActive();
+          setIsHovering(true);
+        } else {
+          closePopover();
+        }
       },
-      [eventHandlers, citation, citationKey],
+      [eventHandlers, citation, citationKey, announceAsActive, closePopover, viewState],
     );
 
     // Keyboard handler for accessibility - Enter/Space triggers tap action

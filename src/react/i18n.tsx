@@ -247,6 +247,7 @@ export const defaultMessages = {
   "search.method.fourthQuarterFallback": "Fourth quarter",
   "search.method.longestWordFallback": "Longest word",
   "search.method.contentWordMatch": "Content word match",
+  "search.method.correctedTextMatch": "Matched via OCR correction",
   "search.method.customPhraseFallback": "Custom search",
   "search.method.keyspanFallback": "Source text",
   "search.empty": "(empty)",

@@ -253,6 +253,7 @@ export const frOverrides = {
   "search.method.fourthQuarterFallback": "Quatrième quart",
   "search.method.longestWordFallback": "Mot le plus long",
   "search.method.contentWordMatch": "Correspondance de mots de contenu",
+  "search.method.correctedTextMatch": "Correspondance via correction OCR",
   "search.method.customPhraseFallback": "Recherche personnalisée",
   "search.method.keyspanFallback": "Texte source",
   "search.empty": "(vide)",

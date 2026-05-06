@@ -565,7 +565,7 @@ function PopoverLoadingView({
 }) {
   const t = useTranslation();
   const sourceMatch = citation.sourceMatch?.toString();
-  const sourceContext = citation.sourceContext;
+  const sourceContext = citation.sourceContext ?? verification?.verifiedSourceContext;
   const searchStatus = verification?.status;
   const searchingPhrase = sourceContext || sourceMatch;
   return (
@@ -1036,7 +1036,7 @@ export function DefaultPopoverContent({
 
   // Get humanizing message for partial/not-found states (URL citations only)
   const sourceMatch = citation.sourceMatch?.toString();
-  const sourceContext = citation.sourceContext;
+  const sourceContext = citation.sourceContext ?? verification?.verifiedSourceContext;
 
   // Approximate = the model's inline display (`claimText`) differs from what was
   // actually matched in the source (`sourceMatch`). Drives the ≈ marker shown
