@@ -13,7 +13,7 @@ import {
   groupCitationsBySource,
   type CitationDrawerItem,
 } from "deepcitation/react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CONTINUE, visit } from "unist-util-visit";
@@ -181,14 +181,37 @@ function MarkdownWithCitations({
 }: MarkdownWithCitationsProps) {
   const plugins = useMemo(() => [remarkGfm, remarkCitationMarkers], []);
 
-  const components = useMemo(() => ({
-    "citation-marker": ({ n }: { n: string }) => {
+  const resolveCitation = useCallback(
+    (n: string) => {
       const key = markerMap[Number(n)];
       const citation = key ? (citations[key] ?? parsedCitations[key]) : null;
       if (!key || !citation) return <sup>[{n}]</sup>;
       return <CitationComponent citation={citation} verification={verifications[key]} />;
     },
-  }), [markerMap, citations, parsedCitations, verifications]);
+    [markerMap, citations, parsedCitations, verifications],
+  );
+
+  const components = useMemo(() => ({
+    "citation-marker": ({ n }: { n: string }) => resolveCitation(n),
+    code: ({ inline, className, children }: { inline?: boolean; className?: string; children?: React.ReactNode }) => {
+      const language = className?.match(/language-(\w+)/)?.[1];
+      if (!inline && (language === "text" || language === "txt")) {
+        const text = String(children ?? "");
+        const parts = text.split(/(\[\d+\])/g);
+        const nodes = parts.map((part, i) => {
+          const m = part.match(/^\[(\d+)\]$/);
+          if (m) return <span key={i}>{resolveCitation(m[1])}</span>;
+          return part;
+        });
+        return (
+          <pre className="bg-gray-50 border border-gray-200 rounded p-3 text-sm overflow-auto">
+            <code>{nodes}</code>
+          </pre>
+        );
+      }
+      return <code className={className}>{children}</code>;
+    },
+  }), [resolveCitation]);
 
   return (
     <ReactMarkdown remarkPlugins={plugins} components={components as any}>
