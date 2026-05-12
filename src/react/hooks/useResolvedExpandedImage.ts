@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { PageImage, Verification } from "../../types/verification.js";
 import { isValidProofImageSrc } from "../constants.js";
-import { resolveExpandedImage } from "../EvidenceTray.js";
+import { resolveExpandedImage } from "../evidence/resolvers.js";
 
 export function useResolvedExpandedImage({
   expandedImageSrcOverride,

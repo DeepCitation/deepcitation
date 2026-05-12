@@ -762,6 +762,9 @@ export function DefaultPopoverContent({
   const searchStatus = verification?.status;
   const parentKey = getCitationKey(citation);
   const hasSupportingFacts = !!(supportingFacts && supportingFacts.length > 0);
+  // Ref so the reactive effect below (triggered by expandedNaturalWidth) never chases
+  // a new prop reference. Event-driven handlers (handleExpand, handleKeyholeClick, etc.)
+  // still call the prop directly — that is intentional and not an inconsistency.
   const onExpandedWidthChangeRef = useRef(onExpandedWidthChange);
 
   useEffect(() => {
