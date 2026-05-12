@@ -43,6 +43,7 @@ describe("promptCompression compress/decompress cycles", () => {
 
     const decompressed = decompressPromptIds(compressed, prefixMap);
     expect(decompressed).toBe(original);
+    expect(decompressPromptIds(decompressed as string, prefixMap)).toBe(decompressed);
 
     const recompressed = compressPromptIds(decompressed as string, [fullId]);
     expect(recompressed.compressed).toBe(compressed);
@@ -68,6 +69,7 @@ describe("promptCompression ID handling", () => {
 
     const decompressed = decompressPromptIds(compressed, prefixMap);
     expect(decompressed).toBe(original);
+    expect(decompressPromptIds(decompressed as string, prefixMap)).toBe(original);
   });
 
   it("handles multiple IDs in citation data", () => {
@@ -83,6 +85,7 @@ describe("promptCompression ID handling", () => {
 
     const decompressed = decompressPromptIds(compressed, prefixMap);
     expect(decompressed).toBe(original);
+    expect(decompressPromptIds(decompressed as string, prefixMap)).toBe(original);
   });
 
   it("handles IDs appearing multiple times in prompt context", () => {
@@ -91,6 +94,7 @@ describe("promptCompression ID handling", () => {
     const decompressed = decompressPromptIds(compressed, prefixMap);
 
     expect(decompressed).toBe(original);
+    expect(decompressPromptIds(decompressed as string, prefixMap)).toBe(original);
   });
 });
 
@@ -139,5 +143,53 @@ describe("promptCompression edge cases", () => {
     const decompressed = decompressPromptIds(compressed as string, prefixMap);
     expect(typeof decompressed).toBe("string");
     expect(decompressed).toBe(original);
+  });
+
+  it("does not expand a prefix inside an ID that the model already returned uncompressed", () => {
+    const fullId = "Kzo5zrnDUGkVIDtvv4lQ";
+    const prefixMap = { Kzo5: fullId };
+    const modelOutput = `<<<CITATION_DATA>>>\n{"Kzo5zrnDUGkVIDtvv4lQ":[{"id":1}]}\n<<<END_CITATION_DATA>>>`;
+
+    expect(decompressPromptIds(modelOutput, prefixMap)).toBe(modelOutput);
+    expect(decompressPromptIds(decompressPromptIds(modelOutput, prefixMap) as string, prefixMap)).toBe(modelOutput);
+  });
+
+  it("expands the compressed prefix once when the full-ID suffix is absent", () => {
+    const fullId = "Kzo5zrnDUGkVIDtvv4lQ";
+    const prefixMap = { Kzo5: fullId };
+    const compressedOutput = `<<<CITATION_DATA>>>\n{"Kzo5":[{"id":1}]}\n<<<END_CITATION_DATA>>>`;
+    const decompressedOutput = `<<<CITATION_DATA>>>\n{"Kzo5zrnDUGkVIDtvv4lQ":[{"id":1}]}\n<<<END_CITATION_DATA>>>`;
+
+    expect(decompressPromptIds(compressedOutput, prefixMap)).toBe(decompressedOutput);
+    expect(decompressPromptIds(decompressedOutput, prefixMap)).toBe(decompressedOutput);
+  });
+
+  it("handles mixed compressed and already-uncompressed IDs idempotently", () => {
+    const fullId = "Kzo5zrnDUGkVIDtvv4lQ";
+    const prefixMap = { Kzo5: fullId };
+    const mixedOutput = [
+      "Visible answer [1] [2]",
+      "<<<CITATION_DATA>>>",
+      `{"Kzo5":[{"id":1}],"${fullId}":[{"id":2}]}`,
+      "<<<END_CITATION_DATA>>>",
+    ].join("\n");
+    const normalizedOutput = [
+      "Visible answer [1] [2]",
+      "<<<CITATION_DATA>>>",
+      `{"${fullId}":[{"id":1}],"${fullId}":[{"id":2}]}`,
+      "<<<END_CITATION_DATA>>>",
+    ].join("\n");
+
+    expect(decompressPromptIds(mixedOutput, prefixMap)).toBe(normalizedOutput);
+    expect(decompressPromptIds(normalizedOutput, prefixMap)).toBe(normalizedOutput);
+  });
+
+  it("preserves non-prefix aliases used by older tests and callers", () => {
+    const prefixMap = { P0: "doc_abc123" };
+    const compressedOutput = "Citation key P0 should expand.";
+    const decompressedOutput = "Citation key doc_abc123 should expand.";
+
+    expect(decompressPromptIds(compressedOutput, prefixMap)).toBe(decompressedOutput);
+    expect(decompressPromptIds(decompressedOutput, prefixMap)).toBe(decompressedOutput);
   });
 });

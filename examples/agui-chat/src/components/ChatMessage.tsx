@@ -13,7 +13,7 @@ import {
   groupCitationsBySource,
   type CitationDrawerItem,
 } from "deepcitation/react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CONTINUE, visit } from "unist-util-visit";
@@ -68,7 +68,7 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
   return (
     <div className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
       {!isUser && (
-        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium shrink-0">
+        <div className="size-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium shrink-0">
           AI
         </div>
       )}
@@ -99,7 +99,7 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
             </div>
 
             {citationGroups.length > 0 && (
-              <div className="mt-3 pt-2 border-t border-gray-100">
+              <div className="mt-3 pt-2 border-t border-zinc-100">
                 <CitationDrawerTrigger
                   citationGroups={citationGroups}
                   onClick={() => setDrawerOpen(true)}
@@ -112,7 +112,7 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
       </div>
 
       {isUser && (
-        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 text-sm font-medium shrink-0">
+        <div className="size-8 rounded-full bg-zinc-300 flex items-center justify-center text-zinc-700 text-sm font-medium shrink-0">
           U
         </div>
       )}
@@ -142,18 +142,19 @@ function remarkCitationMarkers() {
       const parts = node.value.split(MARKER_RE);
       if (parts.length <= 1) return;
 
-      const newNodes = parts
-        .filter(Boolean)
-        .map((part: string) => {
-          const m = part.match(/^\[(\d+)\]$/);
-          if (m) {
-            return {
-              type: "citation-marker" as const,
-              data: { hName: "citation-marker", hProperties: { n: m[1] } },
-            };
-          }
-          return { type: "text" as const, value: part };
-        });
+      const newNodes = [];
+      for (const part of parts) {
+        if (!part) continue;
+        const m = part.match(/^\[(\d+)\]$/);
+        if (m) {
+          newNodes.push({
+            type: "citation-marker" as const,
+            data: { hName: "citation-marker", hProperties: { n: m[1] } },
+          });
+        } else {
+          newNodes.push({ type: "text" as const, value: part });
+        }
+      }
 
       parent.children.splice(index, 1, ...(newNodes as typeof parent.children));
       return [CONTINUE, index + newNodes.length] as const;
@@ -181,14 +182,41 @@ function MarkdownWithCitations({
 }: MarkdownWithCitationsProps) {
   const plugins = useMemo(() => [remarkGfm, remarkCitationMarkers], []);
 
-  const components = useMemo(() => ({
-    "citation-marker": ({ n }: { n: string }) => {
+  const resolveCitation = useCallback(
+    (n: string) => {
       const key = markerMap[Number(n)];
       const citation = key ? (citations[key] ?? parsedCitations[key]) : null;
       if (!key || !citation) return <sup>[{n}]</sup>;
       return <CitationComponent citation={citation} verification={verifications[key]} />;
     },
-  }), [markerMap, citations, parsedCitations, verifications]);
+    [markerMap, citations, parsedCitations, verifications],
+  );
+
+  const components = useMemo(() => ({
+    "citation-marker": ({ n }: { n: string }) => resolveCitation(n),
+    code: ({ inline, className, children }: { inline?: boolean; className?: string; children?: React.ReactNode }) => {
+      const language = className?.match(/language-(\w+)/)?.[1];
+      if (!inline && (language === "text" || language === "txt")) {
+        const text = String(children ?? "");
+        const parts = text.split(/(\[\d+\])/g);
+        let markerOrdinal = 0;
+        const nodes = parts.map(part => {
+          const m = part.match(/^\[(\d+)\]$/);
+          if (m) {
+            markerOrdinal += 1;
+            return <span key={`citation-${m[1]}-${part}-${markerOrdinal}`}>{resolveCitation(m[1])}</span>;
+          }
+          return part;
+        });
+        return (
+          <pre className="bg-zinc-50 border border-zinc-200 rounded p-3 text-sm overflow-auto">
+            <code>{nodes}</code>
+          </pre>
+        );
+      }
+      return <code className={className}>{children}</code>;
+    },
+  }), [resolveCitation]);
 
   return (
     <ReactMarkdown remarkPlugins={plugins} components={components as any}>

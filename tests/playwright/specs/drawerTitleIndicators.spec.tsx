@@ -176,11 +176,19 @@ test.describe("Drawer - Inline Indicators in Header", () => {
     await dialog.getByLabel(/expand to full page 1/i).click();
     await expect(dialog.locator("[data-dc-inline-expanded]")).toBeVisible({ timeout: 3000 });
 
-    const heading = dialog.locator("h2").first();
-    const indicators = dialog.locator('[data-testid="drawer-header-indicators"]');
-
-    const titleBox = await heading.boundingBox();
-    const indicatorsBox = await indicators.boundingBox();
+    // Measure both elements atomically in a single evaluate() call so the drawer's
+    // max-height transition (80dvh → 100dvh on inline-expand) cannot shift the
+    // fixed-bottom drawer between the two measurements and produce a spurious diff.
+    const [titleBox, indicatorsBox] = await page.evaluate(() => {
+      const h = document.querySelector("h2");
+      const ind = document.querySelector('[data-testid="drawer-header-indicators"]');
+      const tb = h?.getBoundingClientRect();
+      const ib = ind?.getBoundingClientRect();
+      return [
+        tb ? { x: tb.x, y: tb.y, width: tb.width, height: tb.height } : null,
+        ib ? { x: ib.x, y: ib.y, width: ib.width, height: ib.height } : null,
+      ] as const;
+    });
 
     expect(titleBox).not.toBeNull();
     expect(indicatorsBox).not.toBeNull();

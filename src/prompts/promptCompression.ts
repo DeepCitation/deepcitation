@@ -54,6 +54,10 @@ function buildPrefixUsageCount(ids: string[]): Map<string, number> {
   return usage;
 }
 
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /**
  * Build a map from each ID's minimal unique prefix to the full ID,
  * such that the prefix only ever appears in the prompt where the full ID appears.
@@ -139,7 +143,7 @@ export function compressPromptIds<T>(obj: T, ids: string[] | undefined): Compres
 
   // Build a single regex for all IDs to replace in one pass instead of N string allocations
   const fullToPrefix = new Map(entries.map(([prefix, full]) => [full, prefix]));
-  const escapedIds = entries.map(([, full]) => full.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const escapedIds = entries.map(([, full]) => escapeRegExp(full));
   const compressedText =
     escapedIds.length > 0
       ? text.replace(new RegExp(escapedIds.join("|"), "g"), match => fullToPrefix.get(match) || match)
@@ -155,6 +159,17 @@ export function compressPromptIds<T>(obj: T, ids: string[] | undefined): Compres
     console.warn("[DeepCitation] compressPromptIds: JSON.parse failed after substitution, returning original");
     return { compressed: obj, prefixMap: {} };
   }
+}
+
+function buildDecompressionPattern(entries: readonly (readonly [string, string])[]): RegExp | null {
+  const alternatives = entries
+    .filter(([prefix]) => prefix.length > 0)
+    .map(([prefix, fullId]) => {
+      if (!fullId.startsWith(prefix) || prefix === fullId) return escapeRegExp(prefix);
+      const fullIdSuffix = fullId.slice(prefix.length);
+      return `${escapeRegExp(prefix)}(?!${escapeRegExp(fullIdSuffix)})`;
+    });
+  return alternatives.length > 0 ? new RegExp(alternatives.join("|"), "g") : null;
 }
 
 /**
@@ -192,8 +207,20 @@ export function decompressPromptIds<T>(compressed: T | string, prefixMap: Record
 
   // Perform all prefix → full-ID replacements in a single pass
   const prefixToFull = new Map(entries);
-  const escapedPrefixes = entries.map(([prefix]) => prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  text = text.replace(new RegExp(escapedPrefixes.join("|"), "g"), match => prefixToFull.get(match) ?? match);
+  const expansionPattern = buildDecompressionPattern(entries);
+  if (!expansionPattern) return compressed;
+
+  text = text.replace(expansionPattern, (match, offset: number) => {
+    const fullId = prefixToFull.get(match);
+    if (!fullId) return match;
+
+    // Models sometimes return the original full ID even though the prompt used
+    // its compressed prefix. Do not expand the prefix when it is already the
+    // beginning of that full ID, or we create a doubled attachment ID.
+    if (text.slice(offset, offset + fullId.length) === fullId) return match;
+
+    return fullId;
+  });
 
   if (!shouldParseBack) return text;
   try {
