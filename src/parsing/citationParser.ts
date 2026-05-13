@@ -53,15 +53,32 @@ const KEY_ALIAS_MAP: Record<string, keyof CitationData> = {
   sourceContext: "source_context",
   sourceMatch: "source_match",
   claimText: "claim_text",
+  citationNumber: "id",
+  citation_number: "id",
+  number: "id",
+  marker: "id",
   // Legacy field names → new canonical names
   fullPhrase: "source_context",
   full_phrase: "source_context",
+  sourceQuote: "source_context",
+  source_quote: "source_context",
+  quote: "source_context",
+  context: "source_context",
   anchorText: "source_match",
   anchor_text: "source_match",
+  match: "source_match",
+  matchedText: "source_match",
+  matched_text: "source_match",
   displayLabel: "claim_text",
   display_label: "claim_text",
   pageId: "page_id",
+  pageNumber: "page_id",
+  page_number: "page_id",
+  page: "page_id",
   lineIds: "line_ids",
+  lines: "line_ids",
+  lineNumbers: "line_ids",
+  line_numbers: "line_ids",
   // "fileId" was an early API field name before "attachmentId" was standardized.
   fileId: "attachment_id",
 } as const;
@@ -172,6 +189,13 @@ function normalizeKeyValue(rawKey: string, value: unknown): { fullKey: string; n
     };
   }
 
+  if (fullKey === "page_id" && typeof value === "number" && Number.isFinite(value)) {
+    return {
+      fullKey,
+      normalizedValue: `page_number_${Math.max(1, Math.trunc(value))}_index_0`,
+    };
+  }
+
   return { fullKey, normalizedValue: value };
 }
 
@@ -279,6 +303,17 @@ function flattenGroupedCitations(grouped: Record<string, unknown[]>): CitationDa
  * Helper to parse citations from JSON, handling both grouped and flat formats.
  */
 function parseCitationsFromJson(parsed: unknown): CitationData[] {
+  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+    const record = parsed as Record<string, unknown>;
+    if (Array.isArray(record.citations))
+      return record.citations.map(c => expandCompactKeys(c as Record<string, unknown>));
+    if (Array.isArray(record.data) && record.data.every(c => typeof c === "object" && c !== null))
+      return record.data.map(c => expandCompactKeys(c as Record<string, unknown>));
+    if (record.citations && typeof record.citations === "object") return parseCitationsFromJson(record.citations);
+    if (record.data && typeof record.data === "object") return parseCitationsFromJson(record.data);
+    if (record.citation_data) return parseCitationsFromJson(record.citation_data);
+  }
+
   // Check for grouped format: { "attachmentId": [citations...], ... }
   if (isGroupedFormat(parsed)) {
     return flattenGroupedCitations(parsed);
@@ -799,7 +834,11 @@ export function getAllCitationsFromNumericResponse(llmResponse: string): {
   for (const data of parsed.citations) {
     const citation = citationDataToCitation(data);
     if (citation.sourceContext) {
-      const citationKey = getCitationKey(citation);
+      const baseCitationKey = getCitationKey(citation);
+      const citationKey =
+        citations[baseCitationKey] && citations[baseCitationKey].citationNumber !== citation.citationNumber
+          ? sha1Hash(`${baseCitationKey}|citationNumber:${citation.citationNumber ?? ""}`).slice(0, 16)
+          : baseCitationKey;
       citations[citationKey] = citation;
     }
   }

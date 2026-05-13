@@ -1044,6 +1044,90 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(citationValues[0].pageNumber).toBe(1);
     expect(citationValues[0].startPageId).toBe("page_number_1_index_0");
   });
+
+  it("parses UI-shaped citation records that use citationNumber and pageNumber aliases", () => {
+    const response = `Patient name [4].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "citations": [
+    {
+      "citationNumber": 4,
+      "attachmentId": "patient-record",
+      "sourceContext": "Patient: Stephanie Bidoyan",
+      "sourceMatch": "Stephanie Bidoyan",
+      "pageNumber": 1,
+      "lineIds": [2]
+    }
+  ]
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const citations = getAllCitationsFromNumericResponse(response);
+    const citationValues = Object.values(citations);
+
+    expect(citationValues.length).toBe(1);
+    expect(citationValues[0].citationNumber).toBe(4);
+    expect(citationValues[0].attachmentId).toBe("patient-record");
+    expect(citationValues[0].pageNumber).toBe(1);
+    expect(citationValues[0].sourceContext).toBe("Patient: Stephanie Bidoyan");
+  });
+
+  it("parses nested citation objects with common source quote aliases", () => {
+    const response = `Patient has severe anxiety [30].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "citations": {
+    "patient-record": [
+      {
+        "number": 30,
+        "reason": "symptoms causing impairment",
+        "sourceQuote": "Severe anxiety, constant suicidal ideation severe depression",
+        "match": "Severe anxiety",
+        "page": 1,
+        "lines": [49, 50]
+      }
+    ]
+  }
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const citations = getAllCitationsFromNumericResponse(response);
+    const citationValues = Object.values(citations);
+
+    expect(citationValues.length).toBe(1);
+    expect(citationValues[0].citationNumber).toBe(30);
+    expect(citationValues[0].attachmentId).toBe("patient-record");
+    expect(citationValues[0].sourceContext).toContain("constant suicidal ideation");
+    expect(citationValues[0].sourceMatch).toBe("Severe anxiety");
+    expect(citationValues[0].pageNumber).toBe(1);
+  });
+
+  it("preserves repeated source anchors when numeric markers use different citation numbers", () => {
+    const response = `Primary diagnosis: borderline personality disorder [6].
+Diagnosis details: borderline personality disorder [23].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "patient-record": [
+    {"n": 6, "f": "Diagnosed with borderline personality disorder in grade 12.", "k": "borderline personality disorder", "p": "page_number_1_index_0", "l": [10]},
+    {"n": 23, "f": "Diagnosed with borderline personality disorder in grade 12.", "k": "borderline personality disorder", "p": "page_number_1_index_0", "l": [10]}
+  ]
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const citations = getAllCitationsFromNumericResponse(response);
+    const entries = Object.values(citations);
+    const ids = entries.map(citation => citation.citationNumber).sort((a, b) => (a ?? 0) - (b ?? 0));
+
+    expect(ids).toEqual([6, 23]);
+    expect(entries).toHaveLength(2);
+    expect(entries.every(e => e.sourceContext === "Diagnosed with borderline personality disorder in grade 12.")).toBe(
+      true,
+    );
+    expect(entries.every(e => e.sourceMatch === "borderline personality disorder")).toBe(true);
+  });
 });
 
 describe("real-world medical document scenario", () => {
