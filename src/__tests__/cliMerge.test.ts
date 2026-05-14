@@ -84,15 +84,14 @@ describe("mergeSections — silent-failure detection", () => {
     expect(result.aCount).toBe(0);
   });
 
-  it("surfaces parseErrorB when section B has a markdown code fence with trailing text", () => {
-    // Agents sometimes wrap JSON in ```json fences. The repair heuristic only strips
-    // fences at the start/end; trailing text after the closing fence makes the whole
-    // block unparseable.
+  it("recovers citations from section B with a markdown code fence and trailing text", () => {
+    // Agents sometimes wrap JSON in ```json fences. The recovery heuristic now
+    // extracts citation objects even when trailing text follows the closing fence.
     const fencedB = `## B\nText.\n\n${CITATION_DATA_START_DELIMITER}\n\`\`\`json\n{"doc1": [{"n": 100, "k": "x", "p": "1_0", "l": [1]}]}\n\`\`\`\nSome trailing commentary\n${CITATION_DATA_END_DELIMITER}\n`;
     const result = mergeSections({ sectionAContent: VALID_A, sectionBContent: fencedB });
 
-    expect(result.parseErrorB).toBeDefined();
-    expect(result.bOrigCount).toBe(0);
+    expect(result.parseErrorB).toBeUndefined();
+    expect(result.bOrigCount).toBeGreaterThan(0);
   });
 
   it("surfaces parseErrorA when the JSON is missing the required `n` field", () => {
