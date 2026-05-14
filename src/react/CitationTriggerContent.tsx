@@ -86,8 +86,9 @@ export const CitationTriggerContent = ({
     });
   }
 
-  // Content type: indicator only
-  if (resolvedContent === "indicator") {
+  // Content type: indicator only. Footnote-like variants handle this below so
+  // dense citations still render as a raised, compact marker.
+  if (resolvedContent === "indicator" && variant !== "footnote" && variant !== "superscript") {
     return <span>{indicator}</span>;
   }
 
@@ -120,6 +121,11 @@ export const CitationTriggerContent = ({
   // Shared across superscript and footnote variants
   const sourceMatchDisplay = citation.sourceMatch?.toString() || "";
   const citationNumber = citation.citationNumber?.toString() || "1";
+  // Only show sourceMatch text in the trigger when the caller explicitly
+  // requested "sourceMatch" content. The default for superscript/footnote is
+  // "number", which means the surrounding context already contains the text
+  // and duplicating it here causes clipboard and visual duplication.
+  const showSourceMatch = resolvedContent === "sourceMatch" && !!sourceMatchDisplay;
 
   // Variant: superscript (footnote style)
   if (variant === "superscript") {
@@ -127,11 +133,25 @@ export const CitationTriggerContent = ({
       !shouldShowSpinner && "text-dc-foreground",
       shouldShowSpinner && "text-dc-subtle-foreground",
     );
+    if (resolvedContent === "indicator") {
+      return (
+        <sup
+          className={cn(
+            "inline-flex font-medium transition-colors px-0.5 rounded",
+            supStatusClasses,
+            getInteractionClasses(isOpen, variant),
+          )}
+          style={SUPERSCRIPT_STYLE}
+        >
+          {indicator}
+        </sup>
+      );
+    }
     return (
       <>
-        {sourceMatchDisplay && <span className="font-normal">{sourceMatchDisplay}</span>}
+        {showSourceMatch && <span className="font-normal">{sourceMatchDisplay}</span>}
         {/* U+2060 word joiner: prevents line break between anchor text and superscript */}
-        {sourceMatchDisplay && "\u2060"}
+        {showSourceMatch && "\u2060"}
         <sup
           className={cn(
             "font-medium transition-colors px-0.5 rounded",
@@ -163,11 +183,25 @@ export const CitationTriggerContent = ({
       footnoteStatusClasses = "text-dc-subtle-foreground";
     }
 
+    if (resolvedContent === "indicator") {
+      return (
+        <sup
+          className={cn(
+            "inline-flex text-xs font-normal transition-colors",
+            footnoteStatusClasses,
+            getInteractionClasses(isOpen, variant),
+          )}
+        >
+          {indicator}
+        </sup>
+      );
+    }
+
     return (
       <>
-        {sourceMatchDisplay && <span className="font-normal">{sourceMatchDisplay}</span>}
+        {showSourceMatch && <span className="font-normal">{sourceMatchDisplay}</span>}
         {/* U+2060 word joiner: prevents line break between anchor text and superscript */}
-        {sourceMatchDisplay && "\u2060"}
+        {showSourceMatch && "\u2060"}
         <sup
           className={cn(
             "text-xs font-normal transition-colors",
@@ -303,7 +337,7 @@ export const CitationTriggerContent = ({
 
     return (
       <>
-        {sourceMatchDisplay && <span className="font-normal">{sourceMatchDisplay}</span>}
+        {showSourceMatch && <span className="font-normal">{sourceMatchDisplay}</span>}
         <span
           className={cn(
             "inline-flex items-center justify-center aspect-square size-[1.4em] mx-0.5",

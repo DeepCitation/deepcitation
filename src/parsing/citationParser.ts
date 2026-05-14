@@ -289,6 +289,95 @@ function parseCitationsFromJson(parsed: unknown): CitationData[] {
   return rawCitations.map(c => expandCompactKeys(c as Record<string, unknown>));
 }
 
+const NON_ATTACHMENT_ARRAY_KEYS = new Set([
+  "children",
+  "citations",
+  "evidence",
+  "line_ids",
+  "lines",
+  "matches",
+  "pages",
+  "supporting_facts",
+]);
+
+function findNearestGroupedAttachmentId(jsonString: string, objectStart: number): string | undefined {
+  const prefix = jsonString.slice(0, objectStart);
+  const matches = [...prefix.matchAll(/"([^"]+)"\s*:\s*\[/g)];
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const key = matches[i]?.[1];
+    if (!key || NON_ATTACHMENT_ARRAY_KEYS.has(key)) continue;
+    return key;
+  }
+  return undefined;
+}
+
+function findBalancedObjectEnd(jsonString: string, objectStart: number): number {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = objectStart; i < jsonString.length; i++) {
+    const ch = jsonString[i] as string;
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (ch === '"') inString = false;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === "{") depth++;
+    if (ch === "}") {
+      depth--;
+      if (depth === 0) return i + 1;
+    }
+  }
+
+  return -1;
+}
+
+function recoverCitationObjectsFromMalformedJson(jsonString: string): CitationData[] {
+  const citations: CitationData[] = [];
+  const seen = new Set<string>();
+
+  for (let i = 0; i < jsonString.length; i++) {
+    if (jsonString[i] !== "{") continue;
+    const preview = jsonString.slice(i, i + 120);
+    if (!/"(?:id|n)"\s*:/.test(preview)) continue;
+
+    const end = findBalancedObjectEnd(jsonString, i);
+    if (end === -1) continue;
+
+    try {
+      const rawObject = JSON.parse(jsonString.slice(i, end));
+      const attachmentId = findNearestGroupedAttachmentId(jsonString, i);
+      const citation = expandCompactKeys(rawObject as Record<string, unknown>, attachmentId);
+      const dedupeKey = [
+        citation.attachment_id ?? "",
+        citation.id,
+        citation.source_context ?? "",
+        citation.source_match ?? "",
+      ].join("|");
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      citations.push(citation);
+    } catch {
+      // Keep scanning; malformed sibling objects should not poison valid ones.
+    }
+  }
+
+  return citations;
+}
+
 function escapeLiteralControlCharactersInJsonStrings(text: string): string {
   let out = "";
   let inString = false;
@@ -515,6 +604,16 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
         );
       }
     } catch (repairError) {
+      const recovered = recoverCitationObjectsFromMalformedJson(jsonString);
+      if (recovered.length > 0) {
+        console.warn(
+          "[DeepCitation] Recovered citation objects from malformed citation JSON.",
+          `Recovered ${recovered.length} citation object(s).`,
+          `Initial parse error: ${initialError instanceof Error ? initialError.message : "Unknown error"}.`,
+          `Repair error: ${repairError instanceof Error ? repairError.message : "Unknown error"}`,
+        );
+        citations = recovered;
+      } else {
       return {
         visibleText,
         citations: [],
@@ -522,6 +621,7 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
         success: false,
         error: `Failed to parse citation JSON. Initial error: ${initialError instanceof Error ? initialError.message : "Unknown error"}. Repair error: ${repairError instanceof Error ? repairError.message : "Unknown error"}`,
       };
+      }
     }
   }
 
@@ -621,6 +721,7 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
       attachmentId: data.attachment_id,
       sourceContext: data.source_context,
       sourceMatch: data.source_match,
+      claimText: data.claim_text,
       citationNumber: citationNumber ?? data.id,
       reasoning: data.reasoning,
       timestamps: {
@@ -638,6 +739,7 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
     startPageId,
     sourceContext: data.source_context,
     sourceMatch: data.source_match,
+    claimText: data.claim_text,
     citationNumber: citationNumber ?? data.id,
     lineIds,
     reasoning: data.reasoning,

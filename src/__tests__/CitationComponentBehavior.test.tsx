@@ -263,6 +263,74 @@ describe("CitationComponent behaviorConfig", () => {
       await waitForPopoverVisible(container);
     });
 
+    it("renders the built-in claimed-as marker when claimText differs from sourceMatch", async () => {
+      const citation: Citation = {
+        citationNumber: 28,
+        sourceMatch: "assessed for ADHD",
+        sourceContext: "She was assessed for ADHD but received no formal diagnosis.",
+      };
+      const verification: Verification = {
+        sourceSnippet: "She was assessed for ADHD but received no formal diagnosis.",
+        status: "found",
+      };
+      const { container, getByText } = render(
+        <CitationComponent citation={citation} verification={verification} claimText="age 13" />,
+      );
+
+      const trigger = container.querySelector("[data-citation-id]");
+      expect(trigger).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(trigger as HTMLElement);
+      });
+      await waitForPopoverVisible(container);
+
+      expect(getByText(/Claimed as.*age 13/i)).toBeInTheDocument();
+      expect(getByText(/assessed for ADHD/i)).toBeInTheDocument();
+    });
+
+    it("shows a popover for source-backed citations without a verification record", async () => {
+      const citation: Citation = {
+        citationNumber: 133,
+        sourceMatch: "2021",
+        sourceContext: "Physio for a few months in 2021",
+      };
+      const { container, getByText } = render(
+        <CitationComponent citation={citation} verification={null} claimText="years ago" />,
+      );
+
+      const trigger = container.querySelector("[data-citation-id]");
+      expect(trigger).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(trigger as HTMLElement);
+      });
+      await waitForPopoverVisible(container);
+
+      expect(getByText(/Claimed as.*years ago/i)).toBeInTheDocument();
+      expect(getByText(/2021/i)).toBeInTheDocument();
+    });
+
+    it("keeps the source match visible in pending source-backed popovers when context omits it", async () => {
+      const citation: Citation = {
+        citationNumber: 71,
+        sourceMatch: "18",
+        sourceContext: "PHQ9 Total Score 3",
+      };
+      const { container, getByText } = render(<CitationComponent citation={citation} verification={null} />);
+
+      const trigger = container.querySelector("[data-citation-id]");
+      expect(trigger).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(trigger as HTMLElement);
+      });
+      await waitForPopoverVisible(container);
+
+      expect(getByText(/PHQ9 Total Score 3/)).toBeInTheDocument();
+      expect(getByText("18")).toBeInTheDocument();
+    });
+
     it("closes popover on second click", async () => {
       const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
 
@@ -1395,6 +1463,14 @@ describe("HighlightedSourceContext - direct rendering", () => {
     );
     expect(countHighlightSpans(container)).toBe(1);
     expect(container.textContent).toBe("The driver of the motor vehicle yielded.");
+  });
+
+  it("prints and highlights sourceMatch when OCR context does not contain it", () => {
+    const { container } = render(
+      <HighlightedSourceContext sourceContext="PHQ9 Total Score 3" sourceMatch="18" />,
+    );
+    expect(countHighlightSpans(container)).toBe(1);
+    expect(container.textContent).toBe("PHQ9 Total Score 3 18");
   });
 
   it("does not highlight when isMiss is true even if anchor === phrase", () => {

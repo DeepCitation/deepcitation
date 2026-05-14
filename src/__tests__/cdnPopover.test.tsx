@@ -137,6 +137,26 @@ describe("mapToCitation", () => {
 });
 
 describe("CDN popover viewState contract", () => {
+  it("shows claimed-as text while verification is still loading", () => {
+    const { container } = render(
+      <DefaultPopoverContent
+        citation={{
+          type: "document",
+          sourceContext: "- Numbness and tingling in fingers",
+          sourceMatch: "2-3 years ago",
+          pageNumber: 3,
+        }}
+        verification={null}
+        status={{ isVerified: false, isMiss: false, isPartialMatch: false, isPending: true }}
+        isLoading
+        claimText="thyroid hormone"
+      />,
+    );
+
+    expect(container.textContent).toContain("claimed as");
+    expect(container.textContent).toContain("thyroid hormone");
+  });
+
   it("wrapper pattern provides onViewStateChange", () => {
     function TestWrapper() {
       const [viewState, setViewState] = useState<PopoverViewState>("summary");

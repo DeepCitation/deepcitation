@@ -1384,10 +1384,15 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // 1. Verification with image or snippet (verified cases)
     // 2. Loading/pending states (informative searching message)
     // 3. Miss states (show what was searched)
+    const hasCitationSourceText = Boolean(citation?.sourceMatch || citation?.sourceContext);
+    const sourceBackedWithoutVerification = hasCitationSourceText && !verification;
     const shouldShowPopover =
       !isPopoverHidden &&
       // Has verification with image or snippet
       ((verification && (resolvedImageSrc || verification.sourceSnippet)) ||
+        // Source-backed citation records should still expose the popover while
+        // local verification is pending or unavailable.
+        hasCitationSourceText ||
         // Loading/pending state
         shouldShowSpinner ||
         isPending ||
@@ -1452,7 +1457,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           citation={citation}
           verification={verification ?? null}
           status={status}
-          isLoading={isLoading || shouldShowSpinner}
+          isLoading={isLoading || shouldShowSpinner || sourceBackedWithoutVerification}
           isVisible={isHovering}
           sourceTitle={sourceTitle}
           claimText={claimText}

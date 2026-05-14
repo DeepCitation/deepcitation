@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { parseCitationResponse } from "../parsing/parseCitationResponse.js";
-import { CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
+import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 import type { VerificationRecord } from "../types/citation.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { makeNumericResponse } from "./testHelpers.js";
@@ -71,6 +71,39 @@ describe("parseCitationResponse — numeric format", () => {
       expect(citation).toBeDefined();
       expect(getCitationKey(citation)).toBe(key);
     }
+  });
+
+  it("does not overwrite citations when distinct markers share the same source anchor", () => {
+    const response = makeNumericResponse("Severe depression [1]. Symptoms persisted [2].", [
+      {
+        id: 1,
+        attachment_id: "abc12345678901234567",
+        source_context: "Severe depression caused persistent impairment",
+        source_match: "Severe depression",
+        page_id: "page_number_1_index_0",
+        line_ids: [10],
+      },
+      {
+        id: 2,
+        attachment_id: "abc12345678901234567",
+        source_context: "Severe depression caused persistent impairment",
+        source_match: "Severe depression",
+        page_id: "page_number_1_index_0",
+        line_ids: [10],
+      },
+    ]);
+
+    const result = parseCitationResponse(response);
+    const firstKey = result.markerMap[1];
+    const secondKey = result.markerMap[2];
+
+    expect(firstKey).toBeDefined();
+    expect(secondKey).toBeDefined();
+    expect(secondKey).not.toBe(firstKey);
+    expect(result.citations[firstKey].citationNumber).toBe(1);
+    expect(result.citations[secondKey].citationNumber).toBe(2);
+    expect(getCitationKey(result.citations[firstKey])).toBe(firstKey);
+    expect(getCitationKey(result.citations[secondKey])).toBe(firstKey);
   });
 
   it("split(splitPattern) produces correct segments with markers", () => {
@@ -171,6 +204,74 @@ describe("parseCitationResponse — edge cases", () => {
     const result = parseCitationResponse(response);
     expect(result.markerMap[1]).toBeDefined();
     expect(result.markerMap[3]).toBeUndefined();
+  });
+
+  it("recovers valid grouped citation objects from a truncated citation-data block", () => {
+    const response = `Diagnosis: **Acrophobia** [11].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "attachment-alpha": [
+    {
+      "id": 11,
+      "reasoning": "Secondary diagnosis",
+      "source_context": "Acrophobia.",
+      "source_match": "Acrophobia",
+      "page_id": "page_number_1_index_0",
+      "line_ids": [6]
+    },
+    {
+      "id": 12,
+      "reasoning": "This object is truncated",
+      "source_context": "unterminated`;
+
+    const result = parseCitationResponse(response);
+    const citation = result.citations[result.markerMap[11]];
+
+    expect(citation?.attachmentId).toBe("attachment-alpha");
+    expect(citation?.sourceMatch).toBe("Acrophobia");
+  });
+
+  it("resolves duplicate numeric IDs by the visible claim near the marker", () => {
+    const response = `Limitations include **chronic pain** [84] and using hand for long periods [85].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "attachment-a": [
+    {
+      "id": 84,
+      "source_context": "coping skills",
+      "source_match": "coping skills",
+      "page_id": "page_number_1_index_0"
+    },
+    {
+      "id": 85,
+      "source_context": "psychologist Tracy with Alberta Health Services",
+      "source_match": "psychologist Tracy with Alberta",
+      "page_id": "page_number_1_index_0"
+    }
+  ],
+  "attachment-b": [
+    {
+      "id": 84,
+      "source_context": "Chronic pain",
+      "source_match": "chronic pain",
+      "page_id": "page_number_1_index_0"
+    },
+    {
+      "id": 85,
+      "source_context": "the hand for long periods",
+      "source_match": "Using hand for long periods",
+      "page_id": "page_number_1_index_0"
+    }
+  ]
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseCitationResponse(response);
+
+    expect(result.citations[result.markerMap[84]]?.sourceMatch).toBe("chronic pain");
+    expect(result.citations[result.markerMap[85]]?.sourceMatch).toBe("Using hand for long periods");
   });
 });
 

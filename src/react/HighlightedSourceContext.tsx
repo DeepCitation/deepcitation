@@ -87,7 +87,31 @@ export function HighlightedSourceContext({
   }
 
   if (start === -1) {
-    return <span className="text-dc-muted-foreground">{displayPhrase}</span>;
+    return (
+      <span className="text-dc-muted-foreground">
+        {prefixTrimmed && "..."}
+        {displayPhrase}
+        {suffixTrimmed && "..."}
+        {sourceMatch && (
+          <>
+            {" "}
+            <span className="group/anchor">
+              {isApproximate && (
+                <span
+                  className="mr-0.5 text-amber-500 dark:text-amber-400 motion-safe:transition-colors"
+                  aria-hidden="true"
+                >
+                  ≈
+                </span>
+              )}
+              <span style={ANCHOR_HIGHLIGHT_STYLE} className="text-dc-foreground">
+                {sourceMatch}
+              </span>
+            </span>
+          </>
+        )}
+      </span>
+    );
   }
 
   // When the anchor IS the entire (possibly trimmed) phrase, fall through to

@@ -555,11 +555,13 @@ function PopoverLoadingView({
   citation,
   verification,
   sourceTitle,
+  claimText,
   download,
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
   sourceTitle?: string;
+  claimText?: string;
   download?: DownloadInfo;
 }) {
   const t = useTranslation();
@@ -567,6 +569,7 @@ function PopoverLoadingView({
   const sourceContext = citation.sourceContext ?? verification?.verifiedSourceContext;
   const searchStatus = verification?.status;
   const searchingPhrase = sourceContext || sourceMatch;
+  const isApproximate = !!claimText && !!sourceMatch && claimText !== sourceMatch;
   return (
     <div
       className={cn(POPOVER_CONTAINER_BASE_CLASSES, "min-w-[200px] max-w-[480px]")}
@@ -598,8 +601,22 @@ function PopoverLoadingView({
         </span>
         {searchingPhrase && (
           <p className="p-2 bg-dc-background rounded font-mono text-[11px] break-words text-dc-foreground">
-            &ldquo;{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}&rdquo;
+            &ldquo;
+            <HighlightedSourceContext
+              sourceContext={searchingPhrase}
+              sourceMatch={sourceMatch}
+              isApproximate={isApproximate}
+            />
+            &rdquo;
           </p>
+        )}
+        {isApproximate && (
+          <span className="text-[11px] text-dc-subtle-foreground">
+            <span aria-hidden="true" className="mr-0.5">
+              ≈
+            </span>
+            {t("popover.claimedAs", { label: claimText })}
+          </span>
         )}
         {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
           <span className="text-xs text-dc-subtle-foreground">
@@ -960,6 +977,7 @@ export function DefaultPopoverContent({
           citation={citation}
           verification={verification}
           sourceTitle={sourceTitle}
+          claimText={claimText}
           download={download}
         />
       </>

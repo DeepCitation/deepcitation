@@ -131,6 +131,27 @@ describe("CitationTriggerContent — footnote variant", () => {
     expect(sup?.textContent).toContain("3");
   });
 
+  it("renders icon-only footnotes without citation numbers", () => {
+    const { container } = render(
+      <CitationTriggerContent
+        {...makeProps({
+          resolvedContent: "indicator",
+          isVerified: true,
+          indicatorProps: {
+            ...makeProps().indicatorProps,
+            indicatorVariant: "icon",
+            isVerified: true,
+          },
+        })}
+      />,
+    );
+
+    const sup = container.querySelector("sup");
+    expect(sup).toBeInTheDocument();
+    expect(sup?.textContent).not.toContain("3");
+    expect(container.querySelector("[data-dc-indicator='verified']")).toBeInTheDocument();
+  });
+
   it("does not apply wavy underline when spinner is showing", () => {
     const { container } = render(
       <CitationTriggerContent
@@ -151,7 +172,7 @@ describe("CitationTriggerContent — footnote variant", () => {
     expect(numberSpan?.style?.textDecorationStyle).toBeFalsy();
   });
 
-  it("renders anchor text when present", () => {
+  it("renders anchor text when resolvedContent is sourceMatch", () => {
     const citation: Citation = {
       type: "document",
       attachmentId: "doc1",
@@ -160,8 +181,26 @@ describe("CitationTriggerContent — footnote variant", () => {
       sourceMatch: "revenue",
       sourceContext: "Revenue grew 15%",
     };
-    const { container } = render(<CitationTriggerContent {...makeProps({ citation })} />);
+    const { container } = render(
+      <CitationTriggerContent {...makeProps({ citation, resolvedContent: "sourceMatch" })} />,
+    );
     expect(container.textContent).toContain("revenue");
+    expect(container.textContent).toContain("3");
+  });
+
+  it("does not render anchor text when resolvedContent is number", () => {
+    const citation: Citation = {
+      type: "document",
+      attachmentId: "doc1",
+      pageNumber: 1,
+      citationNumber: 3,
+      sourceMatch: "revenue",
+      sourceContext: "Revenue grew 15%",
+    };
+    const { container } = render(
+      <CitationTriggerContent {...makeProps({ citation, resolvedContent: "number" })} />,
+    );
+    expect(container.textContent).not.toContain("revenue");
     expect(container.textContent).toContain("3");
   });
 });

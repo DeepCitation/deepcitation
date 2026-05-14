@@ -110,6 +110,8 @@ interface CitationBase {
   startPageId?: string;
   sourceContext?: string;
   sourceMatch?: string;
+  /** Text the model displayed inline when it differs from the verbatim sourceMatch. */
+  claimText?: string;
   citationNumber?: number;
   reasoning?: string;
   /** Supporting facts for multi-fact citations. Absent or empty for single-fact citations. */
