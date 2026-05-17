@@ -1466,9 +1466,7 @@ describe("HighlightedSourceContext - direct rendering", () => {
   });
 
   it("prints and highlights sourceMatch when OCR context does not contain it", () => {
-    const { container } = render(
-      <HighlightedSourceContext sourceContext="PHQ9 Total Score 3" sourceMatch="18" />,
-    );
+    const { container } = render(<HighlightedSourceContext sourceContext="PHQ9 Total Score 3" sourceMatch="18" />);
     expect(countHighlightSpans(container)).toBe(1);
     expect(container.textContent).toBe("PHQ9 Total Score 3 18");
   });

@@ -182,6 +182,10 @@ export function buildIntentSummary(
   verification: Verification | null | undefined,
   searchAttempts: SearchAttempt[],
 ): IntentSummary | null {
+  // Intentional: IntentSummary narrates what the LLM *claimed* (search-log
+  // narration), so it reads the citation's own LLM-authored values — not the
+  // verified text. This can legitimately differ from the verified value shown
+  // elsewhere in the popover.
   const sourceContext = verification?.citation?.sourceContext;
   if (!sourceContext) return null;
 
