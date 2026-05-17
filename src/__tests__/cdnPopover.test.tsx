@@ -163,6 +163,17 @@ describe("mapToCitation", () => {
     expect(r.sourceContext).toBe("LLM phrase");
     expect(r.sourceMatch).toBe("phrase");
   });
+  it("resolves sourceContext and sourceMatch independently", () => {
+    // verifiedSourceContext present but verifiedSourceMatch absent — each field
+    // falls back on its own, so context is verified while match is the LLM value.
+    const r = mapToCitation({
+      ...fullData,
+      verifiedSourceMatch: undefined,
+      citation: { sourceContext: "LLM phrase", sourceMatch: "llm match", type: "document" },
+    });
+    expect(r.sourceContext).toBe("The quick brown fox jumps over the lazy dog.");
+    expect(r.sourceMatch).toBe("llm match");
+  });
 });
 
 describe("CDN popover viewState contract", () => {

@@ -566,9 +566,10 @@ function PopoverLoadingView({
 }) {
   const t = useTranslation();
   const sourceMatch = citation.sourceMatch?.toString();
-  // `citation` is mapToCitation output — verified-first precedence is already
-  // baked in there; verification?.verifiedSourceContext is a last-resort fallback.
-  const sourceContext = citation.sourceContext ?? verification?.verifiedSourceContext;
+  // `citation` is mapToCitation output, which guarantees `sourceContext` is a
+  // string (defaulting to ""). `||` (not `??`) so an empty string falls back
+  // to the verified value rather than rendering a blank phrase.
+  const sourceContext = citation.sourceContext || verification?.verifiedSourceContext;
   const searchStatus = verification?.status;
   const searchingPhrase = sourceContext || sourceMatch;
   const isApproximate = !!claimText && !!sourceMatch && claimText !== sourceMatch;
@@ -938,9 +939,10 @@ export function DefaultPopoverContent({
 
   // Get humanizing message for partial/not-found states (URL citations only)
   const sourceMatch = citation.sourceMatch?.toString();
-  // `citation` is mapToCitation output — verified-first precedence is already
-  // baked in there; verification?.verifiedSourceContext is a last-resort fallback.
-  const sourceContext = citation.sourceContext ?? verification?.verifiedSourceContext;
+  // `citation` is mapToCitation output, which guarantees `sourceContext` is a
+  // string (defaulting to ""). `||` (not `??`) so an empty string falls back
+  // to the verified value rather than rendering a blank phrase.
+  const sourceContext = citation.sourceContext || verification?.verifiedSourceContext;
 
   // Approximate = the model's inline display (`claimText`) differs from what was
   // actually matched in the source (`sourceMatch`). Drives the ≈ marker shown
