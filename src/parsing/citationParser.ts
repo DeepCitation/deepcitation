@@ -71,6 +71,7 @@ const KEY_ALIAS_MAP: Record<string, keyof CitationData> = {
   matched_text: "source_match",
   displayLabel: "claim_text",
   display_label: "claim_text",
+  reason: "reasoning",
   pageId: "page_id",
   pageNumber: "page_id",
   page_number: "page_id",
@@ -309,8 +310,10 @@ function parseCitationsFromJson(parsed: unknown): CitationData[] {
       return record.citations.map(c => expandCompactKeys(c as Record<string, unknown>));
     if (Array.isArray(record.data) && record.data.every(c => typeof c === "object" && c !== null))
       return record.data.map(c => expandCompactKeys(c as Record<string, unknown>));
-    if (record.citations && typeof record.citations === "object") return parseCitationsFromJson(record.citations);
-    if (record.data && typeof record.data === "object") return parseCitationsFromJson(record.data);
+    if (record.citations && typeof record.citations === "object" && !Array.isArray(record.citations))
+      return parseCitationsFromJson(record.citations);
+    if (record.data && typeof record.data === "object" && !Array.isArray(record.data))
+      return parseCitationsFromJson(record.data);
     if (record.citation_data) return parseCitationsFromJson(record.citation_data);
   }
 
