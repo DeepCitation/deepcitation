@@ -614,13 +614,13 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
         );
         citations = recovered;
       } else {
-      return {
-        visibleText,
-        citations: [],
-        citationMap: new Map(),
-        success: false,
-        error: `Failed to parse citation JSON. Initial error: ${initialError instanceof Error ? initialError.message : "Unknown error"}. Repair error: ${repairError instanceof Error ? repairError.message : "Unknown error"}`,
-      };
+        return {
+          visibleText,
+          citations: [],
+          citationMap: new Map(),
+          success: false,
+          error: `Failed to parse citation JSON. Initial error: ${initialError instanceof Error ? initialError.message : "Unknown error"}. Repair error: ${repairError instanceof Error ? repairError.message : "Unknown error"}`,
+        };
       }
     }
   }

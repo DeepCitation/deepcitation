@@ -197,9 +197,7 @@ describe("CitationTriggerContent — footnote variant", () => {
       sourceMatch: "revenue",
       sourceContext: "Revenue grew 15%",
     };
-    const { container } = render(
-      <CitationTriggerContent {...makeProps({ citation, resolvedContent: "number" })} />,
-    );
+    const { container } = render(<CitationTriggerContent {...makeProps({ citation, resolvedContent: "number" })} />);
     expect(container.textContent).not.toContain("revenue");
     expect(container.textContent).toContain("3");
   });

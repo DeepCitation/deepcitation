@@ -85,11 +85,7 @@ function parseNumericFormat(llmOutput: string): ParsedCitationResult {
   };
 }
 
-function allocateCitationKey(
-  citations: CitationRecord,
-  baseKey: string,
-  markerNumber: number | undefined,
-): string {
+function allocateCitationKey(citations: CitationRecord, baseKey: string, markerNumber: number | undefined): string {
   if (!baseKey) return "";
   const existing = citations[baseKey];
   if (!existing) return baseKey;
