@@ -23,11 +23,15 @@ export function mapToCitation(data: VerificationData): Citation {
   // The citation's own sourceContext/sourceMatch is an LLM-authored proposal
   // and may be unreliable (paraphrased, a synthesized list, not a substring),
   // so it is only a fallback for when verification produced nothing.
+  // `||` (not `??`): an empty-string verified value is "produced nothing" too,
+  // so it should fall back rather than render a blank quote block.
+  const sourceContext = (data.verifiedSourceContext || data.citation?.sourceContext) ?? "";
+  const sourceMatch = data.verifiedSourceMatch || data.citation?.sourceMatch;
   if (type === "url") {
     return {
       type: "url",
-      sourceContext: data.verifiedSourceContext ?? data.citation?.sourceContext ?? "",
-      sourceMatch: data.verifiedSourceMatch ?? data.citation?.sourceMatch,
+      sourceContext,
+      sourceMatch,
       url: data.url?.verifiedUrl,
       domain: data.url?.verifiedDomain,
       title: data.url?.verifiedTitle,
@@ -36,7 +40,7 @@ export function mapToCitation(data: VerificationData): Citation {
   }
   return {
     type: "document",
-    sourceContext: data.verifiedSourceContext ?? data.citation?.sourceContext ?? "",
-    sourceMatch: data.verifiedSourceMatch ?? data.citation?.sourceMatch,
+    sourceContext,
+    sourceMatch,
   };
 }

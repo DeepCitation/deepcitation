@@ -566,6 +566,8 @@ function PopoverLoadingView({
 }) {
   const t = useTranslation();
   const sourceMatch = citation.sourceMatch?.toString();
+  // `citation` is mapToCitation output — verified-first precedence is already
+  // baked in there; verification?.verifiedSourceContext is a last-resort fallback.
   const sourceContext = citation.sourceContext ?? verification?.verifiedSourceContext;
   const searchStatus = verification?.status;
   const searchingPhrase = sourceContext || sourceMatch;
@@ -936,6 +938,8 @@ export function DefaultPopoverContent({
 
   // Get humanizing message for partial/not-found states (URL citations only)
   const sourceMatch = citation.sourceMatch?.toString();
+  // `citation` is mapToCitation output — verified-first precedence is already
+  // baked in there; verification?.verifiedSourceContext is a last-resort fallback.
   const sourceContext = citation.sourceContext ?? verification?.verifiedSourceContext;
 
   // Approximate = the model's inline display (`claimText`) differs from what was

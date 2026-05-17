@@ -141,6 +141,28 @@ describe("mapToCitation", () => {
   it("returns empty string when both absent", () => {
     expect(mapToCitation(minData).sourceContext).toBe("");
   });
+  it("falls back to citation text when verifiedSourceContext is absent", () => {
+    const r = mapToCitation({
+      ...fullData,
+      verifiedSourceContext: undefined,
+      verifiedSourceMatch: undefined,
+      citation: { sourceContext: "LLM phrase", sourceMatch: "phrase", type: "document" },
+    });
+    expect(r.sourceContext).toBe("LLM phrase");
+    expect(r.sourceMatch).toBe("phrase");
+  });
+  it("falls back to citation text when verifiedSourceContext is an empty string", () => {
+    // An empty verified value is "produced nothing" — it must not suppress the
+    // LLM proposal and render a blank quote block.
+    const r = mapToCitation({
+      ...fullData,
+      verifiedSourceContext: "",
+      verifiedSourceMatch: "",
+      citation: { sourceContext: "LLM phrase", sourceMatch: "phrase", type: "document" },
+    });
+    expect(r.sourceContext).toBe("LLM phrase");
+    expect(r.sourceMatch).toBe("phrase");
+  });
 });
 
 describe("CDN popover viewState contract", () => {

@@ -426,10 +426,11 @@ export function EvidenceTray({
                     <VerificationLogTimeline
                       narrative={searchNarrative}
                       sourceContext={
-                        verification?.verifiedSourceContext ?? verification?.citation?.sourceContext ?? undefined
+                        // `||`: an empty-string verified value falls back to the LLM proposal.
+                        verification?.verifiedSourceContext || verification?.citation?.sourceContext || undefined
                       }
                       sourceMatch={
-                        verification?.verifiedSourceMatch ?? verification?.citation?.sourceMatch ?? undefined
+                        verification?.verifiedSourceMatch || verification?.citation?.sourceMatch || undefined
                       }
                       onCollapse={() => setShowSearchLog(false)}
                     />
