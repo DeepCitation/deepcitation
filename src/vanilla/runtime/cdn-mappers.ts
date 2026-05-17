@@ -19,11 +19,15 @@ export function mapToVerification(data: VerificationData): Verification {
 
 export function mapToCitation(data: VerificationData): Citation {
   const type = data.citation?.type === "url" ? "url" : "document";
+  // Verified-first: the verification layer's located text is authoritative.
+  // The citation's own sourceContext/sourceMatch is an LLM-authored proposal
+  // and may be unreliable (paraphrased, a synthesized list, not a substring),
+  // so it is only a fallback for when verification produced nothing.
   if (type === "url") {
     return {
       type: "url",
-      sourceContext: data.citation?.sourceContext ?? data.verifiedSourceContext ?? "",
-      sourceMatch: data.citation?.sourceMatch ?? data.verifiedSourceMatch,
+      sourceContext: data.verifiedSourceContext ?? data.citation?.sourceContext ?? "",
+      sourceMatch: data.verifiedSourceMatch ?? data.citation?.sourceMatch,
       url: data.url?.verifiedUrl,
       domain: data.url?.verifiedDomain,
       title: data.url?.verifiedTitle,
@@ -32,7 +36,7 @@ export function mapToCitation(data: VerificationData): Citation {
   }
   return {
     type: "document",
-    sourceContext: data.citation?.sourceContext ?? data.verifiedSourceContext ?? "",
-    sourceMatch: data.citation?.sourceMatch ?? data.verifiedSourceMatch,
+    sourceContext: data.verifiedSourceContext ?? data.citation?.sourceContext ?? "",
+    sourceMatch: data.verifiedSourceMatch ?? data.citation?.sourceMatch,
   };
 }

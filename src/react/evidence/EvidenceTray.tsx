@@ -426,10 +426,10 @@ export function EvidenceTray({
                     <VerificationLogTimeline
                       narrative={searchNarrative}
                       sourceContext={
-                        verification?.citation?.sourceContext ?? verification?.verifiedSourceContext ?? undefined
+                        verification?.verifiedSourceContext ?? verification?.citation?.sourceContext ?? undefined
                       }
                       sourceMatch={
-                        verification?.citation?.sourceMatch ?? verification?.verifiedSourceMatch ?? undefined
+                        verification?.verifiedSourceMatch ?? verification?.citation?.sourceMatch ?? undefined
                       }
                       onCollapse={() => setShowSearchLog(false)}
                     />

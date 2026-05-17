@@ -110,11 +110,18 @@ describe("mapToCitation", () => {
   it("creates url citation", () => {
     const r = mapToCitation(fullData);
     expect(r.type).toBe("url");
-    expect(r.sourceContext).toBe("The quick brown fox");
     if (r.type === "url") {
       expect(r.url).toBe("https://example.com/doc.pdf");
       expect(r.domain).toBe("example.com");
     }
+  });
+  it("prefers verified text over the citation's own (LLM-authored) proposal", () => {
+    // fullData has citation.sourceContext/sourceMatch AND verifiedSource*.
+    // The verification layer's located text is authoritative — the citation's
+    // own values are an unreliable LLM proposal and must not win.
+    const r = mapToCitation(fullData);
+    expect(r.sourceContext).toBe("The quick brown fox jumps over the lazy dog.");
+    expect(r.sourceMatch).toBe("quick brown fox");
   });
   it("creates document citation", () => {
     const r = mapToCitation({
