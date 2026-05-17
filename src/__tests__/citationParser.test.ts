@@ -1127,6 +1127,56 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(entries.every(e => e.sourceContext === "Sample finding alpha recorded in section 12.")).toBe(true);
     expect(entries.every(e => e.sourceMatch === "sample finding alpha")).toBe(true);
   });
+
+  it("preserves three citations that share one source anchor across different markers", () => {
+    const response = `First mention of sample finding alpha [6].
+Second mention of sample finding alpha [23].
+Third mention of sample finding alpha [99].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "sample-doc": [
+    {"n": 6, "f": "Sample finding alpha recorded in section 12.", "k": "sample finding alpha", "p": "page_number_1_index_0", "l": [10]},
+    {"n": 23, "f": "Sample finding alpha recorded in section 12.", "k": "sample finding alpha", "p": "page_number_1_index_0", "l": [10]},
+    {"n": 99, "f": "Sample finding alpha recorded in section 12.", "k": "sample finding alpha", "p": "page_number_1_index_0", "l": [10]}
+  ]
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const citations = getAllCitationsFromNumericResponse(response);
+    const entries = Object.values(citations);
+    const ids = entries.map(citation => citation.citationNumber).sort((a, b) => (a ?? 0) - (b ?? 0));
+
+    expect(ids).toEqual([6, 23, 99]);
+    expect(entries).toHaveLength(3);
+    expect(Object.keys(citations)).toHaveLength(3);
+    expect(entries.every(e => e.sourceContext === "Sample finding alpha recorded in section 12.")).toBe(true);
+  });
+
+  it("does not throw on degraded envelope shapes for the citations/data/citation_data guard", () => {
+    const degradedPayloads = [
+      // citations present but not an array — must fall through, not be misrouted
+      `{ "citations": "not-an-array" }`,
+      // data is an array of non-objects — must not recurse as a record
+      `{ "data": [1, "string", null] }`,
+      // citation_data is null — must not recurse into parseCitationsFromJson(null)
+      `{ "citation_data": null }`,
+    ];
+
+    for (const payload of degradedPayloads) {
+      const response = `Degraded payload [1].
+
+${CITATION_DATA_START_DELIMITER}
+${payload}
+${CITATION_DATA_END_DELIMITER}`;
+
+      let citations: ReturnType<typeof getAllCitationsFromNumericResponse> | undefined;
+      expect(() => {
+        citations = getAllCitationsFromNumericResponse(response);
+      }).not.toThrow();
+      expect(Object.keys(citations ?? {})).toHaveLength(0);
+    }
+  });
 });
 
 describe("real-world medical document scenario", () => {
