@@ -53,15 +53,33 @@ const KEY_ALIAS_MAP: Record<string, keyof CitationData> = {
   sourceContext: "source_context",
   sourceMatch: "source_match",
   claimText: "claim_text",
+  citationNumber: "id",
+  citation_number: "id",
+  number: "id",
+  marker: "id",
   // Legacy field names → new canonical names
   fullPhrase: "source_context",
   full_phrase: "source_context",
+  sourceQuote: "source_context",
+  source_quote: "source_context",
+  quote: "source_context",
+  context: "source_context",
   anchorText: "source_match",
   anchor_text: "source_match",
+  match: "source_match",
+  matchedText: "source_match",
+  matched_text: "source_match",
   displayLabel: "claim_text",
   display_label: "claim_text",
+  reason: "reasoning",
   pageId: "page_id",
+  pageNumber: "page_id",
+  page_number: "page_id",
+  page: "page_id",
   lineIds: "line_ids",
+  lines: "line_ids",
+  lineNumbers: "line_ids",
+  line_numbers: "line_ids",
   // "fileId" was an early API field name before "attachmentId" was standardized.
   fileId: "attachment_id",
 } as const;
@@ -172,6 +190,13 @@ function normalizeKeyValue(rawKey: string, value: unknown): { fullKey: string; n
     };
   }
 
+  if (fullKey === "page_id" && typeof value === "number" && Number.isFinite(value)) {
+    return {
+      fullKey,
+      normalizedValue: `page_number_${Math.max(1, Math.trunc(value))}_index_0`,
+    };
+  }
+
   return { fullKey, normalizedValue: value };
 }
 
@@ -275,10 +300,36 @@ function flattenGroupedCitations(grouped: Record<string, unknown[]>): CitationDa
   return citations;
 }
 
+/** Maximum nesting depth for envelope unwrapping in {@link parseCitationsFromJson}. */
+const MAX_ENVELOPE_DEPTH = 5;
+
 /**
  * Helper to parse citations from JSON, handling both grouped and flat formats.
+ *
+ * `depth` tracks recursion into nested `citations`/`data`/`citation_data`
+ * envelopes; once it exceeds {@link MAX_ENVELOPE_DEPTH} the envelope unwrapping
+ * is skipped so an adversarial deeply-nested payload cannot overflow the stack.
  */
-function parseCitationsFromJson(parsed: unknown): CitationData[] {
+function parseCitationsFromJson(parsed: unknown, depth = 0): CitationData[] {
+  if (depth < MAX_ENVELOPE_DEPTH && typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+    const record = parsed as Record<string, unknown>;
+    if (Array.isArray(record.citations)) {
+      return record.citations.map(c => expandCompactKeys(c as Record<string, unknown>));
+    }
+    if (Array.isArray(record.data) && record.data.every(c => typeof c === "object" && c !== null)) {
+      return record.data.map(c => expandCompactKeys(c as Record<string, unknown>));
+    }
+    if (record.citations && typeof record.citations === "object" && !Array.isArray(record.citations)) {
+      return parseCitationsFromJson(record.citations, depth + 1);
+    }
+    if (record.data && typeof record.data === "object" && !Array.isArray(record.data)) {
+      return parseCitationsFromJson(record.data, depth + 1);
+    }
+    if (record.citation_data) {
+      return parseCitationsFromJson(record.citation_data, depth + 1);
+    }
+  }
+
   // Check for grouped format: { "attachmentId": [citations...], ... }
   if (isGroupedFormat(parsed)) {
     return flattenGroupedCitations(parsed);
@@ -799,7 +850,11 @@ export function getAllCitationsFromNumericResponse(llmResponse: string): {
   for (const data of parsed.citations) {
     const citation = citationDataToCitation(data);
     if (citation.sourceContext) {
-      const citationKey = getCitationKey(citation);
+      const baseCitationKey = getCitationKey(citation);
+      const citationKey =
+        citations[baseCitationKey] && citations[baseCitationKey].citationNumber !== citation.citationNumber
+          ? sha1Hash(`${baseCitationKey}|citationNumber:${citation.citationNumber ?? ""}`).slice(0, 16)
+          : baseCitationKey;
       citations[citationKey] = citation;
     }
   }

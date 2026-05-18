@@ -1044,6 +1044,155 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(citationValues[0].pageNumber).toBe(1);
     expect(citationValues[0].startPageId).toBe("page_number_1_index_0");
   });
+
+  it("parses UI-shaped citation records that use citationNumber and pageNumber aliases", () => {
+    const response = `Sample record owner [4].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "citations": [
+    {
+      "citationNumber": 4,
+      "attachmentId": "sample-doc",
+      "sourceContext": "Record owner: Jordan Sample",
+      "sourceMatch": "Jordan Sample",
+      "pageNumber": 1,
+      "lineIds": [2]
+    }
+  ]
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const citations = getAllCitationsFromNumericResponse(response);
+    const citationValues = Object.values(citations);
+
+    expect(citationValues.length).toBe(1);
+    expect(citationValues[0].citationNumber).toBe(4);
+    expect(citationValues[0].attachmentId).toBe("sample-doc");
+    expect(citationValues[0].pageNumber).toBe(1);
+    expect(citationValues[0].sourceContext).toBe("Record owner: Jordan Sample");
+  });
+
+  it("parses nested citation objects with common source quote aliases", () => {
+    const response = `Report lists three key findings [30].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "citations": {
+    "sample-doc": [
+      {
+        "number": 30,
+        "reason": "supporting detail for the claim",
+        "sourceQuote": "First finding, second finding, and third finding noted in summary",
+        "match": "First finding",
+        "page": 1,
+        "lines": [49, 50]
+      }
+    ]
+  }
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const citations = getAllCitationsFromNumericResponse(response);
+    const citationValues = Object.values(citations);
+
+    expect(citationValues.length).toBe(1);
+    expect(citationValues[0].citationNumber).toBe(30);
+    expect(citationValues[0].attachmentId).toBe("sample-doc");
+    expect(citationValues[0].sourceContext).toContain("second finding");
+    expect(citationValues[0].sourceMatch).toBe("First finding");
+    expect(citationValues[0].pageNumber).toBe(1);
+    expect(citationValues[0].reasoning).toBe("supporting detail for the claim");
+  });
+
+  it("preserves repeated source anchors when numeric markers use different citation numbers", () => {
+    const response = `Primary finding: sample finding alpha [6].
+Finding details: sample finding alpha [23].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "sample-doc": [
+    {"n": 6, "f": "Sample finding alpha recorded in section 12.", "k": "sample finding alpha", "p": "page_number_1_index_0", "l": [10]},
+    {"n": 23, "f": "Sample finding alpha recorded in section 12.", "k": "sample finding alpha", "p": "page_number_1_index_0", "l": [10]}
+  ]
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const citations = getAllCitationsFromNumericResponse(response);
+    const entries = Object.values(citations);
+    const ids = entries.map(citation => citation.citationNumber).sort((a, b) => (a ?? 0) - (b ?? 0));
+
+    expect(ids).toEqual([6, 23]);
+    expect(entries).toHaveLength(2);
+    expect(entries.every(e => e.sourceContext === "Sample finding alpha recorded in section 12.")).toBe(true);
+    expect(entries.every(e => e.sourceMatch === "sample finding alpha")).toBe(true);
+  });
+
+  it("preserves three citations that share one source anchor across different markers", () => {
+    const response = `First mention of sample finding alpha [6].
+Second mention of sample finding alpha [23].
+Third mention of sample finding alpha [99].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "sample-doc": [
+    {"n": 6, "f": "Sample finding alpha recorded in section 12.", "k": "sample finding alpha", "p": "page_number_1_index_0", "l": [10]},
+    {"n": 23, "f": "Sample finding alpha recorded in section 12.", "k": "sample finding alpha", "p": "page_number_1_index_0", "l": [10]},
+    {"n": 99, "f": "Sample finding alpha recorded in section 12.", "k": "sample finding alpha", "p": "page_number_1_index_0", "l": [10]}
+  ]
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const citations = getAllCitationsFromNumericResponse(response);
+    const entries = Object.values(citations);
+    const ids = entries.map(citation => citation.citationNumber).sort((a, b) => (a ?? 0) - (b ?? 0));
+
+    expect(ids).toEqual([6, 23, 99]);
+    expect(entries).toHaveLength(3);
+    expect(Object.keys(citations)).toHaveLength(3);
+    expect(entries.every(e => e.sourceContext === "Sample finding alpha recorded in section 12.")).toBe(true);
+  });
+
+  it("does not throw on degraded envelope shapes for the citations/data/citation_data guard", () => {
+    const degradedPayloads = [
+      // citations present but not an array — must fall through, not be misrouted
+      `{ "citations": "not-an-array" }`,
+      // data is an array of non-objects — must not recurse as a record
+      `{ "data": [1, "string", null] }`,
+      // citation_data is null — must not recurse into parseCitationsFromJson(null)
+      `{ "citation_data": null }`,
+    ];
+
+    for (const payload of degradedPayloads) {
+      const response = `Degraded payload [1].
+
+${CITATION_DATA_START_DELIMITER}
+${payload}
+${CITATION_DATA_END_DELIMITER}`;
+
+      let citations: ReturnType<typeof getAllCitationsFromNumericResponse> | undefined;
+      expect(() => {
+        citations = getAllCitationsFromNumericResponse(response);
+      }).not.toThrow();
+      expect(Object.keys(citations ?? {})).toHaveLength(0);
+    }
+  });
+
+  it("does not overflow the stack on deeply-nested citation envelopes", () => {
+    // Build { "citations": { "citations": { ... } } } nested far past the depth cap.
+    let nested = `{ "citationNumber": 1, "attachmentId": "sample-doc", "sourceMatch": "deep" }`;
+    for (let i = 0; i < 5000; i++) {
+      nested = `{ "citations": ${nested} }`;
+    }
+
+    const response = `Deeply nested payload [1].
+
+${CITATION_DATA_START_DELIMITER}
+${nested}
+${CITATION_DATA_END_DELIMITER}`;
+
+    expect(() => getAllCitationsFromNumericResponse(response)).not.toThrow();
+  });
 });
 
 describe("real-world medical document scenario", () => {
