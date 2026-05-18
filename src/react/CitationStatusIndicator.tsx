@@ -122,13 +122,7 @@ const MissDot = () => {
   return <DotIndicator color="red" label={t("indicator.notFound")} />;
 };
 
-/**
- * Neutral wayfinding dot for form-navigation citations. Unlike the status dots
- * above it carries no verification semantics — it is always rendered and uses a
- * muted color so a navigation anchor never reads as a verified evidence
- * citation. Distinct `data-dc-indicator="nav"` so it is not mistaken for the
- * gray pending dot.
- */
+/** Neutral wayfinding dot for form-navigation citations — always rendered, no verification semantics. */
 const NavDot = () => {
   const t = useTranslation();
   return (
