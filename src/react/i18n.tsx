@@ -100,6 +100,7 @@ export const defaultMessages = {
   "indicator.notFound": "Not found",
   "indicator.verifying": "Verifying",
   "indicator.stillVerifying": "Still verifying\u2026",
+  "indicator.formSection": "Jump to form section",
 
   // ── Contextual status messages ─────────────────────────────────
   "message.exactMatch": "Exact match",

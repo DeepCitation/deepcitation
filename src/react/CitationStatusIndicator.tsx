@@ -122,6 +122,20 @@ const MissDot = () => {
   return <DotIndicator color="red" label={t("indicator.notFound")} />;
 };
 
+/** Neutral wayfinding dot for form-navigation citations — always rendered, no verification semantics. */
+const NavDot = () => {
+  const t = useTranslation();
+  return (
+    <span
+      className={cn("inline-block ml-0.5 rounded-full [text-decoration:none] [vertical-align:0.1em]", DOT_COLORS.gray)}
+      style={DOT_INDICATOR_SIZE_STYLE}
+      data-dc-indicator="nav"
+      role="img"
+      aria-label={t("indicator.formSection")}
+    />
+  );
+};
+
 // =============================================================================
 // SPINNER STAGE TYPE
 // =============================================================================
@@ -172,6 +186,14 @@ export const CitationStatusIndicator = ({
 
   if (renderIndicator) return renderIndicator(status);
   if (indicatorVariant === "none") return null;
+
+  // Navigation-anchor dot: a single neutral gray dot, always rendered regardless
+  // of verification state. Used for form-navigation citations (section headings,
+  // question labels) — wayfinding aids that point at the blank form and have
+  // nothing to verify, so they must read differently from evidence citations.
+  if (indicatorVariant === "nav-dot") {
+    return <NavDot />;
+  }
 
   // Caret variant: disclosure chevron with pill wrapper.
   // Outer span = pill (bg, rounded-full, color) — does NOT rotate.

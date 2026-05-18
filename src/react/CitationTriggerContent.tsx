@@ -127,6 +127,15 @@ export const CitationTriggerContent = ({
   // and duplicating it here causes clipboard and visual duplication.
   const showSourceMatch = resolvedContent === "sourceMatch" && !!sourceMatchDisplay;
 
+  // `CitationStatusIndicator` returns `null` when the citation has no status to
+  // show (no verification record, not pending, not a miss). An indicator-only
+  // `<sup>` would then have no children and collapse to 0×0 — the marker exists
+  // in the DOM but never paints. When there is no indicator content, fall back to
+  // the citation number so the trigger always has something visible to click.
+  // `nav-dot` is included: it always renders a glyph regardless of status.
+  const hasIndicatorContent =
+    shouldShowSpinner || isVerified || isPartialMatch || isMiss || indicatorProps.indicatorVariant === "nav-dot";
+
   // Variant: superscript (footnote style)
   if (variant === "superscript") {
     const supStatusClasses = cn(
@@ -143,7 +152,7 @@ export const CitationTriggerContent = ({
           )}
           style={SUPERSCRIPT_STYLE}
         >
-          {indicator}
+          {hasIndicatorContent ? indicator : <span>{citationNumber}</span>}
         </sup>
       );
     }
@@ -192,7 +201,7 @@ export const CitationTriggerContent = ({
             getInteractionClasses(isOpen, variant),
           )}
         >
-          {indicator}
+          {hasIndicatorContent ? indicator : <span>{citationNumber}</span>}
         </sup>
       );
     }
