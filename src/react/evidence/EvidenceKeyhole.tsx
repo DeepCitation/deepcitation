@@ -14,7 +14,6 @@ import {
 import { AimOverlay } from "../debug/AimOverlay.js";
 import { useDragToPan } from "../hooks/useDragToPan.js";
 import { useTranslation } from "../i18n.js";
-import { handleImageError } from "../imageUtils.js";
 import { computeAnnotationScrollTarget } from "../overlayGeometry.js";
 import { cn, isImageSource } from "../utils.js";
 import { DC_EVIDENCE_VT_NAME } from "../viewTransition.js";
@@ -110,6 +109,18 @@ export function EvidenceKeyhole({
       el.removeEventListener("wheel", onWheel);
     };
   }, [containerRef]);
+
+  // Reset per-image state when `src` changes. The same EvidenceKeyhole instance
+  // can be reused for a new citation without unmounting; without this reset a
+  // previously-errored image would flash the error overlay over the next —
+  // potentially valid — crop, and the keyhole would skip its scroll init.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `src` is a trigger-only dependency — the effect resets state on src change rather than reading src
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+    setImageFitInfo(null);
+    keyholeInitAppliedRef.current = false;
+  }, [src]);
 
   // Set initial scroll position after image loads.
   // useLayoutEffect guarantees refs are populated and runs before paint,
@@ -381,10 +392,11 @@ export function EvidenceKeyhole({
                 draggable={false}
                 onDragStart={e => e.preventDefault()}
                 onLoad={() => setImageLoaded(true)}
-                onError={e => {
-                  setImageError(true);
-                  handleImageError(e);
-                }}
+                // Error state is tracked in React: `imageLoaded` stays false
+                // (image held at opacity-0) and the absolute error overlay
+                // covers the strip. No imperative `display:none` needed — that
+                // would collapse the inline-block wrapper and shift layout.
+                onError={() => setImageError(true)}
               />
               {process.env.NODE_ENV !== "production" && sourceAnchorRatio && imageFitInfo ? (
                 <AimOverlay
@@ -399,11 +411,11 @@ export function EvidenceKeyhole({
             {/* Loading skeleton — covers the strip until the crop decodes, so the
                 keyhole never opens as a blank canvas while the image is in flight. */}
             {!imageLoaded && !imageError && (
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 animate-pulse bg-dc-muted flex items-center justify-center"
-              >
-                <span className="text-[11px] text-dc-subtle-foreground">{t("evidence.imageLoading")}</span>
+              <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+                {/* Only the background shimmers — keeping the label static so the
+                    pulse animation doesn't make the text harder to read. */}
+                <div className="absolute inset-0 animate-pulse bg-dc-muted" />
+                <span className="relative text-[11px] text-dc-subtle-foreground">{t("evidence.imageLoading")}</span>
               </div>
             )}
 

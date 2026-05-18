@@ -591,6 +591,19 @@ describe("Security Tests", () => {
       });
     });
 
+    describe("blob URLs", () => {
+      it("should accept blob: URLs (same-origin, unguessable object URLs)", () => {
+        expect(isValidProofImageSrc("blob:https://example.com/550e8400-e29b-41d4-a716-446655440000")).toBe(true);
+        expect(isValidProofImageSrc("blob:http://localhost:3000/9f1c-uuid")).toBe(true);
+      });
+
+      it("should accept null-origin blob: URLs (sandboxed iframe / opaque-origin context)", () => {
+        // A blob minted in an opaque origin serializes as blob:null/<uuid>. It is
+        // still an unguessable, script-free object URL — safe to render in <img>.
+        expect(isValidProofImageSrc("blob:null/550e8400-e29b-41d4-a716-446655440000")).toBe(true);
+      });
+    });
+
     describe("javascript URI rejection", () => {
       it("should reject javascript: URIs", () => {
         expect(isValidProofImageSrc("javascript:alert(1)")).toBe(false);
