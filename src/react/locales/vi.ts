@@ -36,6 +36,7 @@ export const viOverrides = {
   "indicator.notFound": "Không tìm thấy",
   "indicator.verifying": "Đang xác minh",
   "indicator.stillVerifying": "Vẫn đang xác minh…",
+  "indicator.formSection": "Chuyển đến phần biểu mẫu",
   "message.exactMatch": "Khớp chính xác",
   "message.sourceMatchFound": "Đã tìm thấy văn bản neo",
   "message.phraseFound": "Đã tìm thấy toàn bộ cụm từ",

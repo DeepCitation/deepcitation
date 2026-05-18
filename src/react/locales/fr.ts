@@ -36,6 +36,7 @@ export const frOverrides = {
   "indicator.notFound": "Introuvable",
   "indicator.verifying": "Vérification",
   "indicator.stillVerifying": "Vérification en cours…",
+  "indicator.formSection": "Aller à la section du formulaire",
   "message.exactMatch": "Correspondance exacte",
   "message.sourceMatchFound": "Texte d'ancrage trouvé",
   "message.phraseFound": "Phrase complète trouvée",

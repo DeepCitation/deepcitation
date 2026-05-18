@@ -36,6 +36,7 @@ export const esOverrides = {
   "indicator.notFound": "No encontrado",
   "indicator.verifying": "Verificando",
   "indicator.stillVerifying": "Aún verificando…",
+  "indicator.formSection": "Ir a la sección del formulario",
   "message.exactMatch": "Coincidencia exacta",
   "message.sourceMatchFound": "Texto ancla encontrado",
   "message.phraseFound": "Frase completa encontrada",

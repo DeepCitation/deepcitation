@@ -10,9 +10,10 @@ import type { ContentMatchStatus, Verification } from "../types/verification.js"
  * | `"icon"`  | Icon-based indicators: checkmark, spinner, X (default) |
  * | `"dot"`   | Subtle colored dot (like GitHub status dots / shadcn badge dots) |
  * | `"caret"` | Disclosure chevron (˅/˄) — flips when popover opens. No status coloring. |
+ * | `"nav-dot"`| Neutral wayfinding dot — always one gray dot, independent of verification status. For navigation-anchor citations that have nothing to verify. |
  * | `"none"`  | No status indicator rendered                   |
  */
-export type IndicatorVariant = "icon" | "dot" | "caret" | "none";
+export type IndicatorVariant = "icon" | "dot" | "caret" | "nav-dot" | "none";
 
 /**
  * Visual style variants for citations.
