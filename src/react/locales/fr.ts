@@ -231,6 +231,8 @@ export const frOverrides = {
   "aria.verificationEvidence": "Preuve de vérification",
   "aria.verificationProof": "Justificatif de vérification",
   "evidence.alreadyFullSize": "Déjà en taille complete",
+  "evidence.imageLoading": "Chargement de la preuve…",
+  "evidence.imageUnavailable": "Image de preuve indisponible",
   "evidence.searchAttempts_one": "{count} tentative",
   "evidence.searchAttempts_other": "{count} tentatives",
   "evidence.impreciseLocation": "Emplacement exact non spécifié dans la citation",
