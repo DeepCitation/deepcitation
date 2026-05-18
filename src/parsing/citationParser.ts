@@ -300,21 +300,34 @@ function flattenGroupedCitations(grouped: Record<string, unknown[]>): CitationDa
   return citations;
 }
 
+/** Maximum nesting depth for envelope unwrapping in {@link parseCitationsFromJson}. */
+const MAX_ENVELOPE_DEPTH = 5;
+
 /**
  * Helper to parse citations from JSON, handling both grouped and flat formats.
+ *
+ * `depth` tracks recursion into nested `citations`/`data`/`citation_data`
+ * envelopes; once it exceeds {@link MAX_ENVELOPE_DEPTH} the envelope unwrapping
+ * is skipped so an adversarial deeply-nested payload cannot overflow the stack.
  */
-function parseCitationsFromJson(parsed: unknown): CitationData[] {
-  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+function parseCitationsFromJson(parsed: unknown, depth = 0): CitationData[] {
+  if (depth < MAX_ENVELOPE_DEPTH && typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
     const record = parsed as Record<string, unknown>;
-    if (Array.isArray(record.citations))
+    if (Array.isArray(record.citations)) {
       return record.citations.map(c => expandCompactKeys(c as Record<string, unknown>));
-    if (Array.isArray(record.data) && record.data.every(c => typeof c === "object" && c !== null))
+    }
+    if (Array.isArray(record.data) && record.data.every(c => typeof c === "object" && c !== null)) {
       return record.data.map(c => expandCompactKeys(c as Record<string, unknown>));
-    if (record.citations && typeof record.citations === "object" && !Array.isArray(record.citations))
-      return parseCitationsFromJson(record.citations);
-    if (record.data && typeof record.data === "object" && !Array.isArray(record.data))
-      return parseCitationsFromJson(record.data);
-    if (record.citation_data) return parseCitationsFromJson(record.citation_data);
+    }
+    if (record.citations && typeof record.citations === "object" && !Array.isArray(record.citations)) {
+      return parseCitationsFromJson(record.citations, depth + 1);
+    }
+    if (record.data && typeof record.data === "object" && !Array.isArray(record.data)) {
+      return parseCitationsFromJson(record.data, depth + 1);
+    }
+    if (record.citation_data) {
+      return parseCitationsFromJson(record.citation_data, depth + 1);
+    }
   }
 
   // Check for grouped format: { "attachmentId": [citations...], ... }

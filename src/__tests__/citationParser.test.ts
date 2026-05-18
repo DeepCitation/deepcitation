@@ -1177,6 +1177,22 @@ ${CITATION_DATA_END_DELIMITER}`;
       expect(Object.keys(citations ?? {})).toHaveLength(0);
     }
   });
+
+  it("does not overflow the stack on deeply-nested citation envelopes", () => {
+    // Build { "citations": { "citations": { ... } } } nested far past the depth cap.
+    let nested = `{ "citationNumber": 1, "attachmentId": "sample-doc", "sourceMatch": "deep" }`;
+    for (let i = 0; i < 5000; i++) {
+      nested = `{ "citations": ${nested} }`;
+    }
+
+    const response = `Deeply nested payload [1].
+
+${CITATION_DATA_START_DELIMITER}
+${nested}
+${CITATION_DATA_END_DELIMITER}`;
+
+    expect(() => getAllCitationsFromNumericResponse(response)).not.toThrow();
+  });
 });
 
 describe("real-world medical document scenario", () => {
