@@ -14,7 +14,6 @@ import {
 import { AimOverlay } from "../debug/AimOverlay.js";
 import { useDragToPan } from "../hooks/useDragToPan.js";
 import { useTranslation } from "../i18n.js";
-import { handleImageError } from "../imageUtils.js";
 import { computeAnnotationScrollTarget } from "../overlayGeometry.js";
 import { cn, isImageSource } from "../utils.js";
 import { DC_EVIDENCE_VT_NAME } from "../viewTransition.js";
@@ -78,8 +77,11 @@ export function EvidenceKeyhole({
   // when no vertical overflow exists, scrollTop stays 0 — no visible effect on normal crops).
   const { containerRef, isDragging, handlers, scrollState, wasDraggingRef } = useDragToPan({ direction: "xy" });
 
-  // Track image load to compute initial scroll position
+  // Track image load to compute initial scroll position. `imageError` drives a
+  // visible fallback instead of a permanently-blank strip when the crop fails
+  // to load (broken/missing `evidence.src`, network error, expired URL).
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [imageFitInfo, setImageFitInfo] = useState<{
     displayedWidth: number;
     displayedHeight: number;
@@ -107,6 +109,18 @@ export function EvidenceKeyhole({
       el.removeEventListener("wheel", onWheel);
     };
   }, [containerRef]);
+
+  // Reset per-image state when `src` changes. The same EvidenceKeyhole instance
+  // can be reused for a new citation without unmounting; without this reset a
+  // previously-errored image would flash the error overlay over the next —
+  // potentially valid — crop, and the keyhole would skip its scroll init.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `src` is a trigger-only dependency — the effect resets state on src change rather than reading src
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+    setImageFitInfo(null);
+    keyholeInitAppliedRef.current = false;
+  }, [src]);
 
   // Set initial scroll position after image loads.
   // useLayoutEffect guarantees refs are populated and runs before paint,
@@ -347,7 +361,7 @@ export function EvidenceKeyhole({
               "data-dc-source-anchor-x": sourceAnchorRatio.x.toFixed(4),
               "data-dc-source-anchor-y": sourceAnchorRatio.y.toFixed(4),
             })}
-            className={cn(DOCUMENT_CANVAS_BG_CLASSES, "overflow-hidden")}
+            className={cn(DOCUMENT_CANVAS_BG_CLASSES, "relative overflow-hidden")}
             style={{
               viewTransitionName: DC_EVIDENCE_VT_NAME,
               height: stripHeightStyle,
@@ -363,7 +377,11 @@ export function EvidenceKeyhole({
                 ref={imageRef}
                 src={src}
                 alt={t("aria.verificationEvidence")}
-                className={cn(DOCUMENT_IMAGE_EDGE_CLASSES, "block select-none")}
+                className={cn(
+                  DOCUMENT_IMAGE_EDGE_CLASSES,
+                  "block select-none transition-opacity duration-150",
+                  imageLoaded ? "opacity-100" : "opacity-0",
+                )}
                 style={
                   imageFitInfo
                     ? { width: imageFitInfo.displayedWidth, height: imageFitInfo.displayedHeight, maxWidth: "none" }
@@ -374,7 +392,11 @@ export function EvidenceKeyhole({
                 draggable={false}
                 onDragStart={e => e.preventDefault()}
                 onLoad={() => setImageLoaded(true)}
-                onError={handleImageError}
+                // Error state is tracked in React: `imageLoaded` stays false
+                // (image held at opacity-0) and the absolute error overlay
+                // covers the strip. No imperative `display:none` needed — that
+                // would collapse the inline-block wrapper and shift layout.
+                onError={() => setImageError(true)}
               />
               {process.env.NODE_ENV !== "production" && sourceAnchorRatio && imageFitInfo ? (
                 <AimOverlay
@@ -385,6 +407,25 @@ export function EvidenceKeyhole({
                 />
               ) : null}
             </div>
+
+            {/* Loading skeleton — covers the strip until the crop decodes, so the
+                keyhole never opens as a blank canvas while the image is in flight. */}
+            {!imageLoaded && !imageError && (
+              <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+                {/* Only the background shimmers — keeping the label static so the
+                    pulse animation doesn't make the text harder to read. */}
+                <div className="absolute inset-0 animate-pulse bg-dc-muted" />
+                <span className="relative text-[11px] text-dc-subtle-foreground">{t("evidence.imageLoading")}</span>
+              </div>
+            )}
+
+            {/* Error fallback — a failed/missing crop would otherwise leave the
+                strip permanently blank with no indication of what went wrong. */}
+            {imageError && (
+              <div className="absolute inset-0 bg-dc-muted flex items-center justify-center">
+                <span className="text-[11px] text-dc-subtle-foreground">{t("evidence.imageUnavailable")}</span>
+              </div>
+            )}
           </div>
 
           {/* Left pan hint — clicking pans the image left */}

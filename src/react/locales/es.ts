@@ -230,6 +230,8 @@ export const esOverrides = {
   "aria.verificationEvidence": "Evidencia de verificación",
   "aria.verificationProof": "Prueba de verificación",
   "evidence.alreadyFullSize": "Ya es tamaño completo",
+  "evidence.imageLoading": "Cargando evidencia…",
+  "evidence.imageUnavailable": "Imagen de evidencia no disponible",
   "evidence.searchAttempts_one": "{count} intento",
   "evidence.searchAttempts_other": "{count} intentos",
   "evidence.impreciseLocation": "Ubicación exacta no especificada en la cita",

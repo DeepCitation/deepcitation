@@ -333,6 +333,8 @@ export const defaultMessages = {
   "evidence.differentSection": "(different section)",
   "evidence.andMore": "\u2026and {count} more",
   "evidence.alreadyFullSize": "Already full size",
+  "evidence.imageLoading": "Loading evidence…",
+  "evidence.imageUnavailable": "Evidence image unavailable",
   "evidence.searchAttempts_one": "{count} attempt",
   "evidence.searchAttempts_other": "{count} attempts",
   "evidence.impreciseLocation": "Exact location not specified in citation",

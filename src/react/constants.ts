@@ -523,6 +523,13 @@ export function isValidProofImageSrc(src: unknown): src is string {
 
   try {
     const url = new URL(trimmed);
+    // blob: URLs are same-origin, unguessable object URLs minted by
+    // URL.createObjectURL. They cannot be fetched cross-origin and carry no
+    // script when rendered in an <img>, so they are safe as a proof image
+    // source (used by hosts that synthesize page images from a cached blob).
+    // Opaque-origin blobs (blob:null/<uuid>, from sandboxed iframes) are
+    // accepted too — they are equally unguessable and script-free.
+    if (url.protocol === "blob:") return true;
     const isLocalhost = (DEV_HOSTNAMES as readonly string[]).includes(url.hostname);
     const isTrustedHost = TRUSTED_IMAGE_HOSTS.some(trustedHost => isDomainMatch(trimmed, trustedHost));
     return (url.protocol === "https:" && isTrustedHost) || isLocalhost;

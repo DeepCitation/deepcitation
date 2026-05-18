@@ -208,6 +208,8 @@ export const viOverrides = {
   "evidence.differentSection": "(phần khác)",
   "evidence.andMore": "\u2026và {count} mục khác",
   "evidence.alreadyFullSize": "Đã ở kích thước đầy đủ",
+  "evidence.imageLoading": "Đang tải bằng chứng…",
+  "evidence.imageUnavailable": "Không có hình ảnh bằng chứng",
   "evidence.searchAttempts_one": "{count} lần thử",
   "evidence.searchAttempts_other": "{count} lần thử",
   "evidence.impreciseLocation": "Vị trí chính xác không được chỉ định trong trích dẫn",
