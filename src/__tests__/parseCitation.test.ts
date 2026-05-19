@@ -41,6 +41,34 @@ describe("getCitationStatus", () => {
     expect(status.isPending).toBe(false);
   });
 
+  describe("approximate-match downgrade (issue 18)", () => {
+    const found: Verification = {
+      citation: { sourceMatch: "Beck Depression Inventory", sourceContext: "ctx", attachmentId: "file" },
+      document: { verifiedPageNumber: 2 },
+      status: "found",
+      sourceSnippet: "snippet",
+    };
+
+    it("downgrades a `found` citation to partial when claimText differs from sourceMatch", () => {
+      const status = getCitationStatus(found, { claimText: "the Beck scale", sourceMatch: "Beck Depression Inventory" });
+      expect(status.isPartialMatch).toBe(true);
+      expect(status.isVerified).toBe(true); // partial matches still count as verified (amber)
+    });
+
+    it("stays fully verified when claimText matches sourceMatch verbatim", () => {
+      const status = getCitationStatus(found, {
+        claimText: "Beck Depression Inventory",
+        sourceMatch: "Beck Depression Inventory",
+      });
+      expect(status.isPartialMatch).toBe(false);
+      expect(status.isVerified).toBe(true);
+    });
+
+    it("stays fully verified when no citation fields are supplied", () => {
+      expect(getCitationStatus(found).isPartialMatch).toBe(false);
+    });
+  });
+
   it("marks misses and pending states", () => {
     const miss: Verification = {
       citation: {

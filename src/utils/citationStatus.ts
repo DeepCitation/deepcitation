@@ -26,6 +26,27 @@ const LOW_TRUST_VARIATIONS: ReadonlySet<MatchedVariation> = new Set<MatchedVaria
   "first_word_only",
 ]);
 
+/** The fields of a citation needed to detect an approximate (`≈`) match. */
+export interface ApproximateMatchInput {
+  /** Text the model displayed inline when it differs from the verbatim sourceMatch. */
+  claimText?: string | null;
+  /** The verbatim span the verifier located in the source. */
+  sourceMatch?: string | null;
+}
+
+/**
+ * A citation is an *approximate* match when the text the model displayed inline
+ * (`claimText`) is not verbatim what was located in the source (`sourceMatch`)
+ * — the case the popover marks with a `≈`. Such a citation must never read as
+ * fully Verified: the product's promise is that Verified means verified. See
+ * tracker issue 18.
+ */
+function isApproximateMatch(citation: ApproximateMatchInput | null | undefined): boolean {
+  if (!citation) return false;
+  const { claimText, sourceMatch } = citation;
+  return !!claimText && !!sourceMatch && claimText !== sourceMatch;
+}
+
 /**
  * Calculates the verification status of a citation based on the found highlight and search state.
  *
@@ -34,10 +55,20 @@ const LOW_TRUST_VARIATIONS: ReadonlySet<MatchedVariation> = new Set<MatchedVaria
  * first_word_only). A successful attempt with a low-trust variation is classified
  * as a partial match (amber) rather than fully verified (green).
  *
+ * When `citation` is supplied and its `claimText` differs from its
+ * `sourceMatch` (an approximate `≈` match), the result is downgraded to a
+ * partial match — an approximate anchor is never fully Verified (issue 18).
+ *
  * @param verification - The found highlight location, or null/undefined if not found
+ * @param citation - Optional citation fields used to detect an approximate match
  * @returns An object containing boolean flags for verification status
  */
-export function getCitationStatus(verification: Verification | null | undefined): CitationStatus {
+export function getCitationStatus(
+  verification: Verification | null | undefined,
+  citation?: ApproximateMatchInput | null,
+): CitationStatus {
+  const approximate = isApproximateMatch(citation);
+
   if (!verification) {
     return { isVerified: false, isMiss: false, isPartialMatch: false, isPending: false };
   }
@@ -54,12 +85,15 @@ export function getCitationStatus(verification: Verification | null | undefined)
   if (!status) {
     // Verification exists but server hasn't set a status yet — treat as partial
     // if low-trust matches were found, otherwise unknown (all-false).
-    return { isVerified: hasLowTrustMatch, isMiss: false, isPartialMatch: hasLowTrustMatch, isPending: false };
+    const partial = hasLowTrustMatch || approximate;
+    return { isVerified: partial, isMiss: false, isPartialMatch: partial, isPending: false };
   }
 
   const isMiss = status === "not_found";
   const isPending = status === "pending" || status === "loading";
-  const isPartialMatch = PARTIAL_STATUSES.has(status) || hasLowTrustMatch;
+  // An approximate match (claimText ≠ sourceMatch) downgrades to partial — it
+  // is never fully Verified, even when the verifier reports `found` (issue 18).
+  const isPartialMatch = PARTIAL_STATUSES.has(status) || hasLowTrustMatch || approximate;
   const isVerified = status === "found" || status === "found_context_missed_source_match" || isPartialMatch;
 
   return { isVerified, isMiss, isPartialMatch, isPending };
