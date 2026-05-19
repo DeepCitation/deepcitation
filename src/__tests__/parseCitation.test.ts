@@ -50,7 +50,10 @@ describe("getCitationStatus", () => {
     };
 
     it("downgrades a `found` citation to partial when claimText differs from sourceMatch", () => {
-      const status = getCitationStatus(found, { claimText: "the Beck scale", sourceMatch: "Beck Depression Inventory" });
+      const status = getCitationStatus(found, {
+        claimText: "the Beck scale",
+        sourceMatch: "Beck Depression Inventory",
+      });
       expect(status.isPartialMatch).toBe(true);
       expect(status.isVerified).toBe(true); // partial matches still count as verified (amber)
     });
@@ -66,6 +69,66 @@ describe("getCitationStatus", () => {
 
     it("stays fully verified when no citation fields are supplied", () => {
       expect(getCitationStatus(found).isPartialMatch).toBe(false);
+    });
+  });
+
+  describe("low-confidence ambiguity downgrade (issue 58)", () => {
+    const collisionAmbiguity = {
+      totalOccurrences: 10,
+      occurrencesOnExpectedPage: 10,
+      confidence: "low" as const,
+      note: "10 citations with distinct sourceMatch values resolved to the same passage (page 1)",
+    };
+
+    it("downgrades a `found` citation to partial when a low-confidence ambiguity block is present", () => {
+      const verification: Verification = {
+        citation: { sourceMatch: "term", sourceContext: "ctx", attachmentId: "file" },
+        document: { verifiedPageNumber: 1 },
+        status: "found",
+        matchMethod: "exact_line_match",
+        sourceSnippet: "snippet",
+        ambiguity: collisionAmbiguity,
+      };
+      const status = getCitationStatus(verification);
+      expect(status.isPartialMatch).toBe(true);
+      // Partial matches still count as verified (amber) — but never the full green badge.
+      expect(status.isVerified).toBe(true);
+      expect(status.isMiss).toBe(false);
+    });
+
+    it("stays fully verified for a clean `found` citation with no ambiguity block", () => {
+      const verification: Verification = {
+        citation: { sourceMatch: "term", sourceContext: "ctx", attachmentId: "file" },
+        document: { verifiedPageNumber: 1 },
+        status: "found",
+        matchMethod: "exact_line_match",
+        sourceSnippet: "snippet",
+      };
+      const status = getCitationStatus(verification);
+      expect(status.isPartialMatch).toBe(false);
+      expect(status.isVerified).toBe(true);
+    });
+
+    it("stays fully verified when ambiguity confidence is high (not a low-confidence collision)", () => {
+      const verification: Verification = {
+        citation: { sourceMatch: "term", sourceContext: "ctx", attachmentId: "file" },
+        document: { verifiedPageNumber: 1 },
+        status: "found",
+        sourceSnippet: "snippet",
+        ambiguity: { ...collisionAmbiguity, confidence: "high" },
+      };
+      expect(getCitationStatus(verification).isPartialMatch).toBe(false);
+    });
+
+    it("downgrades even when the server has not yet set a status", () => {
+      const verification: Verification = {
+        citation: { sourceMatch: "term", sourceContext: "ctx", attachmentId: "file" },
+        document: { verifiedPageNumber: 1 },
+        sourceSnippet: "snippet",
+        ambiguity: collisionAmbiguity,
+      };
+      const status = getCitationStatus(verification);
+      expect(status.isPartialMatch).toBe(true);
     });
   });
 
