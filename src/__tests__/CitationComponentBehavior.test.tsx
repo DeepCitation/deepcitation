@@ -157,6 +157,24 @@ describe("CitationComponent behaviorConfig", () => {
       const amberCheck = container.querySelector("[data-dc-indicator='partial']");
       expect(amberCheck).toBeInTheDocument();
     });
+
+    it("shows amber check for found status with low-confidence ambiguity", () => {
+      const ambiguousVerification: Verification = {
+        sourceSnippet: "test citation phrase",
+        status: "found",
+        ambiguity: {
+          totalOccurrences: 10,
+          occurrencesOnExpectedPage: 10,
+          confidence: "low",
+          note: "10 citations with distinct sourceMatch values resolved to the same passage",
+        },
+      };
+
+      const { container } = render(<CitationComponent citation={baseCitation} verification={ambiguousVerification} />);
+
+      expect(container.querySelector("[data-dc-indicator='partial']")).toBeInTheDocument();
+      expect(container.querySelector("[data-dc-indicator='verified']")).not.toBeInTheDocument();
+    });
   });
 
   // ==========================================================================

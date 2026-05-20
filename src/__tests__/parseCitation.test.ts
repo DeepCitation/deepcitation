@@ -58,6 +58,20 @@ describe("getCitationStatus", () => {
       expect(status.isVerified).toBe(true); // partial matches still count as verified (amber)
     });
 
+    it("downgrades when the verification carries a mismatched claimText and sourceMatch", () => {
+      const status = getCitationStatus({
+        ...found,
+        citation: {
+          claimText: "Hamilton Anxiety Rating Scale",
+          sourceMatch: "Beck Depression Inventory",
+          sourceContext: "Beck Depression Inventory: 29 - Severe depression",
+          attachmentId: "file",
+        },
+      });
+      expect(status.isPartialMatch).toBe(true);
+      expect(status.isVerified).toBe(true);
+    });
+
     it("stays fully verified when claimText matches sourceMatch verbatim", () => {
       const status = getCitationStatus(found, {
         claimText: "Beck Depression Inventory",

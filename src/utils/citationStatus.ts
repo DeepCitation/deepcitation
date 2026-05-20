@@ -84,12 +84,11 @@ export function getCitationStatus(
   verification: Verification | null | undefined,
   citation?: ApproximateMatchInput | null,
 ): CitationStatus {
-  const approximate = isApproximateMatch(citation);
-
   if (!verification) {
     return { isVerified: false, isMiss: false, isPartialMatch: false, isPending: false };
   }
 
+  const approximate = isApproximateMatch(citation ?? verification.citation);
   const ambiguous = isLowConfidenceAmbiguous(verification);
 
   const status = verification.status;
