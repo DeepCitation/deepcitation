@@ -614,7 +614,7 @@ function PopoverLoadingView({
             &rdquo;
           </p>
         )}
-        {isApproximate && (
+        {isApproximate && claimText && (
           <span className="text-[11px] text-dc-subtle-foreground">
             <span aria-hidden="true" className="mr-0.5">
               ≈
@@ -724,7 +724,7 @@ function PopoverFallbackView({
             />
           </q>
         )}
-        {isApproximate && (
+        {isApproximate && claimText && (
           <span className="text-[11px] text-dc-subtle-foreground">
             <span aria-hidden="true" className="mr-0.5">
               ≈
@@ -1090,7 +1090,7 @@ export function DefaultPopoverContent({
                   isApproximate={isApproximate}
                 />
               )}
-              {isApproximate && sourceContext && (
+              {isApproximate && claimText && sourceContext && (
                 <div className="flex items-center ml-4 mr-3 -mt-3 mb-3 text-dc-subtle-foreground">
                   <span aria-hidden="true" className="mr-1 text-amber-500 dark:text-amber-400 text-md">
                     ≈
