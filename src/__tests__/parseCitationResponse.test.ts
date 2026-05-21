@@ -430,3 +430,83 @@ describe("parseCitationResponse — cite link format", () => {
     expect(segments[0]).not.toContain("(cite:");
   });
 });
+
+// ─── Issue-235: orphan marker admission (sourceMatch without sourceContext) ──
+
+describe("parseCitationResponse — sourceMatch-only admission (issue-235)", () => {
+  it("admits a citation that has sourceMatch but no sourceContext", () => {
+    // Simulates an LLM output where the citation block has sourceMatch + pageNumber
+    // but omits sourceContext entirely. Before the fix, this entry was silently
+    // dropped, leaving [3] in prose with no markerMap entry → permanent pulsing chip.
+    const response = makeNumericResponse(
+      "The patient has moderate impairment [3] and follows medication schedule [4].",
+      [
+        {
+          id: 3,
+          attachment_id: "att_aish_form_123456789",
+          reasoning: "Selected option for mental health impairment",
+          // No source_context — only source_match
+          source_match: "Medium or moderate impairment",
+          page_id: "page_number_1_index_0",
+          line_ids: [14],
+        },
+        {
+          id: 4,
+          attachment_id: "att_aish_form_123456789",
+          reasoning: "Medication adherence",
+          source_context: "Patient follows prescribed medication schedule",
+          source_match: "medication schedule",
+          page_id: "page_number_2_index_0",
+          line_ids: [7],
+        },
+      ],
+    );
+
+    const result = parseCitationResponse(response);
+
+    // Both markers must have entries — no orphan
+    expect(result.markerMap[3]).toBeDefined();
+    expect(result.markerMap[4]).toBeDefined();
+
+    // The sourceMatch-only entry must be in citations
+    const citationKey3 = result.markerMap[3];
+    const citation3 = result.citations[citationKey3];
+    expect(citation3).toBeDefined();
+    expect(citation3.sourceMatch).toBe("Medium or moderate impairment");
+    // sourceContext should be absent/empty (not fabricated)
+    expect(citation3.sourceContext ?? "").toBe("");
+
+    // The normal entry is unaffected
+    const citationKey4 = result.markerMap[4];
+    expect(result.citations[citationKey4].sourceContext).toBe(
+      "Patient follows prescribed medication schedule",
+    );
+  });
+
+  it("does not admit an entry with neither sourceContext nor sourceMatch", () => {
+    // An entry with no searchable text should still be dropped — it provides
+    // no way to locate or display the citation.
+    const response = makeNumericResponse("Claim one [1] and claim two [2].", [
+      {
+        id: 1,
+        attachment_id: "att_aish_form_123456789",
+        reasoning: "First claim",
+        source_context: "Valid source context",
+        source_match: "Valid match",
+        page_id: "page_number_1_index_0",
+      },
+      {
+        id: 2,
+        attachment_id: "att_aish_form_123456789",
+        reasoning: "Second claim has no searchable text",
+        // Both source_context and source_match are absent
+        page_id: "page_number_1_index_0",
+      },
+    ]);
+
+    const result = parseCitationResponse(response);
+    expect(result.markerMap[1]).toBeDefined();
+    // Entry 2 has no searchable text — still silently dropped
+    expect(result.markerMap[2]).toBeUndefined();
+  });
+});

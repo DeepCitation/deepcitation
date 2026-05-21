@@ -849,7 +849,11 @@ export function getAllCitationsFromNumericResponse(llmResponse: string): {
 
   for (const data of parsed.citations) {
     const citation = citationDataToCitation(data);
-    if (citation.sourceContext) {
+    // Admit citations that have either sourceContext OR sourceMatch.
+    // Dropping entries that only have sourceMatch (no sourceContext) caused
+    // orphan [N] markers in prose to render as permanently-pulsing chips
+    // because no map entry existed for the marker number. (issue-235)
+    if (citation.sourceContext || citation.sourceMatch) {
       const baseCitationKey = getCitationKey(citation);
       const citationKey =
         citations[baseCitationKey] && citations[baseCitationKey].citationNumber !== citation.citationNumber
