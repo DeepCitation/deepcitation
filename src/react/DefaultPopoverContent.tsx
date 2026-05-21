@@ -14,6 +14,7 @@ import type { CitationStatus, SupportingFact } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
+import { isApproximateMatch } from "../utils/citationStatus.js";
 import { getStatusLabel } from "./citationStatus.js";
 import {
   BLINK_ENTER_EASING,
@@ -572,7 +573,7 @@ function PopoverLoadingView({
   const sourceContext = citation.sourceContext || verification?.verifiedSourceContext;
   const searchStatus = verification?.status;
   const searchingPhrase = sourceContext || sourceMatch;
-  const isApproximate = !!claimText && !!sourceMatch && claimText !== sourceMatch;
+  const isApproximate = isApproximateMatch({ claimText, sourceMatch, sourceContext });
   return (
     <div
       className={cn(POPOVER_CONTAINER_BASE_CLASSES, "min-w-[200px] max-w-[480px]")}
@@ -613,7 +614,7 @@ function PopoverLoadingView({
             &rdquo;
           </p>
         )}
-        {isApproximate && (
+        {isApproximate && claimText && (
           <span className="text-[11px] text-dc-subtle-foreground">
             <span aria-hidden="true" className="mr-0.5">
               ≈
@@ -664,7 +665,12 @@ function PopoverFallbackView({
   const hasSnippet = verification?.sourceSnippet;
   const pageNumber = verification?.document?.verifiedPageNumber;
 
-  const isApproximate = !!claimText && !!citation.sourceMatch && claimText !== citation.sourceMatch.toString();
+  const sourceContext = citation.sourceContext || verification?.verifiedSourceContext;
+  const isApproximate = isApproximateMatch({
+    claimText,
+    sourceMatch: citation.sourceMatch?.toString(),
+    sourceContext,
+  });
 
   if (!hasSnippet && !statusLabel && !urlAccessExplanation) return null;
 
@@ -718,7 +724,7 @@ function PopoverFallbackView({
             />
           </q>
         )}
-        {isApproximate && (
+        {isApproximate && claimText && (
           <span className="text-[11px] text-dc-subtle-foreground">
             <span aria-hidden="true" className="mr-0.5">
               ≈
@@ -944,10 +950,7 @@ export function DefaultPopoverContent({
   // to the verified value rather than rendering a blank phrase.
   const sourceContext = citation.sourceContext || verification?.verifiedSourceContext;
 
-  // Approximate = the model's inline display (`claimText`) differs from what was
-  // actually matched in the source (`sourceMatch`). Drives the ≈ marker shown
-  // beside the header highlight, on the keyhole, and in the "displayed as" row.
-  const isApproximate = !!claimText && !!sourceMatch && claimText !== sourceMatch;
+  const isApproximate = isApproximateMatch({ claimText, sourceMatch, sourceContext });
 
   // Intent summary for document citations — snippet-based display for partial matches
   const intentSummary = useMemo(
@@ -1087,7 +1090,7 @@ export function DefaultPopoverContent({
                   isApproximate={isApproximate}
                 />
               )}
-              {isApproximate && sourceContext && (
+              {isApproximate && claimText && sourceContext && (
                 <div className="flex items-center ml-4 mr-3 -mt-3 mb-3 text-dc-subtle-foreground">
                   <span aria-hidden="true" className="mr-1 text-amber-500 dark:text-amber-400 text-md">
                     ≈

@@ -132,7 +132,7 @@ function useCitationData(citation: Citation, verification?: Verification | null)
   const citationKey = useMemo(() => getCitationKey(citation), [citation]);
   const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
   // Don't memoize - object reference as dependency causes stale values on mutation
-  const status = getCitationStatus(verification ?? null);
+  const status = getCitationStatus(verification ?? null, citation);
   return { citationKey, citationInstanceId, status };
 }
 

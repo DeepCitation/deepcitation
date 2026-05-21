@@ -1,10 +1,7 @@
 //flash and flash lite get super confused if we ask for a MD table and infinite loop
-import { validateRegexInput } from "../utils/regexSafety.js";
-
 const MIN_CONTENT_LENGTH_FOR_GEMINI_GARBAGE = 64;
 const MIN_REPETITIONS = 2;
 const MIN_SENTENCE_CONTENT_LENGTH = 10;
-const SENTENCE_END_RE = /[.?!](?=\s+|$)/g;
 
 export const isGeminiGarbage = (content: string) => {
   if (!content) return false;
@@ -19,12 +16,34 @@ export const isGeminiGarbage = (content: string) => {
   return true;
 };
 
+// Single linear scan — no regex, so the 100KB validateRegexInput cap does not
+// apply. The caller passes legitimate long-form LLM output that can exceed
+// that cap without being ReDoS-prone.
+function findSentenceEndIndices(text: string): number[] {
+  const indices: number[] = [];
+  for (let index = 0; index < text.length; index++) {
+    const character = text[index];
+    if (character !== "." && character !== "?" && character !== "!") continue;
+    const nextCharacter = text[index + 1];
+    if (
+      nextCharacter === undefined ||
+      nextCharacter === " " ||
+      nextCharacter === "\n" ||
+      nextCharacter === "\r" ||
+      nextCharacter === "\t" ||
+      nextCharacter === "\f" ||
+      nextCharacter === "\v"
+    ) {
+      indices.push(index);
+    }
+  }
+  return indices;
+}
+
 // helps clean up infinite rambling bug output from gemini
 export function cleanRepeatingLastSentence(text: string): string {
   text = text.trim();
-  validateRegexInput(text);
-
-  const sentenceEndIndices = Array.from(text.matchAll(SENTENCE_END_RE), m => m.index ?? 0);
+  const sentenceEndIndices = findSentenceEndIndices(text);
 
   if (sentenceEndIndices.length < 2) {
     return text;

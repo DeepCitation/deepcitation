@@ -40,7 +40,7 @@ export const CitationRoot = forwardRef<HTMLSpanElement, CitationRootProps & HTML
   ) => {
     const citationKey = useMemo(() => getCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
-    const status = getCitationStatus(verification);
+    const status = getCitationStatus(verification, citation);
 
     const contextValue = useMemo<CitationContextValue>(
       () => ({

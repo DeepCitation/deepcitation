@@ -157,6 +157,24 @@ describe("CitationComponent behaviorConfig", () => {
       const amberCheck = container.querySelector("[data-dc-indicator='partial']");
       expect(amberCheck).toBeInTheDocument();
     });
+
+    it("shows amber check for found status with low-confidence ambiguity", () => {
+      const ambiguousVerification: Verification = {
+        sourceSnippet: "test citation phrase",
+        status: "found",
+        ambiguity: {
+          totalOccurrences: 10,
+          occurrencesOnExpectedPage: 10,
+          confidence: "low",
+          note: "10 citations with distinct sourceMatch values resolved to the same passage",
+        },
+      };
+
+      const { container } = render(<CitationComponent citation={baseCitation} verification={ambiguousVerification} />);
+
+      expect(container.querySelector("[data-dc-indicator='partial']")).toBeInTheDocument();
+      expect(container.querySelector("[data-dc-indicator='verified']")).not.toBeInTheDocument();
+    });
   });
 
   // ==========================================================================
@@ -287,6 +305,60 @@ describe("CitationComponent behaviorConfig", () => {
 
       expect(getByText(/Claimed as.*age 13/i)).toBeInTheDocument();
       expect(getByText(/assessed for ADHD/i)).toBeInTheDocument();
+    });
+
+    it("does not render the claimed-as marker when claimText differs only by dash variant", async () => {
+      const citation: Citation = {
+        citationNumber: 29,
+        sourceMatch: "Section 8 - Prognosis",
+        sourceContext: "Section 8 - Prognosis 1. Duration of the medical condition(s) is likely to be:",
+      };
+      const verification: Verification = {
+        sourceSnippet: "Section 8 - Prognosis 1. Duration of the medical condition(s) is likely to be:",
+        status: "found",
+      };
+      const { container, queryByText } = render(
+        <CitationComponent citation={citation} verification={verification} claimText="Section 8 — Prognosis" />,
+      );
+
+      const trigger = container.querySelector("[data-citation-id]");
+      expect(trigger).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(trigger as HTMLElement);
+      });
+      await waitForPopoverVisible(container);
+
+      expect(queryByText(/Claimed as.*Section 8/i)).not.toBeInTheDocument();
+    });
+
+    it("does not render the claimed-as marker when claimText is a dash-equivalent prefix of sourceContext", async () => {
+      const citation: Citation = {
+        citationNumber: 30,
+        sourceMatch: "Relationship with Applicant",
+        sourceContext: "Section 2 - Relationship with Applicant 1. Are you the: Physician Specialist",
+      };
+      const verification: Verification = {
+        sourceSnippet: "Section 2 - Relationship with Applicant 1. Are you the: Physician Specialist",
+        status: "found",
+      };
+      const { container, queryByText } = render(
+        <CitationComponent
+          citation={citation}
+          verification={verification}
+          claimText="Section 2 — Relationship with Applicant"
+        />,
+      );
+
+      const trigger = container.querySelector("[data-citation-id]");
+      expect(trigger).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(trigger as HTMLElement);
+      });
+      await waitForPopoverVisible(container);
+
+      expect(queryByText(/Claimed as.*Section 2/i)).not.toBeInTheDocument();
     });
 
     it("shows a popover for source-backed citations without a verification record", async () => {
