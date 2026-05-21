@@ -31,5 +31,5 @@ export function isExactOrDashVariantPrefixMatch(
   if (normalizedPrefix === normalizedValue) return true;
   if (!normalizedValue.startsWith(normalizedPrefix)) return false;
   const nextChar = normalizedValue[normalizedPrefix.length];
-  return nextChar === undefined || !/[a-z0-9]/i.test(nextChar);
+  return nextChar === undefined || !/[\p{L}\p{N}]/u.test(nextChar);
 }

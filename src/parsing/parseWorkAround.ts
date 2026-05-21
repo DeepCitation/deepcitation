@@ -16,6 +16,9 @@ export const isGeminiGarbage = (content: string) => {
   return true;
 };
 
+// Single linear scan — no regex, so the 100KB validateRegexInput cap does not
+// apply. The caller passes legitimate long-form LLM output that can exceed
+// that cap without being ReDoS-prone.
 function findSentenceEndIndices(text: string): number[] {
   const indices: number[] = [];
   for (let index = 0; index < text.length; index++) {
