@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { analyzeVerification } from "../analysis/searchAnalysis.js";
 import { type CitationStatus, isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
-import { isExactOrDashVariantMatch, isExactOrDashVariantPrefixMatch } from "../utils/textEquivalence.js";
+import { isApproximateMatch } from "../utils/citationStatus.js";
 import type {
   CitationDrawerItem,
   CitationDrawerItemProps,
@@ -423,11 +423,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   );
 
   const isApproximate = useMemo(
-    () =>
-      !!item.claimText &&
-      !!sourceMatch &&
-      !isExactOrDashVariantMatch(item.claimText, sourceMatch) &&
-      !isExactOrDashVariantPrefixMatch(item.claimText, sourceContext),
+    () => isApproximateMatch({ claimText: item.claimText, sourceMatch, sourceContext }),
     [item.claimText, sourceMatch, sourceContext],
   );
 

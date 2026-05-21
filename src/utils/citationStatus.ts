@@ -45,7 +45,7 @@ export interface ApproximateMatchInput {
  * discrepancies are marked with `≈` and must never read as fully Verified: the
  * product's promise is that Verified means verified. See tracker issue 18.
  */
-function isApproximateMatch(citation: ApproximateMatchInput | null | undefined): boolean {
+export function isApproximateMatch(citation: ApproximateMatchInput | null | undefined): boolean {
   if (!citation) return false;
   const { claimText, sourceMatch, sourceContext } = citation;
   if (!claimText || !sourceMatch) return false;

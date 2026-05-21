@@ -22,9 +22,12 @@ export function isExactOrDashVariantPrefixMatch(
   prefix: string | null | undefined,
   value: string | null | undefined,
 ): boolean {
-  const normalizedPrefix = normalizeDashVariants(prefix?.trim() ?? "");
-  const normalizedValue = normalizeDashVariants(value?.trim() ?? "");
-  if (!normalizedPrefix || !normalizedValue) return false;
+  const trimmedPrefix = prefix?.trim() ?? "";
+  const trimmedValue = value?.trim() ?? "";
+  if (!trimmedPrefix || !trimmedValue) return false;
+  if (trimmedPrefix === trimmedValue) return true;
+  const normalizedPrefix = normalizeDashVariants(trimmedPrefix);
+  const normalizedValue = normalizeDashVariants(trimmedValue);
   if (normalizedPrefix === normalizedValue) return true;
   if (!normalizedValue.startsWith(normalizedPrefix)) return false;
   const nextChar = normalizedValue[normalizedPrefix.length];
