@@ -14,6 +14,7 @@ import type { CitationStatus, SupportingFact } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
+import { isExactOrDashVariantMatch, isExactOrDashVariantPrefixMatch } from "../utils/textEquivalence.js";
 import { getStatusLabel } from "./citationStatus.js";
 import {
   BLINK_ENTER_EASING,
@@ -572,7 +573,11 @@ function PopoverLoadingView({
   const sourceContext = citation.sourceContext || verification?.verifiedSourceContext;
   const searchStatus = verification?.status;
   const searchingPhrase = sourceContext || sourceMatch;
-  const isApproximate = !!claimText && !!sourceMatch && claimText !== sourceMatch;
+  const isApproximate =
+    !!claimText &&
+    !!sourceMatch &&
+    !isExactOrDashVariantMatch(claimText, sourceMatch) &&
+    !isExactOrDashVariantPrefixMatch(claimText, sourceContext);
   return (
     <div
       className={cn(POPOVER_CONTAINER_BASE_CLASSES, "min-w-[200px] max-w-[480px]")}
@@ -664,7 +669,12 @@ function PopoverFallbackView({
   const hasSnippet = verification?.sourceSnippet;
   const pageNumber = verification?.document?.verifiedPageNumber;
 
-  const isApproximate = !!claimText && !!citation.sourceMatch && claimText !== citation.sourceMatch.toString();
+  const sourceContext = citation.sourceContext || verification?.verifiedSourceContext;
+  const isApproximate =
+    !!claimText &&
+    !!citation.sourceMatch &&
+    !isExactOrDashVariantMatch(claimText, citation.sourceMatch.toString()) &&
+    !isExactOrDashVariantPrefixMatch(claimText, sourceContext);
 
   if (!hasSnippet && !statusLabel && !urlAccessExplanation) return null;
 
@@ -945,9 +955,13 @@ export function DefaultPopoverContent({
   const sourceContext = citation.sourceContext || verification?.verifiedSourceContext;
 
   // Approximate = the model's inline display (`claimText`) differs from what was
-  // actually matched in the source (`sourceMatch`). Drives the ≈ marker shown
-  // beside the header highlight, on the keyhole, and in the "displayed as" row.
-  const isApproximate = !!claimText && !!sourceMatch && claimText !== sourceMatch;
+  // found in the source. Dash-equivalent full-heading prefixes are exact even
+  // when the anchor is narrower than the larger source context.
+  const isApproximate =
+    !!claimText &&
+    !!sourceMatch &&
+    !isExactOrDashVariantMatch(claimText, sourceMatch) &&
+    !isExactOrDashVariantPrefixMatch(claimText, sourceContext);
 
   // Intent summary for document citations — snippet-based display for partial matches
   const intentSummary = useMemo(

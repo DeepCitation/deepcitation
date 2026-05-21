@@ -81,6 +81,25 @@ describe("getCitationStatus", () => {
       expect(status.isVerified).toBe(true);
     });
 
+    it("stays fully verified when claimText differs only by dash variant", () => {
+      const status = getCitationStatus(found, {
+        claimText: "Section 8 — Prognosis",
+        sourceMatch: "Section 8 - Prognosis",
+      });
+      expect(status.isPartialMatch).toBe(false);
+      expect(status.isVerified).toBe(true);
+    });
+
+    it("stays fully verified when claimText is a dash-equivalent prefix of sourceContext", () => {
+      const status = getCitationStatus(found, {
+        claimText: "Section 2 — Relationship with Applicant",
+        sourceMatch: "Relationship with Applicant",
+        sourceContext: "Section 2 - Relationship with Applicant 1. Are you the: Physician Specialist",
+      });
+      expect(status.isPartialMatch).toBe(false);
+      expect(status.isVerified).toBe(true);
+    });
+
     it("stays fully verified when no citation fields are supplied", () => {
       expect(getCitationStatus(found).isPartialMatch).toBe(false);
     });
