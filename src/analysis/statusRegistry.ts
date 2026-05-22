@@ -42,7 +42,7 @@ export const STATUS_MAP = {
     outcome: "partial_match",
     colorScheme: "amber",
     headerKey: "status.partialMatch",
-    showOnlyHit: true,
+    showOnlyHit: false,
   },
   found_on_other_page: {
     outcome: "partial_match",

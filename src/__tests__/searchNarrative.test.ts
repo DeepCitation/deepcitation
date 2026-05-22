@@ -74,6 +74,23 @@ describe("buildSearchNarrative", () => {
       expect(narrative.showAllRows).toBe(true);
     });
 
+    it("is true for 'found_context_missed_source_match' so the partial search trail remains visible", () => {
+      const attempts: SearchAttempt[] = [
+        { method: "exact_line_match", success: false, searchPhrase: "diagnosis", pageSearched: 1 },
+        {
+          method: "source_match_fallback",
+          success: true,
+          searchPhrase: "F43.10",
+          pageSearched: 1,
+          foundLocation: { page: 1 },
+        },
+      ];
+      const narrative = buildSearchNarrative(attempts, "found_context_missed_source_match");
+      expect(narrative.showAllRows).toBe(true);
+      expect(narrative.groupedAttemptCount).toBe(2);
+      expect(narrative.rows.map(row => row.kind)).toEqual(["failure", "success"]);
+    });
+
     it("is true for null status", () => {
       const narrative = buildSearchNarrative([], null);
       expect(narrative.showAllRows).toBe(true);
