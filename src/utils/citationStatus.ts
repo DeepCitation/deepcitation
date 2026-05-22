@@ -15,6 +15,7 @@ import { isExactOrDashVariantMatch, isExactOrDashVariantPrefixMatch } from "./te
  */
 export const PARTIAL_STATUSES: ReadonlySet<SearchStatus> = new Set<SearchStatus>([
   "found_source_match_only",
+  "found_context_missed_source_match",
   "partial_text_found",
   "found_on_other_page",
   "found_on_other_line",
@@ -121,7 +122,8 @@ export function getCitationStatus(
   // verifier itself flagged the located occurrence as not confidently the
   // intended one, so it is never fully Verified (issue 58).
   const isPartialMatch = PARTIAL_STATUSES.has(status) || hasLowTrustMatch || approximate || ambiguous;
-  const isVerified = status === "found" || status === "found_context_missed_source_match" || isPartialMatch;
+  // issue-228: found_context_missed_source_match is now in PARTIAL_STATUSES — covered by isPartialMatch.
+  const isVerified = status === "found" || isPartialMatch;
 
   return { isVerified, isMiss, isPartialMatch, isPending };
 }

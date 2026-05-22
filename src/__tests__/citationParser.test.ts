@@ -294,7 +294,7 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(Object.keys(citations).length).toBe(0);
   });
 
-  it("skips citations without sourceContext", () => {
+  it("admits citations with sourceMatch but no sourceContext (issue-235)", () => {
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
@@ -302,7 +302,8 @@ ${CITATION_DATA_START_DELIMITER}
 ${CITATION_DATA_END_DELIMITER}`;
 
     const citations = getAllCitationsFromNumericResponse(response);
-    expect(Object.keys(citations).length).toBe(0);
+    // sourceMatch-only entries are admitted instead of dropped
+    expect(Object.keys(citations).length).toBe(1);
   });
 });
 

@@ -203,8 +203,9 @@ function getOutcomeSummary(
 
   switch (status) {
     case "found":
-    case "found_context_missed_source_match":
       return t("outcome.exactMatch");
+    case "found_context_missed_source_match":
+      return t("outcome.partialMatch");
     case "found_source_match_only":
       return t("outcome.sourceMatchOnly");
     case "found_on_other_page":
