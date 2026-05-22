@@ -4,6 +4,7 @@ import { validateRegexInput } from "../utils/regexSafety.js";
 const MIN_CONTENT_LENGTH_FOR_GEMINI_GARBAGE = 64;
 const MIN_REPETITIONS = 2;
 const MIN_SENTENCE_CONTENT_LENGTH = 10;
+const MIN_REPEATING_UNIT_LENGTH = 2;
 const SENTENCE_END_RE = /[.?!](?=\s+|$)/g;
 
 export const isGeminiGarbage = (content: string) => {
@@ -11,12 +12,30 @@ export const isGeminiGarbage = (content: string) => {
   const trimmedContent = content.trim();
   if (trimmedContent.length < MIN_CONTENT_LENGTH_FOR_GEMINI_GARBAGE) return false;
 
+  // Single-character repetition (e.g. "aaaaaaa...")
   const firstCharacter = trimmedContent[0];
-
+  let allSameChar = true;
   for (let i = 1; i < trimmedContent.length; i++) {
-    if (trimmedContent[i] !== firstCharacter) return false;
+    if (trimmedContent[i] !== firstCharacter) {
+      allSameChar = false;
+      break;
+    }
   }
-  return true;
+  if (allSameChar) return true;
+
+  // Multi-character repeating unit (e.g. "</font>\n</font>\n...")
+  const lines = trimmedContent.split("\n");
+  if (lines.length >= MIN_REPETITIONS) {
+    const firstLine = lines[0].trim();
+    if (
+      firstLine.length >= MIN_REPEATING_UNIT_LENGTH &&
+      lines.every((line) => line.trim() === firstLine)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 };
 
 // helps clean up infinite rambling bug output from gemini
