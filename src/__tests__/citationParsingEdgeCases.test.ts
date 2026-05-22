@@ -75,15 +75,16 @@ describe("Citation Parsing Edge Cases", () => {
   });
 
   describe("Edge cases with incomplete data", () => {
-    it("skips citations without source_context", () => {
+    it("admits citations with sourceMatch but no source_context (issue-235)", () => {
       const input = makeNumericResponse("Test [1] [2]", [
         { id: 1, attachment_id: "test123", source_match: "no phrase" },
         { id: 2, attachment_id: "test123", source_context: "has phrase", source_match: "phrase", page_id: "1_0" },
       ]);
       const result = getAllCitationsFromLlmOutput(input);
-      // Only citations with sourceContext are included
-      expect(Object.keys(result).length).toBe(1);
-      expect(Object.values(result)[0].sourceContext).toBe("has phrase");
+      // Both citations are admitted — sourceMatch-only entries are no longer dropped
+      expect(Object.keys(result).length).toBe(2);
+      const withContext = Object.values(result).find(c => c.sourceContext === "has phrase");
+      expect(withContext).toBeDefined();
     });
 
     it("handles empty input", () => {
