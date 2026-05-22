@@ -27,10 +27,7 @@ export const isGeminiGarbage = (content: string) => {
   const lines = trimmedContent.split("\n");
   if (lines.length >= MIN_REPETITIONS) {
     const firstLine = lines[0].trim();
-    if (
-      firstLine.length >= MIN_REPEATING_UNIT_LENGTH &&
-      lines.every((line) => line.trim() === firstLine)
-    ) {
+    if (firstLine.length >= MIN_REPEATING_UNIT_LENGTH && lines.every(line => line.trim() === firstLine)) {
       return true;
     }
   }

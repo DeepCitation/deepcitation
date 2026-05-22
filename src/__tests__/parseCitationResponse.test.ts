@@ -478,9 +478,7 @@ describe("parseCitationResponse — sourceMatch-only admission (issue-235)", () 
 
     // The normal entry is unaffected
     const citationKey4 = result.markerMap[4];
-    expect(result.citations[citationKey4].sourceContext).toBe(
-      "Patient follows prescribed medication schedule",
-    );
+    expect(result.citations[citationKey4].sourceContext).toBe("Patient follows prescribed medication schedule");
   });
 
   it("does not admit an entry with neither sourceContext nor sourceMatch", () => {

@@ -857,7 +857,6 @@ describe("useCitationDrawer", () => {
 describe("getStatusPriority", () => {
   it("returns 1 for verified statuses", () => {
     expect(getStatusPriority({ status: "found" })).toBe(1);
-    expect(getStatusPriority({ status: "found_context_missed_source_match" })).toBe(1);
   });
 
   it("returns 2 for pending/null statuses", () => {
@@ -872,6 +871,8 @@ describe("getStatusPriority", () => {
     expect(getStatusPriority({ status: "found_on_other_line" })).toBe(3);
     expect(getStatusPriority({ status: "first_word_found" })).toBe(3);
     expect(getStatusPriority({ status: "found_source_match_only" })).toBe(3);
+    // issue-228: found_context_missed_source_match is a partial match (sourceMatch ⊄ sourceContext)
+    expect(getStatusPriority({ status: "found_context_missed_source_match" })).toBe(3);
   });
 
   it("returns 4 for not_found status", () => {

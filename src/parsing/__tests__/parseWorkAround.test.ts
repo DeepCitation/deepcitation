@@ -1,8 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-  cleanRepeatingLastSentence,
-  isGeminiGarbage,
-} from "../parseWorkAround";
+import { cleanRepeatingLastSentence, isGeminiGarbage } from "../parseWorkAround";
 
 describe("isGeminiGarbage", () => {
   describe("single-character repetition", () => {
@@ -58,11 +55,8 @@ describe("isGeminiGarbage", () => {
 
 describe("cleanRepeatingLastSentence", () => {
   it("removes trailing repeated sentence", () => {
-    const repeated =
-      "The cat sat on the mat. The dog ran fast. The dog ran fast.";
-    expect(cleanRepeatingLastSentence(repeated)).toBe(
-      "The cat sat on the mat. The dog ran fast."
-    );
+    const repeated = "The cat sat on the mat. The dog ran fast. The dog ran fast.";
+    expect(cleanRepeatingLastSentence(repeated)).toBe("The cat sat on the mat. The dog ran fast.");
   });
 
   it("removes many repetitions keeping one copy", () => {

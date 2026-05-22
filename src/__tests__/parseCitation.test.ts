@@ -250,11 +250,13 @@ describe("getCitationStatus", () => {
       expect(status.isVerified).toBe(true); // Partial matches ARE verified (amber checkmark)
     });
 
-    it("treats found_context_missed_source_match as verified but not partial", () => {
+    // issue-228: found_context_missed_source_match must downgrade to partial — sourceMatch ⊄ sourceContext
+    // violates §1 and must never read as fully Verified.
+    it("treats found_context_missed_source_match as partial match (amber), not fully verified", () => {
       const verification: Verification = {
         citation: {
-          sourceMatch: "term",
-          sourceContext: "term",
+          sourceMatch: "F43.10",
+          sourceContext: "Most responsible DSM-5 diagnosis / borderline personality disorder.",
           attachmentId: "file",
         },
         document: {
@@ -264,8 +266,8 @@ describe("getCitationStatus", () => {
         sourceSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
-      expect(status.isVerified).toBe(true);
-      expect(status.isPartialMatch).toBe(false);
+      expect(status.isVerified).toBe(true); // Partial matches ARE verified (amber checkmark)
+      expect(status.isPartialMatch).toBe(true);
     });
 
     it("treats found_source_match_only as partial match", () => {
