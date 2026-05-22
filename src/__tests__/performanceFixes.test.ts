@@ -39,6 +39,13 @@ describe("Performance Fixes", () => {
       expect(result1).toBe(result2);
       expect(result1).toBe("This is content. This is a repeated sentence.");
     });
+
+    it("should scan long legitimate form-fill output without rejecting it as unsafe regex input", () => {
+      const longText = Array.from({ length: 12_000 }, (_, index) => `Unique sentence ${index}.`).join(" ");
+
+      expect(longText.length).toBeGreaterThan(100_000);
+      expect(cleanRepeatingLastSentence(longText)).toBe(longText);
+    });
   });
 
   describe("Diff Algorithm Optimizations (diff.ts)", () => {

@@ -8,7 +8,73 @@ The canonical vocabulary — domain binding (`claim*` vs `source*` vs `evidence*
 
 ---
 
-## §1 Anchor Text Rules (Hard)
+## Stable Requirement IDs
+
+Requirement IDs are permanent anchors for reviews, issues, postmortems, and agent self-checks.
+Do not reuse an ID for a different rule. If a rule is retired, keep the ID and mark it retired.
+Any DeepCitation-related bug report should cite the most specific ID below.
+
+### Compliance Matrix
+
+| ID | Requirement | Severity | Primary check |
+|----|-------------|----------|---------------|
+| `DC-PRE-001` | Markdown containing citation markers has exactly one parseable `<<<CITATION_DATA>>>` block that is not fenced as visible markdown. | Blocker | `deepcitation lint --strict <file>` |
+| `DC-PRE-002` | Citation markers and citation records match one-to-one; no orphan marker, orphan record, duplicate `n`, or detached marker. | Blocker | `deepcitation lint --strict <file>` |
+| `DC-AUTH-001` | `sourceMatch` is a short scan anchor: <=4 words and <=40 characters. | High | `deepcitation lint --strict <file>`; Playwright gate 4 |
+| `DC-AUTH-002` | `sourceMatch` is a verbatim, contiguous substring of `sourceContext`; no paraphrase and no ellipsis. | High | `deepcitation lint --strict <file>`; verified HTML review |
+| `DC-AUTH-003` | Multi-value fields cite one distinctive value, not an entire list. | High | reviewer sample |
+| `DC-AUTH-004` | `claimText` is a natural, short Domain A scan target and the marker is adjacent to the intended label. | Medium | `deepcitation lint --strict <file>`; rendered markdown review |
+| `DC-DATA-001` | `n`, `p`, and `l` fields are present, well-shaped, and refer to the intended source page and lines. | Blocker | `deepcitation lint --strict <file>`; verified HTML review |
+| `DC-DATA-002` | `lineIds` include the anchor line plus nearby context lines; they never default to the page's first line. | High | verified HTML review; screenshot/keyhole review |
+| `DC-DATA-003` | `sourceContext` is the substantive evidence passage containing `sourceMatch`, not a header, footer, noise fragment, or unrelated neighboring text. | High | reviewer sample |
+| `DC-VERIFY-001` | Verification quality meets target rates: found >80%, partial <15%, not-found <5% for standard domains. | High | verified report metrics |
+| `DC-VERIFY-002` | A partial, ambiguous, globally failed, or blocked result is never presented as fully verified. | Blocker | UI/report review; status rendering tests |
+| `DC-VERIFY-003` | All status indicators for one citation agree: text underline, dot, badge, icon, tooltip, and detail panel use the same verification state. | Blocker | rendered UI review; status rendering tests |
+| `DC-RENDER-001` | Markdown rendering preserves citation markers inline with the intended claim and never exposes raw citation JSON/data blocks to the user. | Blocker | rendered markdown/HTML screenshot; markdown renderer tests |
+| `DC-RENDER-002` | Tables, lists, bold labels, and inline links preserve citation placement and do not detach markers from their claims. | High | rendered markdown/HTML screenshot; parser tests |
+| `DC-RENDER-003` | Markdown emphasis, heading/list syntax, and citation syntax are fully parsed; raw `*`, `**`, `[N]`, or orphan superscript remnants do not appear in final UI. | High | rendered markdown/HTML screenshot; markdown renderer tests |
+| `DC-RENDER-004` | Every rendered citation indicator is interactive and backed by a parsed citation record; no inert superscript numbers or decorative-only markers. | High | rendered UI review; parser tests |
+| `DC-UX-001` | The user can reach confidence in under one second: preview -> focusPopover -> pageView keeps a visible scan anchor at every step. | High | Playwright gates 12, 13, 15; screenshot review |
+| `DC-UX-002` | The popover quote highlights `sourceMatch` inside `sourceContext`; miss states suppress false highlights. | High | component tests; screenshot review |
+| `DC-UX-003` | The evidence keyhole opens readable and centered on the anchor, not on the page's top-left corner or unrelated text. | High | Playwright gate 15; screenshot review |
+| `DC-UX-004` | Page-view evidence frames the real source location with spotlight/context brackets and keeps the anchor in focus through expansion. | High | Playwright gates 12, 13; screenshot review |
+| `DC-UX-005` | The visible `claimText` itself is the clickable citation trigger; a tiny badge/icon-only hit target is not acceptable. | High | rendered UI review; Playwright hit-target test |
+| `DC-UX-006` | Visual connectors, badges, keyholes, brackets, and highlights all point to the same source content as the clicked claim, not an adjacent row/list item. | Blocker | screenshot review; Playwright row/target coherence test |
+| `DC-REVIEW-001` | Review reports cite failed requirement IDs, include evidence paths/screenshots, and distinguish blocker/high/medium/low findings. | Medium | human/report review |
+
+### Agent Pre-Submit Rule
+
+Before claiming DeepCitation-related work is done, an agent must:
+
+1. Name the affected IDs from the compliance matrix.
+2. Run each listed automated check that applies to the touched artifact.
+3. For human-only visual checks, inspect a rendered screenshot or verified HTML and cite the evidence path.
+4. If a simple ID fails (`DC-PRE-*`, `DC-AUTH-*`, `DC-DATA-*`, `DC-RENDER-*`), fix it before submitting instead of filing it as a follow-up.
+5. If the failure is non-local or blocked, report the failed ID, evidence, and exact blocker.
+
+### Regression Examples Agents Must Catch
+
+Use these as pattern matches during review. If the output resembles one of these, stop and fix
+or file the failed ID before saying done.
+
+| Scenario | Failed ID(s) | Auto-realization cue | Required response |
+|----------|--------------|----------------------|-------------------|
+| A markdown answer shows a visible fenced `<<<CITATION_DATA>>>` block below the user-facing text. | `DC-PRE-001`, `DC-RENDER-001` | The raw JSON/data block is visible in rendered markdown. | Remove the fence/raw display path; run `deepcitation lint --strict`. |
+| A citation anchor is `severe chronic pain that prevents the patient from standing`. | `DC-AUTH-001` | `sourceMatch` is longer than 4 words or 40 characters. | Shorten to the distinctive source phrase, then lint. |
+| The body says `The [2] diagnosis is severe` instead of `The **diagnosis** [2] is severe`. | `DC-AUTH-004`, `DC-RENDER-002` | Marker appears before or detached from the clickable label. | Move the marker adjacent to the label; inspect rendered markdown. |
+| A table cell contains `Amoxicillin 500 mg tid 8 days and Metronidazole 500 mg bid 8 days` as one citation anchor. | `DC-AUTH-003` | One citation tries to prove multiple values. | Split or cite one value; use separate citations for separate facts. |
+| A verified report says `DeepCitation Partial Match` but the product summary counts it as green/verified. | `DC-VERIFY-002` | Partial status is treated as fully resolved. | Downgrade the UI/report state; include partial rate in the review. |
+| The keyhole screenshot opens on a page header while the highlighted source text is lower on the page. | `DC-DATA-002`, `DC-UX-003` | Evidence image is readable but shows the wrong region. | Check `lineIds` and bounding boxes; do not accept as done. |
+| A rendered markdown table loses citation markers or places all markers at the end of the table. | `DC-RENDER-002` | Source claims and markers no longer travel together after render. | Fix renderer/parser behavior and add a table/list regression test. |
+| A table row's claim text is visible but only the small citation badge/icon beside it is clickable. | `DC-UX-005`, `DC-RENDER-002` | The user cannot click the words they are trying to verify. | Make the full claim text/badge group one accessible trigger; add a hit-target test. |
+| Clicking or hovering `Multiple psychiatrists` points the visual indicator/keyhole at the row below, `DBT at hospital`. | `DC-UX-006`, `DC-DATA-002`, `DC-DATA-003` | The visual evidence target proves a neighboring row, not the clicked claim. | Treat as a false-evidence blocker; fix row/line target mapping before done. |
+| A rendered answer still shows raw markdown, such as `*Are documents...** Yes`, instead of styled text. | `DC-RENDER-003` | Markdown syntax is visible to the user. | Fix markdown parsing/render routing before accepting the result. |
+| Citation numbers show as tiny superscripts but cannot be opened or mapped to evidence. | `DC-RENDER-004`, `DC-PRE-002` | A citation marker survived as inert decoration. | Reconcile marker parsing with citation records and add an interaction test. |
+| A green verified underline is paired with a grey dot, miss dot, or unknown-state badge. | `DC-VERIFY-003`, `DC-VERIFY-002` | One citation presents two conflicting statuses. | Use one canonical status source; add a state-combination regression test. |
+
+---
+
+## §1 Anchor Text Rules (Hard) — `DC-AUTH-001`, `DC-AUTH-002`, `DC-AUTH-003`
 
 These rules are non-negotiable. Any citation that violates them is a bug.
 
@@ -43,7 +109,7 @@ More examples:
 
 ---
 
-## §3 `claimText` Rules
+## §3 `claimText` Rules — `DC-AUTH-004`, `DC-RENDER-002`, `DC-RENDER-004`
 
 `claimText` is the Domain A text — the phrase in the asserting document that the user clicks to enter `focusPopover`. It is the scan target in `preview` and anchors the `verificationBadge`. Rules below govern how it relates to `sourceMatch` (Domain B).
 
@@ -76,7 +142,7 @@ The policy covers [Group hospitalization](cite:7 'Group hospitalization and medi
 
 ---
 
-## §4 Citation Data Block Fields
+## §4 Citation Data Block Fields — `DC-PRE-001`, `DC-PRE-002`, `DC-DATA-001`, `DC-DATA-002`, `DC-DATA-003`
 
 The verify CLI generates a `<<<CITATION_DATA>>>` JSON block. Model authors produce the input; these are the field rules.
 
@@ -102,7 +168,7 @@ Shorthand keys: `n`=id, `r`=reasoning, `f`=fullPhrase, `k`=anchorText, `p`=pageI
 
 ---
 
-## §5 QA Issue Taxonomy
+## §5 QA Issue Taxonomy — `DC-REVIEW-001`
 
 Every citation reviewer classifies failures using this vocabulary. Severity drives grading (§6).
 
@@ -123,7 +189,7 @@ Each issue maps to a domain invariant from `deep-citation-concepts.md`: Domain B
 
 ---
 
-## §6 Grading Rubrics
+## §6 Grading Rubrics — `DC-VERIFY-001`, `DC-VERIFY-002`, `DC-VERIFY-003`, `DC-REVIEW-001`
 
 ### Found Rate Targets
 
@@ -171,7 +237,7 @@ These are known failure modes that reviewers should **not** keep filing as new i
 
 ---
 
-## §8 Playwright Hard Gates
+## §8 Playwright Hard Gates — `DC-UX-001`, `DC-UX-002`, `DC-UX-003`, `DC-UX-004`, `DC-UX-005`, `DC-UX-006`
 
 These tests must pass before any verified report ships. They are hard assertions; a failure blocks the PR. Each test protects a specific scan anchor or domain invariant from `deep-citation-concepts.md`.
 
@@ -188,7 +254,7 @@ These tests must pass before any verified report ships. They are hard assertions
 
 ---
 
-## §9 Verification UX Contract: The <1-Second Confidence Path
+## §9 Verification UX Contract: The <1-Second Confidence Path — `DC-UX-001`, `DC-UX-005`, `DC-UX-006`
 
 The goal of every citation interaction is that users feel confident in verification **within less than a second** — without having to think, scroll, or track context across state transitions.
 
@@ -208,6 +274,10 @@ Each step must make the connection from the previous step **visually obvious** �
 
 ### Implementation Requirements
 
+0. **Clickable claim text** — in `preview`, the visible `claimText` phrase is part of the
+   interactive citation trigger. The user must be able to click the words being verified,
+   not only a trailing badge, icon, caret, or tiny marker.
+
 1. **Quote popover** — when opened, `sourceMatch` is highlighted within the quote snippet immediately (no user action). The highlight must be visible without scrolling inside the popover.
 
 2. **Evidence image** — rendered at a size where the highlighted `sourceMatch` is readable without zooming. The image must be pre-scrolled (or cropped/framed) so the anchor region is in the viewport on arrival, not buried below the fold.
@@ -218,16 +288,23 @@ Each step must make the connection from the previous step **visually obvious** �
 
 5. **No threshold moment** — at no point in the chain should the user need to re-orient. The highlight color, shape, and position must be continuous. Prefer CSS `view-transition` or FLIP animation over hard cuts.
 
+6. **Same-fact visual target** — every visible connector, badge, keyhole, bracket,
+   spotlight, and highlight belongs to the same fact as the clicked `claimText`. In
+   tables/lists, pointing one row below or above the clicked claim is a blocker, even if
+   the source page itself is correct.
+
 ### What This Rules Out
 
 - Evidence image that loads without the anchor pre-scrolled into view — requires the user to hunt
 - Full-page opening that jumps to top of page — loses context entirely
 - Popover that shows quote text without highlighting the anchor — user must read to find it
 - Transition that fades out the highlight and fades it back in — breaks the connection
+- Badge-only click targets where the visible claim text does nothing
+- Connectors or keyholes that point at an adjacent table/list row instead of the clicked claim
 
 ---
 
-## §10 Popover Quote Highlighting (Hard)
+## §10 Popover Quote Highlighting (Hard) — `DC-UX-002`
 
 The citation popover displays the `sourceContext` as a quote with the `sourceMatch` highlighted inline. This is the first moment the user connects `claimText` to its source — it must be instant and unambiguous.
 
@@ -246,7 +323,7 @@ The citation popover displays the `sourceContext` as a quote with the `sourceMat
 
 ---
 
-## §11 Keyhole Evidence Image: Pan & Zoom (Hard)
+## §11 Keyhole Evidence Image: Pan & Zoom (Hard) — `DC-UX-003`
 
 The keyhole is a horizontally-scrollable strip that shows the evidence page image zoomed to the `sourceMatch` region. On render, the anchor text must be **in view, readable, and centered** — the user should never need to pan or zoom to find it.
 
@@ -282,7 +359,7 @@ The keyhole is a horizontally-scrollable strip that shows the evidence page imag
 
 ---
 
-## §12 FullPhrase Bounding Box Accuracy (Hard)
+## §12 FullPhrase Bounding Box Accuracy (Hard) — `DC-DATA-002`, `DC-DATA-003`, `DC-UX-004`
 
 The `sourceContext` drives both the popover quote display (§10) and the evidence image crop region. An inaccurate sourceContext bounding box cascades into wrong keyhole framing and misleading highlights.
 

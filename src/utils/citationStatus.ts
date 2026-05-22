@@ -8,6 +8,7 @@
 import type { CitationStatus } from "../types/citation.js";
 import type { MatchedVariation, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
+import { isExactOrDashVariantMatch, isExactOrDashVariantPrefixMatch } from "./textEquivalence.js";
 
 /**
  * Module-level status sets for O(1) lookups — avoids per-call array allocations.
@@ -33,19 +34,24 @@ export interface ApproximateMatchInput {
   claimText?: string | null;
   /** The verbatim span the verifier located in the source. */
   sourceMatch?: string | null;
+  /** The larger source phrase located in the source. */
+  sourceContext?: string | null;
 }
 
 /**
  * A citation is an *approximate* match when the text the model displayed inline
- * (`claimText`) is not verbatim what was located in the source (`sourceMatch`)
- * — the case the popover marks with a `≈`. Such a citation must never read as
- * fully Verified: the product's promise is that Verified means verified. See
- * tracker issue 18.
+ * (`claimText`) is not what was located in the source. Dash-only differences
+ * are treated as exact, including form-nav headings where the full claim is a
+ * clean prefix of the larger source context but the anchor is narrower. Other
+ * discrepancies are marked with `≈` and must never read as fully Verified: the
+ * product's promise is that Verified means verified. See tracker issue 18.
  */
-function isApproximateMatch(citation: ApproximateMatchInput | null | undefined): boolean {
+export function isApproximateMatch(citation: ApproximateMatchInput | null | undefined): boolean {
   if (!citation) return false;
-  const { claimText, sourceMatch } = citation;
-  return !!claimText && !!sourceMatch && claimText !== sourceMatch;
+  const { claimText, sourceMatch, sourceContext } = citation;
+  if (!claimText || !sourceMatch) return false;
+  if (isExactOrDashVariantMatch(claimText, sourceMatch)) return false;
+  return !isExactOrDashVariantPrefixMatch(claimText, sourceContext);
 }
 
 /**
@@ -69,8 +75,8 @@ function isLowConfidenceAmbiguous(verification: Verification): boolean {
  * first_word_only). A successful attempt with a low-trust variation is classified
  * as a partial match (amber) rather than fully verified (green).
  *
- * When `citation` is supplied and its `claimText` differs from its
- * `sourceMatch` (an approximate `≈` match), the result is downgraded to a
+ * When `citation` is supplied and its `claimText` differs from what was found
+ * in the source (an approximate `≈` match), the result is downgraded to a
  * partial match — an approximate anchor is never fully Verified (issue 18).
  *
  * When the verification carries a low-confidence `ambiguity` block (a detected
@@ -110,8 +116,8 @@ export function getCitationStatus(
 
   const isMiss = status === "not_found";
   const isPending = status === "pending" || status === "loading";
-  // An approximate match (claimText ≠ sourceMatch) downgrades to partial — it
-  // is never fully Verified, even when the verifier reports `found` (issue 18).
+  // An approximate match downgrades to partial — it is never fully Verified,
+  // even when the verifier reports `found` (issue 18).
   // A low-confidence ambiguity collision likewise downgrades to partial — the
   // verifier itself flagged the located occurrence as not confidently the
   // intended one, so it is never fully Verified (issue 58).
