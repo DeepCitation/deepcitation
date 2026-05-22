@@ -225,8 +225,9 @@ export function buildIntentSummary(
     };
   }
 
-  // For found status without displacement → exact_match
-  if (status === "found" || status === "found_context_missed_source_match") {
+  // For found status without displacement → exact_match. Other found variants
+  // can still be related/partial matches even when a source phrase was located.
+  if (status === "found") {
     return {
       outcome: "exact_match",
       sourceContext,

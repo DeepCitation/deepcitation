@@ -32,9 +32,19 @@ describe("isGeminiGarbage", () => {
       expect(isGeminiGarbage(garbage)).toBe(true);
     });
 
+    it("detects repeated markup separated by blank lines", () => {
+      const garbage = Array(15).fill("</font>\n").join("\n");
+      expect(isGeminiGarbage(garbage)).toBe(true);
+    });
+
     it("returns false when lines differ", () => {
       const normal = ["First sentence.", "Second sentence.", "Third sentence."].join("\n");
       expect(isGeminiGarbage(normal)).toBe(false);
+    });
+
+    it("does not classify legitimate repeated text rows as garbage", () => {
+      const repeatedRows = Array(30).fill("N/A").join("\n");
+      expect(isGeminiGarbage(repeatedRows)).toBe(false);
     });
 
     it("returns false when fewer than MIN_REPETITIONS lines", () => {

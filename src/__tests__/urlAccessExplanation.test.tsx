@@ -8,6 +8,7 @@ mock.module("react-dom", () => {
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CitationComponent } from "../react/Citation";
+import { mapSearchStatusToFetchStatus } from "../react/urlAccessExplanation";
 import type { Citation } from "../types/citation";
 import type { UrlAccessStatus, Verification } from "../types/verification";
 
@@ -361,5 +362,11 @@ describe("URL Access Explanation in CitationComponent", () => {
       const statusBanner = screen.getByRole("status");
       expect(statusBanner.getAttribute("aria-label")).toMatch(/^Error:/);
     });
+  });
+});
+
+describe("mapSearchStatusToFetchStatus", () => {
+  it("maps found_context_missed_source_match to partial", () => {
+    expect(mapSearchStatusToFetchStatus("found_context_missed_source_match")).toBe("partial");
   });
 });

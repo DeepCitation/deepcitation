@@ -445,6 +445,32 @@ describe("buildIntentSummary", () => {
     expect(result.snippets[0].isProximate).toBe(false); // adjacent_pages = distal
   });
 
+  it("returns related_found for found_context_missed_source_match", () => {
+    const verification: Verification = {
+      status: "found_context_missed_source_match",
+      citation: {
+        type: "document",
+        sourceContext: "Most responsible DSM-5 diagnosis / borderline personality disorder.",
+        sourceMatch: "F43.10",
+        pageNumber: 1,
+      },
+    };
+    const result = buildIntentSummary(verification, [
+      attempt({
+        searchPhrase: "F43.10",
+        success: true,
+        matchedText: "F43.10",
+        method: "source_match_fallback",
+        foundLocation: { page: 1 },
+      }),
+    ]);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.outcome).toBe("related_found");
+    expect(result.snippets).toHaveLength(1);
+    expect(result.snippets[0].matchedText).toBe("F43.10");
+  });
+
   it("classifies proximate methods correctly", () => {
     const verification: Verification = {
       status: "found_on_other_line",

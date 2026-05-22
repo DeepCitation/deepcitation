@@ -99,8 +99,8 @@ export function mapSearchStatusToFetchStatus(status: SearchStatus | null | undef
   switch (status) {
     case "found":
     case "found_source_match_only":
-    case "found_context_missed_source_match":
       return "verified";
+    case "found_context_missed_source_match":
     case "found_on_other_page":
     case "found_on_other_line":
     case "partial_text_found":

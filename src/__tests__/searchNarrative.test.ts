@@ -22,6 +22,16 @@ describe("buildSearchNarrative", () => {
       expect(narrative.colorScheme).toBe("amber");
     });
 
+    it("returns partial_match for 'found_context_missed_source_match'", () => {
+      const attempts: SearchAttempt[] = [
+        { method: "source_match_fallback", success: true, searchPhrase: "F43.10", pageSearched: 1 },
+      ];
+      const narrative = buildSearchNarrative(attempts, "found_context_missed_source_match");
+      expect(narrative.outcome).toBe("partial_match");
+      expect(narrative.colorScheme).toBe("amber");
+      expect(narrative.outcomeSummary).toBe("Partial match");
+    });
+
     it("returns not_found for 'not_found' status", () => {
       const attempts: SearchAttempt[] = [
         { method: "exact_line_match", success: false, searchPhrase: "missing text", pageSearched: 1 },

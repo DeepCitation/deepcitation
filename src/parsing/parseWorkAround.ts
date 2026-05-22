@@ -3,6 +3,38 @@ const MIN_CONTENT_LENGTH_FOR_GEMINI_GARBAGE = 64;
 const MIN_REPETITIONS = 2;
 const MIN_SENTENCE_CONTENT_LENGTH = 10;
 const MIN_REPEATING_UNIT_LENGTH = 2;
+const MAX_REPEATING_UNIT_LENGTH = 80;
+
+function isMarkupLikeRepeatingUnit(value: string): boolean {
+  if (value.length < MIN_REPEATING_UNIT_LENGTH || value.length > MAX_REPEATING_UNIT_LENGTH) return false;
+  return /^<\/?[a-z][a-z0-9:-]*(?:\s[^<>]*)?>$/i.test(value);
+}
+
+function hasRepeatedMarkupLines(text: string): boolean {
+  let firstLine: string | undefined;
+  let repetitions = 0;
+  let lineStart = 0;
+
+  for (let index = 0; index <= text.length; index++) {
+    if (index < text.length && text[index] !== "\n") continue;
+
+    const line = text.slice(lineStart, index).trim();
+    lineStart = index + 1;
+    if (!line) continue;
+
+    if (firstLine === undefined) {
+      if (!isMarkupLikeRepeatingUnit(line)) return false;
+      firstLine = line;
+      repetitions = 1;
+      continue;
+    }
+
+    if (line !== firstLine) return false;
+    repetitions++;
+  }
+
+  return repetitions >= MIN_REPETITIONS;
+}
 
 export const isGeminiGarbage = (content: string) => {
   if (!content) return false;
@@ -20,16 +52,8 @@ export const isGeminiGarbage = (content: string) => {
   }
   if (allSameChar) return true;
 
-  // Multi-character repeating unit (e.g. "</font>\n</font>\n...")
-  const lines = trimmedContent.split("\n");
-  if (lines.length >= MIN_REPETITIONS) {
-    const firstLine = lines[0].trim();
-    if (firstLine.length >= MIN_REPEATING_UNIT_LENGTH && lines.every(line => line.trim() === firstLine)) {
-      return true;
-    }
-  }
-
-  return false;
+  // Multi-character markup repetition (e.g. "</font>\n</font>\n...").
+  return hasRepeatedMarkupLines(trimmedContent);
 };
 
 // Single linear scan — no regex, so the 100KB validateRegexInput cap does not
