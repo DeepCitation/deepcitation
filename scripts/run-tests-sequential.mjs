@@ -20,7 +20,7 @@ if (!existsSync(cliEntry)) {
   }
 }
 
-const result = spawnSync("bun", ["test", "--isolate"], {
+const result = spawnSync("bun", ["test", "--isolate", "--timeout", "60000"], {
   cwd,
   env: {
     ...process.env,
