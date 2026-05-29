@@ -175,6 +175,7 @@ export type {
 } from "./types/verification.js";
 // Utilities
 export { getChildCitationKey, getCitationKey, getVerificationKey } from "./utils/citationKey.js";
+export { fuzzyAnchorRange } from "./utils/fuzzyAnchor.js";
 export { getCitationStatus, PARTIAL_STATUSES } from "./utils/citationStatus.js";
 export {
   getFieldAliases,

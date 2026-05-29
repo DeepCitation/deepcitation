@@ -1,0 +1,219 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { ChatMessage } from "@/components/ChatMessage";
+import { FileUpload } from "@/components/FileUpload";
+import { VerificationPanel } from "@/components/VerificationPanel";
+import { useAgentChat } from "@/hooks/useAgentChat";
+import { toDrawerItems } from "@/utils/citationDrawerAdapter";
+import { CORPUS_SOURCES, SAMPLE_QUESTIONS } from "@/lib/corpus";
+export default function Home() {
+    const [fileDataParts, setFileDataParts] = useState([]);
+    // Accumulated text portions for LLM prompts, keyed by attachmentId.
+    const [deepTextPagesByAttachmentId, setDeepTextPagesByAttachmentId] = useState({});
+    const [uploadError, setUploadError] = useState(null);
+    const [input, setInput] = useState("");
+    const messagesEndRef = useRef(null);
+    const { messages, isLoading, isVerifying, error, messageVerifications, sendMessage, retry, } = useAgentChat({
+        agentUrl: "/api/agent",
+        fileDataParts,
+        deepTextPagesByAttachmentId,
+    });
+    const handleFileUpload = async (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        setUploadError(null);
+        // Fetch result extracted so complex conditionals stay outside try/catch.
+        // (React Compiler limitation: can't handle value blocks inside try/catch.)
+        let uploadResult = null;
+        try {
+            const res = await fetch("/api/upload", { method: "POST", body: formData });
+            const data = (await res.json());
+            uploadResult = { res, data };
+        }
+        catch (err) {
+            setUploadError("Network error - check if the server is running");
+            console.error("Upload failed:", err);
+        }
+        if (uploadResult) {
+            const { res, data } = uploadResult;
+            const part = data.fileDataPart;
+            const pages = data.deepTextPages;
+            if (res.ok && part) {
+                setFileDataParts(prev => [...prev, part]);
+                if (pages?.length) {
+                    setDeepTextPagesByAttachmentId(prev => ({
+                        ...prev,
+                        [part.attachmentId]: pages,
+                    }));
+                }
+            }
+            else {
+                const errorMsg = data.details ?? data.error ?? "Upload failed";
+                setUploadError(errorMsg);
+                console.error("Upload failed:", errorMsg);
+            }
+        }
+    };
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const trimmed = input.trim();
+        if (!trimmed || isLoading || isVerifying)
+            return;
+        sendMessage(trimmed);
+        setInput("");
+    };
+    const handleSampleQuestion = (sample) => {
+        if (isLoading || isVerifying)
+            return;
+        sendMessage(sample);
+    };
+    // Auto-scroll to bottom when messages change
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+    // Get latest message's verification result for the side panel
+    const latestVerification = messages.length > 0
+        ? messageVerifications[messages[messages.length - 1]?.id]
+        : null;
+    return (<div className="flex h-screen bg-gray-50">
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-white border-b px-6 py-4">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">DeepCitation Chat</h1>
+            <p className="text-sm text-gray-500">
+              AG-UI protocol — streaming chat + citation verification over a single SSE connection
+            </p>
+          </div>
+        </header>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {messages.length === 0 ? (<div className="flex flex-col items-center justify-center h-full text-center">
+              <div className="bg-white rounded-xl p-8 shadow-sm max-w-lg">
+                <h2 className="text-lg font-medium text-gray-900 mb-2">Ask about the four corpus documents.</h2>
+                <p className="text-gray-600 mb-4">
+                  The server pre-loads the corpus on startup. Ask a question below and every AI
+                  response will be verified against the source PDFs with page-level evidence.
+                </p>
+
+                <div className="text-left text-sm text-gray-500">
+                  <p className="font-medium mb-1">Or upload your own:</p>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Upload a PDF or document</li>
+                    <li>Ask questions about its content</li>
+                    <li>See verified citations with proof</li>
+                  </ol>
+                </div>
+
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg text-left text-xs text-blue-700">
+                  <p className="font-medium mb-1">AG-UI Protocol</p>
+                  <p>
+                    This example uses a single SSE stream for both LLM tokens and verification results.
+                    Open DevTools Network tab to see the raw AG-UI events.
+                  </p>
+                </div>
+              </div>
+            </div>) : (<div className="space-y-4">
+              {messages.map(message => {
+                const msgVerification = messageVerifications[message.id];
+                return (<ChatMessage key={message.id} message={message} citations={msgVerification?.citations} verifications={msgVerification?.verifications} summary={msgVerification?.summary} drawerItems={msgVerification
+                        ? toDrawerItems(msgVerification.citations, msgVerification.verifications)
+                        : undefined}/>);
+            })}
+              {isLoading && (<div className="flex items-center gap-2 text-gray-500">
+                  <div className="animate-pulse">Thinking...</div>
+                </div>)}
+              {isVerifying && (<div className="flex items-center gap-2 text-blue-500 text-sm">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  Verifying citations...
+                </div>)}
+              {error && (<div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  <span className="flex-1">Error: {error.message}</span>
+                  {messages.length > 0 && (<button onClick={() => {
+                        const lastAssistant = messages.findLast(m => m.role === "assistant");
+                        if (lastAssistant)
+                            retry(lastAssistant.id);
+                    }} className="px-2 py-1 bg-red-100 hover:bg-red-200 rounded text-xs font-medium">
+                      Retry
+                    </button>)}
+                </div>)}
+              <div ref={messagesEndRef}/>
+            </div>)}
+        </div>
+
+        {/* Input Area */}
+        <div className="border-t bg-white px-6 py-4">
+          {messages.length === 0 && (<div className="flex flex-wrap gap-2 mb-3">
+              {SAMPLE_QUESTIONS.map(sample => (<button key={sample} type="button" onClick={() => handleSampleQuestion(sample)} disabled={isLoading || isVerifying} className="px-3 py-1.5 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left">
+                  {sample}
+                </button>))}
+            </div>)}
+
+          <form onSubmit={handleSubmit} className="flex gap-3">
+            <FileUpload onUpload={handleFileUpload} uploadedFiles={fileDataParts.map(f => ({
+            name: f.filename || "Document",
+            attachmentId: f.attachmentId,
+        }))}/>
+            <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder="Ask a question about the corpus documents..." className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={isLoading || isVerifying}/>
+            <button type="submit" disabled={isLoading || isVerifying || !input.trim()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              Send
+            </button>
+          </form>
+
+          {fileDataParts.length > 0 && (<div className="mt-2 flex flex-wrap gap-2">
+              {fileDataParts.map(file => (<span key={file.attachmentId} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm text-gray-700">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  {file.filename || "Document"}
+                </span>))}
+            </div>)}
+
+          {uploadError && (<div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <strong>Upload Error:</strong> {uploadError}
+            </div>)}
+        </div>
+      </div>
+
+      {/* Sidebar — Corpus & Verification */}
+      <aside className="w-72 border-l bg-white overflow-y-auto hidden lg:block">
+        <div className="p-4 space-y-5">
+          <section>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span className={`w-2 h-2 rounded-full ${isLoading || isVerifying ? "bg-yellow-400 animate-pulse" : "bg-green-400"}`}/>
+              {isLoading || isVerifying ? "Processing a live request" : "Ready"}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">What the example proves</h3>
+            <p className="text-xs text-gray-500">
+              AG-UI streams LLM tokens and verification results through a single SSE connection.
+              DeepCitation verifies citations against the source PDFs with page-level evidence.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Corpus</h3>
+            <ul className="space-y-1.5">
+              {CORPUS_SOURCES.map(doc => (<li key={doc.filename}>
+                  <a className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1" href={`/api/corpus/${doc.filename}`} target="_blank" rel="noreferrer">
+                    <span>{doc.title}</span>
+                    <svg className="w-3 h-3 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5ZM10 2.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V4.56l-5.22 5.22a.75.75 0 1 1-1.06-1.06l5.22-5.22h-4.69a.75.75 0 0 1-.75-.75Z"/>
+                    </svg>
+                  </a>
+                </li>))}
+            </ul>
+          </section>
+
+          {latestVerification && latestVerification.summary?.total > 0 && (<VerificationPanel verification={latestVerification}/>)}
+        </div>
+      </aside>
+    </div>);
+}

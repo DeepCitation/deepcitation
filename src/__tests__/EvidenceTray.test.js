@@ -1,0 +1,363 @@
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { createRef } from "react";
+import { EvidenceTray, InlineExpandedImage, resolveExpandedImageForPage } from "../react/EvidenceTray";
+const baseStatus = {
+    isVerified: true,
+    isMiss: false,
+    isPartialMatch: false,
+    isPending: false,
+};
+const baseVerification = {
+    status: "found",
+    evidence: {
+        src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB",
+    },
+};
+describe("EvidenceTray interaction styles", () => {
+    afterEach(() => {
+        mock.restore();
+        cleanup();
+    });
+    function setKeyholeViewportSize(container, width, height) {
+        const strip = container.querySelector("[data-dc-keyhole]");
+        if (!strip)
+            throw new Error("No keyhole strip found");
+        Object.defineProperty(strip, "clientWidth", { value: width, configurable: true });
+        Object.defineProperty(strip, "clientHeight", { value: height, configurable: true });
+        Object.defineProperty(strip, "scrollWidth", { value: width, configurable: true });
+        Object.defineProperty(strip, "scrollHeight", { value: height, configurable: true });
+    }
+    function fireKeyholeImageLoad(container, naturalWidth, naturalHeight) {
+        const img = container.querySelector("[data-dc-keyhole] img");
+        if (!img)
+            throw new Error("No keyhole image found");
+        Object.defineProperty(img, "naturalWidth", { value: naturalWidth, configurable: true });
+        Object.defineProperty(img, "naturalHeight", { value: naturalHeight, configurable: true });
+        act(() => {
+            img.dispatchEvent(new Event("load", { bubbles: false }));
+        });
+    }
+    function clickKeyholeButton(container) {
+        const strip = container.querySelector("[data-dc-keyhole]");
+        if (!strip)
+            throw new Error("No keyhole strip found");
+        const button = strip.closest("button");
+        if (!(button instanceof HTMLButtonElement))
+            throw new Error("No keyhole button found");
+        fireEvent.click(button);
+    }
+    it("renders tertiary View page action with blue hover and focus ring styles", () => {
+        // When onExpand is provided, the tray interior is aria-hidden (entire tray = one button).
+        // Use querySelector to find the footer CTA button in the DOM directly.
+        const { container } = render(<EvidenceTray verification={baseVerification} status={baseStatus} onExpand={() => { }}/>);
+        const viewPageButton = container.querySelector("button[aria-label*='View page']");
+        expect(viewPageButton).toBeTruthy();
+        if (!viewPageButton)
+            throw new Error("viewPageButton was null");
+        expect(viewPageButton.className).toContain("text-dc-muted-foreground");
+        expect(viewPageButton.className).toContain("hover:text-dc-foreground");
+        expect(viewPageButton.className).toContain("focus-visible:ring-2");
+    });
+    it('uses a custom footer CTA label when provided (for example, "View image")', () => {
+        // When onExpand is provided, the tray interior is aria-hidden (entire tray = one button).
+        // Use querySelector to find the footer CTA button in the DOM directly.
+        const { container } = render(<EvidenceTray verification={baseVerification} status={baseStatus} onExpand={() => { }} pageCtaLabel="View image"/>);
+        expect(container.querySelector("button[aria-label='View image']")).toBeTruthy();
+        expect(container.querySelector("button[aria-label*='View page']")).toBeNull();
+    });
+    it("uses Attempts wording in miss-state search toggle", () => {
+        const missStatus = {
+            isVerified: false,
+            isMiss: true,
+            isPartialMatch: false,
+            isPending: false,
+        };
+        const missVerification = {
+            status: "not_found",
+            citation: {
+                sourceContext: "Revenue increased by 15% in Q4 2024.",
+                sourceMatch: "increased by 15%",
+                pageNumber: 5,
+                lineIds: [12],
+            },
+            searchAttempts: [
+                {
+                    method: "exact_line_match",
+                    success: false,
+                    searchPhrase: "Revenue increased by 15% in Q4 2024.",
+                    pageSearched: 5,
+                },
+            ],
+        };
+        const { getByRole, queryByRole } = render(<EvidenceTray verification={missVerification} status={missStatus}/>);
+        expect(getByRole("button", { name: /1 attempt/i })).toBeInTheDocument();
+        expect(queryByRole("button", { name: /1 search/i })).not.toBeInTheDocument();
+    });
+    it("collapses the search log when an attempt row is clicked instead of opening the page", async () => {
+        const missStatus = {
+            isVerified: false,
+            isMiss: true,
+            isPartialMatch: false,
+            isPending: false,
+        };
+        const onExpand = mock(() => { });
+        const missVerification = {
+            status: "not_found",
+            citation: {
+                sourceContext: "alpha",
+                sourceMatch: "alpha",
+                pageNumber: 2,
+                lineIds: [4],
+            },
+            searchAttempts: [
+                {
+                    method: "exact_line_match",
+                    success: false,
+                    searchPhrase: "alpha",
+                    pageSearched: 2,
+                },
+            ],
+        };
+        const { container, getByText, queryByText } = render(<EvidenceTray verification={missVerification} status={missStatus} onExpand={onExpand}/>);
+        // When onExpand is provided the tray interior is aria-hidden — find toggle button via DOM.
+        const toggleButton = Array.from(container.querySelectorAll("button")).find(btn => /1 attempt/i.test(btn.textContent ?? ""));
+        expect(toggleButton).toBeTruthy();
+        if (!toggleButton)
+            throw new Error("toggleButton was null");
+        // Open search log and let React flush effects.
+        await act(async () => {
+            fireEvent.click(toggleButton);
+        });
+        const attemptRowText = getByText("alpha");
+        // Click the attempt row — should collapse, not expand the page.
+        await act(async () => {
+            fireEvent.click(attemptRowText);
+        });
+        expect(onExpand).not.toHaveBeenCalled();
+        // Wait past the 80ms EVIDENCE_LIST_COLLAPSE_TOTAL_MS animation using a
+        // real timer wrapped in act() so React flushes the unmount state update.
+        // This is more reliable than waitFor in bun's test runner (where MutationObserver
+        // polling can hang until bun's 5 s test timeout fires).
+        await act(async () => {
+            await new Promise(resolve => setTimeout(resolve, 200));
+        });
+        expect(queryByText("alpha")).not.toBeInTheDocument();
+    });
+    it("sets escapeInterceptRef to a collapse function when search log is open", () => {
+        const missStatus = {
+            isVerified: false,
+            isMiss: true,
+            isPartialMatch: false,
+            isPending: false,
+        };
+        const missVerification = {
+            status: "not_found",
+            citation: {
+                sourceContext: "beta phrase",
+                sourceMatch: "beta",
+                pageNumber: 1,
+                lineIds: [2],
+            },
+            searchAttempts: [
+                {
+                    method: "exact_line_match",
+                    success: false,
+                    searchPhrase: "beta phrase",
+                    pageSearched: 1,
+                },
+            ],
+        };
+        const escapeInterceptRef = createRef();
+        escapeInterceptRef.current = null;
+        const { getByRole } = render(<EvidenceTray verification={missVerification} status={missStatus} escapeInterceptRef={escapeInterceptRef}/>);
+        // Before opening: ref should be null
+        expect(escapeInterceptRef.current).toBeNull();
+        // Open search log
+        fireEvent.click(getByRole("button", { name: /1 attempt/i }));
+        // Ref should now be a collapse function
+        expect(typeof escapeInterceptRef.current).toBe("function");
+        // Call the intercept — triggers setShowSearchLog(false).
+        // The useEffect on showSearchLog synchronously clears the ref.
+        act(() => {
+            if (escapeInterceptRef.current)
+                escapeInterceptRef.current();
+        });
+        // Ref should be cleared (showSearchLog is now false)
+        expect(escapeInterceptRef.current).toBeNull();
+    });
+    it("resolves exact page image when verification pageNumber values are numeric strings", () => {
+        const page1Src = "https://proof.deepcitation.com/page1.png";
+        const page5Src = "https://proof.deepcitation.com/page5.png";
+        const verificationWithStringPages = { status: "found" };
+        const pageImages = [
+            { pageNumber: "1", imageUrl: page1Src, dimensions: { width: 1000, height: 1400 } },
+            { pageNumber: "5", imageUrl: page5Src, dimensions: { width: 1000, height: 1400 } },
+        ];
+        const resolved = resolveExpandedImageForPage(verificationWithStringPages, 5, pageImages);
+        expect(resolved?.src).toBe(page5Src);
+    });
+    it("resolveExpandedImageForPage passes document overrides when exact page is the match page", () => {
+        const pageSrc = "https://proof.deepcitation.com/page5.png";
+        const verification = {
+            status: "found",
+            document: {
+                verifiedPageNumber: 5,
+                renderScale: { x: 2, y: 2 },
+                highlightBox: { x: 10, y: 20, width: 100, height: 50 },
+                textItems: [{ text: "hello", x: 10, y: 20, width: 50, height: 12 }],
+            },
+        };
+        const pageImages = [
+            { pageNumber: 5, imageUrl: pageSrc, dimensions: { width: 1000, height: 1400 } },
+        ];
+        const resolved = resolveExpandedImageForPage(verification, 5, pageImages);
+        expect(resolved?.src).toBe(pageSrc);
+        expect(resolved?.renderScale).toEqual({ x: 2, y: 2 });
+        expect(resolved?.highlightBox).toEqual({ x: 10, y: 20, width: 100, height: 50 });
+    });
+    it("resolveExpandedImageForPage does not pass document overrides for non-match pages", () => {
+        const page3Src = "https://proof.deepcitation.com/page3.png";
+        const page5Src = "https://proof.deepcitation.com/page5.png";
+        const verification = {
+            status: "found",
+            document: {
+                verifiedPageNumber: 5,
+                renderScale: { x: 2, y: 2 },
+                highlightBox: { x: 10, y: 20, width: 100, height: 50 },
+            },
+        };
+        const pageImages = [
+            { pageNumber: 3, imageUrl: page3Src, dimensions: { width: 1000, height: 1400 } },
+            { pageNumber: 5, imageUrl: page5Src, dimensions: { width: 1000, height: 1400 } },
+        ];
+        const resolved = resolveExpandedImageForPage(verification, 3, pageImages);
+        expect(resolved?.src).toBe(page3Src);
+        // Page 3 is NOT the match page — should not inherit verification.document overrides
+        expect(resolved?.renderScale).toBeNull();
+        expect(resolved?.highlightBox).toBeNull();
+    });
+    it("suppresses keyhole expansion when image is at the 2.0x near-fit threshold", async () => {
+        const onImageClick = mock(() => { });
+        const { container } = render(<EvidenceTray verification={baseVerification} status={baseStatus} onImageClick={onImageClick}/>);
+        setKeyholeViewportSize(container, 500, 100);
+        // At natural size: 400px wide ≤ 500px container, 200px tall ≤ 2× 100px strip → fits completely
+        fireKeyholeImageLoad(container, 400, 200);
+        // When the image fits completely and there is no page to expand to,
+        // the keyhole shows "already full size" — no zoom-in cursor, no click action.
+        await waitFor(() => {
+            const strip = container.querySelector("[data-dc-keyhole]");
+            const button = strip?.closest("button");
+            expect(button?.style.cursor).toBe("default");
+            expect(button?.getAttribute("title")).toBe("Already full size");
+        });
+        clickKeyholeButton(container);
+        expect(onImageClick).not.toHaveBeenCalled();
+    });
+    it("allows keyhole expansion when image exceeds the 2.0x near-fit threshold", async () => {
+        const onImageClick = mock(() => { });
+        const { container } = render(<EvidenceTray verification={baseVerification} status={baseStatus} onImageClick={onImageClick}/>);
+        setKeyholeViewportSize(container, 500, 100);
+        // At natural size: 400px wide fits container, but 201px tall > 2× 100px strip → can expand
+        fireKeyholeImageLoad(container, 400, 201);
+        await waitFor(() => {
+            const strip = container.querySelector("[data-dc-keyhole]");
+            const button = strip?.closest("button");
+            expect(button).not.toHaveAttribute("title", "Already full size" /* i18n default */);
+        });
+        clickKeyholeButton(container);
+        expect(onImageClick).toHaveBeenCalledTimes(1);
+    });
+});
+// =============================================================================
+// InlineExpandedImage — onNaturalSize dedup & ref-reset smoke tests
+// =============================================================================
+describe("InlineExpandedImage onNaturalSize", () => {
+    let observerCallback;
+    // jsdom doesn't provide ResizeObserver — supply a minimal mock that
+    // fires immediately with a fixed container rect.
+    const mockEntry = {
+        contentRect: { width: 600, height: 400, x: 0, y: 0, top: 0, right: 600, bottom: 400, left: 0, toJSON: () => ({}) },
+        borderBoxSize: [{ blockSize: 400, inlineSize: 600 }],
+        contentBoxSize: [{ blockSize: 400, inlineSize: 600 }],
+        devicePixelContentBoxSize: [{ blockSize: 400, inlineSize: 600 }],
+        target: document.createElement("div"),
+    };
+    const mockResizeObserver = mock((cb) => {
+        observerCallback = cb;
+        return {
+            observe: mock(() => {
+                const mockObserver = {
+                    observe: mock(() => { }),
+                    unobserve: mock(() => { }),
+                    disconnect: mock(() => { }),
+                };
+                observerCallback([mockEntry], mockObserver);
+            }),
+            unobserve: mock(() => { }),
+            disconnect: mock(() => { }),
+        };
+    });
+    beforeEach(() => {
+        globalThis.ResizeObserver = mockResizeObserver;
+    });
+    afterEach(() => {
+        cleanup();
+        mock.restore();
+    });
+    /** Simulate the browser firing the <img> onLoad with given natural dimensions. */
+    function fireImageLoad(container, naturalWidth, naturalHeight) {
+        const img = container.querySelector("img");
+        if (!img)
+            throw new Error("No <img> found in InlineExpandedImage");
+        Object.defineProperty(img, "naturalWidth", { value: naturalWidth, configurable: true });
+        Object.defineProperty(img, "naturalHeight", { value: naturalHeight, configurable: true });
+        act(() => {
+            img.dispatchEvent(new Event("load", { bubbles: false }));
+        });
+    }
+    it("calls onNaturalSize after image load in fill mode", () => {
+        const onNaturalSize = mock(() => { });
+        const { container } = render(<InlineExpandedImage src="https://proof.deepcitation.com/page1.avif" onCollapse={() => { }} fill onNaturalSize={onNaturalSize}/>);
+        fireImageLoad(container, 800, 1200);
+        expect(onNaturalSize).toHaveBeenCalled();
+        const [w, h] = onNaturalSize.mock.calls[0];
+        expect(w).toBeGreaterThan(0);
+        expect(h).toBeGreaterThan(0);
+    });
+    it("re-fires onNaturalSize after src changes (ref reset)", () => {
+        const onNaturalSize = mock(() => { });
+        const { container, rerender } = render(<InlineExpandedImage src="https://proof.deepcitation.com/page1.avif" onCollapse={() => { }} fill onNaturalSize={onNaturalSize}/>);
+        fireImageLoad(container, 800, 1200);
+        const callCountAfterFirst = onNaturalSize.mock.calls.length;
+        // Change src — this should reset lastReportedSizeRef so onNaturalSize fires again
+        rerender(<InlineExpandedImage src="https://proof.deepcitation.com/page2.avif" onCollapse={() => { }} fill onNaturalSize={onNaturalSize}/>);
+        fireImageLoad(container, 800, 1200);
+        expect(onNaturalSize.mock.calls.length).toBeGreaterThan(callCountAfterFirst);
+    });
+});
+// =============================================================================
+// InlineExpandedImage — "View page" CTA guard on onExpand prop
+// =============================================================================
+describe("InlineExpandedImage View page CTA", () => {
+    beforeEach(() => {
+        globalThis.ResizeObserver = mock(() => ({
+            observe: mock(() => { }),
+            unobserve: mock(() => { }),
+            disconnect: mock(() => { }),
+        }));
+    });
+    it("does not render 'View page' CTA when onExpand is not provided", () => {
+        const { container } = render(<InlineExpandedImage src="https://proof.deepcitation.com/page1.avif" onCollapse={() => { }}/>);
+        const viewPageBtn = container.querySelector("button[aria-label='View page']");
+        expect(viewPageBtn).toBeNull();
+    });
+    it("renders 'View page' CTA when onExpand is provided", () => {
+        const onExpand = mock(() => { });
+        const { container } = render(<InlineExpandedImage src="https://proof.deepcitation.com/page1.avif" onCollapse={() => { }} onExpand={onExpand}/>);
+        const viewPageBtn = container.querySelector("button[aria-label='View page']");
+        expect(viewPageBtn).not.toBeNull();
+        viewPageBtn?.click();
+        expect(onExpand).toHaveBeenCalledTimes(1);
+    });
+});
