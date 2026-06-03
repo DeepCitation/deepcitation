@@ -529,7 +529,6 @@ import {
 
   // Compact format (omits source_context/reasoning — ~80–135 fewer tokens per citation)
   COMPACT_CITATION_PROMPT,
-  COMPACT_CITATION_SCENARIO2_PROMPT,
   COMPACT_CITATION_JSON_OUTPUT_FORMAT,
 } from "deepcitation";
 ```
@@ -543,7 +542,6 @@ import {
 | `CITATION_AV_JSON_OUTPUT_FORMAT` | Audio/Video | JSON schema for AV timestamp citations. |
 | `CITATION_AV_REMINDER` | Audio/Video | Reminder variant that mentions timestamps. |
 | `COMPACT_CITATION_PROMPT` | Compact | Omits `source_context` and `reasoning` from LLM output (reconstructed offline via hydrate). Use for latency-sensitive pipelines. Saves ~80–135 tokens per citation. |
-| `COMPACT_CITATION_SCENARIO2_PROMPT` | Compact | Variant for annotating pre-existing user text (text is frozen; only `[N]` markers are inserted). |
 | `COMPACT_CITATION_JSON_OUTPUT_FORMAT` | Compact | JSON schema for compact citations (`n`, `k`, `p`, `l` only). |
 
 See [Prompts]({{ site.baseurl }}/prompts/) for when to choose each format.

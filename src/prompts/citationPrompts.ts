@@ -545,7 +545,6 @@ Example:
  ]}
 \`\`\`
 </citation-instructions>
-
 `;
 
 /**
