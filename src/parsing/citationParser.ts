@@ -20,6 +20,7 @@ import {
   type CompactCitationData,
   type ParsedCitationResponse,
 } from "../prompts/citationPrompts.js";
+import { formatDeepTextPageId, normalizeDeepTextLineIds, normalizeDeepTextPageId } from "../deeptext/index.js";
 import type { Citation, SupportingFact } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
@@ -84,10 +85,6 @@ const KEY_ALIAS_MAP: Record<string, keyof CitationData> = {
   fileId: "attachment_id",
 } as const;
 
-/** Matches compact page ID format "N_I" (e.g., "2_1") */
-const COMPACT_PAGE_ID_RE = /^(\d+)_(\d+)$/;
-/** Matches verbose page ID format "page_number_N_index_I" (bounded to prevent ReDoS) */
-const LEGACY_PAGE_ID_RE = /page[_a-z]{0,30}(\d+)_index_(\d+)/i;
 /**
  * Matches [N] citation markers in text.
  * Safe to reuse as a module-level constant: String.replace() and String.matchAll()
@@ -186,14 +183,14 @@ function normalizeKeyValue(rawKey: string, value: unknown): { fullKey: string; n
   if (fullKey === "line_ids" && Array.isArray(value)) {
     return {
       fullKey,
-      normalizedValue: value.map((v: unknown) => (typeof v === "string" ? parseInt(v, 10) : v)),
+      normalizedValue: normalizeDeepTextLineIds(value),
     };
   }
 
   if (fullKey === "page_id" && typeof value === "number" && Number.isFinite(value)) {
     return {
       fullKey,
-      normalizedValue: `page_number_${Math.max(1, Math.trunc(value))}_index_0`,
+      normalizedValue: formatDeepTextPageId(value) ?? value,
     };
   }
 
@@ -706,42 +703,8 @@ export function parsePageId(pageId: string): {
   pageNumber?: number;
   startPageId?: string;
 } {
-  // Try compact format first: "N_I" (e.g., "2_1")
-  const compactMatch = pageId.match(COMPACT_PAGE_ID_RE);
-  if (compactMatch) {
-    let pageNum = parseInt(compactMatch[1], 10);
-    const index = parseInt(compactMatch[2], 10);
-
-    // Only auto-correct "0_0" to page 1 (when both page and index are 0)
-    // Other cases like "0_5" are ambiguous and should not be guessed
-    if (pageNum === 0 && index === 0) {
-      pageNum = 1;
-    }
-
-    return {
-      pageNumber: pageNum,
-      startPageId: `page_number_${pageNum}_index_${index}`,
-    };
-  }
-
-  // Try verbose format: "page_number_N_index_I" or variations
-  const legacyMatch = pageId.match(LEGACY_PAGE_ID_RE);
-  if (legacyMatch) {
-    let pageNum = parseInt(legacyMatch[1], 10);
-    const index = parseInt(legacyMatch[2], 10);
-
-    // Only auto-correct "page_number_0_index_0" to page 1
-    if (pageNum === 0 && index === 0) {
-      pageNum = 1;
-    }
-
-    return {
-      pageNumber: pageNum,
-      startPageId: `page_number_${pageNum}_index_${index}`,
-    };
-  }
-
-  return { pageNumber: undefined, startPageId: undefined };
+  const parsed = normalizeDeepTextPageId(pageId);
+  return { pageNumber: parsed.pageNumber, startPageId: parsed.startPageId };
 }
 
 /**
@@ -760,7 +723,8 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
   }
 
   // Sort lineIds if present
-  const lineIds = data.line_ids?.length ? [...data.line_ids].sort((a, b) => a - b) : undefined;
+  const normalizedLineIds = normalizeDeepTextLineIds(data.line_ids, { sort: true });
+  const lineIds = normalizedLineIds.length ? normalizedLineIds : undefined;
 
   const supportingFacts = mapChildrenToSupportingFacts(data.children);
 
@@ -810,7 +774,8 @@ function mapChildrenToSupportingFacts(children: CitationData[] | undefined): Sup
       childStartPageId = parsed.startPageId;
     }
 
-    const childLineIds = child.line_ids?.length ? [...child.line_ids].sort((a, b) => a - b) : undefined;
+    const normalizedChildLineIds = normalizeDeepTextLineIds(child.line_ids, { sort: true });
+    const childLineIds = normalizedChildLineIds.length ? normalizedChildLineIds : undefined;
 
     return {
       childIndex: index,
@@ -895,7 +860,8 @@ export function extractVisibleText(llmResponse: string): string {
  */
 function getCitationKeyFromData(data: CitationData): string {
   const pageNumber = data.page_id ? parsePageId(data.page_id).pageNumber : undefined;
-  const lineIds = data.line_ids?.length ? [...data.line_ids].sort((a, b) => a - b) : undefined;
+  const normalizedLineIds = normalizeDeepTextLineIds(data.line_ids, { sort: true });
+  const lineIds = normalizedLineIds.length ? normalizedLineIds : undefined;
 
   const keyParts = [
     data.source_context || "",

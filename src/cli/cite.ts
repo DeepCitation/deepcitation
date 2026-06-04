@@ -10,6 +10,7 @@
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeQuotes } from "../utils/normalizeQuotes.js";
 import { safeExec } from "../utils/regexSafety.js";
+import { normalizeDeepTextPageId, wrapDeepTextLine } from "../deeptext/index.js";
 import type { LineMap } from "./hydrate.js";
 
 /** A single indexed evidence line from the summary. */
@@ -25,8 +26,10 @@ interface LineEntry {
  * Returns the input unchanged if it does not match the expected pattern.
  */
 export function toCompactPageId(verbose: string): string {
-  const m = verbose.match(/page_number_(\d+)_index_(\d+)/);
-  return m ? `${m[1]}_${m[2]}` : verbose;
+  const normalized = normalizeDeepTextPageId(verbose);
+  return normalized.pageNumber !== undefined && normalized.pageIndex !== undefined
+    ? `${normalized.pageNumber}_${normalized.pageIndex}`
+    : verbose;
 }
 
 /**
@@ -56,7 +59,7 @@ export function denseAnnotatePage(rawText: string, startId = 1): string {
     .map(line => {
       const t = line.trim();
       if (t.length === 0) return "";
-      return `<line id="${++id}">${t}</line>`;
+      return wrapDeepTextLine(++id, t) ?? t;
     })
     .filter(line => line.length > 0)
     .join("\n");

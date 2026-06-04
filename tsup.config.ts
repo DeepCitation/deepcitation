@@ -7,6 +7,7 @@ export default defineConfig({
     index: "src/index.ts",
     "client/index": "src/client/index.ts",
     "drawing/index": "src/drawing/index.ts",
+    "deeptext/index": "src/deeptext/index.ts",
     "prompts/index": "src/prompts/index.ts",
     "react/index": "src/react/index.ts",
     "render/index": "src/render/index.ts",

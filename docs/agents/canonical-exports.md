@@ -33,6 +33,7 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `safeMatch()`, `safeReplace()`, `safeTest()` | `src/utils/regexSafety.ts` | ReDoS prevention (input length validation) |
 | `escapeForRegex()` | `src/utils/regexSafety.ts` | Escape a literal string for safe embedding in a `RegExp` constructor |
 | `CITATION_MARKER_PATTERN` | `src/parsing/citationParser.ts` | Canonical `[N]` / `[N,M]` citation marker regex (source) |
+| DeepText page/line helpers and schema descriptions (`formatDeepTextPageId()`, `parseDeepTextPageId()`, `normalizeDeepTextLineIds()`, `wrapDeepTextPage()`, `DEEP_TEXT_*`) | `src/deeptext/index.ts` | Canonical DeepText protocol module. Import from `deepcitation/deeptext`; do not recreate page-id/line-id parsing or prompt/schema wording in app packages. |
 | `stripClaimText()` | `src/parsing/citationParser.ts` | **Deprecated**: strips trailing `sourceMatch` (with known wrappers) from a segment. Prefer `extractTrailingClaimText`. |
 | `extractTrailingClaimText()` | `src/parsing/citationParser.ts` | Strips a trailing claim span and returns `{ stripped, claimText }` — falls back to a sourceMatch-agnostic quote extraction |
 | `validateFileMagicBytes()`, `validateUploadFile()` | `src/utils/fileSafety.ts` | File content validation via magic bytes |
