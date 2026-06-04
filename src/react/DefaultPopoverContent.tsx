@@ -9,7 +9,6 @@
  */
 
 import { type ReactNode, type Ref, type RefObject, useCallback, useEffect, useMemo, useRef } from "react";
-import { analyzeVerification } from "../analysis/searchAnalysis.js";
 import type { CitationStatus, SupportingFact } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
@@ -47,7 +46,6 @@ import { useResolvedExpandedImage } from "./hooks/useResolvedExpandedImage.js";
 import { useTranslation } from "./i18n.js";
 import { SpinnerIcon } from "./icons.js";
 import { getBlinkContainerMotionStyle } from "./motion/blinkAnimation.js";
-import { SnippetZone } from "./SnippetZone.js";
 import { SupportingFactsPills } from "./SupportingFactsPills.js";
 import type { BaseCitationProps, DownloadInfo, IndicatorVariant } from "./types.js";
 import { UrlAccessExplanationSection } from "./UrlAccessExplanationSection.js";
@@ -952,13 +950,6 @@ export function DefaultPopoverContent({
 
   const isApproximate = isApproximateMatch({ claimText, sourceMatch, sourceContext });
 
-  // Intent summary for document citations — snippet-based display for partial matches
-  const intentSummary = useMemo(
-    () => (!isUrlCitation(citation) ? analyzeVerification(verification ?? null).intent : null),
-    [citation, verification],
-  );
-  const intentSnippets = intentSummary?.outcome === "related_found" ? intentSummary.snippets : [];
-
   // Get URL access explanation for blocked/error states (URL citations only)
   const urlAccessExplanation = useMemo(() => {
     if (!isUrlCitation(citation)) return null;
@@ -1071,9 +1062,6 @@ export function DefaultPopoverContent({
             {/* Partial/miss-specific sections (absent in success) */}
             {(isMiss || isPartialMatch) && urlAccessExplanation && (
               <UrlAccessExplanationSection explanation={urlAccessExplanation} />
-            )}
-            {(isMiss || isPartialMatch) && !urlAccessExplanation && intentSnippets.length > 0 && (
-              <SnippetZone snippets={intentSnippets} />
             )}
 
             {/* Snap claim-zone height (0ms) so full-page → summary does not
