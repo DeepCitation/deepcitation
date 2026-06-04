@@ -31,3 +31,16 @@ export {
   shouldHighlightSourceMatch,
   VERIFICATION_IMAGE_PADDING,
 } from "./citationDrawing.js";
+export {
+  type CoordinateOrigin,
+  computeEvidenceOriginPercent,
+  computeEvidenceScrollTarget,
+  type ImageRect,
+  isValidEvidenceGeometry,
+  projectEvidenceItemToImageRect,
+  type ScrollAlignment,
+  START_ALIGNMENT_INSET_PX,
+  selectEvidenceAnnotationScrollItem,
+  selectEvidenceKeyholeScrollItem,
+  toEvidencePercentRect,
+} from "./evidenceGeometry.js";

@@ -1,5 +1,6 @@
 import type React from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { selectEvidenceKeyholeScrollItem } from "../../drawing/evidenceGeometry.js";
 import type { Verification } from "../../types/verification.js";
 import {
   buildKeyholeMaskImage,
@@ -60,7 +61,10 @@ export function EvidenceKeyhole({
   // For image sources (mimeType: "image/*"), coords are already in pixel space — default to identity.
   const anchorScrollData = useMemo(() => {
     if (!verification) return null;
-    const anchorItem = verification.document?.sourceMatchDeepItems?.[0] ?? verification.document?.sourceContextDeepItem;
+    const anchorItem = selectEvidenceKeyholeScrollItem({
+      sourceContextDeepItem: verification.document?.sourceContextDeepItem,
+      sourceMatchDeepItems: verification.document?.sourceMatchDeepItems,
+    });
     if (!anchorItem) return null;
     const renderScale =
       verification.document?.renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);

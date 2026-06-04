@@ -1,6 +1,7 @@
 import type React from "react";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { type HighlightColor, isStrategyOverride, shouldHighlightSourceMatch } from "../../drawing/citationDrawing.js";
+import type { HighlightColor } from "../../drawing/citationDrawing.js";
+import { selectEvidenceAnnotationScrollItem } from "../../drawing/evidenceGeometry.js";
 import type { DeepTextItem } from "../../types/boxes.js";
 import type { Verification } from "../../types/verification.js";
 import { CitationAnnotationOverlay } from "../CitationAnnotationOverlay.js";
@@ -112,13 +113,12 @@ export function ExpandedPageViewport({
     return s.isMiss ? "red" : s.isPartialMatch ? "amber" : "green";
   }, [verification]);
 
-  const vAnchor = verification?.verifiedSourceMatch;
-  const vPhrase = verification?.verifiedSourceContext;
-  const anchorHighlightActive =
-    effectiveAnchorItems?.[0] &&
-    (shouldHighlightSourceMatch(vAnchor, vPhrase) ||
-      (isStrategyOverride(vAnchor, vPhrase) && shouldHighlightSourceMatch(vAnchor, effectivePhraseItem?.text)));
-  const scrollTarget = anchorHighlightActive ? effectiveAnchorItems[0] : effectivePhraseItem;
+  const scrollTarget = selectEvidenceAnnotationScrollItem({
+    sourceContextDeepItem: effectivePhraseItem,
+    sourceMatchDeepItems: effectiveAnchorItems,
+    verifiedSourceMatch: verification?.verifiedSourceMatch,
+    verifiedSourceContext: verification?.verifiedSourceContext,
+  });
 
   const fittedZoom = useMemo(() => {
     return computeExpandedPageFittedZoom({

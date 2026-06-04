@@ -1,6 +1,7 @@
 import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { type HighlightColor, isStrategyOverride, shouldHighlightSourceMatch } from "../../drawing/citationDrawing.js";
+import type { HighlightColor } from "../../drawing/citationDrawing.js";
+import { selectEvidenceAnnotationScrollItem } from "../../drawing/evidenceGeometry.js";
 import type { DeepTextItem } from "../../types/boxes.js";
 import type { Verification } from "../../types/verification.js";
 import { CitationAnnotationOverlay } from "../CitationAnnotationOverlay.js";
@@ -221,13 +222,12 @@ export function InlineExpandedImage({
 
   // Anchor-aware scroll/zoom target: when anchor text is highlighted, center on it
   // instead of the (potentially wider) full phrase box.
-  const vAnchor = verification?.verifiedSourceMatch;
-  const vPhrase = verification?.verifiedSourceContext;
-  const anchorHighlightActive =
-    effectiveAnchorItems?.[0] &&
-    (shouldHighlightSourceMatch(vAnchor, vPhrase) ||
-      (isStrategyOverride(vAnchor, vPhrase) && shouldHighlightSourceMatch(vAnchor, effectivePhraseItem?.text)));
-  const scrollTarget = anchorHighlightActive ? effectiveAnchorItems[0] : effectivePhraseItem;
+  const scrollTarget = selectEvidenceAnnotationScrollItem({
+    sourceContextDeepItem: effectivePhraseItem,
+    sourceMatchDeepItems: effectiveAnchorItems,
+    verifiedSourceMatch: verification?.verifiedSourceMatch,
+    verifiedSourceContext: verification?.verifiedSourceContext,
+  });
   const sourceAnchorRatio = useMemo(
     () => (!fill ? resolveEvidenceSourceAnchorRatio(verification) : null),
     [fill, verification],
