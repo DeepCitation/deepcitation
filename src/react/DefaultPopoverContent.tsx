@@ -599,7 +599,7 @@ function PopoverLoadingView({
         {/* Actual search status */}
         <span className="text-xs font-medium text-dc-muted-foreground">
           <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
-            <SpinnerIcon />
+            <SpinnerIcon className="size-full" />
           </span>
           {t("popover.searching")}
         </span>

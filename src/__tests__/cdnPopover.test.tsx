@@ -197,6 +197,28 @@ describe("CDN popover viewState contract", () => {
     expect(container.textContent).toContain("thyroid hormone");
   });
 
+  it("sizes the loading spinner icon to its animated wrapper", () => {
+    const { container } = render(
+      <DefaultPopoverContent
+        citation={{
+          type: "document",
+          sourceContext: "- Numbness and tingling in fingers",
+          sourceMatch: "2-3 years ago",
+          pageNumber: 3,
+        }}
+        verification={null}
+        status={{ isVerified: false, isMiss: false, isPartialMatch: false, isPending: true }}
+        isLoading
+      />,
+    );
+
+    const spinner = container.querySelector(".animate-spin");
+    const spinnerIcon = spinner?.querySelector("svg");
+
+    expect(spinner).toBeTruthy();
+    expect(spinnerIcon?.classList.contains("size-full")).toBe(true);
+  });
+
   it("wrapper pattern provides onViewStateChange", () => {
     function TestWrapper() {
       const [viewState, setViewState] = useState<PopoverViewState>("summary");

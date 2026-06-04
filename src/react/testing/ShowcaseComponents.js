@@ -810,7 +810,7 @@ export function PopoverShowcase() {
             <div className="p-3 flex flex-col gap-2 min-w-[200px] max-w-[400px] bg-gray-50 dark:bg-gray-800 rounded">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                 <span className="inline-block relative top-[0.1em] mr-1.5 size-3 animate-spin">
-                  <SpinnerIcon />
+                  <SpinnerIcon className="size-full" />
                 </span>
                 Searching{"\u2026"}
               </span>
@@ -826,7 +826,7 @@ export function PopoverShowcase() {
             <div className="p-3 flex flex-col gap-2 min-w-[200px] max-w-[400px] bg-gray-50 dark:bg-gray-800 rounded">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                 <span className="inline-block relative top-[0.1em] mr-1.5 size-3 animate-spin">
-                  <SpinnerIcon />
+                  <SpinnerIcon className="size-full" />
                 </span>
                 Searching{"\u2026"}
               </span>
