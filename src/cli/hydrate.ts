@@ -171,7 +171,7 @@ function extractLines(
   for (const line of parseDeepTextPageLines(segment)) {
     const key = `${pageId}:${line.lineId}`;
     if (!qualified.has(key)) qualified.set(key, line.text);
-    if (!byId.has(line.lineId)) byId.set(line.lineId, line.text);
+    byId.set(line.lineId, line.text);
   }
 }
 
