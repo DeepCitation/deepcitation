@@ -4,26 +4,28 @@ import type { HighlightColor } from "../../drawing/citationDrawing.js";
 import { selectEvidenceAnnotationScrollItem } from "../../drawing/evidenceGeometry.js";
 import type { DeepTextItem } from "../../types/boxes.js";
 import type { Verification } from "../../types/verification.js";
+import { WHEEL_ZOOM_SENSITIVITY } from "../animationConstants.js";
 import { CitationAnnotationOverlay } from "../CitationAnnotationOverlay.js";
 import { getStatusFromVerification } from "../citationStatus.js";
 import {
   DOCUMENT_CANVAS_BG_CLASSES,
   DOCUMENT_IMAGE_EDGE_CLASSES,
   EXPANDED_IMAGE_SHELL_PX,
-  EXPANDED_MIN_READABLE_ZOOM,
-  EXPANDED_ZOOM_MAX,
-  EXPANDED_ZOOM_MIN,
-  EXPANDED_ZOOM_STEP,
   HIDE_SCROLLBAR_STYLE,
-  isValidProofImageSrc,
-  WHEEL_ZOOM_SENSITIVITY,
 } from "../constants.js";
 import { PageAimOverlay } from "../debug/PageAimOverlay.js";
 import { useDragToPan } from "../hooks/useDragToPan.js";
 import { applyGestureTransform, useWheelZoom, type WheelZoomAnchor } from "../hooks/useWheelZoom.js";
 import { useTranslation } from "../i18n.js";
 import { handleImageError } from "../imageUtils.js";
+import {
+  EXPANDED_MIN_READABLE_ZOOM,
+  EXPANDED_ZOOM_MAX,
+  EXPANDED_ZOOM_MIN,
+  EXPANDED_ZOOM_STEP,
+} from "../keyholeGeometry.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "../overlayGeometry.js";
+import { isValidProofImageSrc } from "../proofImageSecurity.js";
 import { useImageDarkness } from "../useImageDarkness.js";
 import { cn, isImageSource } from "../utils.js";
 import { DC_EVIDENCE_VT_NAME, primeEvidencePageExpandSource } from "../viewTransition.js";

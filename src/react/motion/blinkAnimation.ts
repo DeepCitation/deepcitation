@@ -22,7 +22,7 @@ import {
   BLINK_ROW_INSET_B_PX,
   BLINK_ROW_OPACITY_A,
   BLINK_ROW_OPACITY_B,
-} from "../constants.js";
+} from "../animationConstants.js";
 
 export type BlinkMotionStage = "idle" | "enter-a" | "enter-b" | "steady" | "exit";
 

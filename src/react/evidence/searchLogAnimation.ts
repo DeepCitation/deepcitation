@@ -4,7 +4,7 @@ import {
   EVIDENCE_LIST_COLLAPSE_TOTAL_MS,
   EVIDENCE_LIST_EXPAND_STEP_MS,
   EVIDENCE_LIST_EXPAND_TOTAL_MS,
-} from "../constants.js";
+} from "../animationConstants.js";
 
 const SETTLE_MS = Math.max(16, EVIDENCE_LIST_EXPAND_TOTAL_MS - EVIDENCE_LIST_EXPAND_STEP_MS);
 

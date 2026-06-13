@@ -10,7 +10,7 @@
 import type { DeepTextItem, ScreenBox } from "../../types/boxes.js";
 import type { PageImage, Verification } from "../../types/verification.js";
 import { normalizeQuotes } from "../../utils/normalizeQuotes.js";
-import { isValidProofImageSrc } from "../constants.js";
+import { isValidProofImageSrc } from "../proofImageSecurity.js";
 
 /** Identity render scale for image sources where coords are already in pixel space. */
 export const IDENTITY_RENDER_SCALE = { x: 1, y: 1 } as const;

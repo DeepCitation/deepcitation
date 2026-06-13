@@ -1,11 +1,118 @@
 /**
- * Shared constants for DeepCitation React components
+ * Shared CSS design tokens and layout constants for DeepCitation React components.
+ *
+ * Security utilities have moved to `proofImageSecurity.ts`.
+ * Keyhole geometry constants/helpers have moved to `keyholeGeometry.ts`.
+ * Animation/transition timing constants have moved to `animationConstants.ts`.
+ *
  * @packageDocumentation
  */
 
 import type React from "react";
 import { ANCHOR_HIGHLIGHT_COLOR } from "../drawing/citationDrawing.js";
-import { isDomainMatch } from "../utils/urlSafety.js";
+
+export {
+  ANIM_FAST_MS,
+  ANIM_INSTANT_MS,
+  ANIM_MEASURED_MS,
+  ANIM_SLOW_MS,
+  ANIM_STANDARD_MS,
+  BLINK_ENTER_EASING,
+  BLINK_ENTER_OPACITY_A,
+  BLINK_ENTER_OPACITY_B,
+  BLINK_ENTER_SCALE_A,
+  BLINK_ENTER_SCALE_B,
+  BLINK_ENTER_STEP_MS,
+  BLINK_ENTER_TOTAL_MS,
+  BLINK_ENTER_Y_A_PX,
+  BLINK_ENTER_Y_B_PX,
+  BLINK_EXIT_EASING,
+  BLINK_EXIT_OPACITY,
+  BLINK_EXIT_SCALE,
+  BLINK_EXIT_TOTAL_MS,
+  BLINK_EXIT_Y_PX,
+  BLINK_ROW_ENTER_STEP_MS,
+  BLINK_ROW_ENTER_TOTAL_MS,
+  BLINK_ROW_EXIT_OPACITY,
+  BLINK_ROW_EXIT_TOTAL_MS,
+  BLINK_ROW_FAST_ENTER_STEP_MS,
+  BLINK_ROW_FAST_ENTER_TOTAL_MS,
+  BLINK_ROW_FAST_EXIT_TOTAL_MS,
+  BLINK_ROW_INSET_A_PX,
+  BLINK_ROW_INSET_B_PX,
+  BLINK_ROW_OPACITY_A,
+  BLINK_ROW_OPACITY_B,
+  CONTENT_STAGGER_DELAY_MS,
+  COPY_FEEDBACK_DURATION_MS,
+  DRAWER_DRAG_CLOSE_THRESHOLD_PX,
+  DRAWER_STAGGER_DELAY_MS,
+  DRAWER_STAGGER_MAX_MS,
+  EASE_COLLAPSE,
+  EASE_CONTENT_REVEAL,
+  EASE_EXPAND,
+  EASE_GHOST_EXPAND,
+  EVIDENCE_LIST_COLLAPSE_TOTAL_MS,
+  EVIDENCE_LIST_EXPAND_STEP_MS,
+  EVIDENCE_LIST_EXPAND_TOTAL_MS,
+  GHOST_BLUR_EARLY_PX,
+  GHOST_BLUR_LATE_PX,
+  GHOST_BLUR_MID_PX,
+  GHOST_BLUR_PEAK_PX,
+  GHOST_BLUR_START_PX,
+  GHOST_OFFSET_EARLY,
+  GHOST_OFFSET_LATE,
+  GHOST_OFFSET_MID,
+  GHOST_OFFSET_PEAK,
+  GHOST_OPACITY_EARLY,
+  GHOST_OPACITY_LATE,
+  GHOST_OPACITY_MID,
+  GHOST_OPACITY_PEAK,
+  GHOST_OPACITY_START,
+  LOCATE_ICON_PULSE_COLOR,
+  LOCATE_ICON_PULSE_GROW_MS,
+  LOCATE_ICON_PULSE_SCALE,
+  LOCATE_ICON_PULSE_SETTLE_MS,
+  PAGE_COLLAPSE_GHOST_MS,
+  PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
+  POPOVER_MORPH_COLLAPSE_MS,
+  POPOVER_MORPH_EXPAND_MS,
+  SPINNER_TIMEOUT_MS,
+  TAP_SLOP_PX,
+  TOOLTIP_HIDE_DELAY_MS,
+  TOUCH_CLICK_DEBOUNCE_MS,
+  VT_EVIDENCE_COLLAPSE_MS,
+  VT_EVIDENCE_DIP_OPACITY,
+  VT_EVIDENCE_EXPAND_MS,
+  VT_EVIDENCE_PAGE_EXPAND_MS,
+  WHEEL_ZOOM_SENSITIVITY,
+} from "./animationConstants.js";
+
+export {
+  buildKeyholeMaskImage,
+  DEBUG_PAGE_EXPAND_SOURCE_COLOR,
+  DEBUG_PAGE_EXPAND_TARGET_COLOR,
+  EXPANDED_MIN_READABLE_ZOOM,
+  EXPANDED_PAGE_CANVAS_PADDING_PX,
+  EXPANDED_ZOOM_MAX,
+  EXPANDED_ZOOM_MIN,
+  EXPANDED_ZOOM_STEP,
+  KEYHOLE_ANCHOR_FILL_TARGET,
+  KEYHOLE_FADE_WIDTH,
+  KEYHOLE_SKIP_THRESHOLD,
+  KEYHOLE_STRIP_BORDER_RADIUS,
+  KEYHOLE_STRIP_HEIGHT_DEFAULT,
+  KEYHOLE_STRIP_HEIGHT_VAR,
+  KEYHOLE_WIDTH_FIT_THRESHOLD,
+  MIN_PAN_OVERFLOW_PX,
+  projectKeyholeDisplayedWidth,
+} from "./keyholeGeometry.js";
+// Re-export relocated symbols so existing `from "./constants.js"` importers
+// continue to work without changes.
+export {
+  isValidProofImageSrc,
+  SAFE_DATA_IMAGE_PREFIXES,
+  TRUSTED_IMAGE_HOSTS,
+} from "./proofImageSecurity.js";
 
 /**
  * CSS custom property name for the wavy underline color.
@@ -190,65 +297,6 @@ export const DOCUMENT_CANVAS_BG_CLASSES =
 /** Subtle outline around document images to preserve edge contrast on light canvases. */
 export const DOCUMENT_IMAGE_EDGE_CLASSES = "ring-1 ring-black/10 dark:ring-white/15";
 
-// =============================================================================
-// KEYHOLE IMAGE STRIP
-// =============================================================================
-//
-// The keyhole strip shows verification images at 100% natural scale in a
-// fixed-height horizontal window, cropped and centered on the match region.
-// This prevents squashing/stretching text, preserving legibility and trust.
-
-/** CSS custom property for keyhole strip height override */
-export const KEYHOLE_STRIP_HEIGHT_VAR = "--dc-keyhole-strip-height";
-
-/** Default height of the keyhole image strip in pixels */
-export const KEYHOLE_STRIP_HEIGHT_DEFAULT = 120;
-
-/** Default fade gradient width in pixels (the translucent region on each edge) */
-export const KEYHOLE_FADE_WIDTH = 32;
-
-/**
- * Project the keyhole's displayed width from the source image's natural
- * dimensions, assuming it renders inside a strip of `stripHeight` tall.
- *
- * **Load-bearing invariant**: `zoom` is clamped to `Math.min(1, …)` because
- * the keyhole never upscales (see `EvidenceKeyhole` where the same
- * clamp is applied to the actual render). Without the clamp, a short image
- * (naturalHeight < stripHeight, e.g. 1200×80) projects to a phantom
- * upscaled width (1800), causing the popover to render too wide and then
- * pop narrower once the real keyhole measures in.
- */
-export function projectKeyholeDisplayedWidth(
-  dimensions: { width: number; height: number } | null | undefined,
-  stripHeight: number = KEYHOLE_STRIP_HEIGHT_DEFAULT,
-): number | null {
-  if (!dimensions) return null;
-  const { width, height } = dimensions;
-  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
-  const zoom = Math.min(1, stripHeight / height);
-  return width * zoom;
-}
-
-/**
- * Builds a CSS mask-image linear-gradient for the keyhole strip.
- * Fades edges to transparent to indicate "there's more content" in that direction.
- *
- * @param fadeLeft - Whether to fade the left edge
- * @param fadeRight - Whether to fade the right edge
- * @param fadeWidthPx - Width of the fade region in pixels
- * @returns CSS linear-gradient string for mask-image
- */
-export function buildKeyholeMaskImage(
-  fadeLeft: boolean,
-  fadeRight: boolean,
-  fadeWidthPx: number = KEYHOLE_FADE_WIDTH,
-): string {
-  if (!fadeLeft && !fadeRight) return "none";
-  const left = fadeLeft ? `transparent, black ${fadeWidthPx}px` : "black 0px";
-  const right = fadeRight ? `black calc(100% - ${fadeWidthPx}px), transparent` : "black 100%";
-  return `linear-gradient(to right, ${left}, ${right})`;
-}
-
 /** Inline style for verified indicator color, using CSS custom property with fallback */
 export const VERIFIED_COLOR_STYLE: React.CSSProperties = {
   color: `var(${VERIFIED_COLOR_VAR}, ${VERIFIED_COLOR_DEFAULT})`,
@@ -405,139 +453,6 @@ export function getPortalContainer(): HTMLElement | null {
   return typeof document !== "undefined" ? document.body : null;
 }
 
-/** Safe raster image data URI prefixes (no SVG — can contain scripts). */
-export const SAFE_DATA_IMAGE_PREFIXES = [
-  "data:image/png",
-  "data:image/jpeg",
-  "data:image/jpg",
-  "data:image/webp",
-  "data:image/avif",
-  "data:image/gif",
-] as const;
-
-/** Base trusted CDN hostnames for proof images (always included).
- *  "deepcitation.com" adds trust for the bare domain itself (e.g.
- *  https://deepcitation.com/img.png); the subdomain entries were already
- *  validated independently via isDomainMatch.
- *
- *  "firebasestorage.googleapis.com" is included because DeepCitation hosts
- *  proof images in Firebase Storage; these URLs have the form
- *  https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<path>?alt=media&token=<token>.
- *  isDomainMatch's exact-hostname rule means only that specific host is
- *  trusted — sibling googleapis.com subdomains do not inherit trust. */
-const BASE_TRUSTED_IMAGE_HOSTS = [
-  "deepcitation.com",
-  "api.deepcitation.com",
-  "cdn.deepcitation.com",
-  "proof.deepcitation.com",
-  "firebasestorage.googleapis.com",
-] as const;
-
-/**
- * Trusted CDN hostnames for proof images.
- * Includes the base hosts plus any additional hosts from the `DC_TRUSTED_IMAGE_HOSTS`
- * environment variable (comma-separated, e.g. `"my-cdn.com,assets.example.com"`).
- *
- * @example .env
- * ```
- * DC_TRUSTED_IMAGE_HOSTS=my-cdn.com,assets.example.com
- * ```
- */
-export const TRUSTED_IMAGE_HOSTS: readonly string[] = (() => {
-  const envVar = typeof process !== "undefined" ? process.env?.DC_TRUSTED_IMAGE_HOSTS : undefined;
-  const extra = envVar
-    ? envVar
-        .split(",")
-        .map(h => h.trim())
-        .filter(Boolean)
-    : [];
-  return [...BASE_TRUSTED_IMAGE_HOSTS, ...extra];
-})();
-
-/** Localhost hostnames allowed for development environments. */
-const DEV_HOSTNAMES = ["localhost", "127.0.0.1"] as const;
-
-/**
- * Validate that a proof image source is a trusted URL or safe data URI.
- * Blocks SVG data URIs (can contain script), javascript: URIs, and untrusted hosts.
- * Allows localhost/127.0.0.1 for development environments.
- */
-export function isValidProofImageSrc(src: unknown): src is string {
-  if (typeof src !== "string") return false;
-  const trimmed = src.trim();
-  if (trimmed.length === 0) return false;
-
-  const lower = trimmed.toLowerCase();
-  if (lower.startsWith("data:")) {
-    return SAFE_DATA_IMAGE_PREFIXES.some(prefix => lower.startsWith(prefix));
-  }
-
-  // Same-origin relative paths (e.g. "/demo/legal/page-1.avif") — safe because
-  // the browser resolves them against the current host.
-  // Reject: protocol-relative URLs (//evil.com), path traversal (..), encoded traversal (%2e),
-  // Unicode lookalike traversal (fullwidth dots), double-encoding, and null bytes.
-  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
-    // Defense-in-depth: reject obvious traversal before expensive decoding
-    if (trimmed.includes("..")) return false;
-
-    try {
-      // Validate input length before expensive operations to prevent DoS
-      // Legitimate proof image paths (e.g., /api/proof/abc123.avif) are typically <200 chars.
-      // 2KB limit provides 10x headroom for complex query strings while preventing DoS.
-      const MAX_PATH_LENGTH = 2_000;
-      if (trimmed.length > MAX_PATH_LENGTH) return false;
-
-      // Iteratively decode until stable to prevent double-encoded traversal (%252e%252e)
-      let decoded = trimmed;
-      let previous;
-      let iterations = 0;
-      const MAX_DECODE_ITERATIONS = 5; // Prevent infinite loops on malicious input
-
-      do {
-        previous = decoded;
-        decoded = decodeURIComponent(decoded);
-        iterations++;
-        if (iterations >= MAX_DECODE_ITERATIONS) break;
-      } while (decoded !== previous);
-
-      // Normalize Unicode (NFC) to handle composed characters consistently
-      const normalized = decoded.normalize("NFC");
-
-      // Reject null bytes (C truncation attack)
-      if (normalized.includes("\0")) return false;
-
-      // Reject Unicode lookalike dots that could be used for traversal obfuscation
-      // U+FF0E (fullwidth full stop), U+2024 (one dot leader), U+FE52 (small full stop), etc.
-      const dangerousUnicodeDots = /[\uFF0E\u2024\uFE52\u2025\u2026]/;
-      if (dangerousUnicodeDots.test(normalized)) return false;
-
-      // Reject path traversal sequences (also catches encoded forms after decoding)
-      if (normalized.includes("..")) return false;
-
-      // Accept valid same-origin relative paths
-      return true;
-    } catch {
-      return false; // malformed percent-encoding — reject
-    }
-  }
-
-  try {
-    const url = new URL(trimmed);
-    // blob: URLs are same-origin, unguessable object URLs minted by
-    // URL.createObjectURL. They cannot be fetched cross-origin and carry no
-    // script when rendered in an <img>, so they are safe as a proof image
-    // source (used by hosts that synthesize page images from a cached blob).
-    // Opaque-origin blobs (blob:null/<uuid>, from sandboxed iframes) are
-    // accepted too — they are equally unguessable and script-free.
-    if (url.protocol === "blob:") return true;
-    const isLocalhost = (DEV_HOSTNAMES as readonly string[]).includes(url.hostname);
-    const isTrustedHost = TRUSTED_IMAGE_HOSTS.some(trustedHost => isDomainMatch(trimmed, trustedHost));
-    return (url.protocol === "https:" && isTrustedHost) || isLocalhost;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * CSS custom property for anchor text highlight color.
  * Can be overridden to match custom proof image styles.
@@ -564,60 +479,6 @@ export const ANCHOR_HIGHLIGHT_STYLE: React.CSSProperties = {
 };
 
 // =============================================================================
-// KEYHOLE SKIP THRESHOLD
-// =============================================================================
-//
-// When the verification image's natural height is close to the keyhole strip
-// height, the keyhole crop adds no value — expanding would reveal almost
-// nothing new. Skip the expand affordance when image nearly fits.
-
-/**
- * Factor applied to the keyhole strip's CSS-resolved height to decide when to
- * suppress expansion. When `naturalHeight ≤ stripHeight × KEYHOLE_SKIP_THRESHOLD`,
- * the image already shows most of its content in the keyhole strip, so the
- * expand step would reveal almost nothing new.
- *
- * At 2.0, images up to 100% taller than the strip (up to ~180px for 90px strip)
- * are treated as "fits completely." This avoids tiny, unhelpful expansions.
- */
-export const KEYHOLE_SKIP_THRESHOLD = 2.0;
-
-// =============================================================================
-// ZOOM CONTROLS (InlineExpandedImage)
-// =============================================================================
-//
-// Zoom constants for the expanded image viewer. Controls are subtle but
-// always available on both desktop and mobile.
-
-/** Zoom step for +/− buttons (0.25 = 25% increments). */
-export const EXPANDED_ZOOM_STEP = 0.25;
-/** Minimum zoom level (50%). */
-export const EXPANDED_ZOOM_MIN = 0.5;
-/** Maximum zoom level (300%). */
-export const EXPANDED_ZOOM_MAX = 3.0;
-
-/** Minimum initial zoom for expanded page view to keep text readable (50%).
- *  On narrow viewports, fit-to-width can shrink a 1700px PDF to ~20% on phones.
- *  0.5 balances legibility against horizontal panning; users can zoom out
- *  further via the slider (floor set by fitZoom, not this constant). */
-export const EXPANDED_MIN_READABLE_ZOOM = 0.5;
-
-/** Padding (px) between the expanded-page canvas edges and its scroll container.
- *  Used both for canvas layout (ExpandedPageViewport) and zoom calculation
- *  (computeExpandedPageFittedZoom). Keep in sync if changed. */
-export const EXPANDED_PAGE_CANVAS_PADDING_PX = 16;
-
-/** Width ratio threshold for keyhole width-fit mode.
- *  When image at height-fit scale is narrower than this fraction of the
- *  container, switch to width-fit mode for readability. */
-export const KEYHOLE_WIDTH_FIT_THRESHOLD = 0.4;
-
-/** Target fraction of keyhole width that the anchor text should fill.
- *  zoom-to-fit scales the image so anchor text occupies this proportion,
- *  giving enough context without excessive empty space. */
-export const KEYHOLE_ANCHOR_FILL_TARGET = 0.7;
-
-// =============================================================================
 // EVIDENCE TRAY & EXPANDED VIEW
 // =============================================================================
 
@@ -637,145 +498,8 @@ export const EXPANDED_POPOVER_MAX_WIDTH = "calc(100dvw - 2rem)";
 export const EXPANDED_POPOVER_HEIGHT = "calc(100dvh - 2rem)";
 
 // =============================================================================
-// VIEW TRANSITION: EVIDENCE IMAGE MORPH
+// FOCUS / HIT-BOX / INTERACTION CLASSES
 // =============================================================================
-
-/** Duration (ms) for evidence image expand VT (keyhole → expanded). ANIM_STANDARD_MS tier. */
-export const VT_EVIDENCE_EXPAND_MS = 180;
-/** Duration (ms) for the page-expand ghost animation (summary/preview → expanded page). ANIM_MEASURED_MS tier (250ms). */
-export const VT_EVIDENCE_PAGE_EXPAND_MS = 250;
-/** Duration (ms) for evidence image collapse VT (expanded → keyhole). ANIM_FAST_MS tier. */
-export const VT_EVIDENCE_COLLAPSE_MS = 120;
-/**
- * Opacity dip for VT old-snapshot cross-fade on collapse (empirically tuned).
- * Low enough to suppress text-detail flicker during geometry morph,
- * high enough to preserve the shape silhouette for spatial tracking.
- */
-export const VT_EVIDENCE_DIP_OPACITY = 0.45;
-
-// Page-expand ghost animation keyframe tuning.
-//
-// Mirrors the collapse's "dip-then-reveal" structure:
-//   Collapse: old 1.0 → 0.45 (30%) → 0  /  new 0 → 0 (60%) → 1
-//   Expand:   ghost dominates first 60%   /  page near-invisible until ghost lands
-//
-// The ghost is the "old snapshot equivalent" — the thing the eye tracks.
-// It must be opaque enough to dominate over the dimmed page beneath.
-// The page is the "new snapshot equivalent" — stays hidden, then reveals sharply.
-/** Ghost initial opacity — solid "card" lifting from click origin. */
-export const GHOST_OPACITY_START = 0.88;
-/** Ghost opacity at early interpolation (18% progress) — fully solid in flight. */
-export const GHOST_OPACITY_EARLY = 1;
-/** Ghost opacity at mid interpolation (42% progress) — fully solid, blur carries motion cue. */
-export const GHOST_OPACITY_MID = 1;
-/** Ghost opacity at late interpolation (68% progress) — still solid, approaching target. */
-export const GHOST_OPACITY_LATE = 1;
-/** Ghost near-peak opacity before final fade-out (92% progress) — beginning handoff. */
-export const GHOST_OPACITY_PEAK = 0.4;
-
-// Page-expand ghost motion blur.
-// CSS `filter: blur()` masks the non-uniform scale distortion (squashed text)
-// mid-flight and reads as cinematic motion blur. GPU-composited, no layout cost.
-/** Ghost blur (px) at start — sharp at source position. */
-export const GHOST_BLUR_START_PX = 0;
-/** Ghost blur (px) at early interpolation — motion building. */
-export const GHOST_BLUR_EARLY_PX = 3;
-/** Ghost blur (px) at mid interpolation — peak motion blur (sole mid-flight cue). */
-export const GHOST_BLUR_MID_PX = 7;
-/** Ghost blur (px) at late interpolation — clearing as ghost nears target. */
-export const GHOST_BLUR_LATE_PX = 3;
-/** Ghost blur (px) at near-peak — sharp for clean handoff to page content. */
-export const GHOST_BLUR_PEAK_PX = 0;
-
-/** Page content floor opacity during page-expand — nearly invisible.
- *  Must be very low so the ghost dominates the first 60% of the animation
- *  (mirroring how the collapse keeps new content at 0 until 60%). */
-export const PAGE_EXPAND_CONTENT_OPACITY_FLOOR = 0.03;
-/** Ghost keyframe offset: early interpolation. */
-export const GHOST_OFFSET_EARLY = 0.18;
-/** Ghost keyframe offset: mid interpolation. */
-export const GHOST_OFFSET_MID = 0.42;
-/** Ghost keyframe offset: late interpolation. */
-export const GHOST_OFFSET_LATE = 0.68;
-/** Ghost keyframe offset: near-peak before fade-out. */
-export const GHOST_OFFSET_PEAK = 0.92;
-/** Debug outline color for page-expand source phase. */
-export const DEBUG_PAGE_EXPAND_SOURCE_COLOR = "#ef4444";
-/** Debug outline color for page-expand target phase. */
-export const DEBUG_PAGE_EXPAND_TARGET_COLOR = "#22c55e";
-
-// =============================================================================
-// ANIMATION & TRANSITION TIMINGS
-// =============================================================================
-//
-// Five-step timing scale for all UI animations. Each duration maps to a
-// semantic tier so every transition uses a deliberate, consistent speed.
-//
-// Tier              Constant              Duration  Tailwind class   Use cases
-// ──────────────────────────────────────────────────────────────────────────────
-// Instant           ANIM_INSTANT_MS        80ms     duration-[80ms]  Hover bg, trigger color
-// Fast              ANIM_FAST_MS          120ms     duration-120 Micro-interactions, exits, chevrons
-// Standard          ANIM_STANDARD_MS      180ms     duration-180 Popover entry, grid expand, morphs
-// Measured          ANIM_MEASURED_MS      250ms     duration-[250ms] Drawer slide-in, morph expand
-// Slow              ANIM_SLOW_MS          350ms     duration-[350ms] Full-page transitions, coordinated
-//
-// Expand/collapse morphs use separate constants + asymmetric easing:
-//   POPOVER_MORPH_EXPAND_MS   120ms  BLINK_ENTER_EASING   (fast start, gentle settle)
-//   POPOVER_MORPH_COLLAPSE_MS 80ms  EASE_COLLAPSE (aggressive start, soft landing)
-//
-// NOTE: Tailwind duration-* classes in JSX must remain as literal strings for
-// JIT purging. The table above is the single source of truth for timing values.
-
-/**
- * Per-item stagger delay for citation drawer row reveal animations.
- * Each successive row enters 40ms after the previous, creating a cascading
- * "waterfall" effect that visually communicates list hierarchy.
- */
-export const DRAWER_STAGGER_DELAY_MS = 40;
-/**
- * Asymptotic cap for cumulative citation drawer stagger delay.
- * Uses exponential approach: `MAX * (1 - e^(-i * DELAY / MAX))`.
- * Early items are ~DELAY apart; gaps shrink smoothly toward zero at MAX.
- */
-export const DRAWER_STAGGER_MAX_MS = 250;
-
-/** Delay in ms before hiding a tooltip on mouse leave (prevents flicker on cursor exit). */
-export const TOOLTIP_HIDE_DELAY_MS = 80;
-
-/** Debounce threshold in ms for ignoring click events immediately after touch events. */
-export const TOUCH_CLICK_DEBOUNCE_MS = 100;
-
-/**
- * Maximum distance (px) a finger can move between touchstart and touchend
- * and still be considered a tap (not a scroll or swipe). Matches the
- * platform tap-vs-scroll threshold used by iOS and Chrome.
- */
-export const TAP_SLOP_PX = 10;
-
-/**
- * Sensitivity multiplier for trackpad pinch-to-zoom (Ctrl+wheel).
- * Maps `deltaY` pixels into a zoom delta — 0.005 gives roughly 1% zoom
- * per pixel of wheel travel, balancing precision and responsiveness.
- */
-export const WHEEL_ZOOM_SENSITIVITY = 0.005;
-
-/**
- * Duration in ms to show "Copied" feedback before resetting to idle state.
- * Used for copy-to-clipboard feedback in various components.
- */
-export const COPY_FEEDBACK_DURATION_MS = 2000;
-
-// ─── Five-tier animation timing scale ───────────────────────────────────────
-/** Instant — micro-feedback (hover bg, trigger color). */
-export const ANIM_INSTANT_MS = 80;
-/** Fast — small interactive transitions (chip color, icon swap). */
-export const ANIM_FAST_MS = 120;
-/** Standard — primary interactions (button press, toggle). */
-export const ANIM_STANDARD_MS = 180;
-/** Measured — layout shifts, geometry changes (panel resize, bar fill). */
-export const ANIM_MEASURED_MS = 250;
-/** Slow — large-area or staged transitions (page morph, spinner settle). */
-export const ANIM_SLOW_MS = 350;
 
 /** Shared focus-visible ring treatment for interactive elements. */
 export const FOCUS_RING_CLASSES = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dc-ring/40";
@@ -792,142 +516,6 @@ export const HITBOX_EXTEND_8 = "after:content-[''] after:absolute after:inset-[-
 /** Invisible hit-box extender — 8px horizontal, 14px vertical.
  *  Element must be positioned (relative/absolute/fixed). */
 export const HITBOX_EXTEND_8x14 = "after:content-[''] after:absolute after:inset-x-[-8px] after:inset-y-[-14px]";
-
-/** Auto-hide spinner after this duration if verification is still pending. */
-export const SPINNER_TIMEOUT_MS = 5000;
-
-/** Transition duration for popover morph expand (summary → expanded). */
-export const POPOVER_MORPH_EXPAND_MS = 120;
-/** Transition duration for popover morph collapse (expanded → summary). Faster = snappier close. */
-export const POPOVER_MORPH_COLLAPSE_MS = 80;
-
-/**
- * Easing for expand transitions — restrained spring with ~2% overshoot.
- * Appropriate only when total travel ≤ ~200px (keeps absolute overshoot ≤ 4px).
- * For larger motions (VT morphs, page transitions, height morphs) use
- * EASE_COLLAPSE or BLINK_ENTER_EASING — both are zero-overshoot.
- */
-export const EASE_EXPAND = "cubic-bezier(0.34, 1.02, 0.64, 1)";
-
-/**
- * Easing for collapse transitions — decisive decelerate.
- * Bézier: starts with velocity (0.2), then eases into final state (0, 1).
- */
-export const EASE_COLLAPSE = "cubic-bezier(0.2, 0, 0, 1)";
-
-/**
- * Easing for the page-expand ghost — deliberate departure, confident arrival.
- * Slow out of the keyhole, fast through mid-flight, soft landing at spotlight.
- * Feels like "expanding into" the space rather than "thrown and catching itself."
- */
-export const EASE_GHOST_EXPAND = "cubic-bezier(0.05, 0.7, 0.1, 1)";
-
-/** Default border-radius for the keyhole strip — matches CSS in EvidenceKeyhole. */
-export const KEYHOLE_STRIP_BORDER_RADIUS = "6px";
-
-/**
- * Page-collapse ghost duration (ms) — faster than expand for a decisive exit.
- *
- * NOTE: keyframe offsets, opacity profile, and blur profile are shared with
- * the expand pipeline (see applyGhostMorph in viewTransition.ts). The two
- * directions intentionally remain distinct only in duration and easing —
- * expand departs slowly from the keyhole and arrives confidently at the
- * spotlight (EASE_GHOST_EXPAND); collapse snaps away with fast deceleration
- * (EASE_COLLAPSE). Everything else is the same math, inverted.
- */
-export const PAGE_COLLAPSE_GHOST_MS = 180;
-
-/** Easing for popover content reveal during page transitions (both expand and collapse). */
-export const EASE_CONTENT_REVEAL = "ease-in";
-
-/** Locate icon pulse grow duration (ms) after annotation overlay dismiss. */
-export const LOCATE_ICON_PULSE_GROW_MS = 120;
-/** Locate icon pulse settle duration (ms) after grow stage completes. */
-export const LOCATE_ICON_PULSE_SETTLE_MS = 80;
-/** Locate icon pulse peak scale (1 = baseline size). */
-export const LOCATE_ICON_PULSE_SCALE = 1.12;
-/** Locate icon pulse accent color used during temporary highlight.
- *  Uses the muted-foreground design token (neutral zinc) so the cue reads
- *  as the same quiet grey as the dismiss button that triggered it. */
-export const LOCATE_ICON_PULSE_COLOR = "var(--dc-muted-foreground)";
-
-/** Stagger delay before expanded-page content animates in. Container morph starts first.
- * 30ms is tight enough to avoid an empty-container flash while still letting the shell
- * establish its new dimensions before content appears. */
-export const CONTENT_STAGGER_DELAY_MS = 30;
-
-// =============================================================================
-// BLINK ANIMATION PROFILE
-// =============================================================================
-//
-// "Blink" = mostly-final immediately, then tiny settle frames.
-// Standard envelope is 120ms enter / 80ms exit.
-
-/** Total enter duration (ms) for container-level Blink animations. */
-export const BLINK_ENTER_TOTAL_MS = 120;
-/** Mid-step threshold (ms) for 2-step enter stages. */
-export const BLINK_ENTER_STEP_MS = 60;
-/** Total exit duration (ms) for container-level Blink animations. */
-export const BLINK_EXIT_TOTAL_MS = 80;
-
-/** Total enter duration (ms) for row reveal/collapse surfaces. */
-export const BLINK_ROW_ENTER_TOTAL_MS = 450;
-/** Mid-step threshold (ms) for row reveal enter stages. */
-export const BLINK_ROW_ENTER_STEP_MS = 260;
-/** Total exit duration (ms) for row reveal close stages. */
-export const BLINK_ROW_EXIT_TOTAL_MS = 350;
-
-/** Fast row profile enter duration (ms) for sidebar-like quick expansions. */
-export const BLINK_ROW_FAST_ENTER_TOTAL_MS = 180;
-/** Fast row profile mid-step threshold (ms). */
-export const BLINK_ROW_FAST_ENTER_STEP_MS = 100;
-/** Fast row profile exit duration (ms). */
-export const BLINK_ROW_FAST_EXIT_TOTAL_MS = 120;
-
-/** EvidenceTray search-attempt list enter duration (ms). */
-export const EVIDENCE_LIST_EXPAND_TOTAL_MS = 120;
-/** EvidenceTray search-attempt list enter settle threshold (ms). */
-export const EVIDENCE_LIST_EXPAND_STEP_MS = 60;
-/** EvidenceTray search-attempt list collapse duration (ms). */
-export const EVIDENCE_LIST_COLLAPSE_TOTAL_MS = 80;
-
-/** Blink enter easing — near-linear with tiny settle. */
-export const BLINK_ENTER_EASING = "cubic-bezier(0.25, 0.25, 0.5, 1)";
-/** Blink exit easing — quick settle-out. */
-export const BLINK_EXIT_EASING = "cubic-bezier(0.3, 0.2, 0.5, 1)";
-
-/** Container stage A opacity (0–1) for Blink enter. */
-export const BLINK_ENTER_OPACITY_A = 0.22;
-/** Container stage B opacity (0–1) for Blink enter. */
-export const BLINK_ENTER_OPACITY_B = 0.78;
-/** Container exit opacity (0–1) for Blink close. */
-export const BLINK_EXIT_OPACITY = 0.08;
-
-/** Container stage A scale for Blink enter. */
-export const BLINK_ENTER_SCALE_A = 0.992;
-/** Container stage B scale for Blink enter. */
-export const BLINK_ENTER_SCALE_B = 0.997;
-/** Container close scale for Blink exit. */
-export const BLINK_EXIT_SCALE = 0.996;
-
-/** Container stage A vertical offset (px) for Blink enter. */
-export const BLINK_ENTER_Y_A_PX = 0;
-/** Container stage B vertical offset (px) for Blink enter. */
-export const BLINK_ENTER_Y_B_PX = 0;
-/** Container close vertical offset (px) for Blink exit. */
-export const BLINK_EXIT_Y_PX = 0;
-
-/** Row stage A opacity (0–1) for Blink reveal (first burst: medium/high). */
-export const BLINK_ROW_OPACITY_A = 0.72;
-/** Row stage B opacity (0–1) for Blink reveal (near-full but still light). */
-export const BLINK_ROW_OPACITY_B = 0.42;
-/** Row close opacity (0–1) for Blink hide. */
-export const BLINK_ROW_EXIT_OPACITY = 0.32;
-
-/** Row stage A inset (px) for Blink reveal. */
-export const BLINK_ROW_INSET_A_PX = 4;
-/** Row stage B inset (px) for Blink reveal. */
-export const BLINK_ROW_INSET_B_PX = 2;
 
 // =============================================================================
 // TIME TO CERTAINTY (TtC) DISPLAY
@@ -956,21 +544,6 @@ export const TTC_FAST_TEXT_STYLE: React.CSSProperties = {
   ...TTC_TEXT_STYLE,
   color: `var(${TTC_FAST_COLOR_VAR}, ${TTC_FAST_COLOR_DEFAULT})`,
 };
-
-// =============================================================================
-// DRAWER DRAG-TO-CLOSE
-// =============================================================================
-
-/** Minimum downward drag distance (px) on the drawer handle to trigger close. */
-export const DRAWER_DRAG_CLOSE_THRESHOLD_PX = 80;
-
-// =============================================================================
-// KEYHOLE ZOOM
-// =============================================================================
-
-/** Minimum total overflow (px) in an axis before showing pan arrows/fades.
- *  Suppresses arrow buttons for negligible overflow (e.g. 5px rounding). */
-export const MIN_PAN_OVERFLOW_PX = 24;
 
 // =============================================================================
 // SCROLLBAR HIDING

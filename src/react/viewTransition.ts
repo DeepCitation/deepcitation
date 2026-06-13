@@ -1,7 +1,5 @@
 import { flushSync } from "react-dom";
 import {
-  DEBUG_PAGE_EXPAND_SOURCE_COLOR,
-  DEBUG_PAGE_EXPAND_TARGET_COLOR,
   EASE_COLLAPSE,
   EASE_CONTENT_REVEAL,
   EASE_GHOST_EXPAND,
@@ -19,13 +17,17 @@ import {
   GHOST_OPACITY_MID,
   GHOST_OPACITY_PEAK,
   GHOST_OPACITY_START,
-  isValidProofImageSrc,
-  KEYHOLE_STRIP_BORDER_RADIUS,
   PAGE_COLLAPSE_GHOST_MS,
   PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
   VT_EVIDENCE_PAGE_EXPAND_MS,
-} from "./constants.js";
+} from "./animationConstants.js";
 import { getFrozen, registerActiveAnimations, scaleDuration, setLastGhostRects } from "./debug/animationDebugStore.js";
+import {
+  DEBUG_PAGE_EXPAND_SOURCE_COLOR,
+  DEBUG_PAGE_EXPAND_TARGET_COLOR,
+  KEYHOLE_STRIP_BORDER_RADIUS,
+} from "./keyholeGeometry.js";
+import { isValidProofImageSrc } from "./proofImageSecurity.js";
 
 /**
  * View-transition name applied to evidence image elements (keyhole strip,

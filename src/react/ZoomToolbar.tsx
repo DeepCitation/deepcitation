@@ -15,15 +15,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BLINK_ENTER_EASING,
   EASE_COLLAPSE,
-  EXPANDED_ZOOM_MAX,
   LOCATE_ICON_PULSE_COLOR,
   LOCATE_ICON_PULSE_GROW_MS,
   LOCATE_ICON_PULSE_SCALE,
   LOCATE_ICON_PULSE_SETTLE_MS,
-} from "./constants.js";
+} from "./animationConstants.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { useTranslation } from "./i18n.js";
 import { LocateIcon } from "./icons.js";
+import { EXPANDED_ZOOM_MAX } from "./keyholeGeometry.js";
 import { cn } from "./utils.js";
 
 // ---------------------------------------------------------------------------

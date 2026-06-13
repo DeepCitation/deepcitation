@@ -1,10 +1,5 @@
 import { createElement, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { render, unmountComponentAtNode } from "react-dom";
-import { CitationDrawer } from "../../react/CitationDrawer.js";
-import type { CitationDrawerItem, SourceCitationGroup } from "../../react/CitationDrawer.types.js";
-import { groupCitationsBySource } from "../../react/CitationDrawer.utils.js";
-import { CitationDrawerTrigger } from "../../react/CitationDrawerTrigger.js";
-import { getStatusFromVerification } from "../../react/citationStatus.js";
 import {
   BLINK_ENTER_EASING,
   BLINK_ENTER_OPACITY_A,
@@ -17,6 +12,13 @@ import {
   BLINK_EXIT_OPACITY,
   BLINK_EXIT_SCALE,
   BLINK_EXIT_TOTAL_MS,
+} from "../../react/animationConstants.js";
+import { CitationDrawer } from "../../react/CitationDrawer.js";
+import type { CitationDrawerItem, SourceCitationGroup } from "../../react/CitationDrawer.types.js";
+import { groupCitationsBySource } from "../../react/CitationDrawer.utils.js";
+import { CitationDrawerTrigger } from "../../react/CitationDrawerTrigger.js";
+import { getStatusFromVerification } from "../../react/citationStatus.js";
+import {
   ERROR_COLOR_DEFAULT,
   ERROR_COLOR_VAR,
   PARTIAL_COLOR_DEFAULT,
@@ -45,7 +47,7 @@ const CHECK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 // XIcon: used for miss (red) — two crossing diagonal lines, NOT a dash
 const X_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" width="100%" height="100%"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
 
-/** Status color constants — CSS custom properties with fallbacks from React constants.ts */
+/** Status color constants — CSS custom properties with fallbacks from React constants.ts (CSS token section) */
 const STATUS_COLORS = {
   verified: `var(${VERIFIED_COLOR_VAR}, ${VERIFIED_COLOR_DEFAULT})`,
   partial: `var(${PARTIAL_COLOR_VAR}, ${PARTIAL_COLOR_DEFAULT})`,
@@ -61,7 +63,7 @@ const SIDE_OFFSET = 8;
 
 // ── Scroll passthrough helpers — imported from shared/scroll.ts ──────────
 
-// ── Blink animation constants — imported from constants.ts, NOT redefined here.
+// ── Blink animation constants — imported from animationConstants.ts, NOT redefined here.
 // CDN and React must use identical timing/easing; see animation-transition-rules.md.
 // BLINK_ENTER_STEP_MS = 60ms (enter-b settle), BLINK_ENTER_TOTAL_MS = 120ms (full enter)
 const BLINK_SETTLE_MS = Math.max(16, Math.min(BLINK_ENTER_STEP_MS, BLINK_ENTER_TOTAL_MS));
@@ -504,7 +506,7 @@ function teardownScrollPassthrough(): void {
 // ── Blink animation helpers ───────────────────────────────────────────────
 // Imperative equivalent of useBlinkMotionStage + getBlinkContainerMotionStyle.
 // Three-stage enter: enter-a (instant) → enter-b (BLINK_SETTLE_MS) → steady (BLINK_FINAL_MS).
-// All timing/easing values imported from constants.ts — do not redefine locally.
+// All timing/easing values imported from animationConstants.ts — do not redefine locally.
 
 function blinkTransition(durationMs: number, easing: string): string {
   return `opacity ${durationMs}ms ${easing}, transform ${durationMs}ms ${easing}`;

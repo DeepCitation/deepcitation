@@ -4,6 +4,7 @@ import type { CitationStatus, SupportingFact } from "../types/citation.js";
 import type { FileDownload, PageImage, Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { computeCompositeStatus } from "../utils/worstChildStatus.js";
+import { SPINNER_TIMEOUT_MS, TAP_SLOP_PX, TOUCH_CLICK_DEBOUNCE_MS } from "./animationConstants.js";
 import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import type { CitationStatusIndicatorProps, SpinnerStage } from "./CitationStatusIndicator.js";
@@ -15,13 +16,7 @@ import {
   VARIANTS_WITH_OWN_HOVER,
 } from "./CitationTriggerContent.utils.js";
 import { getStatusFromVerification, getStatusLabel } from "./citationStatus.js";
-import {
-  GUARD_MAX_WIDTH_VAR,
-  isValidProofImageSrc,
-  SPINNER_TIMEOUT_MS,
-  TAP_SLOP_PX,
-  TOUCH_CLICK_DEBOUNCE_MS,
-} from "./constants.js";
+import { GUARD_MAX_WIDTH_VAR } from "./constants.js";
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
 import { type EvidenceKeyholeRenderProps, resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
@@ -30,6 +25,7 @@ import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { useTranslation } from "./i18n.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
+import { isValidProofImageSrc } from "./proofImageSecurity.js";
 import { REVIEW_DWELL_THRESHOLD_MS, useCitationTiming } from "./timingUtils.js";
 import type {
   BaseCitationProps,
@@ -1092,7 +1088,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       let moved = false;
       let outsideTarget = false;
 
-      // TAP_SLOP_PX imported from constants.ts
+      // TAP_SLOP_PX imported from animationConstants.ts
 
       const isOutsidePopover = (target: EventTarget | null): boolean => {
         if (!(target instanceof Node)) return false;

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { isValidProofImageSrc } from "../constants.js";
+import { isValidProofImageSrc } from "../proofImageSecurity.js";
 
 export function usePopoverImagePreload({
   evidenceSrc,

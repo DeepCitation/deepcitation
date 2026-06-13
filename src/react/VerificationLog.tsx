@@ -20,7 +20,6 @@ import {
   TERTIARY_ACTION_BASE_CLASSES,
   TERTIARY_ACTION_HOVER_CLASSES,
   TERTIARY_ACTION_IDLE_CLASSES,
-  TRUSTED_IMAGE_HOSTS,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { type TranslateFunction, tPlural, useLocale, useTranslation } from "./i18n.js";
@@ -37,6 +36,7 @@ import {
 } from "./icons.js";
 import { useFaviconSrc } from "./imageUtils.js";
 import { PagePicker } from "./PagePicker.js";
+import { TRUSTED_IMAGE_HOSTS } from "./proofImageSecurity.js";
 import type { DownloadInfo, IndicatorVariant } from "./types.js";
 import { mapSearchStatusToFetchStatus } from "./urlAccessExplanation.js";
 import { sanitizeUrl } from "./urlUtils.js";

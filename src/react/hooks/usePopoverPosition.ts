@@ -13,9 +13,9 @@
 
 import type { MutableRefObject, RefObject } from "react";
 import { useMemo } from "react";
-import { projectKeyholeDisplayedWidth } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 import { getExpandedPopoverWidthPx, getSummaryPopoverWidthPx } from "../expandedWidthPolicy.js";
+import { projectKeyholeDisplayedWidth } from "../keyholeGeometry.js";
 import { useExpandedPageSideOffset } from "./useExpandedPageSideOffset.js";
 import { useLockedPopoverSide } from "./useLockedPopoverSide.js";
 import { usePopoverAlignOffset } from "./usePopoverAlignOffset.js";

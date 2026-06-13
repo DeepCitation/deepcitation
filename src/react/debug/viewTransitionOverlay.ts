@@ -18,7 +18,7 @@
 // animation flow and rely on the overlay *primitives* (`createDebugOverlay`,
 // etc.) at synchronous call sites where a dynamic import would paint too late.
 
-import { DEBUG_PAGE_EXPAND_SOURCE_COLOR, DEBUG_PAGE_EXPAND_TARGET_COLOR } from "../constants.js";
+import { DEBUG_PAGE_EXPAND_SOURCE_COLOR, DEBUG_PAGE_EXPAND_TARGET_COLOR } from "../keyholeGeometry.js";
 import {
   buildCollapseGhostSnapshot,
   buildGhostTarget,
