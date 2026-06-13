@@ -21,6 +21,7 @@ import {
   type ParsedCitationResponse,
 } from "../prompts/citationPrompts.js";
 import { formatDeepTextPageId, normalizeDeepTextLineIds, normalizeDeepTextPageId } from "../deeptext/index.js";
+import { repairJson } from "./jsonRepair.js";
 import type { Citation, SupportingFact } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
@@ -426,151 +427,6 @@ function recoverCitationObjectsFromMalformedJson(jsonString: string): CitationDa
   return citations;
 }
 
-function escapeLiteralControlCharactersInJsonStrings(text: string): string {
-  let out = "";
-  let inString = false;
-  let escaped = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i] as string;
-    if (!inString) {
-      out += ch;
-      if (ch === '"') inString = true;
-      continue;
-    }
-
-    if (escaped) {
-      out += ch;
-      escaped = false;
-      continue;
-    }
-
-    if (ch === "\\") {
-      out += ch;
-      escaped = true;
-      continue;
-    }
-
-    if (ch === '"') {
-      out += ch;
-      inString = false;
-      continue;
-    }
-
-    if (ch === "\r") {
-      if (text[i + 1] === "\n") {
-        out += "\\n";
-        i++;
-        continue;
-      }
-      out += "\\n";
-      continue;
-    }
-
-    if (ch === "\n") {
-      out += "\\n";
-      continue;
-    }
-
-    if (ch === "\t") {
-      out += "\\t";
-      continue;
-    }
-
-    if (ch.charCodeAt(0) < 0x20) {
-      out += `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`;
-      continue;
-    }
-
-    out += ch;
-  }
-
-  return out;
-}
-
-/**
- * Attempts to repair malformed JSON.
- * Handles common LLM output issues like:
- * - Trailing commas
- * - Single quotes instead of double quotes (in JSON context)
- * - Missing closing brackets
- * - Unescaped newlines in strings
- * - Invalid escape sequences (like \~ or \x)
- *
- * @param jsonString - The potentially malformed JSON string
- * @returns The repaired JSON string
- */
-function repairJson(jsonString: string): {
-  repaired: string;
-  repairs: string[];
-} {
-  let repaired = jsonString.trim();
-  const repairs: string[] = [];
-
-  // Remove any markdown code block markers that might be present
-  const beforeMarkdownRemoval = repaired;
-  repaired = repaired.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  if (repaired !== beforeMarkdownRemoval) {
-    repairs.push("removed markdown code block markers");
-  }
-
-  // Escape literal control characters that LLMs sometimes emit inside JSON
-  // strings (especially multiline source_context/source_match values).
-  const beforeControlCharRepair = repaired;
-  repaired = escapeLiteralControlCharactersInJsonStrings(repaired);
-  if (repaired !== beforeControlCharRepair) {
-    repairs.push("escaped literal control characters");
-  }
-
-  // Fix invalid escape sequences inside JSON strings.
-  // Valid escapes: \" \\ \/ \b \f \n \r \t \uXXXX
-  // Invalid escapes like \~ \x \a etc. should have the backslash removed.
-  // We need to be careful to only process content inside string values.
-  // Note: \u is only valid when followed by exactly 4 hex digits (e.g., \u0020).
-  // Invalid \u sequences (like \utest) should have the backslash removed.
-  const beforeInvalidEscapes = repaired;
-  repaired = repaired.replace(/"(?:[^"\\]|\\.)*"/g, match => {
-    // Inside a JSON string, fix invalid escape sequences
-    // by removing the backslash before non-standard escape characters.
-    // Use negative lookahead to preserve valid unicode escapes (\uXXXX).
-    return match.replace(/\\(?!u[0-9a-fA-F]{4})([^"\\/bfnrt])/g, (_, char) => char);
-  });
-  if (repaired !== beforeInvalidEscapes) {
-    repairs.push("fixed invalid escape sequences");
-  }
-
-  // Fix trailing commas before ] or }
-  const beforeTrailingCommas = repaired;
-  repaired = repaired.replace(/,(\s*[\]}])/g, "$1");
-  if (repaired !== beforeTrailingCommas) {
-    repairs.push("removed trailing commas");
-  }
-
-  // Fix missing closing bracket if we have an opening [
-  if (repaired.startsWith("[") && !repaired.endsWith("]")) {
-    // Check if we have unclosed array
-    const openBrackets = (repaired.match(/\[/g) || []).length;
-    const closeBrackets = (repaired.match(/\]/g) || []).length;
-    if (openBrackets > closeBrackets) {
-      const addedCount = openBrackets - closeBrackets;
-      repaired = repaired + "]".repeat(addedCount);
-      repairs.push(`added ${addedCount} closing bracket(s)`);
-    }
-  }
-
-  // Fix missing closing brace if we have an opening {
-  if (repaired.includes("{")) {
-    const openBraces = (repaired.match(/\{/g) || []).length;
-    const closeBraces = (repaired.match(/\}/g) || []).length;
-    if (openBraces > closeBraces) {
-      const addedCount = openBraces - closeBraces;
-      repaired = repaired + "}".repeat(addedCount);
-      repairs.push(`added ${addedCount} closing brace(s)`);
-    }
-  }
-
-  return { repaired, repairs };
-}
 
 /**
  * Parses a citation response from an LLM.
@@ -688,24 +544,6 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
   };
 }
 
-/**
- * Parses a page_id string to extract page number and index.
- * Supports both compact "N_I" format and legacy "page_number_N_index_I" format.
- *
- * Page numbers are 1-indexed (page 1 is the first page). If page_id is "0_0"
- * (both page and index are 0), it will be auto-corrected to page 1, index 0.
- * Other cases like "0_5" are left as-is since they are ambiguous.
- *
- * @param pageId - The page ID string
- * @returns Object with pageNumber and normalized startPageId, or undefined values
- */
-export function parsePageId(pageId: string): {
-  pageNumber?: number;
-  startPageId?: string;
-} {
-  const parsed = normalizeDeepTextPageId(pageId);
-  return { pageNumber: parsed.pageNumber, startPageId: parsed.startPageId };
-}
 
 /**
  * Converts a CitationData object to the standard Citation format.
@@ -717,7 +555,7 @@ export function citationDataToCitation(data: CitationData, citationNumber?: numb
   let startPageId: string | undefined;
   const pageId = data.page_id;
   if (pageId) {
-    const parsed = parsePageId(pageId);
+    const parsed = normalizeDeepTextPageId(pageId);
     pageNumber = parsed.pageNumber;
     startPageId = parsed.startPageId;
   }
@@ -769,7 +607,7 @@ function mapChildrenToSupportingFacts(children: CitationData[] | undefined): Sup
     let childPageNumber: number | undefined;
     let childStartPageId: string | undefined;
     if (child.page_id) {
-      const parsed = parsePageId(child.page_id);
+      const parsed = normalizeDeepTextPageId(child.page_id);
       childPageNumber = parsed.pageNumber;
       childStartPageId = parsed.startPageId;
     }
@@ -859,7 +697,7 @@ export function extractVisibleText(llmResponse: string): string {
  * constructing/sorting/discarding a full Citation just to hash its fields.
  */
 function getCitationKeyFromData(data: CitationData): string {
-  const pageNumber = data.page_id ? parsePageId(data.page_id).pageNumber : undefined;
+  const pageNumber = data.page_id ? normalizeDeepTextPageId(data.page_id).pageNumber : undefined;
   const normalizedLineIds = normalizeDeepTextLineIds(data.line_ids, { sort: true });
   const lineIds = normalizedLineIds.length ? normalizedLineIds : undefined;
 

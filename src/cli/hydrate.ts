@@ -11,8 +11,8 @@
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { parseCitationData, parsePageId } from "../parsing/citationParser.js";
-import { extractDeepTextPageBlocks, formatRequiredDeepTextPageId, parseDeepTextPageLines } from "../deeptext/index.js";
+import { parseCitationData } from "../parsing/citationParser.js";
+import { extractDeepTextPageBlocks, formatRequiredDeepTextPageId, normalizeDeepTextPageId, parseDeepTextPageLines } from "../deeptext/index.js";
 import {
   CITATION_DATA_END_DELIMITER,
   CITATION_DATA_START_DELIMITER,
@@ -197,7 +197,7 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
     // taken when the LLM provides wrong IDs.
 
     // Resolve the normalized pageId for qualified lookups (handles both "N_I" and "page_number_N_index_I")
-    const normalizedPageId = citation.page_id ? (parsePageId(citation.page_id).startPageId ?? "") : "";
+    const normalizedPageId = citation.page_id ? (normalizeDeepTextPageId(citation.page_id).startPageId ?? "") : "";
 
     // Always pull ±1 neighbor lines around the cited range so source_context is
     // reliably wider than source_match. Without surrounding context, the popover
@@ -282,7 +282,7 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
       // appear on multiple pages (e.g. a repeated term in a definitions section).
       if (citation.source_match) {
         const allLines = getAllLines(lineMap);
-        const hintPageId = citation.page_id ? (parsePageId(citation.page_id).startPageId ?? "") : "";
+        const hintPageId = citation.page_id ? (normalizeDeepTextPageId(citation.page_id).startPageId ?? "") : "";
         const pageLines = hintPageId ? allLines.filter(l => l.pageId === hintPageId) : [];
         const found =
           (pageLines.length > 0 ? findAnchorWithFallback(citation.source_match, pageLines) : null) ??
