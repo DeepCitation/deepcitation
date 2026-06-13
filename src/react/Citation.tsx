@@ -1,13 +1,13 @@
 import type React from "react";
 import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { CitationStatus, SupportingFact } from "../types/citation.js";
+import type { CitationStatus } from "../types/citation.js";
 import type { FileDownload, PageImage, Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { computeCompositeStatus } from "../utils/worstChildStatus.js";
-import { SPINNER_TIMEOUT_MS, TAP_SLOP_PX, TOUCH_CLICK_DEBOUNCE_MS } from "./animationConstants.js";
+import { TAP_SLOP_PX, TOUCH_CLICK_DEBOUNCE_MS } from "./animationConstants.js";
 import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
-import type { CitationStatusIndicatorProps, SpinnerStage } from "./CitationStatusIndicator.js";
+import type { CitationStatusIndicatorProps } from "./CitationStatusIndicator.js";
 import { CitationTriggerContent } from "./CitationTriggerContent.js";
 import {
   getDefaultContent,
@@ -15,15 +15,16 @@ import {
   getTriggerText,
   VARIANTS_WITH_OWN_HOVER,
 } from "./CitationTriggerContent.utils.js";
+import { announceActivePopover, subscribeToActivePopover } from "./citationPopoverStore.js";
 import { getStatusFromVerification, getStatusLabel } from "./citationStatus.js";
 import { GUARD_MAX_WIDTH_VAR } from "./constants.js";
-import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
 import { type EvidenceKeyholeRenderProps, resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { usePopoverPosition } from "./hooks/usePopoverPosition.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { useTranslation } from "./i18n.js";
 import { PopoverContent } from "./Popover.js";
+import { PopoverContentRenderer } from "./PopoverContentRenderer.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { isValidProofImageSrc } from "./proofImageSecurity.js";
 import { REVIEW_DWELL_THRESHOLD_MS, useCitationTiming } from "./timingUtils.js";
@@ -36,9 +37,11 @@ import type {
   CitationEventHandlers,
   CitationRenderProps,
   CitationVariant,
-  DownloadInfo,
   IndicatorVariant,
 } from "./types.js";
+import { useCitationPrefetch } from "./useCitationPrefetch.js";
+import { useKeyboardOpenTracking } from "./useKeyboardOpenTracking.js";
+import { useSpinnerStage } from "./useSpinnerStage.js";
 import { cn, generateCitationInstanceId } from "./utils.js";
 import { isViewTransitioning } from "./viewTransition.js";
 
@@ -51,23 +54,6 @@ export type {
 
 /** Tracks which deprecation warnings have already been emitted (dev-mode only). */
 const deprecationWarned = new Set<string>();
-
-type ActivePopoverListener = (activeInstanceId: string) => void;
-
-const activePopoverListeners = new Set<ActivePopoverListener>();
-
-function announceActivePopover(citationInstanceId: string): void {
-  for (const listener of activePopoverListeners) {
-    listener(citationInstanceId);
-  }
-}
-
-function subscribeToActivePopover(listener: ActivePopoverListener): () => void {
-  activePopoverListeners.add(listener);
-  return () => {
-    activePopoverListeners.delete(listener);
-  };
-}
 
 // =============================================================================
 // TYPES
@@ -250,208 +236,8 @@ export interface CitationComponentProps extends BaseCitationProps {
   customPopoverActions?: import("./types.js").PopoverAction[];
 }
 
-// =============================================================================
-// SPINNER STAGE HOOK
-// =============================================================================
-
-/** Manages the 3-stage spinner progression: active (0–5s) → slow (5–15s) → stale (15s+). */
-function useSpinnerStage(isLoading: boolean, isPending: boolean, hasDefinitiveResult: boolean): SpinnerStage {
-  // Timer-driven state transitions (5s/15s) use setState-during-render reset pattern.
-  // The compiler can't safely memoize across the timer + render-phase setState boundary.
-  // "use no memo" — React Compiler opt-out (would be a directive if compiler were active).
-  const shouldAnimate = (isLoading || isPending) && !hasDefinitiveResult;
-  const [stage, setStage] = useState<SpinnerStage>("active");
-
-  // Reset to "active" eagerly when a new animation cycle starts (setState-during-render
-  // pattern — avoids the previous cleanup setState which caused a React Compiler bailout).
-  const [prevShouldAnimate, setPrevShouldAnimate] = useState(shouldAnimate);
-  if (shouldAnimate && !prevShouldAnimate) {
-    setPrevShouldAnimate(true);
-    setStage("active");
-  } else if (!shouldAnimate && prevShouldAnimate) {
-    setPrevShouldAnimate(false);
-  }
-
-  useEffect(() => {
-    if (!shouldAnimate) return;
-    const t1 = setTimeout(() => setStage("slow"), SPINNER_TIMEOUT_MS);
-    const t2 = setTimeout(() => setStage("stale"), SPINNER_TIMEOUT_MS * 3);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [shouldAnimate]);
-
-  // When not animating, always return "active" (derived, no setState needed)
-  return shouldAnimate ? stage : "active";
-}
-
-// =============================================================================
-// KEYBOARD-OPEN TRACKING HOOK
-// =============================================================================
-
-/**
- * Tracks whether the popover was opened via keyboard (Enter/Space) vs mouse/touch.
- * Manages the A.5.1 focus trap (inert on background) and A.5.2 conditional focus return.
- *
- * Isolated from CitationComponent because the React Compiler can't handle a ref
- * that's both read in an effect (focus trap) and mutated in callbacks (click/keydown).
- * "use no memo" tells the compiler to skip this hook without throwing, so the rest
- * of the file compiles normally.
- */
-function useKeyboardOpenTracking(isHovering: boolean, popoverContentRef: React.RefObject<HTMLDivElement | null>) {
-  // "use no memo" — React Compiler opt-out: ref read in effect + mutated in callbacks
-  // is a pattern the compiler can't safely transform.
-  const openedViaKeyboardRef = useRef(false);
-
-  // A.5.1 Focus trap: set `inert` on background content when the popover is
-  // opened via keyboard. This prevents Tab from escaping the popover into
-  // background content. Mouse-opened popovers don't need this because users
-  // can click outside to dismiss.
-  //
-  // The popover may portal into a scroll container inside <main> (not just
-  // document.body), so we walk from the popover up to body, inerting siblings
-  // at each level. This keeps the popover's ancestor chain interactive while
-  // making everything else inert.
-  useEffect(() => {
-    if (!isHovering || !openedViaKeyboardRef.current) return;
-    const inerted: Element[] = [];
-    // Defer with rAF so the portal is in the DOM before we scan.
-    const rafId = requestAnimationFrame(() => {
-      const popoverEl = popoverContentRef.current;
-      if (!popoverEl) return; // portal not mounted — nothing to trap
-      // Walk from popover up to body, inerting siblings at each level.
-      let current: Element | null = popoverEl;
-      while (current && current !== document.body) {
-        const parentEl: Element | null = current.parentElement;
-        if (!parentEl) break;
-        for (const sibling of Array.from(parentEl.children) as Element[]) {
-          if (sibling === current) continue;
-          if (!sibling.hasAttribute("inert")) {
-            sibling.setAttribute("inert", "");
-            inerted.push(sibling);
-          }
-        }
-        current = parentEl;
-      }
-    });
-    return () => {
-      cancelAnimationFrame(rafId);
-      for (const el of inerted) el.removeAttribute("inert");
-    };
-  }, [isHovering, popoverContentRef]);
-
-  // A.5.2 Conditional focus return: keyboard users need focus returned to the
-  // trigger so they can continue navigating. Mouse/touch users don't — returning
-  // focus would scroll the trigger into view, disorienting users who scrolled away.
-  const handleCloseAutoFocus = useCallback((e: Event) => {
-    if (!openedViaKeyboardRef.current) {
-      e.preventDefault();
-    }
-    openedViaKeyboardRef.current = false;
-  }, []);
-
-  return { openedViaKeyboardRef, handleCloseAutoFocus };
-}
-
-// =============================================================================
-// POPOVER CONTENT RENDERER
-// =============================================================================
-
-/**
- * Renders popover content — either a custom render prop or the default.
- * Extracted as a named component so React can track it as a stable fiber type
- * for proper reconciliation (avoids remounting on every parent render).
- */
-const PopoverContentRenderer = memo(function PopoverContentRenderer({
-  renderPopoverContent,
-  renderEvidenceKeyhole,
-  renderExpandedPage,
-  citation,
-  verification,
-  status,
-  isLoading,
-  isVisible,
-  sourceTitle,
-  claimText,
-  indicatorVariant,
-  viewState,
-  onViewStateChange,
-  expandedImageSrcOverride,
-  onExpandedWidthChange,
-  pageImages,
-  availablePages,
-  prevBeforeExpandedPageRef,
-  download,
-  escapeInterceptRef,
-  customPopoverActions,
-  supportingFacts,
-  supportingFactVerifications,
-  parentInstanceId,
-}: {
-  renderPopoverContent?: CitationComponentProps["renderPopoverContent"];
-  renderEvidenceKeyhole?: CitationComponentProps["renderEvidenceKeyhole"];
-  renderExpandedPage?: CitationComponentProps["renderExpandedPage"];
-  citation: BaseCitationProps["citation"];
-  verification: Verification | null;
-  status: CitationStatus;
-  isLoading: boolean;
-  isVisible: boolean;
-  sourceTitle?: string;
-  claimText?: string;
-  indicatorVariant: IndicatorVariant;
-  viewState: PopoverViewState;
-  onViewStateChange: (viewState: PopoverViewState) => void;
-  expandedImageSrcOverride: string | null;
-  onExpandedWidthChange?: (width: number | null, source?: "expanded-keyhole" | "expanded-page" | null) => void;
-  pageImages?: PageImage[];
-  availablePages?: number[];
-  prevBeforeExpandedPageRef: React.RefObject<"summary" | "expanded-keyhole">;
-  download?: DownloadInfo;
-  escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
-  customPopoverActions?: import("./types.js").PopoverAction[];
-  supportingFacts?: SupportingFact[];
-  supportingFactVerifications?: (Verification | undefined)[];
-  parentInstanceId?: string;
-}) {
-  if (renderPopoverContent) {
-    const CustomContent = renderPopoverContent;
-    return (
-      <CitationErrorBoundary>
-        <CustomContent citation={citation} verification={verification} status={status} />
-      </CitationErrorBoundary>
-    );
-  }
-  return (
-    <CitationErrorBoundary>
-      <DefaultPopoverContent
-        citation={citation}
-        verification={verification}
-        status={status}
-        isLoading={isLoading}
-        isVisible={isVisible}
-        sourceTitle={sourceTitle}
-        claimText={claimText}
-        indicatorVariant={indicatorVariant}
-        viewState={viewState}
-        onViewStateChange={onViewStateChange}
-        expandedImageSrcOverride={expandedImageSrcOverride}
-        onExpandedWidthChange={onExpandedWidthChange}
-        pageImages={pageImages}
-        availablePages={availablePages}
-        prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
-        download={download}
-        escapeInterceptRef={escapeInterceptRef}
-        customPopoverActions={customPopoverActions}
-        supportingFacts={supportingFacts}
-        supportingFactVerifications={supportingFactVerifications}
-        parentInstanceId={parentInstanceId}
-        renderEvidenceKeyhole={renderEvidenceKeyhole}
-        renderExpandedPage={renderExpandedPage}
-      />
-    </CitationErrorBoundary>
-  );
-});
+// useKeyboardOpenTracking — see ./useKeyboardOpenTracking.ts
+// PopoverContentRenderer — see ./PopoverContentRenderer.tsx
 
 // =============================================================================
 // MAIN COMPONENT
@@ -769,44 +555,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const shouldShowSpinner = (isLoading || isPending) && !hasDefinitiveResult && spinnerStage !== "stale";
 
     // Low-priority prefetch: queue image downloads as soon as verification arrives.
-    // Evidence crop (keyhole) and full-page image are both fetched at idle priority
-    // so they're already cached when the user clicks to open the popover.
-    // Data URIs are skipped — they're inline and don't need network fetching.
-    // The normal-priority prefetch in DefaultPopoverContent still fires on popover
-    // open, upgrading the browser's fetch priority if the request is still in-flight.
-    //
-    // Dependencies: resolved URL strings (not the verification object) so re-renders
-    // with the same verification data don't re-fire.
+    // See useCitationPrefetch.ts for implementation details.
     const prefetchEvidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
     const prefetchExpandedSrc = useMemo(
       () => resolveExpandedImage(verification, pageImages)?.src ?? null,
       [verification, pageImages],
     );
-    useEffect(() => {
-      if (prefetchMode === "lazy") return;
-
-      const images: HTMLImageElement[] = [];
-
-      if (prefetchEvidenceSrc && !prefetchEvidenceSrc.startsWith("data:")) {
-        const img = new Image();
-        img.fetchPriority = "low";
-        img.src = prefetchEvidenceSrc;
-        images.push(img);
-      }
-
-      if (prefetchExpandedSrc && !prefetchExpandedSrc.startsWith("data:")) {
-        const img = new Image();
-        img.fetchPriority = "low";
-        img.src = prefetchExpandedSrc;
-        images.push(img);
-      }
-
-      return () => {
-        for (const img of images) {
-          img.src = "";
-        }
-      };
-    }, [prefetchMode, prefetchEvidenceSrc, prefetchExpandedSrc]);
+    useCitationPrefetch(prefetchMode, prefetchEvidenceSrc, prefetchExpandedSrc);
 
     const displayText = useMemo(() => {
       return getTriggerText(citation, resolvedContent, fallbackText, claimText);
@@ -996,6 +751,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           closePopover();
         }
       },
+      // biome-ignore lint/correctness/useExhaustiveDependencies: both viewState and viewState.resetToSummary are intentionally listed for hook stability (matches the pattern at the action handler above)
       [eventHandlers, citation, citationKey, announceAsActive, closePopover, viewState],
     );
 
