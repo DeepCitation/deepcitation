@@ -41,7 +41,7 @@ import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { escapeHtml } from "../utils/htmlEscape.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
-import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
+import { normalizeCitationsFile } from "./normalizeCitations.js";
 import { detectProxyUrl } from "../utils/proxy.js";
 import { safeExec, safeReplace, safeTest } from "../utils/regexSafety.js";
 import { validateCitationData } from "../utils/validateCitationData.js";

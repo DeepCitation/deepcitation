@@ -59,7 +59,6 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `toPercentRect()` | `src/react/overlayGeometry.ts` | PDF to CSS coordinate conversion |
 | `isValidOverlayGeometry()` | `src/react/overlayGeometry.ts` | Geometry validation |
 | `isPartialSearchStatus()` | `src/react/citationStatus.ts` | Single source of truth for partial status checks |
-| `getTrustLevel()`, `isLowTrustMatch()` | `src/react/citationStatus.ts` | Trust classification from MatchedVariation |
 | `getStatusFromVerification()` | `src/react/citationStatus.ts` | Verification → CitationStatus mapping |
 | `getStatusLabel()` | `src/react/citationStatus.ts` | Status → display string |
 | `IDENTITY_RENDER_SCALE` | `src/react/evidence/resolvers.ts` | Identity scale for image sources where coords are already in pixel space |

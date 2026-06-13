@@ -1,4 +1,4 @@
-import { sanitizeForLog } from "./logSafety.js";
+import { sanitizeForLog } from "../utils/logSafety.js";
 
 /**
  * Normalize citation JSON into the flat-map format expected by keygen/verify.
