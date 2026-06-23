@@ -2,7 +2,8 @@ import type React from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { guardClamp } from "../../shared/popoverGeometry.js";
 import { findPageScrollEl } from "../../shared/scroll.js";
-import { BLINK_ENTER_TOTAL_MS, GUARD_MAX_WIDTH_VAR, VIEWPORT_MARGIN_PX } from "../constants.js";
+import { BLINK_ENTER_TOTAL_MS } from "../animationConstants.js";
+import { GUARD_MAX_WIDTH_VAR, VIEWPORT_MARGIN_PX } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "../scrollLock.js";
 

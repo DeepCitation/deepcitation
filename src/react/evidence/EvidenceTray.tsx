@@ -11,9 +11,10 @@ import {
   BLINK_EXIT_EASING,
   EVIDENCE_LIST_COLLAPSE_TOTAL_MS,
   EVIDENCE_LIST_EXPAND_TOTAL_MS,
+} from "../animationConstants.js";
+import {
   EVIDENCE_TRAY_BORDER_DASHED,
   EVIDENCE_TRAY_BORDER_SOLID,
-  isValidProofImageSrc,
   TERTIARY_ACTION_BASE_CLASSES,
   TERTIARY_ACTION_HOVER_CLASSES,
   TERTIARY_ACTION_IDLE_CLASSES,
@@ -22,6 +23,7 @@ import { formatCaptureDate } from "../dateUtils.js";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion.js";
 import { type TranslateFunction, tPlural, useLocale, useTranslation } from "../i18n.js";
 import { ChevronRightIcon } from "../icons.js";
+import { isValidProofImageSrc } from "../proofImageSecurity.js";
 import { cn, isImageSource } from "../utils.js";
 import { VerificationLogTimeline } from "../VerificationLog.js";
 import { primeEvidencePageExpandSource } from "../viewTransition.js";

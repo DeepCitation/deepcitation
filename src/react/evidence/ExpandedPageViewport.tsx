@@ -1,22 +1,22 @@
 import type React from "react";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { type HighlightColor, isStrategyOverride, shouldHighlightSourceMatch } from "../../drawing/citationDrawing.js";
+import type { HighlightColor } from "../../drawing/citationDrawing.js";
+import { selectEvidenceAnnotationScrollItem } from "../../drawing/evidenceGeometry.js";
 import type { DeepTextItem } from "../../types/boxes.js";
 import type { Verification } from "../../types/verification.js";
+import { WHEEL_ZOOM_SENSITIVITY } from "../animationConstants.js";
 import { CitationAnnotationOverlay } from "../CitationAnnotationOverlay.js";
 import { getStatusFromVerification } from "../citationStatus.js";
+import { DOCUMENT_CANVAS_BG_CLASSES, HIDE_SCROLLBAR_STYLE } from "../constants.js";
+import { useDragToPan } from "../hooks/useDragToPan.js";
+import { applyGestureTransform, useWheelZoom, type WheelZoomAnchor } from "../hooks/useWheelZoom.js";
+import { useTranslation } from "../i18n.js";
 import {
-  DOCUMENT_CANVAS_BG_CLASSES,
   EXPANDED_PAGE_CANVAS_PADDING_PX,
   EXPANDED_ZOOM_MAX,
   EXPANDED_ZOOM_MIN,
   EXPANDED_ZOOM_STEP,
-  HIDE_SCROLLBAR_STYLE,
-  WHEEL_ZOOM_SENSITIVITY,
-} from "../constants.js";
-import { useDragToPan } from "../hooks/useDragToPan.js";
-import { applyGestureTransform, useWheelZoom, type WheelZoomAnchor } from "../hooks/useWheelZoom.js";
-import { useTranslation } from "../i18n.js";
+} from "../keyholeGeometry.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "../overlayGeometry.js";
 import { cn, isImageSource } from "../utils.js";
 import { DC_EVIDENCE_VT_NAME } from "../viewTransition.js";
@@ -112,13 +112,12 @@ export function ExpandedPageViewport({
     return s.isMiss ? "red" : s.isPartialMatch ? "amber" : "green";
   }, [verification]);
 
-  const vAnchor = verification?.verifiedSourceMatch;
-  const vPhrase = verification?.verifiedSourceContext;
-  const anchorHighlightActive =
-    effectiveAnchorItems?.[0] &&
-    (shouldHighlightSourceMatch(vAnchor, vPhrase) ||
-      (isStrategyOverride(vAnchor, vPhrase) && shouldHighlightSourceMatch(vAnchor, effectivePhraseItem?.text)));
-  const scrollTarget = anchorHighlightActive ? effectiveAnchorItems[0] : effectivePhraseItem;
+  const scrollTarget = selectEvidenceAnnotationScrollItem({
+    sourceContextDeepItem: effectivePhraseItem,
+    sourceMatchDeepItems: effectiveAnchorItems,
+    verifiedSourceMatch: verification?.verifiedSourceMatch,
+    verifiedSourceContext: verification?.verifiedSourceContext,
+  });
 
   const fittedZoom = useMemo(() => {
     return computeExpandedPageFittedZoom({

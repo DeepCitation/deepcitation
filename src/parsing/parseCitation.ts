@@ -1,13 +1,9 @@
+import { normalizeDeepTextPageId } from "../deeptext/index.js";
 import type { AudioVideoCitation, Citation, CitationRecord, DocumentCitation, UrlCitation } from "../types/citation.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { getFieldAliases, resolveField } from "../utils/fieldAliases.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
-import {
-  extractCitationsFromMarkers,
-  getAllCitationsFromNumericResponse,
-  hasCitationData,
-  parsePageId,
-} from "./citationParser.js";
+import { extractCitationsFromMarkers, getAllCitationsFromNumericResponse, hasCitationData } from "./citationParser.js";
 
 /**
  * Parses a JSON-based citation object into a Citation.
@@ -52,7 +48,7 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
     return null;
   }
 
-  const pageNumber = startPageId ? parsePageId(startPageId).pageNumber : undefined;
+  const pageNumber = startPageId ? normalizeDeepTextPageId(startPageId).pageNumber : undefined;
 
   // Sort lineIds if present
   const lineIds = rawLineIds?.length ? [...rawLineIds].sort((a: number, b: number) => a - b) : undefined;

@@ -33,11 +33,12 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `safeMatch()`, `safeReplace()`, `safeTest()` | `src/utils/regexSafety.ts` | ReDoS prevention (input length validation) |
 | `escapeForRegex()` | `src/utils/regexSafety.ts` | Escape a literal string for safe embedding in a `RegExp` constructor |
 | `CITATION_MARKER_PATTERN` | `src/parsing/citationParser.ts` | Canonical `[N]` / `[N,M]` citation marker regex (source) |
+| DeepText page/line helpers and schema descriptions (`formatDeepTextPageId()`, `parseDeepTextPageId()`, `normalizeDeepTextLineIds()`, `wrapDeepTextPage()`, `DEEP_TEXT_*`) | `src/deeptext/index.ts` | Canonical DeepText protocol module. Import from `deepcitation/deeptext`; do not recreate page-id/line-id parsing or prompt/schema wording in app packages. |
 | `stripClaimText()` | `src/parsing/citationParser.ts` | **Deprecated**: strips trailing `sourceMatch` (with known wrappers) from a segment. Prefer `extractTrailingClaimText`. |
 | `extractTrailingClaimText()` | `src/parsing/citationParser.ts` | Strips a trailing claim span and returns `{ stripped, claimText }` — falls back to a sourceMatch-agnostic quote extraction |
 | `validateFileMagicBytes()`, `validateUploadFile()` | `src/utils/fileSafety.ts` | File content validation via magic bytes |
 | `ALLOWED_UPLOAD_MIME_TYPES`, `MAX_UPLOAD_FILE_SIZE` | `src/utils/fileSafety.ts` | Upload constraints (MIME allowlist, size limit) |
-| `isValidProofImageSrc()` | `src/react/constants.ts` | Image source validation (blocks SVG, untrusted hosts) |
+| `isValidProofImageSrc()` | `src/react/proofImageSecurity.ts` | Image source validation (blocks SVG, untrusted hosts) |
 | `getPortalContainer()` | `src/react/constants.ts` | SSR-safe portal container |
 | `formatTtc()` | `src/react/timingUtils.ts` | TtC duration formatting |
 | `computeTimingMetrics()` | `src/react/timingUtils.ts` | Aggregate TtC metrics |
@@ -58,7 +59,6 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `toPercentRect()` | `src/react/overlayGeometry.ts` | PDF to CSS coordinate conversion |
 | `isValidOverlayGeometry()` | `src/react/overlayGeometry.ts` | Geometry validation |
 | `isPartialSearchStatus()` | `src/react/citationStatus.ts` | Single source of truth for partial status checks |
-| `getTrustLevel()`, `isLowTrustMatch()` | `src/react/citationStatus.ts` | Trust classification from MatchedVariation |
 | `getStatusFromVerification()` | `src/react/citationStatus.ts` | Verification → CitationStatus mapping |
 | `getStatusLabel()` | `src/react/citationStatus.ts` | Status → display string |
 | `IDENTITY_RENDER_SCALE` | `src/react/evidence/resolvers.ts` | Identity scale for image sources where coords are already in pixel space |
@@ -80,16 +80,16 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `handleImageError()` | `src/react/imageUtils.ts` | Shared image error handler (`display: "none"`) |
 | `handleImageErrorOpacity()` | `src/react/imageUtils.ts` | Shared image error handler (`opacity: "0"`, preserves layout) |
 | `HIDE_SCROLLBAR_STYLE` | `src/react/constants.ts` | Scrollbar-hiding CSS (`scrollbarWidth: "none"`) |
-| `EASE_EXPAND` | `src/react/constants.ts` | Restrained expand easing (~2% overshoot) |
-| `VT_EVIDENCE_EXPAND_MS` | `src/react/constants.ts` | Evidence image VT expand duration (180ms) |
-| `VT_EVIDENCE_COLLAPSE_MS` | `src/react/constants.ts` | Evidence image VT collapse duration (120ms) |
-| `VT_EVIDENCE_DIP_OPACITY` | `src/react/constants.ts` | Cross-fade old-snapshot opacity dip (0.45) |
+| `EASE_EXPAND` | `src/react/animationConstants.ts` | Restrained expand easing (~2% overshoot) |
+| `VT_EVIDENCE_EXPAND_MS` | `src/react/animationConstants.ts` | Evidence image VT expand duration (180ms) |
+| `VT_EVIDENCE_COLLAPSE_MS` | `src/react/animationConstants.ts` | Evidence image VT collapse duration (120ms) |
+| `VT_EVIDENCE_DIP_OPACITY` | `src/react/animationConstants.ts` | Cross-fade old-snapshot opacity dip (0.45) |
 | `isStrategyOverride()` | `src/drawing/citationDrawing.ts` | True when verifiedSourceContext === verifiedSourceMatch |
 | `acquireScrollLock()`, `releaseScrollLock()` | `src/react/scrollLock.ts` | Ref-counted body scroll lock (shared by popover + drawer) |
 | `triggerHaptic()` | `src/react/haptics.ts` | Fire haptic feedback for a named interaction event |
 | `HapticEvent` | `src/react/haptics.ts` | Union type of haptic event names ("expand" \| "collapse") |
 | `useDrawerDragToClose()` | `src/react/hooks/useDrawerDragToClose.ts` | Drag-to-close gesture for bottom-sheet drawer |
-| `DRAWER_DRAG_CLOSE_THRESHOLD_PX` | `src/react/constants.ts` | Drag distance threshold for drawer close (80px) |
+| `DRAWER_DRAG_CLOSE_THRESHOLD_PX` | `src/react/animationConstants.ts` | Drag distance threshold for drawer close (80px) |
 | `HITBOX_EXTEND_8` | `src/react/constants.ts` | Invisible hit-box extender — uniform 8px |
 | `HITBOX_EXTEND_8x14` | `src/react/constants.ts` | Invisible hit-box extender — 8px horizontal, 14px vertical |
 | `useExpandedPageSideOffset()` | `src/react/hooks/useExpandedPageSideOffset.ts` | Expanded-page popover vertical offset |

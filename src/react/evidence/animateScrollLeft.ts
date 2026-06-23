@@ -1,4 +1,4 @@
-import { POPOVER_MORPH_EXPAND_MS } from "../constants.js";
+import { POPOVER_MORPH_EXPAND_MS } from "../animationConstants.js";
 
 /**
  * Scroll an element to a target scrollLeft over `POPOVER_MORPH_EXPAND_MS` using

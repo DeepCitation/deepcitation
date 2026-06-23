@@ -35,6 +35,9 @@
       "prompts": [
         "./lib/prompts/index.d.ts"
       ],
+      "deeptext": [
+        "./lib/deeptext/index.d.ts"
+      ],
       "react": [
         "./lib/react/index.d.ts"
       ],
@@ -182,6 +185,12 @@
       "import": "./lib/prompts/index.js",
       "require": "./lib/prompts/index.cjs",
       "default": "./lib/prompts/index.js"
+    },
+    "./deeptext": {
+      "types": "./lib/deeptext/index.d.ts",
+      "import": "./lib/deeptext/index.js",
+      "require": "./lib/deeptext/index.cjs",
+      "default": "./lib/deeptext/index.js"
     },
     "./react": {
       "types": "./lib/react/index.d.ts",

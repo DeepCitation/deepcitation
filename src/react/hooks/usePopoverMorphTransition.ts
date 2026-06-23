@@ -1,6 +1,6 @@
 import type React from "react";
 import { useLayoutEffect, useRef } from "react";
-import { EASE_COLLAPSE, POPOVER_MORPH_COLLAPSE_MS } from "../constants.js";
+import { EASE_COLLAPSE, POPOVER_MORPH_COLLAPSE_MS } from "../animationConstants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion.js";
 

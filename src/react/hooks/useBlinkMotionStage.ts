@@ -9,7 +9,7 @@ import {
   BLINK_ROW_FAST_ENTER_STEP_MS,
   BLINK_ROW_FAST_ENTER_TOTAL_MS,
   BLINK_ROW_FAST_EXIT_TOTAL_MS,
-} from "../constants.js";
+} from "../animationConstants.js";
 import { scaleDuration } from "../debug/animationDebugStore.js";
 import type { BlinkMotionStage } from "../motion/blinkAnimation.js";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion.js";

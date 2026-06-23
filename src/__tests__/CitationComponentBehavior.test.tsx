@@ -307,6 +307,57 @@ describe("CitationComponent behaviorConfig", () => {
       expect(getByText(/assessed for ADHD/i)).toBeInTheDocument();
     });
 
+    it("does not duplicate the partial-match snippet above the evidence tray", async () => {
+      const partialPhrase = "Ongoing anxiety; unclear response to increased Anafranil dose.";
+      const citation: Citation = {
+        type: "document",
+        citationNumber: 31,
+        pageNumber: 1,
+        sourceMatch: "anxiety",
+        sourceContext: partialPhrase,
+      };
+      const verification: Verification = {
+        status: "partial_text_found",
+        sourceSnippet: partialPhrase,
+        citation,
+        document: {
+          verifiedPageNumber: 1,
+        },
+        evidence: {
+          src: "data:image/png;base64,iVBORw0KGgo=",
+        },
+        searchAttempts: [
+          {
+            method: "current_page",
+            success: true,
+            searchPhrase: partialPhrase,
+            searchPhraseType: "source_context",
+            pageSearched: 1,
+            matchedText: partialPhrase,
+            matchedVariation: "partial_source_context",
+            foundLocation: { page: 1 },
+            expectedLocation: { page: 1 },
+          },
+        ],
+      };
+
+      const { container } = render(<CitationComponent citation={citation} verification={verification} />);
+
+      const trigger = container.querySelector("[data-citation-id]");
+      expect(trigger).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(trigger as HTMLElement);
+      });
+      await waitForPopoverVisible(container);
+
+      expect(container.textContent).toContain("DeepCitation Partial Match");
+      const monoSnippetNodes = Array.from(container.querySelectorAll(".font-mono")).filter(node =>
+        node.textContent?.includes(partialPhrase),
+      );
+      expect(monoSnippetNodes).toHaveLength(1);
+    });
+
     it("does not render the claimed-as marker when claimText differs only by dash variant", async () => {
       const citation: Citation = {
         citationNumber: 29,

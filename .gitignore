@@ -6,6 +6,17 @@ node_modules
 # Ignore built ts files
 lib/**/*
 /dist/
+# .test.js are compiled build artifacts of .test.ts/.test.tsx — exclude to prevent bun running each test twice
+src/__tests__/**/*.test.js
+src/parsing/__tests__/**/*.test.js
+src/render/__tests__/**/*.test.js
+examples/**/*.test.js
+# Compiled .js doubles of .ts/.tsx sources under test/showcase dirs. With raw JSX they
+# break the Vite/rollup CT build ("JSX syntax is disabled" — .js disables JSX parsing).
+# The .ts/.tsx sources are authoritative; resolveJsToTs maps .js imports back to them.
+src/__tests__/**/*.js
+src/react/testing/*.js
+tests/playwright/**/*.js
 *.tsbuildinfo
 
 bun.lock

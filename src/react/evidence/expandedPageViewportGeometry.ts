@@ -1,4 +1,4 @@
-import { EXPANDED_PAGE_CANVAS_PADDING_PX, EXPANDED_ZOOM_MIN } from "../constants.js";
+import { EXPANDED_PAGE_CANVAS_PADDING_PX, EXPANDED_ZOOM_MIN } from "../keyholeGeometry.js";
 
 export function computeExpandedPageFittedZoom(args: {
   contentReady: boolean;

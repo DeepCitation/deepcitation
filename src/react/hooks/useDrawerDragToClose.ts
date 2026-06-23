@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { DRAWER_DRAG_CLOSE_THRESHOLD_PX } from "../constants.js";
+import { DRAWER_DRAG_CLOSE_THRESHOLD_PX } from "../animationConstants.js";
 import { triggerHaptic } from "../haptics.js";
 
 /** Minimum downward velocity (px/ms) to trigger flick-to-dismiss. ~500px/s. */

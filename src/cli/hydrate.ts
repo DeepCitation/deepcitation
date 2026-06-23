@@ -11,7 +11,13 @@
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { parseCitationData, parsePageId } from "../parsing/citationParser.js";
+import {
+  extractDeepTextPageBlocks,
+  formatRequiredDeepTextPageId,
+  normalizeDeepTextPageId,
+  parseDeepTextPageLines,
+} from "../deeptext/index.js";
+import { parseCitationData } from "../parsing/citationParser.js";
 import {
   CITATION_DATA_END_DELIMITER,
   CITATION_DATA_START_DELIMITER,
@@ -40,20 +46,6 @@ Examples:
   deepcitation hydrate --markdown .deepcitation/draft.md --summary .deepcitation/prepare-report.json
   deepcitation hydrate --markdown .deepcitation/draft.md --summary .deepcitation/prepare-report.json --out .deepcitation/draft-hydrated.md
 `;
-
-/**
- * Matches <page_number_N_index_I> tags. Safe to reuse as a module-level constant:
- * String.matchAll() does not mutate lastIndex.
- * Do NOT use with RegExp.exec() in a loop.
- */
-const PAGE_TAG_RE = /<page_number_(\d+)_index_(\d+)>/g;
-
-/**
- * Matches <line id="N">text</line> entries. Non-greedy [\s\S]*? stops at the
- * first </line>, handling line text that contains any characters.
- * Safe to reuse as a module-level constant with matchAll().
- */
-const _LINE_TAG_RE = /<line id="(\d+)">([\s\S]*?)<\/line>/g;
 
 export interface LineMap {
   /** Qualified key: "page_number_N_index_I:lineId" → line text */
@@ -117,8 +109,8 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
 
   // Check if the text contains <page_number_N_index_I> tags (from deepTextPromptPortion).
   // If not, the pages are raw deepTextPages entries — assign synthetic page IDs per array entry.
-  const hasPageTags = PAGE_TAG_RE.test(deepText);
-  PAGE_TAG_RE.lastIndex = 0; // Reset after .test()
+  const pageBlocks = extractDeepTextPageBlocks(deepText);
+  const hasPageTags = pageBlocks.length > 0;
 
   if (!hasPageTags && pages) {
     // Each array entry is a separate page — assign page_number_{i+1}_index_{i} (1-based page, 0-based index).
@@ -127,7 +119,7 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
     // per-page expectation — global IDs would be "out of bounds" for later pages.
     let globalLineId = 1;
     for (let i = 0; i < pages.length; i++) {
-      const pageId = `page_number_${i + 1}_index_${i}`;
+      const pageId = formatRequiredDeepTextPageId(i + 1);
       const pageText = pages[i];
 
       // If the page has <line id="N"> tags, use extractLines as normal.
@@ -159,24 +151,8 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
     return { qualified, byId };
   }
 
-  // Walk through deepText, tracking the current page tag context.
-  // Each <page_number_N_index_I> tag opens a new page segment; lines within
-  // that segment are keyed by the page's normalized ID.
-  let lastIndex = 0;
-  let currentPageId = "";
-
-  for (const pageMatch of deepText.matchAll(PAGE_TAG_RE)) {
-    const segmentText = deepText.slice(lastIndex, pageMatch.index);
-    if (segmentText && currentPageId) {
-      extractLines(segmentText, currentPageId, qualified, byId);
-    }
-    currentPageId = `page_number_${pageMatch[1]}_index_${pageMatch[2]}`;
-    lastIndex = (pageMatch.index ?? 0) + pageMatch[0].length;
-  }
-
-  // Process remaining text after the last page tag
-  if (lastIndex < deepText.length && currentPageId) {
-    extractLines(deepText.slice(lastIndex), currentPageId, qualified, byId);
+  for (const block of pageBlocks) {
+    extractLines(block.content, block.pageId, qualified, byId);
   }
 
   return { qualified, byId };
@@ -197,47 +173,10 @@ function extractLines(
   qualified: Map<string, string>,
   byId: Map<number, string>,
 ): void {
-  // Use a local regex instance — LINE_TAG_RE must not be used with exec() loops.
-  const re = /<line id="(\d+)">([\s\S]*?)<\/line>/g;
-
-  const tagged: Array<{ id: number; text: string; startIdx: number; endIdx: number }> = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(segment)) !== null) {
-    tagged.push({
-      id: parseInt(m[1], 10),
-      text: m[2].trim(),
-      startIdx: m.index,
-      endIdx: m.index + m[0].length,
-    });
-  }
-
-  // Store tagged lines.
-  for (const entry of tagged) {
-    qualified.set(`${pageId}:${entry.id}`, entry.text);
-    byId.set(entry.id, entry.text);
-  }
-
-  // Infer intermediate lines between consecutive tagged entries.
-  for (let i = 0; i < tagged.length - 1; i++) {
-    const curr = tagged[i];
-    const next = tagged[i + 1];
-    const gap = next.id - curr.id - 1;
-    if (gap <= 0) continue;
-
-    const betweenText = segment.slice(curr.endIdx, next.startIdx);
-    const rawLines = betweenText
-      .split("\n")
-      .map(l => l.trim())
-      .filter(l => l.length > 0);
-
-    // Only assign up to `gap` IDs to avoid colliding with the next tagged entry.
-    const count = Math.min(rawLines.length, gap);
-    for (let j = 0; j < count; j++) {
-      const inferredId = curr.id + j + 1;
-      const key = `${pageId}:${inferredId}`;
-      if (!qualified.has(key)) qualified.set(key, rawLines[j]);
-      if (!byId.has(inferredId)) byId.set(inferredId, rawLines[j]);
-    }
+  for (const line of parseDeepTextPageLines(segment)) {
+    const key = `${pageId}:${line.lineId}`;
+    if (!qualified.has(key)) qualified.set(key, line.text);
+    byId.set(line.lineId, line.text);
   }
 }
 
@@ -263,7 +202,7 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
     // taken when the LLM provides wrong IDs.
 
     // Resolve the normalized pageId for qualified lookups (handles both "N_I" and "page_number_N_index_I")
-    const normalizedPageId = citation.page_id ? (parsePageId(citation.page_id).startPageId ?? "") : "";
+    const normalizedPageId = citation.page_id ? (normalizeDeepTextPageId(citation.page_id).startPageId ?? "") : "";
 
     // Always pull ±1 neighbor lines around the cited range so source_context is
     // reliably wider than source_match. Without surrounding context, the popover
@@ -348,7 +287,7 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
       // appear on multiple pages (e.g. a repeated term in a definitions section).
       if (citation.source_match) {
         const allLines = getAllLines(lineMap);
-        const hintPageId = citation.page_id ? (parsePageId(citation.page_id).startPageId ?? "") : "";
+        const hintPageId = citation.page_id ? (normalizeDeepTextPageId(citation.page_id).startPageId ?? "") : "";
         const pageLines = hintPageId ? allLines.filter(l => l.pageId === hintPageId) : [];
         const found =
           (pageLines.length > 0 ? findAnchorWithFallback(citation.source_match, pageLines) : null) ??

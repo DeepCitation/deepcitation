@@ -1,19 +1,19 @@
 import type React from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { selectEvidenceKeyholeScrollItem } from "../../drawing/evidenceGeometry.js";
 import type { Verification } from "../../types/verification.js";
+import { DOCUMENT_CANVAS_BG_CLASSES, DOCUMENT_IMAGE_EDGE_CLASSES } from "../constants.js";
+import { AimOverlay } from "../debug/AimOverlay.js";
+import { useDragToPan } from "../hooks/useDragToPan.js";
+import { useTranslation } from "../i18n.js";
 import {
   buildKeyholeMaskImage,
-  DOCUMENT_CANVAS_BG_CLASSES,
-  DOCUMENT_IMAGE_EDGE_CLASSES,
   KEYHOLE_FADE_WIDTH,
   KEYHOLE_SKIP_THRESHOLD,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
   KEYHOLE_STRIP_HEIGHT_VAR,
   MIN_PAN_OVERFLOW_PX,
-} from "../constants.js";
-import { AimOverlay } from "../debug/AimOverlay.js";
-import { useDragToPan } from "../hooks/useDragToPan.js";
-import { useTranslation } from "../i18n.js";
+} from "../keyholeGeometry.js";
 import { computeAnnotationScrollTarget } from "../overlayGeometry.js";
 import { cn, isImageSource } from "../utils.js";
 import { DC_EVIDENCE_VT_NAME } from "../viewTransition.js";
@@ -60,7 +60,10 @@ export function EvidenceKeyhole({
   // For image sources (mimeType: "image/*"), coords are already in pixel space — default to identity.
   const anchorScrollData = useMemo(() => {
     if (!verification) return null;
-    const anchorItem = verification.document?.sourceMatchDeepItems?.[0] ?? verification.document?.sourceContextDeepItem;
+    const anchorItem = selectEvidenceKeyholeScrollItem({
+      sourceContextDeepItem: verification.document?.sourceContextDeepItem,
+      sourceMatchDeepItems: verification.document?.sourceMatchDeepItems,
+    });
     if (!anchorItem) return null;
     const renderScale =
       verification.document?.renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);

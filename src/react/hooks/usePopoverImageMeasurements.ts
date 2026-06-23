@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useReducer } from "react";
 import type { Verification } from "../../types/verification.js";
-import { projectKeyholeDisplayedWidth } from "../constants.js";
 import { getSummaryPopoverWidth } from "../expandedWidthPolicy.js";
+import { projectKeyholeDisplayedWidth } from "../keyholeGeometry.js";
 
 type PopoverViewState = "summary" | "expanded-keyhole" | "expanded-page";
 type ExpandedImageMeasurementInput = { src?: string; dimensions?: { width?: number | null } | null } | null;

@@ -1,6 +1,6 @@
 import type React from "react";
 import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
-import { EVIDENCE_LIST_COLLAPSE_TOTAL_MS, EVIDENCE_LIST_EXPAND_STEP_MS } from "../constants.js";
+import { EVIDENCE_LIST_COLLAPSE_TOTAL_MS, EVIDENCE_LIST_EXPAND_STEP_MS } from "../animationConstants.js";
 import {
   resolveEvidenceListOpacity,
   resolveEvidenceListPaddingTop,

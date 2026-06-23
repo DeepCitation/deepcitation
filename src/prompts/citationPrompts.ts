@@ -1,7 +1,10 @@
-// Inlined from textCleanup.ts — avoids a cross-chunk shared dependency that
-// pulls prompt strings into the main bundle (see bundle optimization notes).
-const _PAGE_NUMBER_RE = /<\/?page_number_\d+_index_\d+>/g;
-const _LINE_ID_RE = /<line id="[^"]*">|<\/line>/g;
+import {
+  DEEP_TEXT_COMPACT_PAGE_ID_SCHEMA_DESCRIPTION,
+  DEEP_TEXT_INCLUSIVE_LINE_IDS_SCHEMA_DESCRIPTION,
+  DEEP_TEXT_PAGE_ID_SCHEMA_DESCRIPTION,
+  pageToDeepTextLineTaggedText,
+  wrapDeepTextPage,
+} from "../deeptext/index.js";
 
 /**
  * Citation Prompts
@@ -359,32 +362,13 @@ function renderDeepTextPromptString(attachmentId: string, filePages: string[]): 
     const page = filePages[i] ?? "";
     if (page.trim()) isValid = true;
 
-    const pageText = page.includes("<line id=") ? page : pageToLineTaggedText(page);
-    parts.push(`<page_number_${i + 1}_index_${i}>\n${pageText}\n</page_number_${i + 1}_index_${i}>\n\n`);
+    const pageText = page.includes("<line id=") ? page : pageToDeepTextLineTaggedText(page);
+    const wrapped = wrapDeepTextPage(i + 1, pageText);
+    if (wrapped) parts.push(`${wrapped}\n\n`);
   }
 
   if (!isValid) return "";
   return `<attachment id="${attachmentId}">${parts.join("").trim()}</attachment>`;
-}
-
-function pageToLineTaggedText(page: string): string {
-  const cleanPage = page.replace(_PAGE_NUMBER_RE, "").trim().replace(_LINE_ID_RE, "");
-  const lines = cleanPage
-    .split("\n")
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
-
-  if (lines.length === 0) return "";
-
-  const lastIndex = lines.length - 1;
-  return lines
-    .map((line, index) => {
-      if (index === 0 || index === lastIndex || (index + 1) % 5 === 0) {
-        return `<line id="${index + 1}">${line}</line>`;
-      }
-      return line;
-    })
-    .join("\n");
 }
 
 /**
@@ -417,12 +401,12 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
     },
     page_id: {
       type: "string",
-      description: "Page ID in format 'page_number_N_index_I' (copy from <page_number_N_index_I> tags)",
+      description: DEEP_TEXT_PAGE_ID_SCHEMA_DESCRIPTION,
     },
     line_ids: {
       type: "array",
       items: { type: "integer" },
-      description: "Array of line IDs for the citation",
+      description: DEEP_TEXT_INCLUSIVE_LINE_IDS_SCHEMA_DESCRIPTION,
     },
   },
   required: ["id", "attachment_id", "source_context", "source_match", "page_id", "line_ids"],
@@ -676,13 +660,12 @@ export const COMPACT_CITATION_JSON_OUTPUT_FORMAT = {
     },
     p: {
       type: "string",
-      description:
-        "Compact page id 'N_I' (e.g. '2_0' for page 2, index 0). Extract N and I from <page_number_N_index_I> tags.",
+      description: DEEP_TEXT_COMPACT_PAGE_ID_SCHEMA_DESCRIPTION,
     },
     l: {
       type: "array",
       items: { type: "integer" },
-      description: "Array of line IDs from <line id='N'> tags",
+      description: DEEP_TEXT_INCLUSIVE_LINE_IDS_SCHEMA_DESCRIPTION,
     },
   },
   required: ["n", "a", "k", "p", "l"],

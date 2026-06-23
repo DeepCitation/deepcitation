@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
+import { normalizeCitationsFile } from "../cli/normalizeCitations.js";
 
 describe("normalizeCitationsFile", () => {
   // ── flat-map passthrough ───────────────────────────────────────

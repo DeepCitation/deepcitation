@@ -7,6 +7,7 @@
  * entry points and makes the behavior easy to unit-test.
  */
 
+import { wrapDeepTextLine } from "../deeptext/index.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { cleanDeepTextPage, removeLineIdMetadata } from "../utils/textCleanup.js";
 import { die } from "./cliUtils.js";
@@ -171,7 +172,7 @@ export function retagEveryN(page: string, n: 1 | 2 | 3 | 4): string {
   const body = lines
     .map(({ id, text }) => {
       const tag = id === firstId || id === lastId || id % n === 0;
-      return tag ? `<line id="${id}">${text}</line>` : text;
+      return tag ? (wrapDeepTextLine(id, text) ?? text) : text;
     })
     .join("\n");
 

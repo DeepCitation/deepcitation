@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { isValidProofImageSrc } from "../react/constants";
+import { isValidProofImageSrc } from "../react/proofImageSecurity";
 import { createLogEntry, sanitizeForLog, sanitizeJsonForLog } from "../utils/logSafety";
 import { createSafeObject, isSafeKey, safeAssign, safeAssignBulk, safeMerge } from "../utils/objectSafety";
 import {
