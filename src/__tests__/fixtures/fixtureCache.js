@@ -10,6 +10,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+
 const FIXTURES_DIR = resolve(__dirname);
 const REFRESH = process.env.REFRESH_FIXTURES === "1";
 /** In-memory cache for the current process (avoids re-fetching within a single test run) */
@@ -22,46 +23,45 @@ const memoryCache = new Map();
  * @returns The cached or freshly-produced data
  */
 export async function cachedFixture(name, producer) {
-    const path = resolve(FIXTURES_DIR, `${name}.json`);
-    // Check in-memory cache first (handles multiple tests using same fixture in one run)
-    if (memoryCache.has(name)) {
-        return memoryCache.get(name);
-    }
-    // Use disk cache if available and not refreshing
-    if (!REFRESH && existsSync(path)) {
-        const raw = JSON.parse(readFileSync(path, "utf-8"));
-        memoryCache.set(name, raw.data);
-        return raw.data;
-    }
-    // Make the real call
-    const data = await producer();
-    // Cache the result
-    if (!existsSync(FIXTURES_DIR))
-        mkdirSync(FIXTURES_DIR, { recursive: true });
-    const fixture = {
-        capturedAt: new Date().toISOString(),
-        data,
-    };
-    writeFileSync(path, JSON.stringify(fixture, null, 2));
-    memoryCache.set(name, data);
-    return data;
+  const path = resolve(FIXTURES_DIR, `${name}.json`);
+  // Check in-memory cache first (handles multiple tests using same fixture in one run)
+  if (memoryCache.has(name)) {
+    return memoryCache.get(name);
+  }
+  // Use disk cache if available and not refreshing
+  if (!REFRESH && existsSync(path)) {
+    const raw = JSON.parse(readFileSync(path, "utf-8"));
+    memoryCache.set(name, raw.data);
+    return raw.data;
+  }
+  // Make the real call
+  const data = await producer();
+  // Cache the result
+  if (!existsSync(FIXTURES_DIR)) mkdirSync(FIXTURES_DIR, { recursive: true });
+  const fixture = {
+    capturedAt: new Date().toISOString(),
+    data,
+  };
+  writeFileSync(path, JSON.stringify(fixture, null, 2));
+  memoryCache.set(name, data);
+  return data;
 }
 /**
  * Check if we can make real API calls (key is set and we're refreshing or missing fixtures).
  */
 export function hasApiKey() {
-    const key = process.env.DEEPCITATION_API_KEY;
-    return Boolean(key && key.startsWith("sk-dc-") && key.length >= 20);
+  const key = process.env.DEEPCITATION_API_KEY;
+  return Boolean(key && key.startsWith("sk-dc-") && key.length >= 20);
 }
 /**
  * Check if a specific fixture exists on disk.
  */
 export function fixtureExists(name) {
-    return existsSync(resolve(FIXTURES_DIR, `${name}.json`));
+  return existsSync(resolve(FIXTURES_DIR, `${name}.json`));
 }
 /**
  * Determine if a test can run: either fixtures exist or we have an API key to create them.
  */
 export function canRunE2e(fixtureName) {
-    return fixtureExists(fixtureName) || hasApiKey();
+  return fixtureExists(fixtureName) || hasApiKey();
 }

@@ -11,8 +11,13 @@
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import {
+  extractDeepTextPageBlocks,
+  formatRequiredDeepTextPageId,
+  normalizeDeepTextPageId,
+  parseDeepTextPageLines,
+} from "../deeptext/index.js";
 import { parseCitationData } from "../parsing/citationParser.js";
-import { extractDeepTextPageBlocks, formatRequiredDeepTextPageId, normalizeDeepTextPageId, parseDeepTextPageLines } from "../deeptext/index.js";
 import {
   CITATION_DATA_END_DELIMITER,
   CITATION_DATA_START_DELIMITER,

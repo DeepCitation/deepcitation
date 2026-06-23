@@ -3,10 +3,9 @@ import { memo } from "react";
 import type { SupportingFact } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
 import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
-import type { IndicatorVariant } from "./types.js";
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
 import type { EvidenceKeyholeRenderProps } from "./EvidenceTray.js";
-import type { BaseCitationProps, DownloadInfo, PopoverAction } from "./types.js";
+import type { BaseCitationProps, DownloadInfo, IndicatorVariant, PopoverAction } from "./types.js";
 
 export interface PopoverContentRendererProps {
   renderPopoverContent?: (props: {

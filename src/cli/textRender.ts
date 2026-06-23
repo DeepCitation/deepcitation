@@ -7,9 +7,9 @@
  * entry points and makes the behavior easy to unit-test.
  */
 
+import { wrapDeepTextLine } from "../deeptext/index.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { cleanDeepTextPage, removeLineIdMetadata } from "../utils/textCleanup.js";
-import { wrapDeepTextLine } from "../deeptext/index.js";
 import { die } from "./cliUtils.js";
 
 // ── types ─────────────────────────────────────────────────────────

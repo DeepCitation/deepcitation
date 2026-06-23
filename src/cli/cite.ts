@@ -7,10 +7,10 @@
  * citation JSON with a deterministic local search.
  */
 
+import { normalizeDeepTextPageId, wrapDeepTextLine } from "../deeptext/index.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeQuotes } from "../utils/normalizeQuotes.js";
 import { safeExec } from "../utils/regexSafety.js";
-import { normalizeDeepTextPageId, wrapDeepTextLine } from "../deeptext/index.js";
 import type { LineMap } from "./hydrate.js";
 
 /** A single indexed evidence line from the summary. */

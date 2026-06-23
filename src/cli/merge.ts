@@ -16,8 +16,8 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { hasWhitespaceOnlyCitationBlock, parseCitationData } from "../parsing/citationParser.js";
 import { normalizeDeepTextPageId } from "../deeptext/index.js";
+import { hasWhitespaceOnlyCitationBlock, parseCitationData } from "../parsing/citationParser.js";
 import {
   CITATION_DATA_END_DELIMITER,
   CITATION_DATA_START_DELIMITER,

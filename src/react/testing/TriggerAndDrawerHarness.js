@@ -10,11 +10,13 @@ import { CitationDrawerTrigger } from "../CitationDrawerTrigger";
  * internally). The resolved groups are passed directly to the trigger and drawer
  * without a separate sourceLabelMap, so label resolution happens exactly once.
  */
-export function TriggerAndDrawer({ citations, sourceLabelMap, }) {
-    const [isOpen, setIsOpen] = useState(false);
-    const groups = groupCitationsBySource(citations, sourceLabelMap);
-    return (<div data-testid="harness">
-      <CitationDrawerTrigger citationGroups={groups} onClick={() => setIsOpen(true)} isOpen={isOpen}/>
-      <CitationDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} citationGroups={groups}/>
-    </div>);
+export function TriggerAndDrawer({ citations, sourceLabelMap }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const groups = groupCitationsBySource(citations, sourceLabelMap);
+  return (
+    <div data-testid="harness">
+      <CitationDrawerTrigger citationGroups={groups} onClick={() => setIsOpen(true)} isOpen={isOpen} />
+      <CitationDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} citationGroups={groups} />
+    </div>
+  );
 }

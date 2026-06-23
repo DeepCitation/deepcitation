@@ -41,7 +41,6 @@ import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { escapeHtml } from "../utils/htmlEscape.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
-import { normalizeCitationsFile } from "./normalizeCitations.js";
 import { detectProxyUrl } from "../utils/proxy.js";
 import { safeExec, safeReplace, safeTest } from "../utils/regexSafety.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
@@ -58,6 +57,7 @@ import { extractMarkersFromBody, findAnchorWithFallback, getAllLines, toCompactP
 import { die, extractApiKey, isValidApiKeyFormat, normalizeShortFlags, parseArgs } from "./cliUtils.js";
 import { findSummaryForMarkdown, hydrateCitations, parseSummaryToLineMap } from "./hydrate.js";
 import { generateReviewVariants, markdownToHtml, type ReportStyle } from "./markdownToHtml.js";
+import { normalizeCitationsFile } from "./normalizeCitations.js";
 import { createCoworkFetch, createProxyFetch } from "./proxy.js";
 import { applyLineIds, parseFormatMode, parseLineIdsMode, renderTextStream, resolvePageSpec } from "./textRender.js";
 

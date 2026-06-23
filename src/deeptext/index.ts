@@ -9,12 +9,9 @@ const DEEP_TEXT_LOOSE_PAGE_ID_RE = /page[_a-z]{0,30}(\d+)_index_(\d+)/i;
 
 export const DEEP_TEXT_PAGE_ID_FORMAT = "page_number_PAGE_index_INDEX";
 export const DEEP_TEXT_PAGE_ID_EXAMPLE = "page_number_1_index_0";
-export const DEEP_TEXT_PAGE_ID_FROM_KEYS_DESCRIPTION =
-  `Use only a DeepText page_id copied from provided page keys in the ${DEEP_TEXT_PAGE_ID_FORMAT} format, for example <${DEEP_TEXT_PAGE_ID_EXAMPLE}>. Do not infer page_id from page text.`;
-export const DEEP_TEXT_PAGE_NUMBER_FROM_PAGE_ID_DESCRIPTION =
-  `Derive this from a provided DeepText page_id in the ${DEEP_TEXT_PAGE_ID_FORMAT} format and return only the one-based page number.`;
-export const DEEP_TEXT_PAGE_ID_SCHEMA_DESCRIPTION =
-  `Canonical DeepText page_id in ${DEEP_TEXT_PAGE_ID_FORMAT} format, for example ${DEEP_TEXT_PAGE_ID_EXAMPLE}.`;
+export const DEEP_TEXT_PAGE_ID_FROM_KEYS_DESCRIPTION = `Use only a DeepText page_id copied from provided page keys in the ${DEEP_TEXT_PAGE_ID_FORMAT} format, for example <${DEEP_TEXT_PAGE_ID_EXAMPLE}>. Do not infer page_id from page text.`;
+export const DEEP_TEXT_PAGE_NUMBER_FROM_PAGE_ID_DESCRIPTION = `Derive this from a provided DeepText page_id in the ${DEEP_TEXT_PAGE_ID_FORMAT} format and return only the one-based page number.`;
+export const DEEP_TEXT_PAGE_ID_SCHEMA_DESCRIPTION = `Canonical DeepText page_id in ${DEEP_TEXT_PAGE_ID_FORMAT} format, for example ${DEEP_TEXT_PAGE_ID_EXAMPLE}.`;
 export const DEEP_TEXT_COMPACT_PAGE_ID_SCHEMA_DESCRIPTION =
   "Compact DeepText page_id in N_I format, where N is the one-based page number and I is the zero-based page index copied from the page tag.";
 export const DEEP_TEXT_LINE_ID_SCHEMA_DESCRIPTION =

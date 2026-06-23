@@ -13,6 +13,7 @@
  * 5. Hydration: Map the JSON objects to a usable format
  */
 
+import { formatDeepTextPageId, normalizeDeepTextLineIds, normalizeDeepTextPageId } from "../deeptext/index.js";
 import {
   CITATION_DATA_END_DELIMITER,
   CITATION_DATA_START_DELIMITER,
@@ -20,8 +21,6 @@ import {
   type CompactCitationData,
   type ParsedCitationResponse,
 } from "../prompts/citationPrompts.js";
-import { formatDeepTextPageId, normalizeDeepTextLineIds, normalizeDeepTextPageId } from "../deeptext/index.js";
-import { repairJson } from "./jsonRepair.js";
 import type { Citation, SupportingFact } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
@@ -29,6 +28,7 @@ import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
 import { escapeForRegex, safeMatch } from "../utils/regexSafety.js";
 import { sha1Hash } from "../utils/sha.js";
 import { getVerificationTextIndicator } from "../utils/verificationIndicator.js";
+import { repairJson } from "./jsonRepair.js";
 
 /**
  * Map of compact keys to their full CitationData equivalents.
@@ -427,7 +427,6 @@ function recoverCitationObjectsFromMalformedJson(jsonString: string): CitationDa
   return citations;
 }
 
-
 /**
  * Parses a citation response from an LLM.
  * Internal use only — use {@link getAllCitationsFromLlmOutput} from the public API.
@@ -543,7 +542,6 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
     success: true,
   };
 }
-
 
 /**
  * Converts a CitationData object to the standard Citation format.

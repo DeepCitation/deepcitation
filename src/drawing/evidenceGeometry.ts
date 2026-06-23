@@ -1,5 +1,5 @@
 import type { DeepTextItem, ScreenBox } from "../types/boxes.js";
-import { BOX_PADDING, isStrategyOverride, shouldHighlightSourceMatch, SPOTLIGHT_PADDING } from "./citationDrawing.js";
+import { BOX_PADDING, isStrategyOverride, SPOTLIGHT_PADDING, shouldHighlightSourceMatch } from "./citationDrawing.js";
 
 export type CoordinateOrigin = "pdf" | "image";
 
@@ -269,7 +269,8 @@ export function computeEvidenceKeyholeZoom({
   targetContextHeight?: number;
   maxZoom?: number;
 }): number {
-  const widthFill = isPositiveFinite(viewportWidth) && isPositiveFinite(imageNaturalWidth) ? viewportWidth / imageNaturalWidth : 1;
+  const widthFill =
+    isPositiveFinite(viewportWidth) && isPositiveFinite(imageNaturalWidth) ? viewportWidth / imageNaturalWidth : 1;
   const heightFill =
     isPositiveFinite(viewportHeight) && isPositiveFinite(imageNaturalHeight) ? viewportHeight / imageNaturalHeight : 1;
   const contextHeightFill =
@@ -311,7 +312,12 @@ export function selectEvidenceKeyholeFrameItem<TItem extends ScreenBox>({
   preferFirstMatch?: boolean;
 }): TItem {
   const firstMatchItem = sourceMatchDeepItems?.[0];
-  if (!firstMatchItem || !isPositiveFinite(viewportWidth) || !isPositiveFinite(zoom) || !isPositiveFinite(renderScale.x)) {
+  if (
+    !firstMatchItem ||
+    !isPositiveFinite(viewportWidth) ||
+    !isPositiveFinite(zoom) ||
+    !isPositiveFinite(renderScale.x)
+  ) {
     return sourceContextDeepItem;
   }
 
