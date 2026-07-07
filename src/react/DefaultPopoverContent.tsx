@@ -620,6 +620,11 @@ function PopoverLoadingView({
             {t("popover.claimedAs", { label: claimText })}
           </span>
         )}
+        {isApproximate && citation.reasoning?.trim() && (
+          <span className="text-[11px] italic leading-snug text-dc-subtle-foreground">
+            {t("popover.claimReason", { reason: citation.reasoning.trim() })}
+          </span>
+        )}
         {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
           <span className="text-xs text-dc-subtle-foreground">
             {isImageSource(verification)
@@ -728,6 +733,11 @@ function PopoverFallbackView({
               ≈
             </span>
             {t("popover.claimedAs", { label: claimText })}
+          </span>
+        )}
+        {isApproximate && citation.reasoning?.trim() && (
+          <span className="text-[11px] italic leading-snug text-dc-subtle-foreground">
+            {t("popover.claimReason", { reason: citation.reasoning.trim() })}
           </span>
         )}
         {pageNumber && pageNumber > 0 && (
@@ -949,6 +959,10 @@ export function DefaultPopoverContent({
   const sourceContext = citation.sourceContext || verification?.verifiedSourceContext;
 
   const isApproximate = isApproximateMatch({ claimText, sourceMatch, sourceContext });
+  // Model's rationale for an approximate claim — why the displayed wording maps
+  // to the verified source. Only surfaced when the claim diverges (≈); an exact
+  // match needs no justification.
+  const claimReason = citation.reasoning?.trim() || undefined;
 
   // Get URL access explanation for blocked/error states (URL citations only)
   const urlAccessExplanation = useMemo(() => {
@@ -1079,11 +1093,18 @@ export function DefaultPopoverContent({
                 />
               )}
               {isApproximate && claimText && sourceContext && (
-                <div className="flex items-center ml-4 mr-3 -mt-3 mb-3 text-dc-subtle-foreground">
-                  <span aria-hidden="true" className="mr-1 text-amber-500 dark:text-amber-400 text-md">
-                    ≈
-                  </span>
-                  <span className="text-[11px]">{t("popover.claimedAs", { label: claimText })}</span>
+                <div className="flex flex-col ml-4 mr-3 -mt-3 mb-3 text-dc-subtle-foreground">
+                  <div className="flex items-center">
+                    <span aria-hidden="true" className="mr-1 text-amber-500 dark:text-amber-400 text-md">
+                      ≈
+                    </span>
+                    <span className="text-[11px]">{t("popover.claimedAs", { label: claimText })}</span>
+                  </div>
+                  {claimReason && (
+                    <span className="mt-0.5 ml-[1.35rem] text-[11px] italic leading-snug">
+                      {t("popover.claimReason", { reason: claimReason })}
+                    </span>
+                  )}
                 </div>
               )}
             </AnimatedHeightWrapper>

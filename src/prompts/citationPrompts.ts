@@ -46,6 +46,8 @@ Write naturally and **bold** the 1–4 word name of each key fact — a claim, v
 
 Example: The company reported **45% growth** [1] in revenue, reaching **$2.3 billion** [2] in Q4.
 
+Mark only that term: never place [N] after a whole clause or a dash-joined phrase — the highlight grows left from [N], so a marker at the end of a clause highlights the entire clause. If the bolded term paraphrases the source instead of quoting it verbatim (e.g. **progressive functional limitation** where the source says "progressively limited"), \`reasoning\` is REQUIRED — state why the two mean the same thing.
+
 ### Citation Data Block
 At the END of your response, append a citation block. Group citations by attachment_id to avoid repetition.
 
@@ -67,7 +69,7 @@ To save tokens: n=id, r=reasoning, f=source_context, k=source_match, p=page_id, 
 
 1. **Group key**: The attachment_id (exact ID from source document)
 2. **id** (or n): Each citation MUST have a unique ID matching its [N] marker. Do NOT reuse the same ID for different citations.
-3. **reasoning** (or r): Brief explanation connecting the citation to your claim (think first!)
+3. **reasoning** (or r): Brief explanation connecting the citation to your claim (think first!). REQUIRED whenever your bolded term paraphrases the source rather than quoting source_match verbatim — explain why they mean the same thing.
 4. **source_context** (or f): Copy text VERBATIM from source. Use proper JSON escaping for quotes.
 5. **source_match** (or k): 1–4 verbatim words from the evidence line (NEVER more than 4). Pick the distinctive noun or term, not the surrounding verb phrase. Drop leading articles ("the", "a"). This gets highlighted in yellow — a short highlight is precise; a full sentence in yellow is unreadable.
 6. **page_id** (or p): Format "page_number_N_index_I" where N=page number, I=index (copy exactly from \`<page_number_N_index_I>\` tags in the source)
@@ -388,7 +390,8 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
     },
     reasoning: {
       type: "string",
-      description: "Brief explanation of why this supports the claim",
+      description:
+        "Brief explanation of why this supports the claim. Required when the displayed claim wording paraphrases source_match rather than quoting it verbatim.",
     },
     source_context: {
       type: "string",
@@ -687,7 +690,8 @@ export const CITATION_AV_JSON_OUTPUT_FORMAT = {
     },
     reasoning: {
       type: "string",
-      description: "Brief explanation of why this supports the claim",
+      description:
+        "Brief explanation of why this supports the claim. Required when the displayed claim wording paraphrases source_match rather than quoting it verbatim.",
     },
     source_context: {
       type: "string",

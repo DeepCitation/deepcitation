@@ -615,10 +615,17 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
               )}
               {item.claimText && sourceMatch && isApproximate && (
                 <div className="px-4 py-2 text-xs text-dc-subtle-foreground border-t border-dc-border">
-                  <span aria-hidden="true" className="mr-0.5">
-                    ≈
-                  </span>
-                  {t("popover.claimedAs", { label: item.claimText })}
+                  <div>
+                    <span aria-hidden="true" className="mr-0.5">
+                      ≈
+                    </span>
+                    {t("popover.claimedAs", { label: item.claimText })}
+                  </div>
+                  {citation.reasoning?.trim() && (
+                    <div className="mt-0.5 italic leading-snug">
+                      {t("popover.claimReason", { reason: citation.reasoning.trim() })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
