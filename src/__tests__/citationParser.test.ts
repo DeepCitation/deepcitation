@@ -65,6 +65,29 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.citations.length).toBe(0);
   });
 
+  it("issue-2645: fails closed when citation scaffolding appears without a data delimiter", () => {
+    const response = `Section 7 - Treatment
+
+Referral to a pain clinic is planned.
+
+Now, I need to generate the citation data.
+
+Attachment ID: att-public-room
+Source Context: "The patient should be referred to the pain clinic."
+Source Match: "pain clinic"
+Line IDs: 15
+Page ID: page_number_1_index_0`;
+
+    const result = parseCitationData(response);
+
+    expect(result.success).toBe(false);
+    expect(result.visibleText).toBe("Section 7 - Treatment\n\nReferral to a pain clinic is planned.");
+    expect(result.visibleText).not.toContain("Attachment ID");
+    expect(result.visibleText).not.toContain("Source Context");
+    expect(result.visibleText).not.toContain("Now, I need");
+    expect(result.citations).toEqual([]);
+  });
+
   it("handles empty input", () => {
     const result = parseCitationData("");
     expect(result.success).toBe(false);

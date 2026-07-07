@@ -50,6 +50,25 @@ describe("wrapCitationMarkers", () => {
     expect(result).toContain('data-cite="1"');
     expect(result).toContain("revenue grew significantly");
   });
+
+  it("issue-2645: leaves text untouched when the sourceMatch is absent from the prose", () => {
+    const html = "<p>Further treatment anticipated: Referral to a[1].</p>";
+    const result = wrapCitationMarkers(html, { "1": "refer to pain clinic" });
+
+    expect(result).toContain('Referral to a<span data-cite="1"></span>.');
+    expect(result).not.toContain('<span data-cite="1">Referral to a</span>');
+    expect(result).not.toContain("refer to pain clinic");
+  });
+
+  it("issue-2645: never splices a missing sourceMatch into an adjacent clause", () => {
+    const html = "<p>Ongoing care is planned[1].</p>";
+    const result = wrapCitationMarkers(html, { "1": "refer to pain clinic" });
+
+    expect(result).toContain('Ongoing care is planned<span data-cite="1"></span>.');
+    expect(result).not.toContain("Ongoing care is refer to pain clinic");
+    expect(result).not.toContain('<span data-cite="1">Ongoing care is planned</span>');
+  });
+
   it("emits empty span for punctuation-only anchors", () => {
     const html = '<p>Schedule "C" [1]</p>';
     const result = wrapCitationMarkers(html);

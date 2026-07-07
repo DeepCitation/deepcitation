@@ -38,8 +38,9 @@ export function parseCitationResponse(llmOutput: string): ParsedCitationResult {
   }
 
   // No citations detected
+  const parsed = parseCitationData(llmOutput);
   return {
-    visibleText: llmOutput,
+    visibleText: parsed.success ? llmOutput : parsed.visibleText,
     citations: {},
     markerMap: {},
     format: "none",

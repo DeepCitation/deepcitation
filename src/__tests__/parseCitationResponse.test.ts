@@ -170,6 +170,25 @@ describe("parseCitationResponse — edge cases", () => {
     expect(result.visibleText).toBe("Just a plain response with no citations.");
   });
 
+  it("issue-2645: strips citation scaffolding even when the delimiter is missing", () => {
+    const result = parseCitationResponse(`Treatment plan
+
+Referral to a pain clinic is planned.
+
+Attachment ID: att-public-room
+Source Context: "The patient should be referred to the pain clinic."
+Source Match: "pain clinic"
+Line IDs: 15
+Page ID: page_number_1_index_0`);
+
+    expect(result.format).toBe("none");
+    expect(Object.keys(result.citations).length).toBe(0);
+    expect(Object.keys(result.markerMap).length).toBe(0);
+    expect(result.visibleText).toBe("Treatment plan\n\nReferral to a pain clinic is planned.");
+    expect(result.visibleText).not.toContain("Attachment ID");
+    expect(result.visibleText).not.toContain("Source Context");
+  });
+
   it("empty string → safe empty result", () => {
     const result = parseCitationResponse("");
     expect(result.format).toBe("none");

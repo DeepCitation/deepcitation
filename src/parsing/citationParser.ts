@@ -117,6 +117,38 @@ export const CITATION_MARKER_PATTERN = /(\[\d+\])/;
 const CITATION_LINK_RE = /\[([^\][]+)\]\(cite:(\d+)\)/g;
 
 const CITATION_DATA_END_DELIMITER_VARIANTS = [CITATION_DATA_END_DELIMITER, "<<</CITATION_DATA>>>"] as const;
+const CITATION_SCAFFOLD_LABEL_RE = /^\s*(Attachment ID|Source Context|Source Match|Line IDs?|Page ID)\s*:/i;
+const CITATION_SCAFFOLD_PREFACE_RE = /^\s*(?:Now,\s*)?I need to (?:generate|construct|create|produce).*citation data/i;
+
+function extractVisibleTextBeforeMalformedCitationScaffold(llmResponse: string): string | null {
+  const lines = llmResponse.split(/\r?\n/);
+  const labels = new Set<string>();
+  let firstLabelLine = -1;
+
+  for (let index = 0; index < lines.length; index++) {
+    const label = CITATION_SCAFFOLD_LABEL_RE.exec(lines[index] ?? "")?.[1]?.toLowerCase();
+    if (!label) continue;
+    labels.add(label.replace(/\s+/g, " "));
+    if (firstLabelLine === -1) firstLabelLine = index;
+  }
+
+  const hasCitationScaffold = labels.has("source context") && labels.has("source match") && labels.size >= 3;
+  if (firstLabelLine === -1 || !hasCitationScaffold) {
+    return null;
+  }
+
+  let scaffoldStart = firstLabelLine;
+  for (let cursor = firstLabelLine - 1; cursor >= 0; cursor--) {
+    const line = lines[cursor] ?? "";
+    if (!line.trim()) continue;
+    if (CITATION_SCAFFOLD_PREFACE_RE.test(line)) {
+      scaffoldStart = cursor;
+    }
+    break;
+  }
+
+  return lines.slice(0, scaffoldStart).join("\n").trim();
+}
 
 /**
  * Returns true when a <<<CITATION_DATA>>> block exists but contains only
@@ -447,6 +479,17 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
 
   // No citation data block found - return full text as visible
   if (startIndex === -1) {
+    const visibleText = extractVisibleTextBeforeMalformedCitationScaffold(llmResponse);
+    if (visibleText !== null) {
+      return {
+        visibleText,
+        citations: [],
+        citationMap: new Map(),
+        success: false,
+        error: "Missing citation data delimiter around citation scaffolding",
+      };
+    }
+
     return {
       visibleText: llmResponse.trim(),
       citations: [],

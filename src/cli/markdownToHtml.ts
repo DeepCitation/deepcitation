@@ -145,6 +145,10 @@ function wrapCitationMarkerTextSegment(text: string, sourceMatchMap?: CitationSo
         cursor = markerEnd;
         continue;
       }
+
+      out += `${textBefore}<span data-cite="${num}"></span>`;
+      cursor = markerEnd;
+      continue;
     }
 
     const clauseMatch = trimmed.match(/(?:[,;–—]\s*)([^,;–—]+)$/);
