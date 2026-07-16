@@ -16,6 +16,7 @@ import {
   CITATION_DATA_END_DELIMITER,
   CITATION_DATA_START_DELIMITER,
   type CitationData,
+  type CompactCitationData,
 } from "../prompts/citationPrompts.js";
 import type { SearchStatus } from "../types/search.js";
 import { getCitationKey } from "../utils/citationKey.js";
@@ -1944,6 +1945,40 @@ describe("citationDataToCitation — children → supportingFacts", () => {
 });
 
 describe("parseCitationData — compact children round-trip", () => {
+  it("issue-3288: preserves compact child claim text independently from its source match", () => {
+    const compactFixture: CompactCitationData = {
+      n: 1,
+      f: "The fictional launch report names the Aurora relay.",
+      k: "Aurora relay",
+      c: [
+        {
+          n: 0,
+          d: "The fictional project cleared its first launch review",
+          f: "The fictional launch report says the Aurora relay cleared its first launch review.",
+          k: "Aurora relay",
+        },
+        {
+          n: 0,
+          f: "The fictional launch report records a later rehearsal.",
+          k: "later rehearsal",
+        },
+      ],
+    };
+    const llmOutput = `Analysis [1].\n${CITATION_DATA_START_DELIMITER}\n${JSON.stringify([compactFixture])}\n${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseCitationData(llmOutput);
+    const childWithClaim = result.citations[0]?.children?.[0];
+    const childWithoutClaim = result.citations[0]?.children?.[1];
+    const citation = result.citations[0] && citationDataToCitation(result.citations[0]);
+
+    expect(childWithClaim?.claim_text).toBe("The fictional project cleared its first launch review");
+    expect(childWithClaim?.source_match).toBe("Aurora relay");
+    expect(citation?.supportingFacts?.[0]?.claimText).toBe("The fictional project cleared its first launch review");
+    expect(citation?.supportingFacts?.[0]?.sourceMatch).toBe("Aurora relay");
+    expect(childWithoutClaim?.claim_text).toBeUndefined();
+    expect(citation?.supportingFacts?.[1]?.claimText).toBeUndefined();
+  });
+
   it("expands compact-key children through full parse pipeline", () => {
     const json = JSON.stringify([
       {

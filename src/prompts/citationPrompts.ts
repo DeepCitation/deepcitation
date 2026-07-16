@@ -734,6 +734,8 @@ export interface CompactCitationData {
   f?: string;
   /** Key phrase (k) - source match */
   k?: string;
+  /** Domain A claim text (d) */
+  d?: string;
   /** Page ID (p) - format "page_number_N_index_I" */
   p?: string;
   /** Line IDs (l) */
