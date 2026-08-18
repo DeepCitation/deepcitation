@@ -11,6 +11,7 @@ import {
   SPOTLIGHT_PADDING,
 } from "../drawing/citationDrawing.js";
 import type { DeepTextItem } from "../types/boxes.js";
+import type { GeometrySpace } from "../types/geometrySpace.js";
 import {
   ERROR_COLOR_DEFAULT,
   ERROR_COLOR_VAR,
@@ -56,6 +57,7 @@ function SecondaryBrackets({
   color = "amber",
   coordinateOrigin,
   viewBoxOriginY,
+  geometrySpace,
 }: {
   deepItem: DeepTextItem;
   renderScale: { x: number; y: number };
@@ -64,6 +66,7 @@ function SecondaryBrackets({
   color?: "amber" | "muted";
   coordinateOrigin?: CoordinateOrigin;
   viewBoxOriginY?: number;
+  geometrySpace?: GeometrySpace;
 }) {
   const rect = toPercentRect(
     deepItem,
@@ -72,6 +75,7 @@ function SecondaryBrackets({
     imageNaturalHeight,
     coordinateOrigin,
     viewBoxOriginY,
+    geometrySpace,
   );
   if (!rect) return null;
 
@@ -153,6 +157,7 @@ export function CitationAnnotationOverlay({
   isDark,
   coordinateOrigin,
   viewBoxOriginY,
+  geometrySpace,
 }: {
   sourceContextDeepItem: DeepTextItem;
   renderScale: { x: number; y: number };
@@ -168,10 +173,18 @@ export function CitationAnnotationOverlay({
   onDismiss?: () => void;
   /** When true, uses a light overlay for dark page content. */
   isDark?: boolean;
-  /** Coordinate origin convention for DeepTextItem positions. Defaults to "pdf". */
+  /**
+   * Coordinate origin convention for DeepTextItem positions. Defaults to "pdf".
+   * @deprecated Prefer `geometrySpace`, which wins when both are supplied.
+   */
   coordinateOrigin?: CoordinateOrigin;
-  /** PDF viewBox Y-origin offset for pages where CropBox doesn't start at y=0. */
+  /**
+   * PDF viewBox Y-origin offset for pages where CropBox doesn't start at y=0.
+   * @deprecated Prefer `geometrySpace`; ignored for `"canonical-v1"` payloads.
+   */
   viewBoxOriginY?: number;
+  /** Coordinate space of the supplied DeepTextItems. Wins over `coordinateOrigin`. */
+  geometrySpace?: GeometrySpace;
 }) {
   const t = useTranslation();
 
@@ -182,6 +195,7 @@ export function CitationAnnotationOverlay({
     imageNaturalHeight,
     coordinateOrigin,
     viewBoxOriginY,
+    geometrySpace,
   );
   // Bail out if geometry is invalid (zero dimensions, NaN, Infinity, etc.)
   if (!rect) return null;
@@ -244,7 +258,15 @@ export function CitationAnnotationOverlay({
     const SAME_LINE_THRESHOLD_PCT = 0.5; // % top difference below which two rects share a line
     const rects = sourceMatchDeepItems
       .map(item =>
-        toPercentRect(item, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin, viewBoxOriginY),
+        toPercentRect(
+          item,
+          renderScale,
+          imageNaturalWidth,
+          imageNaturalHeight,
+          coordinateOrigin,
+          viewBoxOriginY,
+          geometrySpace,
+        ),
       )
       .filter((r): r is NonNullable<typeof r> => r != null)
       .sort((a, b) => parseFloat(a.left) - parseFloat(b.left));
@@ -345,6 +367,7 @@ export function CitationAnnotationOverlay({
           color={h.color}
           coordinateOrigin={coordinateOrigin}
           viewBoxOriginY={viewBoxOriginY}
+          geometrySpace={geometrySpace}
         />
       ))}
 

@@ -156,6 +156,13 @@ export function resolveEvidenceSourceAnchorRatio(
   // the sourceContextDeepItem is in evidence-image space and is the most
   // accurate anchor — it matches CitationAnnotationOverlay's spotlight exactly
   // (see "anchor ↔ spotlight invariant" tests in src/__tests__/resolvers.test.ts).
+  //
+  // The ratio is read top-down (`cy / dims.height`) in BOTH spaces and stays
+  // deliberately untagged: for a `canonical-v1` payload y already grows
+  // downward, so the ratio is exact; for a legacy bottom-left payload it is the
+  // same approximation it has always been. Routing this through the projection
+  // resolver would change legacy behaviour, which the tag migration must not
+  // do — the anchor is a scroll hint, not a drawn box.
   const contextItem = verification?.document?.sourceContextDeepItem;
   if (contextItem && contextItem.width > 0 && contextItem.height > 0) {
     const cx = contextItem.x + contextItem.width / 2;

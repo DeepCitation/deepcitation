@@ -6,10 +6,12 @@ import {
   toEvidencePercentRect,
 } from "../drawing/evidenceGeometry.js";
 import type { DeepTextItem } from "../types/boxes.js";
+import type { GeometrySpace } from "../types/geometrySpace.js";
 import { safeSplit } from "../utils/regexSafety.js";
 
 export type { CoordinateOrigin, ScrollAlignment } from "../drawing/evidenceGeometry.js";
 export { START_ALIGNMENT_INSET_PX } from "../drawing/evidenceGeometry.js";
+export type { GeometrySpace } from "../types/geometrySpace.js";
 
 /** Count whitespace-delimited words in a string. */
 export function wordCount(s: string): number {
@@ -40,6 +42,9 @@ export function isValidOverlayGeometry(
  * For image coordinates (`origin = "image"`): Y-axis is already top-down,
  * so no flip: `imageY = item.y * renderScale.y`.
  *
+ * `geometrySpace`, when supplied, names the space outright and wins over
+ * `origin` / `viewBoxOriginY` — see `resolveGeometryProjection`.
+ *
  * All outputs are clamped to [0, 100]% to prevent overlays from bleeding
  * outside the image bounds due to rounding errors.
  */
@@ -48,8 +53,9 @@ export function toPercentRect(
   renderScale: { x: number; y: number },
   imageNaturalWidth: number,
   imageNaturalHeight: number,
-  origin: CoordinateOrigin = "pdf",
-  viewBoxOriginY = 0,
+  origin?: CoordinateOrigin,
+  viewBoxOriginY?: number,
+  geometrySpace?: GeometrySpace,
 ): { left: string; top: string; width: string; height: string } | null {
   return toEvidencePercentRect({
     item,
@@ -58,6 +64,7 @@ export function toPercentRect(
     imageNaturalHeight,
     coordinateOrigin: origin,
     viewBoxOriginY,
+    geometrySpace,
   });
 }
 
@@ -78,9 +85,10 @@ export function computeAnnotationScrollTarget(
   zoom: number,
   containerWidth: number,
   containerHeight: number,
-  origin: CoordinateOrigin = "pdf",
-  viewBoxOriginY = 0,
+  origin?: CoordinateOrigin,
+  viewBoxOriginY?: number,
   alignX: ScrollAlignment = "center",
+  geometrySpace?: GeometrySpace,
 ): { scrollLeft: number; scrollTop: number } | null {
   return computeEvidenceScrollTarget({
     item,
@@ -92,6 +100,7 @@ export function computeAnnotationScrollTarget(
     viewportHeight: containerHeight,
     coordinateOrigin: origin,
     viewBoxOriginY,
+    geometrySpace,
     alignX,
   });
 }
@@ -108,8 +117,9 @@ export function computeAnnotationOriginPercent(
   renderScale: { x: number; y: number },
   imageNaturalWidth: number,
   imageNaturalHeight: number,
-  origin: CoordinateOrigin = "pdf",
-  viewBoxOriginY = 0,
+  origin?: CoordinateOrigin,
+  viewBoxOriginY?: number,
+  geometrySpace?: GeometrySpace,
 ): { xPercent: number; yPercent: number } | null {
   return computeEvidenceOriginPercent({
     item,
@@ -118,5 +128,6 @@ export function computeAnnotationOriginPercent(
     imageNaturalHeight,
     coordinateOrigin: origin,
     viewBoxOriginY,
+    geometrySpace,
   });
 }

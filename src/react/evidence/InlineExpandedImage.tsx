@@ -210,7 +210,10 @@ export function InlineExpandedImage({
   const effectiveRenderScale = renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);
 
   // viewBoxOriginY corrects highlight Y-offset on PDF pages where CropBox doesn't start at y=0.
+  // geometrySpace supersedes it: a "canonical-v1" payload is already top-left with the
+  // offset removed, so the projection ignores viewBoxOriginY for those documents.
   const viewBoxOriginY = verification?.document?.viewBoxOriginY;
+  const geometrySpace = verification?.document?.geometrySpace;
 
   // Detect dark page content so the overlay can flip to a light color.
   const isDarkContent = useImageDarkness(
@@ -220,6 +223,7 @@ export function InlineExpandedImage({
     effectiveRenderScale,
     "pdf",
     viewBoxOriginY,
+    geometrySpace,
   );
 
   // Anchor-aware scroll/zoom target: when anchor text is highlighted, center on it
@@ -383,6 +387,8 @@ export function InlineExpandedImage({
         container.clientHeight,
         undefined,
         viewBoxOriginY,
+        undefined,
+        geometrySpace,
       );
       if (target) {
         const sl = target.scrollLeft + CANVAS_PADDING_PX;
@@ -413,6 +419,7 @@ export function InlineExpandedImage({
     effectiveRenderScale,
     containerRef,
     viewBoxOriginY,
+    geometrySpace,
   ]);
 
   useEffect(() => {
@@ -485,6 +492,8 @@ export function InlineExpandedImage({
       container.clientHeight,
       undefined,
       viewBoxOriginY,
+      undefined,
+      geometrySpace,
     );
     if (target) {
       // Offset by canvas padding — image starts at CANVAS_PADDING_PX inside the shell.
@@ -509,6 +518,7 @@ export function InlineExpandedImage({
     naturalWidth,
     naturalHeight,
     viewBoxOriginY,
+    geometrySpace,
   ]);
 
   // Scroll listener for locate dirty-bit detection.
@@ -751,6 +761,7 @@ export function InlineExpandedImage({
           naturalHeight,
           undefined,
           viewBoxOriginY,
+          geometrySpace,
         )
       : null;
   // VT geometry target: always use the full phrase rect so the View Transition
@@ -781,6 +792,7 @@ export function InlineExpandedImage({
           annotationBaseDimensions.height,
           undefined,
           viewBoxOriginY,
+          geometrySpace,
         )
       : null;
   const pageExpandTargetReady = !!fill && !!annotationVtRect && !!imageLoaded && pageExpandReady;
@@ -1071,6 +1083,7 @@ export function InlineExpandedImage({
                     onDismiss={fill ? handleOverlayDismiss : undefined}
                     isDark={isDarkContent}
                     viewBoxOriginY={viewBoxOriginY}
+                    geometrySpace={geometrySpace}
                   />
                 )}
               {/* View Transition anchor: positioned at the annotation rect so the

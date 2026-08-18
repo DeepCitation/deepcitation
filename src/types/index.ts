@@ -22,6 +22,7 @@ export type {
   VerifyCitationRequest,
   VerifyCitationResponse,
 } from "./citation.js";
+export type { GeometrySpace } from "./geometrySpace.js";
 // LLM search attempt types
 export type { LlmAmendment, LlmSearchAttempt } from "./llmAttempt.js";
 // Search status types

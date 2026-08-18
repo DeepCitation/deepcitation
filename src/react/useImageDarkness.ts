@@ -4,7 +4,9 @@
  */
 import { useEffect, useState } from "react";
 import { BOX_PADDING, SPOTLIGHT_PADDING } from "../drawing/citationDrawing.js";
+import { projectEvidenceItemToImageRect } from "../drawing/evidenceGeometry.js";
 import type { DeepTextItem } from "../types/boxes.js";
+import type { GeometrySpace } from "../types/geometrySpace.js";
 import type { CoordinateOrigin } from "./overlayGeometry.js";
 
 /** Luminance threshold (0–255). Below this → dark content. */
@@ -91,6 +93,7 @@ export function useImageDarkness(
   renderScale: { x: number; y: number } | null,
   coordinateOrigin: CoordinateOrigin = "pdf",
   viewBoxOriginY = 0,
+  geometrySpace?: GeometrySpace,
 ): boolean {
   const [isDark, setIsDark] = useState(false);
 
@@ -103,18 +106,27 @@ export function useImageDarkness(
       return;
     }
 
-    // Compute spotlight rect in natural-image-pixel coordinates.
-    const sx = scaleX ?? 1;
-    const sy = scaleY ?? 1;
+    // Compute spotlight rect in natural-image-pixel coordinates. The Y
+    // direction comes from the shared projection so this sampler cannot drift
+    // from what the overlay actually draws.
     const pad = BOX_PADDING + SPOTLIGHT_PADDING;
-    const nh = img.naturalHeight || 1;
-    const spotX = phraseItem.x * sx - pad;
-    // For PDF coords (bottom-up Y), flip to image top-down; for image coords, use directly.
-    // Subtract viewBoxOriginY to normalize coordinates from absolute PDF space.
-    const spotY =
-      coordinateOrigin === "image" ? phraseItem.y * sy - pad : nh - (phraseItem.y - viewBoxOriginY) * sy - pad;
-    const spotW = phraseItem.width * sx + 2 * pad;
-    const spotH = phraseItem.height * sy + 2 * pad;
+    const rect = projectEvidenceItemToImageRect({
+      item: phraseItem,
+      renderScale: { x: scaleX ?? 1, y: scaleY ?? 1 },
+      imageNaturalWidth: img.naturalWidth || 1,
+      imageNaturalHeight: img.naturalHeight || 1,
+      coordinateOrigin,
+      viewBoxOriginY,
+      geometrySpace,
+    });
+    if (!rect) {
+      setIsDark(false);
+      return;
+    }
+    const spotX = rect.x - pad;
+    const spotY = rect.y - pad;
+    const spotW = rect.width + 2 * pad;
+    const spotH = rect.height + 2 * pad;
 
     // Load a separate CORS-enabled probe image. The browser will serve it
     // from cache (same URL), but the crossOrigin flag makes the canvas
@@ -131,7 +143,7 @@ export function useImageDarkness(
       setIsDark(false);
     };
     probe.src = img.src;
-  }, [img, imageLoaded, phraseItem, scaleX, scaleY, coordinateOrigin, viewBoxOriginY]);
+  }, [img, imageLoaded, phraseItem, scaleX, scaleY, coordinateOrigin, viewBoxOriginY, geometrySpace]);
 
   return isDark;
 }

@@ -58,6 +58,8 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `wordCount()` | `src/react/overlayGeometry.ts` | Safe word counting with size limits |
 | `toPercentRect()` | `src/react/overlayGeometry.ts` | PDF to CSS coordinate conversion |
 | `isValidOverlayGeometry()` | `src/react/overlayGeometry.ts` | Geometry validation |
+| `GeometrySpace` | `src/types/geometrySpace.ts` | Coordinate space tag on a verification payload (`"canonical-v1"` / `"pdf-scale1-bottom-left"`) |
+| `resolveGeometryProjection()` | `src/drawing/evidenceGeometry.ts` | Single decision point turning `geometrySpace` + legacy `coordinateOrigin`/`viewBoxOriginY` into the origin the drawing math uses — never hand-roll a Y-flip |
 | `isPartialSearchStatus()` | `src/react/citationStatus.ts` | Single source of truth for partial status checks |
 | `getStatusFromVerification()` | `src/react/citationStatus.ts` | Verification → CitationStatus mapping |
 | `getStatusLabel()` | `src/react/citationStatus.ts` | Status → display string |

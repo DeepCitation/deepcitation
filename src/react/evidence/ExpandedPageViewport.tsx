@@ -105,6 +105,8 @@ export function ExpandedPageViewport({
   const effectiveAnchorItems = anchorItem ? [anchorItem] : (verification?.document?.sourceMatchDeepItems ?? null);
   const effectiveRenderScale = renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);
   const viewBoxOriginY = verification?.document?.viewBoxOriginY;
+  // Supersedes viewBoxOriginY: "canonical-v1" geometry is already top-left.
+  const geometrySpace = verification?.document?.geometrySpace;
   const effectiveOverlayHidden = showOverlay !== undefined ? !showOverlay : overlayHidden;
 
   const overlayHighlightColor = useMemo((): HighlightColor => {
@@ -203,6 +205,8 @@ export function ExpandedPageViewport({
       el.clientHeight,
       undefined,
       viewBoxOriginY,
+      undefined,
+      geometrySpace,
     );
     if (!target) return;
     const sl = target.scrollLeft + EXPANDED_PAGE_CANVAS_PADDING_PX;
@@ -223,6 +227,7 @@ export function ExpandedPageViewport({
     width,
     height,
     viewBoxOriginY,
+    geometrySpace,
   ]);
 
   useEffect(() => {
@@ -477,6 +482,7 @@ export function ExpandedPageViewport({
           height,
           undefined,
           viewBoxOriginY,
+          geometrySpace,
         )
       : null;
   const annotationVtRect =
@@ -488,6 +494,7 @@ export function ExpandedPageViewport({
           contentReady ? height : (expectedDimensions?.height ?? 0),
           undefined,
           viewBoxOriginY,
+          geometrySpace,
         )
       : null;
   const pageExpandTargetReady = !!annotationVtRect && contentReady && pageExpandReady;
@@ -604,6 +611,7 @@ export function ExpandedPageViewport({
                     onDismiss={handleOverlayDismiss}
                     isDark={isDark}
                     viewBoxOriginY={viewBoxOriginY}
+                    geometrySpace={geometrySpace}
                   />
                 )}
                 {annotationVtRect && (

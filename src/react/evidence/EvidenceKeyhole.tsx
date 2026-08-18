@@ -1,6 +1,10 @@
 import type React from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { selectEvidenceKeyholeScrollItem } from "../../drawing/evidenceGeometry.js";
+import {
+  projectEvidenceItemToImageRect,
+  resolveGeometryProjection,
+  selectEvidenceKeyholeScrollItem,
+} from "../../drawing/evidenceGeometry.js";
 import type { Verification } from "../../types/verification.js";
 import { DOCUMENT_CANVAS_BG_CLASSES, DOCUMENT_IMAGE_EDGE_CLASSES } from "../constants.js";
 import { AimOverlay } from "../debug/AimOverlay.js";
@@ -69,8 +73,9 @@ export function EvidenceKeyhole({
       verification.document?.renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);
     if (!renderScale) return null;
     const viewBoxOriginY = verification.document?.viewBoxOriginY;
+    const geometrySpace = verification.document?.geometrySpace;
     const phraseItem = verification.document?.sourceContextDeepItem;
-    return { anchorItem, renderScale, viewBoxOriginY, phraseItem };
+    return { anchorItem, renderScale, viewBoxOriginY, geometrySpace, phraseItem };
   }, [verification]);
   // Annotation anchor ratio in image space (0–1 on each axis), used by the
   // page-expand ghost animation to align the ghost over the annotation on the
@@ -170,13 +175,19 @@ export function EvidenceKeyhole({
       const { anchorItem, renderScale } = anchorScrollData;
 
       // Detect snippet mode: the verify API may return a cropped evidence image
-      // (e.g. 976×354) while bounding-box coordinates are in full-page PDF space
-      // (y ≈ 722 in a ~791-unit-tall page). The Y-flip formula
-      // `imageH - y*scale` goes negative when imageH is the snippet, not the
-      // full page. Detect this by checking whether the anchor's converted pixelY
-      // would land outside the image bounds.
-      const testPixelY = img.naturalHeight - (anchorItem.y - (anchorScrollData.viewBoxOriginY ?? 0)) * renderScale.y;
-      const isSnippet = testPixelY < 0 || testPixelY > img.naturalHeight;
+      // (e.g. 976×354) while bounding-box coordinates are in full-page space
+      // (y ≈ 722 in a ~791-unit-tall page). Projecting a full-page coordinate
+      // against a snippet-sized image lands outside the image in either space —
+      // negative under the bottom-left flip, past the bottom under canonical.
+      const anchorRect = projectEvidenceItemToImageRect({
+        item: anchorItem,
+        renderScale,
+        imageNaturalWidth: img.naturalWidth,
+        imageNaturalHeight: img.naturalHeight,
+        viewBoxOriginY: anchorScrollData.viewBoxOriginY,
+        geometrySpace: anchorScrollData.geometrySpace,
+      });
+      const isSnippet = !anchorRect || anchorRect.y < 0 || anchorRect.y > img.naturalHeight;
 
       if (isSnippet && anchorScrollData.phraseItem) {
         // Snippet mode: compute anchor position relative to the phraseMatch,
@@ -191,8 +202,16 @@ export function EvidenceKeyhole({
         // Approximate phrase top padding within the snippet (assumes constant
         // padding crop). Clamp to 0 in case of edge clamping.
         const phrasePadY = Math.max(0, (img.naturalHeight - phrasePixelH) / 2);
-        // Anchor offset below phrase top (PDF Y-flip: higher y = higher on page)
-        const anchorBelowPhraseTop = (phrase.y - anchorItem.y) * renderScale.y;
+        // Anchor offset below the phrase top. Bottom-left space counts upward
+        // (higher y = higher on the page), canonical space counts downward.
+        const { coordinateOrigin } = resolveGeometryProjection({
+          geometrySpace: anchorScrollData.geometrySpace,
+          viewBoxOriginY: anchorScrollData.viewBoxOriginY,
+        });
+        const anchorBelowPhraseTop =
+          coordinateOrigin === "image"
+            ? (anchorItem.y - phrase.y) * renderScale.y
+            : (phrase.y - anchorItem.y) * renderScale.y;
         const anchorPixelYInSnippet = Math.max(0, phrasePadY + anchorBelowPhraseTop);
         const anchorPixelHInSnippet = anchorItem.height * renderScale.y;
 
@@ -239,6 +258,7 @@ export function EvidenceKeyhole({
           undefined,
           anchorScrollData.viewBoxOriginY,
           "center",
+          anchorScrollData.geometrySpace,
         );
         if (target) {
           container.scrollLeft = target.scrollLeft;

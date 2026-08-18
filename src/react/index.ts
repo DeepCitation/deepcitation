@@ -206,7 +206,7 @@ export { esMessages } from "./locales/es.js";
 export { frMessages } from "./locales/fr.js";
 export { viMessages } from "./locales/vi.js";
 // Overlay Geometry Types
-export type { CoordinateOrigin } from "./overlayGeometry.js";
+export type { CoordinateOrigin, GeometrySpace } from "./overlayGeometry.js";
 // Prefetch utilities (for pre-rendering images before hover)
 export {
   clearPrefetchCache,

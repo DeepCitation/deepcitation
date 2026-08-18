@@ -4,6 +4,8 @@
  * This file exists solely as the tsup entry point for `deepcitation/drawing`.
  * All symbols are defined in `./citationDrawing.ts`.
  */
+
+export type { GeometrySpace } from "../types/geometrySpace.js";
 export {
   ANCHOR_HIGHLIGHT_COLOR,
   ANCHOR_HIGHLIGHT_COLOR_DARK,
@@ -47,6 +49,8 @@ export {
   type ImageRect,
   isValidEvidenceGeometry,
   projectEvidenceItemToImageRect,
+  type ResolvedGeometryProjection,
+  resolveGeometryProjection,
   type ScrollAlignment,
   START_ALIGNMENT_INSET_PX,
   selectEvidenceAnnotationScrollItem,

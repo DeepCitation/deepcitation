@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`extractTrailingClaimText(segment, sourceMatch?)`** — richer successor to `stripClaimText` that returns `{ stripped, claimText }`. Recognises additional wrappers around LLM-emitted claim values (backticks, straight and curly quotes, `` **`code`** `` / `` *`code`* `` composites) and falls back to sourceMatch-agnostic extraction when the LLM's wrapped value diverges from the citation's verified `sourceMatch`. Callers can forward `claimText` to `CitationComponent.claimText` so the trigger shows what the model wrote while the popover continues to display the verified claim.
 - **`onClickBeforeDefault` and `onDoubleClick` event hooks** on `CitationComponent` — intercept the click before default popover behavior or handle double-click for custom drill-down. (#439)
 - **`renderEvidenceKeyhole` slot** on `CitationComponent` — host-supplied renderer for the popover summary keyhole strip; lets integrators swap the default JPEG keyhole for an alternative (e.g. a live PDF mini-viewer). The new `EvidenceKeyholeRenderProps` type mirrors the props the default `EvidenceKeyhole` consumes so hosts can either delegate or render an alternative. Returning `null`/`undefined` falls back to the default keyhole. Ignored when `renderPopoverContent` is set.
+- **`geometrySpace` on `DocumentVerificationResult`** — verification payloads can now name the coordinate space their boxes live in (`"canonical-v1"` top-left, `"pdf-scale1-bottom-left"`) instead of leaving consumers to infer it. Every drawing entry point (`projectEvidenceItemToImageRect`, `toEvidencePercentRect`, `computeEvidenceCropLayout`, `computeEvidenceScrollTarget`, `computeEvidenceOriginPercent`, and the `toPercentRect` / `computeAnnotationScrollTarget` / `computeAnnotationOriginPercent` React wrappers) accepts the tag, and `CitationAnnotationOverlay` takes it as a prop. Payloads without the tag render exactly as before. (#4744)
+- **`resolveGeometryProjection` and `GeometrySpace`** — the single exported resolver that turns a `geometrySpace` tag plus the legacy `coordinateOrigin` / `viewBoxOriginY` pair into the origin the drawing math uses. Hosts doing their own overlay math should call it instead of hand-rolling a Y-flip. (#4744)
 - **`CitationAnnotationOverlay` value export** — the CSS spotlight + brackets + anchor-highlight overlay (previously type-only) is now exported as a component so hosts rendering live page images can reuse it; server-rendered images already have these annotations baked in.
 
 ### Changed
@@ -22,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Deprecated
 
+- **`CoordinateOrigin`, `coordinateOrigin`, and `viewBoxOriginY`** — superseded by the `geometrySpace` tag, which names the whole coordinate space rather than only its Y direction. All three stay exported and functional: they are still what an untagged payload is read through, and they are still honoured for a `"pdf-scale1-bottom-left"` payload. When both are supplied the tag wins. (#4744)
 - **`stripClaimText`** — prefer `extractTrailingClaimText` which also returns the extracted claim text (needed when the LLM's wrapped value diverges from the verified `sourceMatch`). The old function remains exported and functional for back-compat.
 
 ### Fixed

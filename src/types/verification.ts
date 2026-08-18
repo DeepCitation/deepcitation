@@ -1,5 +1,6 @@
 import type { DeepTextItem, ScreenBox } from "./boxes.js";
 import type { Citation } from "./citation.js";
+import type { GeometrySpace } from "./geometrySpace.js";
 import type { LlmSearchAttempt } from "./llmAttempt.js";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "./search.js";
 
@@ -126,8 +127,20 @@ export interface DocumentVerificationResult {
    * from PDF.js are offset by this amount from the image origin.
    * Used by overlay geometry to correct highlight positioning on pages
    * where the CropBox/MediaBox doesn't start at y=0.
+   *
+   * @deprecated Superseded by `geometrySpace`. `"canonical-v1"` payloads have
+   * the offset removed at ingestion and ignore this field; it is still read for
+   * payloads that carry no `geometrySpace`.
    */
   viewBoxOriginY?: number;
+  /**
+   * Coordinate space of every box on this result (`sourceContextDeepItem`,
+   * `sourceMatchDeepItems`, `textItems`, `highlightBox`).
+   *
+   * Absent on payloads produced before the tag existed; those are read as
+   * bottom-left PDF space via `viewBoxOriginY`, exactly as before.
+   */
+  geometrySpace?: GeometrySpace;
 }
 
 /**

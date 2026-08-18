@@ -1,7 +1,51 @@
 import type { DeepTextItem, ScreenBox } from "../types/boxes.js";
+import type { GeometrySpace } from "../types/geometrySpace.js";
 import { BOX_PADDING, isStrategyOverride, SPOTLIGHT_PADDING, shouldHighlightSourceMatch } from "./citationDrawing.js";
 
+/**
+ * @deprecated Prefer the `geometrySpace` tag on the verification payload, which
+ * names the whole coordinate space instead of only its Y direction. Still
+ * exported and honoured for payloads that predate the tag.
+ */
 export type CoordinateOrigin = "pdf" | "image";
+
+/** Legacy origin fields resolved into the pair the projection math consumes. */
+export interface ResolvedGeometryProjection {
+  coordinateOrigin: CoordinateOrigin;
+  viewBoxOriginY: number;
+}
+
+/**
+ * Single decision point for "which way is up?" across every drawing surface.
+ *
+ * Precedence is `geometrySpace` first, legacy fields second:
+ * - `"canonical-v1"` — already top-left with the viewBox offset removed at
+ *   ingestion, so it takes the `"image"` (no-flip) path with `viewBoxOriginY`
+ *   forced to 0, whatever the legacy fields say.
+ * - `"pdf-scale1-bottom-left"` — bottom-left, so it takes the flip path.
+ *   `viewBoxOriginY` still applies: the tag names the origin corner, not
+ *   whether the page's viewBox offset was folded in.
+ * - absent — the legacy fields decide, with today's defaults (`"pdf"`, 0). This
+ *   is the fail-safe direction: an untagged payload projects byte-identically
+ *   to how it projected before the tag existed.
+ */
+export function resolveGeometryProjection({
+  geometrySpace,
+  coordinateOrigin,
+  viewBoxOriginY,
+}: {
+  geometrySpace?: GeometrySpace;
+  coordinateOrigin?: CoordinateOrigin;
+  viewBoxOriginY?: number;
+}): ResolvedGeometryProjection {
+  if (geometrySpace === "canonical-v1") {
+    return { coordinateOrigin: "image", viewBoxOriginY: 0 };
+  }
+  if (geometrySpace === "pdf-scale1-bottom-left") {
+    return { coordinateOrigin: "pdf", viewBoxOriginY: viewBoxOriginY ?? 0 };
+  }
+  return { coordinateOrigin: coordinateOrigin ?? "pdf", viewBoxOriginY: viewBoxOriginY ?? 0 };
+}
 
 export type ScrollAlignment = "center" | "start";
 
@@ -64,25 +108,31 @@ export function projectEvidenceItemToImageRect({
   renderScale,
   imageNaturalWidth,
   imageNaturalHeight,
-  coordinateOrigin = "pdf",
-  viewBoxOriginY = 0,
+  coordinateOrigin,
+  viewBoxOriginY,
+  geometrySpace,
 }: {
   item: ScreenBox;
   renderScale: { x: number; y: number };
   imageNaturalWidth: number;
   imageNaturalHeight: number;
+  /** @deprecated Prefer `geometrySpace`; honoured only when no tag is present. */
   coordinateOrigin?: CoordinateOrigin;
+  /** @deprecated Prefer `geometrySpace`; ignored for `"canonical-v1"` payloads. */
   viewBoxOriginY?: number;
+  /** Coordinate space of `item`. Wins over the legacy fields when set. */
+  geometrySpace?: GeometrySpace;
 }): ImageRect | null {
   if (!isValidEvidenceGeometry(renderScale, imageNaturalWidth, imageNaturalHeight)) {
     return null;
   }
 
+  const projection = resolveGeometryProjection({ geometrySpace, coordinateOrigin, viewBoxOriginY });
   const x = item.x * renderScale.x;
   const y =
-    coordinateOrigin === "image"
+    projection.coordinateOrigin === "image"
       ? item.y * renderScale.y
-      : imageNaturalHeight - (item.y - viewBoxOriginY) * renderScale.y;
+      : imageNaturalHeight - (item.y - projection.viewBoxOriginY) * renderScale.y;
 
   return {
     x,
@@ -97,15 +147,20 @@ export function toEvidencePercentRect({
   renderScale,
   imageNaturalWidth,
   imageNaturalHeight,
-  coordinateOrigin = "pdf",
-  viewBoxOriginY = 0,
+  coordinateOrigin,
+  viewBoxOriginY,
+  geometrySpace,
 }: {
   item: ScreenBox;
   renderScale: { x: number; y: number };
   imageNaturalWidth: number;
   imageNaturalHeight: number;
+  /** @deprecated Prefer `geometrySpace`; honoured only when no tag is present. */
   coordinateOrigin?: CoordinateOrigin;
+  /** @deprecated Prefer `geometrySpace`; ignored for `"canonical-v1"` payloads. */
   viewBoxOriginY?: number;
+  /** Coordinate space of `item`. Wins over the legacy fields when set. */
+  geometrySpace?: GeometrySpace;
 }): { left: string; top: string; width: string; height: string } | null {
   const rect = projectEvidenceItemToImageRect({
     item,
@@ -114,6 +169,7 @@ export function toEvidencePercentRect({
     imageNaturalHeight,
     coordinateOrigin,
     viewBoxOriginY,
+    geometrySpace,
   });
   if (!rect) return null;
 
@@ -160,8 +216,9 @@ export function computeEvidenceCropLayout({
   imageNaturalHeight,
   cropBoundsWidth = imageNaturalWidth,
   cropBoundsHeight = imageNaturalHeight,
-  coordinateOrigin = "pdf",
-  viewBoxOriginY = 0,
+  coordinateOrigin,
+  viewBoxOriginY,
+  geometrySpace,
   padding,
   boxPadding = BOX_PADDING,
   spotlightPadding = SPOTLIGHT_PADDING,
@@ -173,8 +230,12 @@ export function computeEvidenceCropLayout({
   imageNaturalHeight: number;
   cropBoundsWidth?: number;
   cropBoundsHeight?: number;
+  /** @deprecated Prefer `geometrySpace`; honoured only when no tag is present. */
   coordinateOrigin?: CoordinateOrigin;
+  /** @deprecated Prefer `geometrySpace`; ignored for `"canonical-v1"` payloads. */
   viewBoxOriginY?: number;
+  /** Coordinate space of the deep items. Wins over the legacy fields when set. */
+  geometrySpace?: GeometrySpace;
   padding: number;
   boxPadding?: number;
   spotlightPadding?: number;
@@ -191,6 +252,7 @@ export function computeEvidenceCropLayout({
     imageNaturalHeight,
     coordinateOrigin,
     viewBoxOriginY,
+    geometrySpace,
   });
   if (!sourceContextRect) return null;
 
@@ -223,6 +285,7 @@ export function computeEvidenceCropLayout({
         imageNaturalHeight,
         coordinateOrigin,
         viewBoxOriginY,
+        geometrySpace,
       });
       if (!rect) return [];
       return [
@@ -336,8 +399,9 @@ export function computeEvidenceScrollTarget({
   zoom,
   viewportWidth,
   viewportHeight,
-  coordinateOrigin = "pdf",
-  viewBoxOriginY = 0,
+  coordinateOrigin,
+  viewBoxOriginY,
+  geometrySpace,
   alignX = "center",
   edgeGutterWidth = 0,
   edgeGutterHeight = 0,
@@ -352,8 +416,12 @@ export function computeEvidenceScrollTarget({
   zoom: number;
   viewportWidth: number;
   viewportHeight: number;
+  /** @deprecated Prefer `geometrySpace`; honoured only when no tag is present. */
   coordinateOrigin?: CoordinateOrigin;
+  /** @deprecated Prefer `geometrySpace`; ignored for `"canonical-v1"` payloads. */
   viewBoxOriginY?: number;
+  /** Coordinate space of `item` / `verticalItem`. Wins over the legacy fields when set. */
+  geometrySpace?: GeometrySpace;
   alignX?: ScrollAlignment;
   edgeGutterWidth?: number;
   edgeGutterHeight?: number;
@@ -372,6 +440,7 @@ export function computeEvidenceScrollTarget({
     imageNaturalHeight,
     coordinateOrigin,
     viewBoxOriginY,
+    geometrySpace,
   });
   const verticalRect = projectEvidenceItemToImageRect({
     item: verticalItem ?? item,
@@ -380,6 +449,7 @@ export function computeEvidenceScrollTarget({
     imageNaturalHeight,
     coordinateOrigin,
     viewBoxOriginY,
+    geometrySpace,
   });
   if (!horizontalRect || !verticalRect) return null;
 
@@ -410,15 +480,20 @@ export function computeEvidenceOriginPercent({
   renderScale,
   imageNaturalWidth,
   imageNaturalHeight,
-  coordinateOrigin = "pdf",
-  viewBoxOriginY = 0,
+  coordinateOrigin,
+  viewBoxOriginY,
+  geometrySpace,
 }: {
   item: ScreenBox;
   renderScale: { x: number; y: number };
   imageNaturalWidth: number;
   imageNaturalHeight: number;
+  /** @deprecated Prefer `geometrySpace`; honoured only when no tag is present. */
   coordinateOrigin?: CoordinateOrigin;
+  /** @deprecated Prefer `geometrySpace`; ignored for `"canonical-v1"` payloads. */
   viewBoxOriginY?: number;
+  /** Coordinate space of `item`. Wins over the legacy fields when set. */
+  geometrySpace?: GeometrySpace;
 }): { xPercent: number; yPercent: number } | null {
   const rect = projectEvidenceItemToImageRect({
     item,
@@ -427,6 +502,7 @@ export function computeEvidenceOriginPercent({
     imageNaturalHeight,
     coordinateOrigin,
     viewBoxOriginY,
+    geometrySpace,
   });
   if (!rect) return null;
 

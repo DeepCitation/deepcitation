@@ -150,6 +150,7 @@ export {
   isDocumentCitation,
   isUrlCitation,
 } from "./types/citation.js";
+export type { GeometrySpace } from "./types/geometrySpace.js";
 export type {
   SearchAttempt,
   SearchMethod,
