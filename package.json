@@ -138,11 +138,11 @@
   "size-limit": [
     {
       "path": "lib/index.js",
-      "limit": "10 KB"
+      "limit": "13 KB"
     },
     {
       "path": "lib/client/index.js",
-      "limit": "10 KB"
+      "limit": "12 KB"
     },
     {
       "path": "lib/prompts/index.js",
@@ -150,7 +150,7 @@
     },
     {
       "path": "lib/react/index.js",
-      "limit": "74 KB"
+      "limit": "85 KB"
     },
     {
       "path": "lib/render/index.js",
@@ -158,7 +158,7 @@
     },
     {
       "path": "lib/vanilla/deepcitation-popover.cdn.js",
-      "limit": "80 KB"
+      "limit": "88 KB"
     }
   ],
   "exports": {

@@ -23,7 +23,10 @@ Run these before opening a PR:
 - TypeScript with strict typing and ESM modules.
 - Tests are colocated in `src/__tests__/`.
 - Prefer lightweight custom implementations over heavy dependencies to protect bundle size.
-- Keep react module bundle size at or below 15KB (`npm run size`).
+- Per-entry bundle budgets live in the `size-limit` block of `package.json` and
+  are checked by `npm run size` (also run by `release.yml`). They are budgets,
+  not targets: land under the limit, and treat raising one as a deliberate
+  decision that names what grew — never a reflex to turn the gate green.
 
 ## Citation Type Model
 
